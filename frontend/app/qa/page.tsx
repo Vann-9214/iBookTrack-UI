@@ -1,0 +1,305 @@
+"use client"
+
+import { useState } from "react"
+import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  RefreshCcw,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react"
+
+const commonIssues = [
+  { value: "bent-page", label: "Bent Page" },
+  { value: "missing-content", label: "Missing Content" },
+  { value: "blurred-text", label: "Blurred Text" },
+  { value: "torn-page", label: "Torn Page" },
+  { value: "water-damage", label: "Water Damage" },
+  { value: "ink-smudge", label: "Ink Smudge" },
+  { value: "binding-issue", label: "Binding Issue" },
+  { value: "wrong-orientation", label: "Wrong Orientation" },
+]
+
+const mockPages = Array.from({ length: 50 }, (_, i) => ({
+  pageNumber: i + 1,
+  hasIssue: [5, 12, 23, 34].includes(i + 1),
+}))
+
+export default function QualityCheckingPage() {
+  const [currentPage, setCurrentPage] = useState(1)
+  const [selectedIssue, setSelectedIssue] = useState("")
+  const [remarks, setRemarks] = useState("")
+  const [auditedBooks, setAuditedBooks] = useState(12)
+  const totalBooks = 50
+
+  const currentPageData = mockPages[currentPage - 1]
+  const progressPercent = (auditedBooks / totalBooks) * 100
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1)
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < mockPages.length) setCurrentPage(currentPage + 1)
+  }
+
+  const handleSync = () => {
+    console.log("Syncing to backend:", { selectedIssue, remarks })
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-background">
+      <DashboardSidebar />
+
+      <main className="flex-1 overflow-hidden">
+        <div className="flex h-full flex-col">
+          {/* Header */}
+          <header className="shrink-0 border-b border-border px-6 py-4 lg:px-8">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Quality Checking
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Perform page-by-page audits and log remarks for quality control.
+            </p>
+          </header>
+
+          {/* Split Screen Layout */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Left: Book Viewer */}
+            <div className="flex flex-1 flex-col border-r border-border">
+              {/* Viewer Toolbar */}
+              <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page{" "}
+                    <span className="font-medium text-foreground">
+                      {currentPage}
+                    </span>{" "}
+                    of {mockPages.length}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={handleNextPage}
+                    disabled={currentPage === mockPages.length}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ZoomOut className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <ZoomIn className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <RotateCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Book Viewer Area */}
+              <ScrollArea className="flex-1">
+                <div className="flex h-full items-center justify-center p-8">
+                  <div className="relative flex aspect-[3/4] w-full max-w-md items-center justify-center rounded-lg border border-border bg-card shadow-sm">
+                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                      <FileText className="h-16 w-16 opacity-50" />
+                      <div className="text-center">
+                        <p className="font-medium text-foreground">
+                          Page {currentPage}
+                        </p>
+                        <p className="text-sm">
+                          Digital book content would render here
+                        </p>
+                      </div>
+                    </div>
+                    {currentPageData?.hasIssue && (
+                      <Badge
+                        variant="outline"
+                        className="absolute top-4 right-4 border-warning/30 bg-warning/10 text-warning gap-1"
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        Flagged
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Right: Audit Controls Sidebar */}
+            <div className="w-80 shrink-0 lg:w-96">
+              <ScrollArea className="h-full">
+                <div className="flex flex-col gap-6 p-6">
+                  {/* Book Info */}
+                  <Card className="border-border bg-card">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-card-foreground">
+                        Book Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Book Title
+                        </label>
+                        <Input
+                          value="Operations Manual v3.2"
+                          readOnly
+                          className="mt-1.5"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          ISBN
+                        </label>
+                        <Input
+                          value="978-3-16-148410-0"
+                          readOnly
+                          className="mt-1.5 font-mono"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Audit Controls */}
+                  <Card className="border-border bg-card">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-card-foreground">
+                        Audit Controls
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Common Issues
+                        </label>
+                        <Select
+                          value={selectedIssue}
+                          onValueChange={setSelectedIssue}
+                        >
+                          <SelectTrigger className="mt-1.5">
+                            <SelectValue placeholder="Select an issue..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {commonIssues.map((issue) => (
+                              <SelectItem key={issue.value} value={issue.value}>
+                                {issue.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Specific Remarks
+                        </label>
+                        <Textarea
+                          placeholder="Add detailed notes about this page..."
+                          value={remarks}
+                          onChange={(e) => setRemarks(e.target.value)}
+                          className="mt-1.5 min-h-[100px] resize-none"
+                        />
+                      </div>
+                      <Button
+                        className="w-full gap-2"
+                        onClick={handleSync}
+                      >
+                        <RefreshCcw className="h-4 w-4" />
+                        Sync to Backend
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Page Status */}
+                  <Card className="border-border bg-card">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-card-foreground">
+                        Current Page Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2">
+                        {currentPageData?.hasIssue ? (
+                          <>
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                            <span className="text-sm text-warning">
+                              Issue flagged on this page
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 text-success" />
+                            <span className="text-sm text-success">
+                              No issues detected
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+
+          {/* Footer Progress Bar */}
+          <footer className="shrink-0 border-t border-border bg-muted/30 px-6 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Audit Progress</span>
+                  <span className="font-medium text-foreground">
+                    {auditedBooks} / {totalBooks} books
+                  </span>
+                </div>
+                <Progress value={progressPercent} className="h-2" />
+              </div>
+              <Badge
+                variant="outline"
+                className="border-primary/30 bg-primary/10 text-primary"
+              >
+                {Math.round(progressPercent)}% Complete
+              </Badge>
+            </div>
+          </footer>
+        </div>
+      </main>
+    </div>
+  )
+}

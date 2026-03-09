@@ -146,36 +146,64 @@ export function DashboardSidebar() {
           )}
         </div>
 
-        {/* Station Checkpoints (stub) */}
+        {/* Station Checkpoints */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/checkpoints')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/checkpoints')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/checkpoints') ? 'page' : undefined}
           title={collapsed ? 'Station Checkpoints' : undefined}
         >
           <MapPin className="h-5 w-5 shrink-0" />
           {!collapsed && <span className="truncate">Station Checkpoints</span>}
         </button>
 
-        {/* Quality Checking (stub) */}
+        {/* Quality Checking */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/qa')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/qa')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/qa') ? 'page' : undefined}
           title={collapsed ? 'Quality Checking' : undefined}
         >
           <CheckCircle className="h-5 w-5 shrink-0" />
           {!collapsed && <span className="truncate">Quality Checking</span>}
         </button>
 
-        {/* Transmission Monitor (stub) */}
+        {/* Transmission Monitor */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/transmission')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/transmission')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/transmission') ? 'page' : undefined}
           title={collapsed ? 'Transmission Monitor' : undefined}
         >
           <Radio className="h-5 w-5 shrink-0" />
           {!collapsed && <span className="truncate">Transmission Monitor</span>}
         </button>
 
-        {/* Warehouse Locator (stub) */}
+        {/* Warehouse Locator */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/locator')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/locator')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/locator') ? 'page' : undefined}
           title={collapsed ? 'Warehouse Locator' : undefined}
         >
           <Map className="h-5 w-5 shrink-0" />
