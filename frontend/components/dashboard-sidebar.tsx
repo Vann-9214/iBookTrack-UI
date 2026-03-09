@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 import {
   LayoutDashboard,
   Package,
@@ -37,16 +38,15 @@ export function DashboardSidebar() {
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-          iB
-        </div>
         {!collapsed && (
-          <div className="flex flex-col overflow-hidden">
-            <span className="truncate text-sm font-semibold text-sidebar-foreground">
-              iBookTrack
-            </span>
-            <span className="truncate text-xs text-muted-foreground">Warehouse OS</span>
-          </div>
+          <Image
+            src="/iBookTrack_logo.png"
+            alt="iBookTrack"
+            width={140}
+            height={140}
+            style={{ width: '60px', height: 'auto', transform: 'scale(2.9)', transformOrigin: 'left center' }}
+            priority
+          />
         )}
         <button
           className={cn(
@@ -63,7 +63,7 @@ export function DashboardSidebar() {
       <div className="h-px bg-sidebar-border" />
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-1" role="navigation" aria-label="Main navigation">
+      <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-1 max-h-screen" role="navigation" aria-label="Main navigation">
 
         {/* Dashboard */}
         <button
@@ -146,36 +146,64 @@ export function DashboardSidebar() {
           )}
         </div>
 
-        {/* Station Checkpoints (stub) */}
+        {/* Station Checkpoints */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/checkpoints')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/checkpoints')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/checkpoints') ? 'page' : undefined}
           title={collapsed ? 'Station Checkpoints' : undefined}
         >
           <MapPin className="h-5 w-5 shrink-0" />
           {!collapsed && <span className="truncate">Station Checkpoints</span>}
         </button>
 
-        {/* Quality Checking (stub) */}
+        {/* Quality Checking */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/qa')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/qa')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/qa') ? 'page' : undefined}
           title={collapsed ? 'Quality Checking' : undefined}
         >
           <CheckCircle className="h-5 w-5 shrink-0" />
           {!collapsed && <span className="truncate">Quality Checking</span>}
         </button>
 
-        {/* Transmission Monitor (stub) */}
+        {/* Transmission Monitor */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/transmission')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/transmission')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/transmission') ? 'page' : undefined}
           title={collapsed ? 'Transmission Monitor' : undefined}
         >
           <Radio className="h-5 w-5 shrink-0" />
           {!collapsed && <span className="truncate">Transmission Monitor</span>}
         </button>
 
-        {/* Warehouse Locator (stub) */}
+        {/* Warehouse Locator */}
         <button
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          onClick={() => router.push('/locator')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/locator')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/locator') ? 'page' : undefined}
           title={collapsed ? 'Warehouse Locator' : undefined}
         >
           <Map className="h-5 w-5 shrink-0" />
