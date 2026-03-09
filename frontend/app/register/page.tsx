@@ -179,6 +179,14 @@ export default function RegisterPage() {
             >
               Log in
             </button>
+            {' '}|{' '}
+            <button
+              type="button"
+              onClick={() => router.push('/forgot-password')}
+              className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              Forgot password
+            </button>
           </p>
         </div>
       </div>

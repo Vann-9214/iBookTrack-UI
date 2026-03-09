@@ -6,9 +6,6 @@ type BrandLogoProps = {
 
 export const BrandLogo = ({ ariaLabel = "iBookTrack home" }: BrandLogoProps) => (
   <a href="/landing-page" className="logo" aria-label={ariaLabel}>
-    <span className="logo-mark" aria-hidden>
-      IB
-    </span>
-    <span className="logo-text">iBookTrack</span>
+    <img src="/iBookTrack_logo.png" alt="iBookTrack" width={206} height={70} className="logo-image" />
   </a>
 );
