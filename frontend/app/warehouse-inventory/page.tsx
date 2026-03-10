@@ -44,6 +44,10 @@ export default function WarehouseInventoryPage() {
     setCurrentBox(prev => prev + 1)
   }
 
+  const handleDecrementBox = () => {
+    setCurrentBox(prev => Math.max(1, prev - 1))
+  }
+
   const handleEditScan = (id: string, status: ScannedBook['status']) => {
     setEditingId(id)
     setEditStatus(status)
@@ -135,6 +139,13 @@ export default function WarehouseInventoryPage() {
                       <option>Lot-36</option>
                     </select>
                     <button
+                      onClick={handleDecrementBox}
+                      disabled={currentBox <= 1}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous Box
+                    </button>
+                    <button
                       onClick={handleIncrementBox}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                     >
@@ -215,14 +226,6 @@ export default function WarehouseInventoryPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Close Session Button */}
-              <button
-                onClick={handleCloseSession}
-                className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-lg"
-              >
-                Close Session / Finish
-              </button>
             </>
           )}
 
