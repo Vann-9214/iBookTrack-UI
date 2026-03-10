@@ -33,7 +33,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-white">
 
       {/* ── Left Panel ── */}
-      <div className="hidden lg:flex w-2/5 items-center justify-center">
+      <div className="hidden lg:flex w-2/5 items-center justify-center pl-20">
         <Image
           src="/iBookTrack_logoA.png"
           alt="iBookTrack Logo"
