@@ -45,7 +45,7 @@ export function DashboardSidebar() {
             alt="iBookTrack"
             width={140}
             height={140}
-            style={{ width: '60px', height: 'auto', transform: 'scale(2.9)', transformOrigin: 'left center' }}
+            style={{ width: '60px', height: 'auto', transform: 'scale(3.5)', transformOrigin: 'left center' }}
             priority
           />
         )}
