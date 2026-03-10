@@ -10,21 +10,8 @@ export const metadata: Metadata = {
   title: 'InnoTrack - iBook Dashboard',
   description: 'Warehouse management command center for real-time pipeline tracking, transmission monitoring, and checkpoint management.',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/iBookTrack_logoN.png',
+    apple: '/iBookTrack_logoN.png',
   },
 }
 
