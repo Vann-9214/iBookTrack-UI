@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { FileImport } from '@/components/file-import'
+import { ImportModal } from '@/components/import-modal'
 import { MetricsRow } from '@/components/metrics-row'
 import { CategoryBreakdown } from '@/components/category-breakdown'
 import { PerformanceTrend } from '@/components/performance-trend'
@@ -41,24 +41,15 @@ export default function ReportsPage() {
               onClick={() => setShowImport(!showImport)}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
             >
-              {showImport ? 'Close' : 'Import Data'}
+              Import Data
             </button>
           </div>
 
-          {/* Import Section */}
-          {showImport && (
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
-                Import Delivery Data
-              </h2>
-              <FileImport onDataImport={handleDataImport} />
-              {importedData && (
-                <div className="mt-4 p-3 bg-success/10 border border-success rounded-lg">
-                  <p className="text-sm text-success font-medium">
-                    ✓ Data imported successfully! Dashboard will refresh with your data.
-                  </p>
-                </div>
-              )}
+          {importedData && (
+            <div className="bg-success/10 border border-success rounded-lg p-4">
+              <p className="text-sm text-success font-medium">
+                ✓ Data imported successfully! Dashboard will refresh with your data.
+              </p>
             </div>
           )}
 
@@ -72,6 +63,13 @@ export default function ReportsPage() {
           <PerformanceTrend dateRange={dateRange} setDateRange={setDateRange} />
         </div>
       </main>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        onDataImport={handleDataImport}
+      />
     </div>
   )
 }

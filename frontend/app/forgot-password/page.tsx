@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-screen bg-white">
-      <div className="hidden lg:flex w-2/5 items-center justify-center pl-20">
+      <div className="hidden lg:flex w-2/5 items-center justify-center pl-32">
         <Image
           src="/iBookTrack_logoA.png"
           alt="iBookTrack Logo"
