@@ -9,8 +9,45 @@ dotenv.config({ path: '../.env' })
 const app = express()
 const PORT = process.env.PORT || 5000
 
+const configuredOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean)
+
+const developmentOriginPatterns = [
+  /^http:\/\/localhost:3000$/,
+  /^http:\/\/localhost:3001$/,
+  /^http:\/\/127\.0\.0\.1:3000$/,
+  /^http:\/\/127\.0\.0\.1:3001$/,
+  /^http:\/\/\d{1,3}(?:\.\d{1,3}){3}:3000$/,
+  /^http:\/\/\d{1,3}(?:\.\d{1,3}){3}:3001$/,
+]
+
+function isAllowedOrigin(origin) {
+  if (!origin) {
+    return true
+  }
+
+  if (configuredOrigins.includes(origin)) {
+    return true
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return developmentOriginPatterns.some((pattern) => pattern.test(origin))
+  }
+
+  return false
+}
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true)
+      return
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`))
+  },
   credentials: true,
 }))
 app.use(express.json())

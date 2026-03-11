@@ -33,7 +33,7 @@ export function DashboardSidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
+        "relative z-20 sticky top-0 shrink-0 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
         collapsed ? "w-[68px]" : "w-64"
       )}
     >
@@ -45,7 +45,7 @@ export function DashboardSidebar() {
             alt="iBookTrack"
             width={140}
             height={140}
-            style={{ width: '60px', height: 'auto', transform: 'scale(3.5)', transformOrigin: 'left center' }}
+            style={{ width: '60px', height: 'auto', transform: 'scale(3.5)', transformOrigin: 'left center', pointerEvents: 'none' }}
             priority
           />
         )}
