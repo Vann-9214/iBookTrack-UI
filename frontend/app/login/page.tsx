@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import '../landing-page/landing_page.css'
+import { HeaderSection } from '../landing-page/components'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -30,23 +32,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="min-h-screen bg-white">
+      <HeaderSection />
 
-      {/* ── Left Panel ── */}
-      <div className="hidden lg:flex w-2/5 items-center justify-center pl-32">
-        <Image
-          src="/iBookTrack_logoA.png"
-          alt="iBookTrack Logo"
-          width={650}
-          height={200}
-          priority
-          className="object-contain"
-        />
-      </div>
+      <div className="flex h-[calc(100vh-84px)] overflow-hidden bg-white">
+        {/* ── Left Panel ── */}
+        <div className="hidden lg:flex w-2/5 items-center justify-center pl-32">
+          <Image
+            src="/iBookTrack_logoA.png"
+            alt="iBookTrack Logo"
+            width={650}
+            height={200}
+            priority
+            className="object-contain"
+          />
+        </div>
 
-      {/* ── Right Panel ── */}
-      <div className="flex w-full lg:w-3/5 items-center justify-center px-8 py-12">
-        <div className="w-full max-w-sm">
+        {/* ── Right Panel ── */}
+        <div className="flex w-full lg:w-3/5 items-start justify-center px-8 pt-20 pb-12">
+          <div className="w-full max-w-sm">
 
           {/* Logo */}
           <div className="flex justify-center mb-5">
@@ -136,7 +140,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => router.push('/forgot-password')}
-                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
               >
                 Forgot password
               </button>
@@ -174,11 +178,12 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => router.push('/register')}
-              className="font-medium text-blue-600 hover:text-blue-700 transition-colors"
+              className="cursor-pointer font-medium text-blue-600 hover:text-blue-700 transition-colors"
             >
               Sign up
             </button>
           </p>
+          </div>
         </div>
       </div>
     </div>
