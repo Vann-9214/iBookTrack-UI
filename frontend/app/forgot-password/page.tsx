@@ -3,6 +3,8 @@
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import '../landing-page/landing_page.css'
+import { HeaderSection } from '../landing-page/components'
 
 type Step = 'email' | 'reset'
 
@@ -49,20 +51,23 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <div className="hidden lg:flex w-2/5 items-center justify-center pl-32">
-        <Image
-          src="/iBookTrack_logoA.png"
-          alt="iBookTrack Logo"
-          width={650}
-          height={200}
-          priority
-          className="object-contain"
-        />
-      </div>
+    <div className="min-h-screen bg-white">
+      <HeaderSection />
 
-      <div className="flex w-full lg:w-3/5 items-center justify-center px-8 py-12">
-        <div className="w-full max-w-sm">
+      <div className="flex h-[calc(100vh-84px)] overflow-hidden bg-white">
+        <div className="hidden lg:flex w-2/5 items-center justify-center pl-32">
+          <Image
+            src="/iBookTrack_logoA.png"
+            alt="iBookTrack Logo"
+            width={650}
+            height={200}
+            priority
+            className="object-contain"
+          />
+        </div>
+
+        <div className="flex w-full lg:w-3/5 items-start justify-center px-8 pt-20 pb-12">
+          <div className="w-full max-w-sm">
           <div className="mb-5 flex justify-center">
             <Image
               src="/iBookTrack_logoN.png"
@@ -161,11 +166,12 @@ export default function ForgotPasswordPage() {
             <button
               type="button"
               onClick={() => router.push('/login')}
-              className="font-semibold text-blue-600 hover:text-blue-700"
+              className="cursor-pointer font-semibold text-blue-600 hover:text-blue-700"
             >
               Log in
             </button>
           </p>
+          </div>
         </div>
       </div>
     </div>

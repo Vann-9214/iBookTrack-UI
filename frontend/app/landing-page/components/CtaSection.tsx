@@ -12,7 +12,7 @@ export const CtaSection = () => (
         desktop, iBookTrack keeps your inventory data connected so you can monitor and manage operations from any
         device.
       </p>
-      <PrimaryButton label="Download" />
+      <PrimaryButton label="Download" href="/landing-page/download" />
     </div>
   </section>
 );

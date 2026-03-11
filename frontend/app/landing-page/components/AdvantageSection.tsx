@@ -2,7 +2,7 @@ import React from "react";
 import { IllustrationTeam } from "./Illustrations";
 
 export const AdvantageSection = () => (
-  <section className="advantage">
+  <section className="advantage" id="about">
     <div className="container">
       <IllustrationTeam />
       <div>
