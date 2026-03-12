@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { TopBar } from "@/components/top-bar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -149,8 +150,9 @@ export default function TransmissionMonitorPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
 
-      <main className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <ScrollArea className="flex-1 h-0 min-h-0">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Header */}
             <header>

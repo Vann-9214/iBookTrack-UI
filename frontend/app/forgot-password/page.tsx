@@ -67,7 +67,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="flex w-full lg:w-3/5 items-start justify-center px-8 pt-20 pb-12">
-          <div className="w-full max-w-sm">
+          <div className="auth-card w-full max-w-sm">
           <div className="mb-5 flex justify-center">
             <Image
               src="/iBookTrack_logoN.png"

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { TopBar } from '@/components/top-bar'
 import { X, Printer, Barcode } from 'lucide-react'
 
 interface BookDetail {
@@ -120,12 +121,13 @@ export default function InventoryPage() {
   return (
     <div className="flex min-h-screen bg-white">
       <DashboardSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <div className="flex-1 min-h-0 overflow-auto p-6 space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Inventory Gate</h1>
-            <p className="text-sm text-gray-600 mt-1">Scan books to view details and print slips</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory Gate</h1>
+            <p className="text-sm text-muted-foreground mt-1">Scan books to view details and print slips</p>
           </div>
 
           {/* Scanner Input - Simple and Prominent */}

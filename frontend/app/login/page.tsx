@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [leaving, setLeaving] = useState(false)
 
 
 
@@ -47,7 +48,9 @@ export default function LoginPage() {
       if (data.access_token) {
         localStorage.setItem('access_token', data.access_token)
       }
-      router.push('/Dashboard')
+      setLeaving(true)
+      sessionStorage.setItem('from_login', '1')
+      setTimeout(() => router.push('/Dashboard'), 300)
     } catch (err: unknown) {
       console.error('Login error:', err)
       setError(err instanceof Error ? err.message : 'Login failed.')
@@ -78,7 +81,7 @@ export default function LoginPage() {
 
         {/* ── Right Panel ── */}
         <div className="flex w-full lg:w-3/5 items-start justify-center px-8 pt-20 pb-12">
-          <div className="w-full max-w-sm">
+          <div className={`auth-card${leaving ? ' auth-card--leaving' : ''} w-full max-w-sm`}>
 
 
 

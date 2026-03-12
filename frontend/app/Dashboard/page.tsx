@@ -4,6 +4,8 @@ import { ActivePipeline } from "@/components/active-pipeline"
 import { TransmissionQueue } from "@/components/transmission-queue"
 import { MissingItemLog } from "@/components/missing-item-log"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { DashboardMain } from "./DashboardMain"
+import { TopBar } from "@/components/top-bar"
 
 export default function DashboardPage() {
   return (
@@ -11,8 +13,9 @@ export default function DashboardPage() {
       <DashboardSidebar />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
+      <DashboardMain>
+        <TopBar />
+        <ScrollArea className="h-[calc(100%-3.5rem)]">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}
             <header>
@@ -37,7 +40,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </ScrollArea>
-      </main>
+      </DashboardMain>
     </div>
   )
 }

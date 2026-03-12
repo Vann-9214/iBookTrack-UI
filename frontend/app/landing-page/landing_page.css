@@ -129,12 +129,18 @@ html {
   padding: 12px 26px;
   cursor: pointer;
   font-size: 0.95rem;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease, opacity 0.15s ease;
 }
 
 .button:hover {
   background: var(--brand-deep);
   transform: translateY(-1px);
+}
+
+.button:active {
+  transform: scale(0.96) translateY(0);
+  background: var(--brand-deep);
+  opacity: 0.88;
 }
 
 .hero {
@@ -326,6 +332,19 @@ html {
   font-size: 1.03rem;
 }
 
+/* Landing page — entrance animations */
+
+/* Hero: text block fades up on load (illustration already has floatIn) */
+.hero .container > div:first-child {
+  animation: fadeUp 0.5s 0.05s ease both;
+}
+
+/* Below-fold sections: staggered fade-up on load */
+.section-title       { animation: fadeUp 0.5s 0.15s ease both; }
+.feature-grid        { animation: fadeUp 0.5s 0.28s ease both; }
+.advantage .container > div:last-child { animation: fadeUp 0.5s 0.15s ease both; }
+.cta .container      { animation: fadeUp 0.5s 0.1s  ease both; }
+
 .download-page {
   min-height: 100vh;
   display: flex;
@@ -398,6 +417,38 @@ html {
   width: 100%;
   max-width: none;
   text-align: center;
+}
+
+/* Auth pages — light entrance animation */
+.auth-card {
+  animation: fadeUp 0.4s ease both;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.auth-card.auth-card--leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+/* Download page — light entrance animation */
+.download-intro {
+  animation: fadeUp 0.45s ease both;
+}
+
+.download-grid {
+  animation: fadeUp 0.45s 0.1s ease both;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 footer {
