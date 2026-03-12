@@ -8,20 +8,12 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { Progress } from "@/components/ui/progress"
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   FileText,
   ChevronLeft,
@@ -53,12 +45,10 @@ const mockPages = Array.from({ length: 50 }, (_, i) => ({
 export default function QualityCheckingPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedIssue, setSelectedIssue] = useState("")
+  const [customIssue, setCustomIssue] = useState("")
   const [remarks, setRemarks] = useState("")
-  const [auditedBooks, setAuditedBooks] = useState(12)
-  const totalBooks = 50
 
   const currentPageData = mockPages[currentPage - 1]
-  const progressPercent = (auditedBooks / totalBooks) * 100
 
   const handlePrevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1)
@@ -69,7 +59,14 @@ export default function QualityCheckingPage() {
   }
 
   const handleSync = () => {
-    console.log("Syncing to backend:", { selectedIssue, remarks })
+    const issueToSync = selectedIssue === "__other__" ? customIssue.trim() : selectedIssue
+    console.log("Syncing to backend:", { selectedIssue: issueToSync, remarks })
+  }
+
+  const handleRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setRemarks(e.target.value)
+    e.target.style.height = "auto"
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 220)}px`
   }
 
   return (
@@ -78,9 +75,9 @@ export default function QualityCheckingPage() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <div className="flex flex-1 flex-col min-h-0">
+        <div className="flex flex-1 flex-col min-h-0 p-6 lg:p-8 gap-6">
           {/* Header */}
-          <header className="shrink-0 border-b border-border px-6 py-4 lg:px-8">
+          <header>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Quality Checking
             </h1>
@@ -90,7 +87,7 @@ export default function QualityCheckingPage() {
           </header>
 
           {/* Split Screen Layout */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-card">
             {/* Left: Book Viewer */}
             <div className="flex flex-1 flex-col border-r border-border">
               {/* Viewer Toolbar */}
@@ -211,21 +208,33 @@ export default function QualityCheckingPage() {
                         <label className="text-xs font-medium text-muted-foreground">
                           Common Issues
                         </label>
-                        <Select
+                        <select
                           value={selectedIssue}
-                          onValueChange={setSelectedIssue}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setSelectedIssue(value)
+                            if (value !== "__other__") setCustomIssue("")
+                          }}
+                          className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
                         >
-                          <SelectTrigger className="mt-1.5">
-                            <SelectValue placeholder="Select an issue..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {commonIssues.map((issue) => (
-                              <SelectItem key={issue.value} value={issue.value}>
-                                {issue.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <option value="" disabled>
+                            Select an issue...
+                          </option>
+                          {commonIssues.map((issue) => (
+                            <option key={issue.value} value={issue.value}>
+                              {issue.label}
+                            </option>
+                          ))}
+                          <option value="__other__">Other (type custom issue)</option>
+                        </select>
+                        {selectedIssue === "__other__" && (
+                          <Input
+                            value={customIssue}
+                            onChange={(e) => setCustomIssue(e.target.value)}
+                            placeholder="Type the specific issue..."
+                            className="mt-2"
+                          />
+                        )}
                       </div>
                       <div>
                         <label className="text-xs font-medium text-muted-foreground">
@@ -234,8 +243,9 @@ export default function QualityCheckingPage() {
                         <Textarea
                           placeholder="Add detailed notes about this page..."
                           value={remarks}
-                          onChange={(e) => setRemarks(e.target.value)}
-                          className="mt-1.5 min-h-[100px] resize-none"
+                          onChange={handleRemarksChange}
+                          wrap="soft"
+                          className="mt-1.5 min-h-[100px] max-h-[220px] w-full resize-none overflow-x-hidden overflow-y-auto [field-sizing:fixed] [word-break:break-all]"
                         />
                       </div>
                       <Button
@@ -280,26 +290,6 @@ export default function QualityCheckingPage() {
             </div>
           </div>
 
-          {/* Footer Progress Bar */}
-          <footer className="shrink-0 border-t border-border bg-muted/30 px-6 py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1">
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Audit Progress</span>
-                  <span className="font-medium text-foreground">
-                    {auditedBooks} / {totalBooks} books
-                  </span>
-                </div>
-                <Progress value={progressPercent} className="h-2" />
-              </div>
-              <Badge
-                variant="outline"
-                className="border-primary/30 bg-primary/10 text-primary"
-              >
-                {Math.round(progressPercent)}% Complete
-              </Badge>
-            </div>
-          </footer>
         </div>
       </main>
     </div>

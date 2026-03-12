@@ -369,9 +369,17 @@ export default function WarehouseLocatorPage() {
         </ScrollArea>
       </main>
 
+      {dialogOpen && (
+        <div className="pointer-events-none fixed inset-0 z-40 bg-black/30" />
+      )}
+
       {/* Detail Modal */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen} modal={false}>
+        <DialogContent
+          className="sm:max-w-md"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="h-5 w-5 text-primary" />
