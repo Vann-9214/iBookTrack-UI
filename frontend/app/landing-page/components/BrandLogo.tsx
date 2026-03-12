@@ -14,9 +14,9 @@ export const BrandLogo = ({ ariaLabel = "iBookTrack home", compact = false }: Br
       width={60}
       height={20}
       style={{
-        width: compact ? '90px' : '100px',
+        width: compact ? '98px' : '100px',
         height: 'auto',
-        transform: compact ? 'scale(1.5)' : 'scale(1.9)',
+        transform: compact ? 'scale(1.68)' : 'scale(1.9)',
         transformOrigin: 'left center'
       }}
       priority
