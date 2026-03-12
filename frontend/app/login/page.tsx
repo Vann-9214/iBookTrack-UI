@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import '../landing-page/landing_page.css'
 import { HeaderSection } from '../landing-page/components'
+import { authRequest } from '@/lib/auth-api'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -38,14 +39,11 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const data = await authRequest({
+        endpoint: '/api/auth/login',
+        payload: { email, password },
       })
-      const data = await response.json()
       console.log('Login response:', data)
-      if (!response.ok) throw new Error(data.error || 'Login failed.')
       if (data.access_token) {
         localStorage.setItem('access_token', data.access_token)
       }

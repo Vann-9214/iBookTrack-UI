@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import '../landing-page/landing_page.css'
 import { HeaderSection } from '../landing-page/components'
+import { authRequest } from '@/lib/auth-api'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -49,14 +50,11 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+      const data = await authRequest({
+        endpoint: '/api/auth/register',
+        payload: { name, email, password },
       })
-      const data = await response.json()
       console.log('Registration response:', data)
-      if (!response.ok) throw new Error(data.error || 'Registration failed.')
       router.push('/login')
     } catch (err: unknown) {
       console.error('Registration error:', err)
