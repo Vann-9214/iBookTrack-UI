@@ -60,7 +60,7 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white pt-[84px]">
       <HeaderSection />
 
       <div className="flex h-[calc(100vh-84px)] overflow-hidden bg-white">
