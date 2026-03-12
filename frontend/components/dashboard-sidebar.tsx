@@ -14,6 +14,7 @@ import {
   Radio,
   Map,
   BarChart3,
+  Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -32,7 +33,7 @@ export function DashboardSidebar() {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
+        "relative z-20 sticky top-0 shrink-0 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
         collapsed ? "w-[68px]" : "w-64"
       )}
     >
@@ -44,7 +45,7 @@ export function DashboardSidebar() {
             alt="iBookTrack"
             width={140}
             height={140}
-            style={{ width: '60px', height: 'auto', transform: 'scale(2.9)', transformOrigin: 'left center' }}
+            style={{ width: '60px', height: 'auto', transform: 'scale(3.5)', transformOrigin: 'left center', pointerEvents: 'none' }}
             priority
           />
         )}
@@ -233,6 +234,20 @@ export function DashboardSidebar() {
       {/* Footer */}
       <div className="px-3 py-4">
         <button
+          onClick={() => router.push('/settings')}
+          className={cn(
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors mb-2',
+            isActive('/settings')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          title={collapsed ? 'Settings' : undefined}
+        >
+          <Settings className="h-5 w-5 shrink-0" />
+          {!collapsed && <span>Settings</span>}
+        </button>
+        <button
+          onClick={() => router.push('/login')}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           title={collapsed ? 'Log Out' : undefined}
         >

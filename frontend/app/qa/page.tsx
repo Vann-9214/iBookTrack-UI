@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { TopBar } from "@/components/top-bar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -75,8 +76,9 @@ export default function QualityCheckingPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
 
-      <main className="flex-1 overflow-hidden">
-        <div className="flex h-full flex-col">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <div className="flex flex-1 flex-col min-h-0">
           {/* Header */}
           <header className="shrink-0 border-b border-border px-6 py-4 lg:px-8">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
@@ -134,7 +136,7 @@ export default function QualityCheckingPage() {
               </div>
 
               {/* Book Viewer Area */}
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 h-0 min-h-0">
                 <div className="flex h-full items-center justify-center p-8">
                   <div className="relative flex aspect-[3/4] w-full max-w-md items-center justify-center rounded-lg border border-border bg-card shadow-sm">
                     <div className="flex flex-col items-center gap-4 text-muted-foreground">

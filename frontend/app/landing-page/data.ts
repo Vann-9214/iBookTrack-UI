@@ -16,9 +16,9 @@ export type Feature = {
 };
 
 export const NAV_LINKS: NavLink[] = [
-  { href: "#", label: "Home", isActive: true },
-  { href: "#about", label: "About us" },
-  { href: "#download", label: "Download" },
+  { href: "/landing-page", label: "Home" },
+  { href: "/landing-page#about", label: "About us" },
+  { href: "/landing-page#download", label: "Download" },
   { href: "/login", label: "Login" },
 ];
 

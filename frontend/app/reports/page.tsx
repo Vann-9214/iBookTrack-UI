@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { FileImport } from '@/components/file-import'
+import { TopBar } from '@/components/top-bar'
+import { ImportModal } from '@/components/import-modal'
 import { MetricsRow } from '@/components/metrics-row'
 import { CategoryBreakdown } from '@/components/category-breakdown'
 import { PerformanceTrend } from '@/components/performance-trend'
@@ -25,12 +26,13 @@ export default function ReportsPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <div className="flex-1 min-h-0 overflow-auto p-6 space-y-6">
           {/* Header */}
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Mustang & Jaguar Workload Status
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
@@ -41,24 +43,15 @@ export default function ReportsPage() {
               onClick={() => setShowImport(!showImport)}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
             >
-              {showImport ? 'Close' : 'Import Data'}
+              Import Data
             </button>
           </div>
 
-          {/* Import Section */}
-          {showImport && (
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
-                Import Delivery Data
-              </h2>
-              <FileImport onDataImport={handleDataImport} />
-              {importedData && (
-                <div className="mt-4 p-3 bg-success/10 border border-success rounded-lg">
-                  <p className="text-sm text-success font-medium">
-                    ✓ Data imported successfully! Dashboard will refresh with your data.
-                  </p>
-                </div>
-              )}
+          {importedData && (
+            <div className="bg-success/10 border border-success rounded-lg p-4">
+              <p className="text-sm text-success font-medium">
+                ✓ Data imported successfully! Dashboard will refresh with your data.
+              </p>
             </div>
           )}
 
@@ -72,6 +65,13 @@ export default function ReportsPage() {
           <PerformanceTrend dateRange={dateRange} setDateRange={setDateRange} />
         </div>
       </main>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        onDataImport={handleDataImport}
+      />
     </div>
   )
 }

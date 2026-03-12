@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { TopBar } from '@/components/top-bar'
 import { SessionControl } from '@/components/session-control'
 import { ScannerInput } from '@/components/scanner-input'
 import { BookInfoCard } from '@/components/book-info-card'
@@ -42,6 +43,10 @@ export default function WarehouseInventoryPage() {
 
   const handleIncrementBox = () => {
     setCurrentBox(prev => prev + 1)
+  }
+
+  const handleDecrementBox = () => {
+    setCurrentBox(prev => Math.max(1, prev - 1))
   }
 
   const handleEditScan = (id: string, status: ScannedBook['status']) => {
@@ -92,11 +97,12 @@ export default function WarehouseInventoryPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <div className="flex-1 min-h-0 overflow-auto p-6 space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Warehouse & Inventory Checking
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
@@ -134,6 +140,13 @@ export default function WarehouseInventoryPage() {
                       <option>Lot-35</option>
                       <option>Lot-36</option>
                     </select>
+                    <button
+                      onClick={handleDecrementBox}
+                      disabled={currentBox <= 1}
+                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous Box
+                    </button>
                     <button
                       onClick={handleIncrementBox}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -215,14 +228,6 @@ export default function WarehouseInventoryPage() {
                   ))}
                 </div>
               </div>
-
-              {/* Close Session Button */}
-              <button
-                onClick={handleCloseSession}
-                className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold text-lg"
-              >
-                Close Session / Finish
-              </button>
             </>
           )}
 
