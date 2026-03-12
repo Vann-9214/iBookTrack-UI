@@ -16,11 +16,16 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 .landing-page {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
   font-family: "Manrope", "Segoe UI", sans-serif;
+  padding-top: 84px;
 }
 
 .container {
@@ -33,9 +38,12 @@
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(8px);
   font-family: "Manrope", "Segoe UI", sans-serif;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 9;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 100;
 }
 
 .top-nav .container {
@@ -325,14 +333,18 @@
   background: #ffffff;
   color: var(--text);
   font-family: "Manrope", "Segoe UI", sans-serif;
+  padding-top: 84px;
 }
 
 .download-main {
   flex: 1;
+  display: auto;
+  align-items: center;
 }
 
 .download-main .container {
   padding: 74px 0 92px;
+  width: 100%;
 }
 
 .download-intro {

@@ -9,3 +9,4 @@ export { HeaderSection } from "./HeaderSection";
 export { HeroSection } from "./HeroSection";
 export { IllustrationHero, IllustrationTeam } from "./Illustrations";
 export { PrimaryButton } from "./PrimaryButton";
+export { SmoothScrollProvider, useSmoothScroll } from "./SmoothScrollProvider";
