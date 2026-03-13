@@ -20,9 +20,9 @@ export default function IntakePage() {
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <div className="flex-1 min-h-0 overflow-auto p-6 space-y-6">
+        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <header className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Intake & Validation
@@ -36,7 +36,7 @@ export default function IntakePage() {
                 Last Updated: {timestamp || 'Loading...'}
               </p>
             </div>
-          </div>
+          </header>
 
           {/* Alert if any critical issues */}
           <AlertBox />

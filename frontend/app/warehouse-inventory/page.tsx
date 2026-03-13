@@ -99,16 +99,16 @@ export default function WarehouseInventoryPage() {
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <TopBar />
-        <div className="flex-1 min-h-0 overflow-auto p-6 space-y-6">
+        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
           {/* Header */}
-          <div>
+          <header>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Warehouse & Inventory Checking
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Real-time book scanning and verification
             </p>
-          </div>
+          </header>
 
           {/* Session Control */}
           <SessionControl

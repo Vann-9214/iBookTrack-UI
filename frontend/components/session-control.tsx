@@ -36,7 +36,7 @@ export function SessionControl({
             className="flex items-center gap-2"
           >
             <X className="w-4 h-4" />
-            Close Session / Finish
+            Close
           </Button>
         )}
       </div>
