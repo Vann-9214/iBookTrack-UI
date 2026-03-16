@@ -103,7 +103,7 @@ export default function WarehouseInventoryPage() {
           {/* Header */}
           <header>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Warehouse & Inventory Checking
+              Warehouse & Inventory
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Real-time book scanning and verification
