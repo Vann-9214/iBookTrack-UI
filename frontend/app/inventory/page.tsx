@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { TopBar } from '@/components/top-bar'
 import { X, Printer, Barcode } from 'lucide-react'
 
 interface BookDetail {
@@ -122,7 +121,6 @@ export default function InventoryPage() {
     <div className="flex min-h-screen bg-white">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
           {/* Header */}
           <header>

@@ -7,6 +7,18 @@ import '../landing-page/landing_page.css'
 import { HeaderSection } from '../landing-page/components'
 import { authRequest } from '@/lib/auth-api'
 
+function getDisplayNameFromEmail(email: string) {
+  const localPart = email.split('@')[0] || ''
+
+  const formattedName = localPart
+    .split(/[._\-\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+
+  return formattedName || 'User Account'
+}
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -48,6 +60,13 @@ export default function LoginPage() {
       if (data.access_token) {
         localStorage.setItem('access_token', data.access_token)
       }
+      localStorage.setItem(
+        'ibooktrack_user',
+        JSON.stringify({
+          email: data.user?.email || email,
+          name: data.user?.name || getDisplayNameFromEmail(data.user?.email || email),
+        })
+      )
       setLeaving(true)
       sessionStorage.setItem('from_login', '1')
       setTimeout(() => router.push('/Dashboard'), 300)

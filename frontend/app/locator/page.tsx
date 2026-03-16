@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { TopBar } from "@/components/top-bar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -224,7 +223,6 @@ export default function WarehouseLocatorPage() {
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
         <ScrollArea className="flex-1 h-0 min-h-0">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Header */}

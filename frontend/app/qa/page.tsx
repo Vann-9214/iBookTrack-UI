@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { TopBar } from "@/components/top-bar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -74,7 +73,6 @@ export default function QualityCheckingPage() {
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
         <div className="flex flex-1 flex-col min-h-0 p-6 lg:p-8 gap-6">
           {/* Header */}
           <header>
@@ -134,8 +132,8 @@ export default function QualityCheckingPage() {
 
               {/* Book Viewer Area */}
               <ScrollArea className="flex-1 h-0 min-h-0">
-                <div className="flex h-full items-center justify-center p-8">
-                  <div className="relative flex aspect-[3/4] w-full max-w-md items-center justify-center rounded-lg border border-border bg-card shadow-sm">
+                <div className="flex h-full items-center justify-center p-8 lg:p-10">
+                  <div className="relative flex aspect-[3/4] w-full max-w-lg items-center justify-center rounded-lg border border-border bg-card shadow-sm">
                     <div className="flex flex-col items-center gap-4 text-muted-foreground">
                       <FileText className="h-16 w-16 opacity-50" />
                       <div className="text-center">
@@ -162,8 +160,8 @@ export default function QualityCheckingPage() {
             </div>
 
             {/* Right: Audit Controls Sidebar */}
-            <div className="w-80 shrink-0 lg:w-96">
-              <ScrollArea className="h-full">
+            <div className="flex w-80 shrink-0 flex-col overflow-hidden lg:w-96">
+              <ScrollArea className="flex-1 h-0 min-h-0">
                 <div className="flex flex-col gap-6 p-6">
                   {/* Book Info */}
                   <Card className="border-border bg-card">
