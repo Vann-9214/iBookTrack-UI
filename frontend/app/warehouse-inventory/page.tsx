@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { TopBar } from '@/components/top-bar'
 import { SessionControl } from '@/components/session-control'
 import { ScannerInput } from '@/components/scanner-input'
 import { BookInfoCard } from '@/components/book-info-card'
@@ -98,7 +97,6 @@ export default function WarehouseInventoryPage() {
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
           {/* Header */}
           <header>

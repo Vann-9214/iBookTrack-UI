@@ -5,7 +5,6 @@ import { TransmissionQueue } from "@/components/transmission-queue"
 import { MissingItemLog } from "@/components/missing-item-log"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { DashboardMain } from "./DashboardMain"
-import { TopBar } from "@/components/top-bar"
 
 export default function DashboardPage() {
   return (
@@ -14,8 +13,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <DashboardMain>
-        <TopBar />
-        <ScrollArea className="h-[calc(100%-3.5rem)]">
+        <ScrollArea className="flex-1 h-0 min-h-0">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}
             <header>
