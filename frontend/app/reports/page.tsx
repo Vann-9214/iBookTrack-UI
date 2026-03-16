@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { TopBar } from '@/components/top-bar'
 import { ImportModal } from '@/components/import-modal'
 import { MetricsRow } from '@/components/metrics-row'
 import { CategoryBreakdown } from '@/components/category-breakdown'
@@ -25,12 +26,13 @@ export default function ReportsPage() {
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 space-y-6">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <TopBar />
+        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <header className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 Mustang & Jaguar Workload Status
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
@@ -43,7 +45,7 @@ export default function ReportsPage() {
             >
               Import Data
             </button>
-          </div>
+          </header>
 
           {importedData && (
             <div className="bg-success/10 border border-success rounded-lg p-4">

@@ -86,7 +86,7 @@ export default function RegisterPage() {
 
         {/* ── Right Panel ── */}
         <div className="flex w-full lg:w-3/5 items-start justify-center px-8 pt-6 pb-12">
-          <div className="w-full max-w-sm">
+          <div className="auth-card w-full max-w-sm">
 
 
 

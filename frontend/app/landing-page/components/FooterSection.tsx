@@ -8,7 +8,7 @@ export const FooterSection = () => (
   <footer>
     <div className="footer-wrap">
       <div className="footer-brand">
-        <BrandLogo />
+        <BrandLogo compact />
         <p>
           Copyright (c) 2026 Innodata Knowledges Inc.
           <br />
