@@ -17,6 +17,8 @@ interface BookDetail {
   language: string
   pageCount: number
   condition: string
+  shipment: string
+  projectName: string
 }
 
 interface LogEntry {
@@ -41,6 +43,8 @@ const mockBooks: { [key: string]: BookDetail } = {
     language: 'English',
     pageCount: 482,
     condition: 'Good',
+    shipment: 'SHIP-2025-001',
+    projectName: 'Science Collection',
   },
   '978-0-987654-32-1': {
     isbn: '978-0-987654-32-1',
@@ -55,6 +59,8 @@ const mockBooks: { [key: string]: BookDetail } = {
     language: 'English',
     pageCount: 756,
     condition: 'Excellent',
+    shipment: 'SHIP-2025-002',
+    projectName: 'Mathematics Series',
   },
 }
 
@@ -118,9 +124,88 @@ export default function InventoryPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
-      <DashboardSidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
+    <>
+      {/* Print Slip Template - Hidden on screen, visible when printing */}
+      {selectedBook && (
+        <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:p-8">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Barcode in Upper Middle */}
+            <div className="flex justify-center mb-8">
+              <div className="text-center">
+                <svg className="mx-auto" width="300" height="80">
+                  {/* Simple barcode representation using SVG */}
+                  {selectedBook.isbn.split('').map((char, i) => (
+                    <rect
+                      key={i}
+                      x={i * 20}
+                      y="0"
+                      width={char === '-' ? 4 : parseInt(char) % 2 === 0 ? 8 : 12}
+                      height="60"
+                      fill="black"
+                    />
+                  ))}
+                </svg>
+                <p className="text-sm font-mono mt-2">{selectedBook.isbn}</p>
+              </div>
+            </div>
+
+            {/* Print Slip Content */}
+            <div className="border-2 border-black p-6 space-y-4">
+              <h1 className="text-3xl font-bold text-center mb-6 border-b-2 border-black pb-4">BOOK SLIP</h1>
+              
+              <div className="grid grid-cols-2 gap-6 text-lg">
+                <div>
+                  <p className="font-semibold text-gray-600">ISBN:</p>
+                  <p className="font-mono text-xl font-bold">{selectedBook.isbn}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-600">Date:</p>
+                  <p className="font-bold">{new Date().toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 text-lg">
+                <div>
+                  <p className="font-semibold text-gray-600">Project Name:</p>
+                  <p className="font-bold">{selectedBook.projectName}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-600">Book Type:</p>
+                  <p className={`font-bold ${selectedBook.type === 'Mustang' ? 'text-blue-600' : 'text-purple-600'}`}>
+                    {selectedBook.type}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6 text-lg">
+                <div>
+                  <p className="font-semibold text-gray-600">Shipment:</p>
+                  <p className="font-bold">{selectedBook.shipment}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-600">Box #:</p>
+                  <p className="font-bold">{selectedBook.boxNum}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-300">
+                <p className="font-semibold text-gray-600">Title:</p>
+                <p className="font-bold text-xl">{selectedBook.title}</p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-300">
+                <p className="font-semibold text-gray-600">Barcode:</p>
+                <p className="font-mono text-lg font-bold">{selectedBook.isbn}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Application UI */}
+      <div className="flex min-h-screen bg-white print:hidden">
+        <DashboardSidebar />
+        <main className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
           {/* Header */}
           <header>
@@ -297,6 +382,7 @@ export default function InventoryPage() {
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   )
 }

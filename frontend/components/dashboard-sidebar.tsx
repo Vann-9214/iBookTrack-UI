@@ -299,7 +299,7 @@ export function DashboardSidebar() {
           title={collapsed ? 'Quality Checking' : undefined}
         >
           <CheckCircle className="h-5 w-5 shrink-0" />
-          {!collapsed && <span className="truncate">Quality Checking</span>}
+          {!collapsed && <span className="truncate">Book Inspection & Endorsement</span>}
         </button>
 
         {/* Transmission Monitor */}

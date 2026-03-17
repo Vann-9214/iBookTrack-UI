@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 const pipelineSteps = [
-  { label: "Intake", count: 3, unit: "Lots" },
-  { label: "Cut", count: 2, unit: "Lots" },
-  { label: "QC", count: 1, unit: "Lot" },
-  { label: "Scan", count: 5, unit: "Lots" },
-  { label: "Validation", count: 1, unit: "Lot" },
-  { label: "QA", count: 1, unit: "Lot" },
-  { label: "Transmit", count: 0, unit: "Lots" },
-  { label: "Storage", count: 1, unit: "Lot" },
+  { label: "Intake", count: 3, unit: "Boxes" },
+  { label: "Cut", count: 2, unit: "Boxes" },
+  { label: "Book Inspection & Endorsement", count: 1, unit: "Box" },
+  { label: "Scan", count: 5, unit: "Boxes" },
+  { label: "Validation", count: 1, unit: "Box" },
+  { label: "QA", count: 1, unit: "Box" },
+  { label: "Transmit", count: 0, unit: "Boxes" },
+  { label: "Storage", count: 1, unit: "Box" },
 ]
 
 function getStepStatus(count: number) {
@@ -44,12 +44,16 @@ const statusStyles = {
   },
 }
 
-export function ActivePipeline() {
+interface ActivePipelineProps {
+  currentLot?: string
+}
+
+export function ActivePipeline({ currentLot = "" }: ActivePipelineProps) {
   return (
     <Card className="border-border bg-card">
       <CardHeader className="pb-4">
         <CardTitle className="text-base font-semibold text-card-foreground">
-          Active Pipeline
+          Active Pipeline {currentLot && <span className="text-muted-foreground">| {currentLot}</span>}
         </CardTitle>
       </CardHeader>
       <CardContent>

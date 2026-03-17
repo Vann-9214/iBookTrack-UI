@@ -15,72 +15,79 @@ import {
 } from "@/components/ui/table"
 import { Ghost } from "lucide-react"
 
-const missingItems = [
+const unaccountedBooks = [
   {
-    bookTitle: "Operations Manual v3.2",
-    lastSeenStation: "QC Station",
+    isbn: "978-0-13-468599-1",
+    lotNumber: "LOT-2024-0891",
+    stageDetected: "QC Station",
     reportedBy: "Maria Santos",
-    time: "10 min ago",
+    date: "Mar 17, 2026",
   },
   {
-    bookTitle: "Safety Handbook 2024",
-    lastSeenStation: "Cut Station",
+    isbn: "978-0-13-468600-4",
+    lotNumber: "LOT-2024-0890",
+    stageDetected: "Cut Station",
     reportedBy: "James Reyes",
-    time: "25 min ago",
+    date: "Mar 17, 2026",
   },
   {
-    bookTitle: "Equipment Log #47",
-    lastSeenStation: "Scan Station",
+    isbn: "978-0-13-468601-1",
+    lotNumber: "LOT-2024-0889",
+    stageDetected: "Scan Station",
     reportedBy: "Ana Cruz",
-    time: "1 hr ago",
+    date: "Mar 17, 2026",
   },
   {
-    bookTitle: "Inventory Sheet B-12",
-    lastSeenStation: "Intake",
+    isbn: "978-0-13-468602-8",
+    lotNumber: "LOT-2024-0888",
+    stageDetected: "Intake",
     reportedBy: "Paolo Garcia",
-    time: "2 hrs ago",
+    date: "Mar 16, 2026",
   },
   {
-    bookTitle: "QA Checklist Rev.8",
-    lastSeenStation: "QA Review",
+    isbn: "978-0-13-468603-5",
+    lotNumber: "LOT-2024-0887",
+    stageDetected: "QA Review",
     reportedBy: "Lisa Tan",
-    time: "3 hrs ago",
+    date: "Mar 16, 2026",
   },
 ]
 
-export function MissingItemLog() {
+export function UnaccountedBooks() {
   return (
     <Card className="border-border bg-card flex flex-col">
       <CardHeader className="flex flex-row items-center gap-2 pb-3">
         <Ghost className="h-4 w-4 text-destructive" />
         <CardTitle className="text-base font-semibold text-card-foreground">
-          Missing Item Log
+          Unaccounted Books
         </CardTitle>
         <Badge variant="outline" className="ml-auto border-destructive/30 bg-destructive/10 text-destructive text-[10px]">
-          {missingItems.length} items
+          {unaccountedBooks.length} books
         </Badge>
       </CardHeader>
       <CardContent className="flex-1 p-0">
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="text-xs text-muted-foreground font-medium">Book Title</TableHead>
-              <TableHead className="text-xs text-muted-foreground font-medium hidden md:table-cell">Last Seen</TableHead>
+              <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
+              <TableHead className="text-xs text-muted-foreground font-medium">Lot#</TableHead>
+              <TableHead className="text-xs text-muted-foreground font-medium">Stage Detected</TableHead>
               <TableHead className="text-xs text-muted-foreground font-medium hidden sm:table-cell">Reported By</TableHead>
-              <TableHead className="text-xs text-muted-foreground font-medium text-right">Time</TableHead>
+              <TableHead className="text-xs text-muted-foreground font-medium text-right">Date</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {missingItems.map((item, i) => (
+            {unaccountedBooks.map((item, i) => (
               <TableRow key={i} className="border-border">
-                <TableCell className="text-xs font-medium text-card-foreground">{item.bookTitle}</TableCell>
-                <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
+                <TableCell className="font-mono text-xs text-card-foreground">{item.isbn}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{item.lotNumber}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">
                   <Badge variant="secondary" className="text-[10px] font-normal bg-secondary text-secondary-foreground">
-                    {item.lastSeenStation}
+                    {item.stageDetected}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">{item.reportedBy}</TableCell>
-                <TableCell className="text-xs text-muted-foreground text-right">{item.time}</TableCell>
+                <TableCell className="text-xs text-muted-foreground text-right">{item.date}</TableCell>
               </TableRow>
             ))}
           </TableBody>

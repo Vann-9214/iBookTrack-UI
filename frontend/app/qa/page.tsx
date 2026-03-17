@@ -77,7 +77,7 @@ export default function QualityCheckingPage() {
           {/* Header */}
           <header>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Quality Checking
+              Book Inspection & Endorsement
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Perform page-by-page audits and log remarks for quality control.

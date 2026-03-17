@@ -51,7 +51,7 @@ const stations = [
     ],
   },
   {
-    name: "QC",
+    name: "Book Inspection & Endorsement",
     icon: CheckCircle,
     activeLots: 4,
     arriving: [
