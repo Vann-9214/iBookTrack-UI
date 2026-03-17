@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 const pipelineSteps = [
-  { label: "Intake", count: 3, unit: "Boxes" },
+  { label: "Warehouse", count: 3, unit: "Boxes" },
+  { label: "Inventory", count: 3, unit: "Boxes" },
   { label: "Cut", count: 2, unit: "Boxes" },
   { label: "Book Inspection & Endorsement", count: 1, unit: "Box" },
   { label: "Scan", count: 5, unit: "Boxes" },

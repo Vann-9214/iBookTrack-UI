@@ -28,12 +28,68 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  AlertCircle,
 } from 'lucide-react'
 
 type SidebarUser = {
   name: string
   email: string
 }
+
+type Notification = {
+  id: number
+  type: 'success' | 'warning' | 'error' | 'info'
+  title: string
+  message: string
+  timestamp: string
+  icon: React.ReactNode
+}
+
+const sampleNotifications: Notification[] = [
+  {
+    id: 1,
+    type: 'success',
+    title: 'Box Transmitted Successfully',
+    message: 'LOT-2024-0891 | BOX-001 transmitted',
+    timestamp: '2 min ago',
+    icon: <CheckCircle2 className="h-4 w-4" />,
+  },
+  {
+    id: 2,
+    type: 'warning',
+    title: 'Incomplete Transmission',
+    message: 'LOT-2024-0889: 120/180 books',
+    timestamp: '15 min ago',
+    icon: <AlertTriangle className="h-4 w-4" />,
+  },
+  {
+    id: 3,
+    type: 'error',
+    title: 'Unaccounted Books',
+    message: 'ISBN 978-0-13-468602-8 missing',
+    timestamp: '28 min ago',
+    icon: <XCircle className="h-4 w-4" />,
+  },
+  {
+    id: 4,
+    type: 'info',
+    title: 'Station Status Update',
+    message: 'Scan Station processing LOT-2024-0890',
+    timestamp: '45 min ago',
+    icon: <AlertCircle className="h-4 w-4" />,
+  },
+  {
+    id: 5,
+    type: 'warning',
+    title: 'Bottleneck Detected',
+    message: 'Validation station has 5+ boxes queued',
+    timestamp: '1 hour ago',
+    icon: <AlertTriangle className="h-4 w-4" />,
+  },
+]
 
 const fallbackUser: SidebarUser = {
   name: 'User Account',
@@ -356,20 +412,70 @@ export function DashboardSidebar() {
 
       {/* Footer */}
       <div className="px-3 py-4">
-        <button
-          className={cn(
-            'mb-3 flex w-full items-center gap-3 rounded-2xl border border-sidebar-border bg-background text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground',
-            collapsed ? 'justify-center px-0 py-3' : 'px-3 py-3'
-          )}
-          title="Notifications"
-          type="button"
-        >
-          <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
-          </span>
-          {!collapsed && <span>Notifications</span>}
-        </button>
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                'mb-3 flex w-full items-center gap-3 rounded-2xl border border-sidebar-border bg-background text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                collapsed ? 'justify-center px-0 py-3' : 'px-3 py-3'
+              )}
+              title="Notifications"
+              type="button"
+            >
+              <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                <Bell className="h-5 w-5" />
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+              </span>
+              {!collapsed && <span>Notifications</span>}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align={collapsed ? 'center' : 'end'}
+            className="w-80 rounded-2xl p-0"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            side="top"
+            sideOffset={10}
+          >
+            <div className="px-4 py-3 border-b border-border">
+              <p className="text-sm font-semibold text-foreground">Notifications</p>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto">
+              {sampleNotifications.map((notification) => {
+                const typeStyles = {
+                  success: 'bg-success/10 text-success',
+                  warning: 'bg-warning/10 text-warning',
+                  error: 'bg-destructive/10 text-destructive',
+                  info: 'bg-info/10 text-blue-500',
+                }
+                return (
+                  <button
+                    key={notification.id}
+                    className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border/50 last:border-0"
+                  >
+                    <div className="flex gap-3">
+                      <div className={cn('h-8 w-8 rounded-full flex items-center justify-center shrink-0', typeStyles[notification.type])}>
+                        {notification.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-foreground truncate">{notification.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notification.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{notification.timestamp}</p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="px-4 py-2 border-t border-border">
+              <button 
+                onClick={() => router.push('/notifications')}
+                className="text-xs font-medium text-primary hover:underline w-full text-center"
+              >
+                View All Notifications
+              </button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>

@@ -34,7 +34,16 @@ import {
 
 const stations = [
   {
-    name: "Intake",
+    name: "Warehouse",
+    icon: Package,
+    activeLots: 3,
+    arriving: [
+      { lotId: "Lot-33", boxId: "B001" },
+      { lotId: "Lot-33", boxId: "B002" },
+    ],
+  },
+  {
+    name: "Inventory",
     icon: Package,
     activeLots: 3,
     arriving: [
