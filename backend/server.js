@@ -3,6 +3,10 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { testConnection } from './utils/testConnection.js'
 import authRoutes from './routes/auth.js'
+import boxesRoutes from './routes/boxes.js'
+import booksRoutes from './routes/books.js'
+import lotsRoutes from './routes/lots.js'
+import dashboardRoutes from './routes/dashboard.js'
 
 dotenv.config({ path: '../.env' })
 
@@ -58,6 +62,10 @@ app.get('/', (_, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes)
+app.use('/api/boxes', boxesRoutes)
+app.use('/api/books', booksRoutes)
+app.use('/api/lots', lotsRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
