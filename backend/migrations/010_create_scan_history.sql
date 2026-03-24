@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS public.scan_history (
 );
 
 -- Indexes
-CREATE INDEX idx_scan_history_book_id ON public.scan_history(book_id);
-CREATE INDEX idx_scan_history_isbn ON public.scan_history(isbn);
-CREATE INDEX idx_scan_history_scanned_by ON public.scan_history(scanned_by);
-CREATE INDEX idx_scan_history_created_at ON public.scan_history(created_at DESC);
-CREATE INDEX idx_scan_history_slip_printed ON public.scan_history(slip_printed);
+CREATE INDEX IF NOT EXISTS idx_scan_history_book_id ON public.scan_history(book_id);
+CREATE INDEX IF NOT EXISTS idx_scan_history_isbn ON public.scan_history(isbn);
+CREATE INDEX IF NOT EXISTS idx_scan_history_scanned_by ON public.scan_history(scanned_by);
+CREATE INDEX IF NOT EXISTS idx_scan_history_created_at ON public.scan_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_scan_history_slip_printed ON public.scan_history(slip_printed);

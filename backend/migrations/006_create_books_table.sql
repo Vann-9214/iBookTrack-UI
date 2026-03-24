@@ -41,18 +41,19 @@ CREATE TABLE IF NOT EXISTS public.books (
 );
 
 -- Auto-update updated_at trigger
+DROP TRIGGER IF EXISTS trg_books_updated_at ON public.books;
 CREATE TRIGGER trg_books_updated_at
   BEFORE UPDATE ON public.books
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- Indexes for performance
-CREATE INDEX idx_books_isbn ON public.books(isbn);
-CREATE INDEX idx_books_barcode ON public.books(barcode);
-CREATE INDEX idx_books_box_id ON public.books(box_id);
-CREATE INDEX idx_books_status ON public.books(status);
-CREATE INDEX idx_books_current_stage ON public.books(current_stage);
-CREATE INDEX idx_books_is_transmitted ON public.books(is_transmitted);
-CREATE INDEX idx_books_is_unaccounted ON public.books(is_unaccounted);
+CREATE INDEX IF NOT EXISTS idx_books_isbn ON public.books(isbn);
+CREATE INDEX IF NOT EXISTS idx_books_barcode ON public.books(barcode);
+CREATE INDEX IF NOT EXISTS idx_books_box_id ON public.books(box_id);
+CREATE INDEX IF NOT EXISTS idx_books_status ON public.books(status);
+CREATE INDEX IF NOT EXISTS idx_books_current_stage ON public.books(current_stage);
+CREATE INDEX IF NOT EXISTS idx_books_is_transmitted ON public.books(is_transmitted);
+CREATE INDEX IF NOT EXISTS idx_books_is_unaccounted ON public.books(is_unaccounted);
 
 -- Composite index for common queries
-CREATE INDEX idx_books_box_status ON public.books(box_id, status);
+CREATE INDEX IF NOT EXISTS idx_books_box_status ON public.books(box_id, status);

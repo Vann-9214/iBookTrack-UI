@@ -28,15 +28,17 @@ CREATE TABLE IF NOT EXISTS public.lots (
 );
 
 -- Auto-update updated_at triggers
+DROP TRIGGER IF EXISTS trg_shipments_updated_at ON public.shipments;
 CREATE TRIGGER trg_shipments_updated_at
   BEFORE UPDATE ON public.shipments
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
+DROP TRIGGER IF EXISTS trg_lots_updated_at ON public.lots;
 CREATE TRIGGER trg_lots_updated_at
   BEFORE UPDATE ON public.lots
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- Indexes for performance
-CREATE INDEX idx_lots_shipment_id ON public.lots(shipment_id);
-CREATE INDEX idx_lots_status ON public.lots(status);
-CREATE INDEX idx_shipments_status ON public.shipments(status);
+CREATE INDEX IF NOT EXISTS idx_lots_shipment_id ON public.lots(shipment_id);
+CREATE INDEX IF NOT EXISTS idx_lots_status ON public.lots(status);
+CREATE INDEX IF NOT EXISTS idx_shipments_status ON public.shipments(status);

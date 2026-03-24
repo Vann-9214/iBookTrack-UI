@@ -7,6 +7,7 @@ import boxesRoutes from './routes/boxes.js'
 import booksRoutes from './routes/books.js'
 import lotsRoutes from './routes/lots.js'
 import dashboardRoutes from './routes/dashboard.js'
+import warehouseRoutes from './routes/warehouse.js'
 
 dotenv.config({ path: '../.env' })
 
@@ -66,6 +67,7 @@ app.use('/api/boxes', boxesRoutes)
 app.use('/api/books', booksRoutes)
 app.use('/api/lots', lotsRoutes)
 app.use('/api/dashboard', dashboardRoutes)
+app.use('/api/warehouse', warehouseRoutes)
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

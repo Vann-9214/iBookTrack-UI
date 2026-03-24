@@ -26,10 +26,10 @@ CREATE TABLE IF NOT EXISTS public.pipeline_events (
 );
 
 -- Indexes
-CREATE INDEX idx_pipeline_events_box_id ON public.pipeline_events(box_id);
-CREATE INDEX idx_pipeline_events_lot_id ON public.pipeline_events(lot_id);
-CREATE INDEX idx_pipeline_events_to_stage ON public.pipeline_events(to_stage);
-CREATE INDEX idx_pipeline_events_created_at ON public.pipeline_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pipeline_events_box_id ON public.pipeline_events(box_id);
+CREATE INDEX IF NOT EXISTS idx_pipeline_events_lot_id ON public.pipeline_events(lot_id);
+CREATE INDEX IF NOT EXISTS idx_pipeline_events_to_stage ON public.pipeline_events(to_stage);
+CREATE INDEX IF NOT EXISTS idx_pipeline_events_created_at ON public.pipeline_events(created_at DESC);
 
 -- Composite index for tracking box journey
-CREATE INDEX idx_pipeline_events_box_created ON public.pipeline_events(box_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_pipeline_events_box_created ON public.pipeline_events(box_id, created_at DESC);

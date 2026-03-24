@@ -18,11 +18,12 @@ CREATE TABLE IF NOT EXISTS public.boxes (
 );
 
 -- Auto-update updated_at trigger
+DROP TRIGGER IF EXISTS trg_boxes_updated_at ON public.boxes;
 CREATE TRIGGER trg_boxes_updated_at
   BEFORE UPDATE ON public.boxes
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- Indexes for performance
-CREATE INDEX idx_boxes_lot_id ON public.boxes(lot_id);
-CREATE INDEX idx_boxes_current_stage ON public.boxes(current_stage);
-CREATE INDEX idx_boxes_box_number ON public.boxes(box_number);
+CREATE INDEX IF NOT EXISTS idx_boxes_lot_id ON public.boxes(lot_id);
+CREATE INDEX IF NOT EXISTS idx_boxes_current_stage ON public.boxes(current_stage);
+CREATE INDEX IF NOT EXISTS idx_boxes_box_number ON public.boxes(box_number);

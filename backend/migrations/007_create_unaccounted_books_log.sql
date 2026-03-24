@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.unaccounted_books (
 );
 
 -- Indexes
-CREATE INDEX idx_unaccounted_books_book_id ON public.unaccounted_books(book_id);
-CREATE INDEX idx_unaccounted_books_isbn ON public.unaccounted_books(isbn);
-CREATE INDEX idx_unaccounted_books_resolved ON public.unaccounted_books(resolved);
-CREATE INDEX idx_unaccounted_books_created_at ON public.unaccounted_books(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_unaccounted_books_book_id ON public.unaccounted_books(book_id);
+CREATE INDEX IF NOT EXISTS idx_unaccounted_books_isbn ON public.unaccounted_books(isbn);
+CREATE INDEX IF NOT EXISTS idx_unaccounted_books_resolved ON public.unaccounted_books(resolved);
+CREATE INDEX IF NOT EXISTS idx_unaccounted_books_created_at ON public.unaccounted_books(created_at DESC);

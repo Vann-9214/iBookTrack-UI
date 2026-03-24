@@ -1,7 +1,8 @@
-const express = require('express')
+import express from 'express'
+import { supabase } from '../config/supabase.js'
+import { requireAuth } from '../middleware/authMiddleware.js'
+
 const router = express.Router()
-const { supabase } = require('../config/supabase')
-const { requireAuth } = require('../middleware/authMiddleware')
 
 // Get all lots
 router.get('/', requireAuth, async (req, res) => {
@@ -110,4 +111,4 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 })
 
-module.exports = router
+export default router

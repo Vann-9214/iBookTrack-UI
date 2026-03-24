@@ -119,4 +119,45 @@ router.post('/logout', async (req, res) => {
   return res.json({ message: 'Logged out successfully.' })
 })
 
+// ── POST /api/auth/refresh ─────────────────────────────────
+router.post('/refresh', async (req, res) => {
+  const refreshToken = req.body.refresh_token
+
+  if (!refreshToken) {
+    return res.status(400).json({ error: 'Refresh token is required.' })
+  }
+
+  try {
+    // Call Supabase auth endpoint to refresh the token
+    const supabaseAuthUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    const response = await fetch(`${supabaseAuthUrl}/auth/v1/token?grant_type=refresh_token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apiKey': supabaseAnonKey,
+      },
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok || data.error) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token.' })
+    }
+
+    return res.json({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+    })
+  } catch (error) {
+    console.error('Token refresh error:', error)
+    return res.status(401).json({ error: 'Failed to refresh token.' })
+  }
+})
+
 export default router

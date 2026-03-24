@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import '../landing-page/landing_page.css'
 import { HeaderSection } from '../landing-page/components'
-import { authRequest } from '@/lib/auth-api'
+import { authRequest, storeTokenData } from '@/lib/auth-api'
 
 function getDisplayNameFromEmail(email: string) {
   const localPart = email.split('@')[0] || ''
@@ -57,8 +57,8 @@ export default function LoginPage() {
         payload: { email, password },
       })
       console.log('Login response:', data)
-      if (data.access_token) {
-        localStorage.setItem('access_token', data.access_token)
+      if (data.access_token && data.refresh_token && data.expires_at) {
+        storeTokenData(data.access_token, data.refresh_token, data.expires_at)
       }
       localStorage.setItem(
         'ibooktrack_user',

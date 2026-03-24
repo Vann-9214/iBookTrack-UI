@@ -13,6 +13,7 @@ import boxesRoutes from './boxes.js'
 import booksRoutes from './books.js'
 import lotsRoutes from './lots.js'
 import dashboardRoutes from './dashboard.js'
+import warehouseRoutes from './warehouse.js'
 
 // ============================================================
 // AUTHENTICATION ROUTES (./auth.js)
@@ -102,6 +103,24 @@ import dashboardRoutes from './dashboard.js'
 // ============================================================
 
 // ============================================================
+// WAREHOUSE ROUTES (./warehouse.js)
+// ============================================================
+// Base path: /api/warehouse
+//
+// POST   /api/warehouse/sessions/start - Start warehouse receiving session
+//        Body: { box_id, accepted_box_number, rejected_box_number }
+// POST   /api/warehouse/sessions/:session_id/scan - Scan book in session
+//        Body: { isbn, scan_status, rejection_reason?, notes? }
+//        scan_status: 'accepted' | 'rejected' | 'mismatch' | 'damaged' | 'missing_info'
+// GET    /api/warehouse/sessions/:session_id - Get session details with all scans
+// POST   /api/warehouse/sessions/:session_id/complete - Complete session
+// GET    /api/warehouse/sessions - Get all sessions (filter: status, limit)
+// GET    /api/warehouse/search/isbn/:isbn - Search book by ISBN to find box location
+// GET    /api/warehouse/rejected-books - Get all rejected books (limit)
+//
+// ============================================================
+
+// ============================================================
 // NOTES FOR CLIENT API INTEGRATION
 // ============================================================
 // When client provides book database API:
@@ -121,5 +140,6 @@ export default {
   boxes: boxesRoutes,
   books: booksRoutes,
   lots: lotsRoutes,
-  dashboard: dashboardRoutes
+  dashboard: dashboardRoutes,
+  warehouse: warehouseRoutes
 }

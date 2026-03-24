@@ -28,12 +28,13 @@ CREATE TABLE IF NOT EXISTS public.transmission_queue (
 );
 
 -- Auto-update updated_at trigger
+DROP TRIGGER IF EXISTS trg_transmission_queue_updated_at ON public.transmission_queue;
 CREATE TRIGGER trg_transmission_queue_updated_at
   BEFORE UPDATE ON public.transmission_queue
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 -- Indexes
-CREATE INDEX idx_transmission_queue_lot_id ON public.transmission_queue(lot_id);
-CREATE INDEX idx_transmission_queue_box_id ON public.transmission_queue(box_id);
-CREATE INDEX idx_transmission_queue_status ON public.transmission_queue(status);
-CREATE INDEX idx_transmission_queue_created_at ON public.transmission_queue(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transmission_queue_lot_id ON public.transmission_queue(lot_id);
+CREATE INDEX IF NOT EXISTS idx_transmission_queue_box_id ON public.transmission_queue(box_id);
+CREATE INDEX IF NOT EXISTS idx_transmission_queue_status ON public.transmission_queue(status);
+CREATE INDEX IF NOT EXISTS idx_transmission_queue_created_at ON public.transmission_queue(created_at DESC);
