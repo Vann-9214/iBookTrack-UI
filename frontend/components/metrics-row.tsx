@@ -1,28 +1,37 @@
-export function MetricsRow() {
+interface MetricsRowProps {
+  data?: {
+    totalBooks: number
+    transmitted: number
+    rejected: number
+    booksToGo: number
+    completionRate: string
+  }
+}
+
+export function MetricsRow({ data }: MetricsRowProps) {
   const metrics = [
     {
-      label: 'Total Books in Pipeline',
-      value: '200,000',
-      subtext: '',
+      label: 'Total Books (Finished Lots)',
+      value: data?.totalBooks.toLocaleString() || '0',
+      subtext: 'Lot 1-51',
       color: 'text-primary',
     },
     {
-      label: 'Total Delivered',
-      value: '150,868',
+      label: 'Total Transmitted',
+      value: data?.transmitted.toLocaleString() || '0',
       subtext: 'Completed',
       color: 'text-success',
     },
     {
-      label: 'Books To Go',
-      value: '49,132',
-      subtext: 'COUNTDOWN',
-      color: 'text-warning',
-      badge: true,
+      label: 'Books Rejected',
+      value: data?.rejected.toLocaleString() || '0',
+      subtext: 'Issues Found',
+      color: 'text-destructive',
     },
     {
       label: 'Completion Rate',
-      value: '94.5%',
-      subtext: 'Feb 2026',
+      value: `${data?.completionRate || '0'}%`,
+      subtext: 'Finished Lots',
       color: 'text-primary',
     },
   ]
@@ -39,18 +48,13 @@ export function MetricsRow() {
             <p className={`text-2xl font-bold ${metric.color}`}>
               {metric.value}
             </p>
-            {metric.badge && (
-              <span className="text-xs font-semibold bg-warning/20 text-warning px-2 py-1 rounded">
-                {metric.subtext}
-              </span>
-            )}
           </div>
-          {!metric.badge && metric.subtext && (
+          {metric.subtext && (
             <p className="text-xs text-muted-foreground">{metric.subtext}</p>
           )}
-          {idx === 3 && (
+          {idx === 3 && data && (
             <div className="w-full bg-border rounded-full h-1 mt-2">
-              <div className="bg-primary h-1 rounded-full" style={{ width: '94.5%' }} />
+              <div className="bg-primary h-1 rounded-full" style={{ width: `${data.completionRate}%` }} />
             </div>
           )}
         </div>
