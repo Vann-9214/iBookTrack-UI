@@ -8,16 +8,17 @@ type ChartType = 'lot-comparison' | 'daily-trend' | 'vendor-performance' | 'stat
 interface PerformanceTrendProps {
   dateRange: string
   setDateRange: (value: string) => void
+  reportType?: 'finished-lots' | 'indic-books'
 }
 
-export function PerformanceTrend({ dateRange, setDateRange }: PerformanceTrendProps) {
+export function PerformanceTrend({ dateRange, setDateRange, reportType = 'finished-lots' }: PerformanceTrendProps) {
   const [chartType, setChartType] = useState<ChartType>('lot-comparison')
   const [chartData, setChartData] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     fetchChartData()
-  }, [chartType])
+  }, [chartType, reportType])
 
   const fetchChartData = async () => {
     setLoading(true)
@@ -71,6 +72,7 @@ export function PerformanceTrend({ dateRange, setDateRange }: PerformanceTrendPr
             <Legend />
             <Bar dataKey="transmitted" fill="#22c55e" name="Transmitted" />
             <Bar dataKey="rejected" fill="#ef4444" name="Rejected" />
+            <Bar dataKey="indic" fill="#3b82f6" name="INDIC" />
           </BarChart>
         )
 
@@ -158,7 +160,7 @@ export function PerformanceTrend({ dateRange, setDateRange }: PerformanceTrendPr
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">
-          Performance Analytics
+          {reportType === 'indic-books' ? 'INDIC Performance Analytics' : 'Performance Analytics'}
         </h2>
         <select
           value={chartType}

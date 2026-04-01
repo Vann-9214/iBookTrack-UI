@@ -3,7 +3,10 @@
 -- Temporary table to import raw Excel data before processing
 -- ============================================================
 
--- Create staging table that mirrors Excel structure
+-- Create staging table that mirrors Excel structure (970k+ rows, 15 columns)
+-- New Excel format: S. No | Vendor Name | FACILITY_ID | Lot No. | ISBN | Title | 
+-- Received - Date | Inventory Check by- UID | Scanning - Date | Scanning - User ID | 
+-- FINAL STATUS | Trans Date | Language | Language Ilms | Phase
 CREATE TABLE IF NOT EXISTS public.imported_books_staging (
   id                    SERIAL PRIMARY KEY,
   s_no                  INTEGER,
@@ -13,19 +16,14 @@ CREATE TABLE IF NOT EXISTS public.imported_books_staging (
   isbn                  TEXT,
   title                 TEXT,
   received_date         TEXT,  -- Import as text first, convert later
-  received_status       TEXT,
   inventory_check_uid   TEXT,
-  scan_status           TEXT,
   scanning_date         TEXT,  -- Import as text first
   scanning_user_id      TEXT,
   final_status          TEXT,
-  sir_dans_remark       TEXT,
   trans_date            TEXT,  -- Import as text first
   language              TEXT,
   language_ilms         TEXT,
   phase                 TEXT,
-  vendor_new            TEXT,
-  lot_no_2              TEXT,
   
   -- Processing metadata
   processed             BOOLEAN DEFAULT false,

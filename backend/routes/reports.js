@@ -163,6 +163,16 @@ router.get('/chart-data', async (req, res) => {
       case 'lot-comparison':
         // Get top 10 lots with transmitted vs rejected
         const { data: lotStats } = await supabaseAdmin.rpc('get_lot_stats')
+        
+        // Get INDIC counts per lot
+        const { data: indicStats } = await supabaseAdmin.rpc('get_indic_lot_stats')
+        
+        // Create a map of INDIC counts by lot
+        const indicMap = {}
+        indicStats?.forEach(lot => {
+          indicMap[lot.lot] = parseInt(lot.total) || 0
+        })
+        
         if (lotStats) {
           chartData = lotStats
             .filter(lot => /^Lot-\d{1,2}M?$/i.test(lot.lot))
@@ -170,7 +180,8 @@ router.get('/chart-data', async (req, res) => {
             .map(lot => ({
               lot: lot.lot,
               transmitted: lot.transmitted,
-              rejected: lot.rejected
+              rejected: lot.rejected,
+              indic: indicMap[lot.lot] || 0
             }))
         }
         break
@@ -271,6 +282,62 @@ router.get('/chart-data', async (req, res) => {
     res.json({ chartData })
   } catch (error) {
     console.error('Error fetching chart data:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+/**
+ * GET /api/reports/indic-books
+ * Get statistics for INDIC books (215k rows) - transmitted, lots, etc.
+ */
+router.get('/indic-books', async (req, res) => {
+  try {
+    // Get overall INDIC statistics
+    const { data: indicStats, error: statsError } = await supabaseAdmin
+      .rpc('get_indic_stats')
+    
+    if (statsError) throw statsError
+
+    const stats = indicStats?.[0] || {
+      total_indic: 0,
+      in_both_files: 0,
+      indic_only: 0,
+      transmitted: 0,
+      rejected: 0
+    }
+
+    const booksToGo = stats.total_indic - stats.transmitted
+    const completionRate = stats.total_indic ? ((stats.transmitted / stats.total_indic) * 100).toFixed(2) : '0'
+
+    // Get INDIC lot breakdown
+    const { data: lotData, error: lotError } = await supabaseAdmin
+      .rpc('get_indic_lot_stats')
+    
+    let lotBreakdown = []
+    if (lotData) {
+      lotBreakdown = lotData.map(lot => ({
+        lot: lot.lot,
+        total: parseInt(lot.total),
+        transmitted: parseInt(lot.transmitted),
+        rejected: parseInt(lot.rejected),
+        completionRate: lot.completion_rate?.toString() || '0'
+      }))
+    }
+
+    res.json({
+      overview: {
+        totalBooks: parseInt(stats.total_indic) || 0,
+        transmitted: parseInt(stats.transmitted) || 0,
+        rejected: parseInt(stats.rejected) || 0,
+        booksToGo,
+        completionRate,
+        inBothFiles: parseInt(stats.in_both_files) || 0,
+        indicOnly: parseInt(stats.indic_only) || 0
+      },
+      lotBreakdown: lotBreakdown.sort((a, b) => b.total - a.total)
+    })
+  } catch (error) {
+    console.error('Error fetching INDIC books report:', error)
     res.status(500).json({ error: error.message })
   }
 })

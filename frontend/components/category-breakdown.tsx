@@ -17,9 +17,10 @@ interface CategoryBreakdownProps {
     rejected: number
     completionRate: string
   }>
+  reportType?: 'finished-lots' | 'indic-books'
 }
 
-export function CategoryBreakdown({ lotData, vendorData }: CategoryBreakdownProps) {
+export function CategoryBreakdown({ lotData, vendorData, reportType = 'finished-lots' }: CategoryBreakdownProps) {
   const [selectedLots, setSelectedLots] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'top3' | 'selected'>('top3')
   
@@ -58,7 +59,7 @@ export function CategoryBreakdown({ lotData, vendorData }: CategoryBreakdownProp
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-foreground">
-          Lot Breakdown
+          {reportType === 'indic-books' ? 'INDIC Lot Breakdown' : 'Lot Breakdown'}
         </h2>
         <div className="flex items-center gap-2">
           <select

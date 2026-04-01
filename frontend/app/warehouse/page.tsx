@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Barcode, CheckCircle, XCircle, AlertTriangle, Package, Search } from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth-api'
+import { ILMSTestPanel } from '@/components/ilms-test-panel'
 
 interface Book {
   id?: string
@@ -226,10 +227,11 @@ export default function WarehousePage() {
           {/* Header */}
           <header>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse Station</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Receive boxes, scan books, and segregate into accepted/rejected boxes
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Scan and process books for warehouse operations</p>
           </header>
+
+          {/* iLMS API Test Panel */}
+          <ILMSTestPanel />
 
           {!sessionActive ? (
             /* Session Setup */

@@ -1,6 +1,7 @@
 import express from 'express'
 import { supabase } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { ilmsApi } from '../services/ilms-api.js'
 
 const router = express.Router()
 
@@ -276,6 +277,39 @@ router.post('/scan', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Scan book error:', error)
     res.status(500).json({ error: error.message })
+  }
+})
+
+// Test iLMS API - Search book by ISBN from client's system
+router.get('/ilms/search/:isbn', async (req, res) => {
+  try {
+    const { isbn } = req.params
+
+    console.log('🔍 Searching iLMS API for ISBN:', isbn)
+
+    const result = await ilmsApi.searchBookByISBN(isbn)
+
+    if (result.success) {
+      console.log('✅ iLMS API response received')
+      res.json({
+        success: true,
+        source: 'iLMS API',
+        data: result.data
+      })
+    } else {
+      console.log('❌ iLMS API error:', result.error)
+      res.status(404).json({
+        success: false,
+        error: result.error,
+        message: 'Book not found in iLMS system'
+      })
+    }
+  } catch (error) {
+    console.error('iLMS API test error:', error)
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    })
   }
 })
 

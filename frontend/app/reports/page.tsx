@@ -40,16 +40,18 @@ export default function ReportsPage() {
   const [importedData, setImportedData] = useState<any>(null)
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [reportType, setReportType] = useState<'finished-lots' | 'indic-books'>('finished-lots')
 
   useEffect(() => {
     setTimestamp(new Date().toLocaleString())
     fetchReportData()
-  }, [])
+  }, [reportType])
 
   const fetchReportData = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`${API_URL}/api/reports/finished-lots`)
+      const endpoint = reportType === 'indic-books' ? '/api/reports/indic-books' : '/api/reports/finished-lots'
+      const response = await fetch(`${API_URL}${endpoint}`)
       const data = await response.json()
       setReportData(data)
     } catch (error) {
@@ -79,12 +81,22 @@ export default function ReportsPage() {
                 Last Updated: {timestamp || 'Loading...'}
               </p>
             </div>
-            <button
-              onClick={() => setShowImport(!showImport)}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-            >
-              Import Data
-            </button>
+            <div className="flex items-center gap-3">
+              <select
+                value={reportType}
+                onChange={(e) => setReportType(e.target.value as 'finished-lots' | 'indic-books')}
+                className="bg-input border border-border rounded-lg px-4 py-2 text-sm text-foreground cursor-pointer hover:bg-card transition-colors"
+              >
+                <option value="finished-lots">📦 Finished Lots (970k)</option>
+                <option value="indic-books">📚 INDIC Books (215k)</option>
+              </select>
+              <button
+                onClick={() => setShowImport(!showImport)}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+              >
+                Import Data
+              </button>
+            </div>
           </header>
 
           {importedData && (
@@ -107,11 +119,16 @@ export default function ReportsPage() {
               {/* Category Breakdown */}
               <CategoryBreakdown 
                 lotData={reportData.lotBreakdown} 
-                vendorData={reportData.vendorBreakdown} 
+                vendorData={reportData.vendorBreakdown}
+                reportType={reportType}
               />
 
               {/* Performance Trend */}
-              <PerformanceTrend dateRange={dateRange} setDateRange={setDateRange} />
+              <PerformanceTrend 
+                dateRange={dateRange} 
+                setDateRange={setDateRange}
+                reportType={reportType}
+              />
             </>
           ) : (
             <div className="flex items-center justify-center py-12">
