@@ -2,43 +2,47 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { Activity, AlertTriangle, FileOutput, HeartPulse } from "lucide-react"
 
-const stats = [
-  {
-    title: "Live Lots",
-    value: "14",
-    subtext: "Active in 8-step pipeline",
-    icon: Activity,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    title: "Missing Books",
-    value: "5",
-    subtext: "Flagged at checkpoints",
-    icon: AlertTriangle,
-    color: "text-destructive",
-    bgColor: "bg-destructive/10",
-  },
-  {
-    title: "Daily Output",
-    value: "450",
-    subtext: "Successfully transmitted",
-    icon: FileOutput,
-    color: "text-success",
-    bgColor: "bg-success/10",
-    unit: "PDFs",
-  },
-  {
-    title: "Transmission Health",
-    value: "99.8%",
-    subtext: "Hash-check pass rate",
-    icon: HeartPulse,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-]
+interface StatsBarProps {
+  stats?: any
+}
 
-export function StatsBar() {
+export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
+  const stats = [
+    {
+      title: "Live Lots",
+      value: dashboardStats?.activeLots?.toString() || "0",
+      subtext: "Active in 8-step pipeline",
+      icon: Activity,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+    {
+      title: "Missing Books",
+      value: dashboardStats?.unaccountedBooks?.toString() || "0",
+      subtext: "Flagged at checkpoints",
+      icon: AlertTriangle,
+      color: "text-destructive",
+      bgColor: "bg-destructive/10",
+    },
+    {
+      title: "Daily Output",
+      value: dashboardStats?.dailyTransmitted?.toString() || "0",
+      subtext: "Successfully transmitted",
+      icon: FileOutput,
+      color: "text-success",
+      bgColor: "bg-success/10",
+      unit: "Books",
+    },
+    {
+      title: "Total Books",
+      value: dashboardStats?.totalBooks?.toString() || "0",
+      subtext: "In system",
+      icon: HeartPulse,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+    },
+  ]
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => (

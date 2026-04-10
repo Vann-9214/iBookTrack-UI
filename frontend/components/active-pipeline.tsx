@@ -3,18 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-const pipelineSteps = [
-  { label: "Warehouse", count: 3, unit: "Boxes" },
-  { label: "Inventory", count: 3, unit: "Boxes" },
-  { label: "Cut", count: 2, unit: "Boxes" },
-  { label: "Book Inspection & Endorsement", count: 1, unit: "Box" },
-  { label: "Scan", count: 5, unit: "Boxes" },
-  { label: "Validation", count: 1, unit: "Box" },
-  { label: "QA", count: 1, unit: "Box" },
-  { label: "Transmit", count: 0, unit: "Boxes" },
-  { label: "Storage", count: 1, unit: "Box" },
-]
-
 function getStepStatus(count: number) {
   if (count >= 5) return "bottleneck"
   if (count >= 3) return "busy"
@@ -47,9 +35,20 @@ const statusStyles = {
 
 interface ActivePipelineProps {
   currentLot?: string
+  stats?: any
 }
 
-export function ActivePipeline({ currentLot = "" }: ActivePipelineProps) {
+export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) {
+  const pipelineSteps = [
+    { label: "Intake", count: stats?.pipelineStages?.intake || 0, unit: stats?.pipelineStages?.intake === 1 ? "Box" : "Boxes" },
+    { label: "Cut", count: stats?.pipelineStages?.cut || 0, unit: stats?.pipelineStages?.cut === 1 ? "Box" : "Boxes" },
+    { label: "Book Inspection", count: stats?.pipelineStages?.['book inspection & endorsement'] || 0, unit: stats?.pipelineStages?.['book inspection & endorsement'] === 1 ? "Box" : "Boxes" },
+    { label: "Scan", count: stats?.pipelineStages?.scan || 0, unit: stats?.pipelineStages?.scan === 1 ? "Box" : "Boxes" },
+    { label: "Validation", count: stats?.pipelineStages?.validation || 0, unit: stats?.pipelineStages?.validation === 1 ? "Box" : "Boxes" },
+    { label: "QA", count: stats?.pipelineStages?.qa || 0, unit: stats?.pipelineStages?.qa === 1 ? "Box" : "Boxes" },
+    { label: "Transmit", count: stats?.pipelineStages?.transmit || 0, unit: stats?.pipelineStages?.transmit === 1 ? "Box" : "Boxes" },
+    { label: "Storage", count: stats?.pipelineStages?.storage || 0, unit: stats?.pipelineStages?.storage === 1 ? "Box" : "Boxes" },
+  ]
   return (
     <Card className="border-border bg-card">
       <CardHeader className="pb-4">

@@ -228,15 +228,167 @@ export default function WarehouseInventoryPage() {
   const handleScan = async (isbn: string) => {
     if (!currentSession) return
 
-    // Since book API is not available yet, just use the ISBN
-    // Book details will be filled in later when API is ready
-    setCurrentScan({
-      isbn,
-      title: `ISBN: ${isbn}`,
-      language: 'To be determined',
-      expectedBox: currentBox,
-      found: false
-    })
+    // Auto-accept previous scan before processing new one
+    if (currentScan) {
+      await autoAcceptBook(currentScan)
+    }
+
+    setLoading(true)
+    try {
+      // Fetch book details from iLMS API
+      const response = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+      const data = await response.json()
+
+      let bookData: any
+
+      if (data.success && data.data && !data.data.Message) {
+        // Book found in iLMS system
+        bookData = {
+          isbn: data.data.ISBN || isbn,
+          title: data.data.Title || `ISBN: ${isbn}`,
+          language: data.data.LanguageofBook || 'Unknown',
+          publisher: data.data.PublisherName || 'N/A',
+          pages: data.data.EstimatedNumberofpages || 'N/A',
+          lotNumber: data.data.LotNo || 'N/A',
+          boxNumber: data.data.BoxNo || 'N/A',
+          datePurchased: data.data.PurchaseApproval || 'N/A',
+          dateCatalogued: data.data.uploadFileDate || 'N/A',
+          expectedBox: data.data.BoxNo || currentBox, // Use BoxNo from API
+          found: true,
+          apiData: data.data // Store full API response
+        }
+      } else {
+        // Book not found in iLMS system
+        bookData = {
+          isbn,
+          title: `ISBN: ${isbn}`,
+          language: 'Not found in system',
+          publisher: 'N/A',
+          pages: 'N/A',
+          lotNumber: 'N/A',
+          boxNumber: 'N/A',
+          datePurchased: 'N/A',
+          dateCatalogued: 'N/A',
+          expectedBox: currentBox,
+          found: false
+        }
+        
+        toast({
+          title: 'Book Not Found',
+          description: 'This ISBN was not found in the iLMS system.',
+          variant: 'destructive'
+        })
+      }
+
+      // Set new scan (will be auto-accepted when next scan happens)
+      setCurrentScan(bookData)
+
+    } catch (error) {
+      console.error('Error fetching book details:', error)
+      // Fallback to basic info if API fails
+      const fallbackData = {
+        isbn,
+        title: `ISBN: ${isbn}`,
+        language: 'API Error',
+        publisher: 'N/A',
+        pages: 'N/A',
+        lotNumber: 'N/A',
+        boxNumber: 'N/A',
+        datePurchased: 'N/A',
+        dateCatalogued: 'N/A',
+        expectedBox: currentBox,
+        found: false
+      }
+      
+      setCurrentScan(fallbackData)
+      
+      toast({
+        title: 'API Error',
+        description: 'Failed to fetch book details. Please try again.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Auto-accept book as Pass/Received
+  const autoAcceptBook = async (bookData: any) => {
+    if (!currentSession || !bookData) return
+
+    try {
+      const token = await getValidAccessToken()
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.')
+      }
+
+      const response = await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}/scan`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          isbn: bookData.isbn,
+          scan_status: 'accepted', // Auto-accept as Pass/Received
+          rejection_reason: null
+        })
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to process book')
+
+      // Update box ID if we got a new box
+      if (data.currentBox) {
+        const isNewBox = data.currentBox.box_number !== currentAcceptedBoxNumber
+        
+        setCurrentAcceptedBoxId(data.scanLog.assigned_box_id)
+        if (isNewBox) {
+          setCurrentAcceptedBoxNumber(data.currentBox.box_number)
+          setCurrentBoxBooks(1)
+        } else {
+          setCurrentBoxBooks(prev => prev + 1)
+        }
+        setActiveBoxType('accepted')
+        setBoxId(data.currentBox.box_number)
+      }
+
+      const newBook: ScannedBook = {
+        id: data.scanLog.id,
+        isbn: bookData.isbn,
+        title: bookData.title,
+        language: bookData.language,
+        expectedBox: bookData.expectedBox,
+        status: 'pass',
+        timestamp: new Date(data.scanLog.scanned_at),
+        scan_status: data.scanLog.scan_status,
+        rejection_reason: data.scanLog.rejection_reason
+      }
+
+      setScannedBooks([newBook, ...scannedBooks])
+      
+      // Update session stats
+      setCurrentSession(prev => prev ? {
+        ...prev,
+        total_scanned: prev.total_scanned + 1,
+        total_accepted: prev.total_accepted + 1,
+      } : null)
+
+      // Don't clear currentScan here - it will be replaced by next scan
+      // This allows user to see current book details while scanning next
+
+      toast({
+        title: '✅ Book Accepted',
+        description: `${bookData.title} added to inventory`,
+      })
+    } catch (error) {
+      console.error('Failed to auto-accept book:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to save book to inventory',
+        variant: 'destructive'
+      })
+    }
   }
 
   const handleAction = async (status: ScannedBook['status']) => {

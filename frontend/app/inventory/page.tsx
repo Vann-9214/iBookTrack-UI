@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { X, Printer, Barcode } from 'lucide-react'
+import bwipjs from 'bwip-js'
 
 interface BookDetail {
   isbn: string
@@ -29,74 +30,80 @@ interface LogEntry {
   printed: boolean
 }
 
-const mockBooks: { [key: string]: BookDetail } = {
-  '978-0-123456-78-9': {
-    isbn: '978-0-123456-78-9',
-    title: 'The History of Science',
-    description: 'A comprehensive exploration of scientific discovery and advancement through the ages.',
-    datePurchased: '2025-01-15',
-    dateCatalogued: '2025-02-01',
-    lot: 'Lot-33',
-    boxNum: 'B001',
-    type: 'Mustang',
-    publisher: 'Oxford Press',
-    language: 'English',
-    pageCount: 482,
-    condition: 'Good',
-    shipment: 'SHIP-2025-001',
-    projectName: 'Science Collection',
-  },
-  '978-0-987654-32-1': {
-    isbn: '978-0-987654-32-1',
-    title: 'Advanced Mathematics',
-    description: 'An in-depth guide to advanced mathematical concepts and applications.',
-    datePurchased: '2025-01-20',
-    dateCatalogued: '2025-02-05',
-    lot: 'Lot-33',
-    boxNum: 'B002',
-    type: 'Jaguar',
-    publisher: 'Cambridge University Press',
-    language: 'English',
-    pageCount: 756,
-    condition: 'Excellent',
-    shipment: 'SHIP-2025-002',
-    projectName: 'Mathematics Series',
-  },
-}
-
-const mockLogs: LogEntry[] = [
-  {
-    id: '1',
-    isbn: '978-0-123456-78-9',
-    title: 'The History of Science',
-    scannedAt: '2025-02-27 10:30:45',
-    printed: true,
-  },
-  {
-    id: '2',
-    isbn: '978-0-987654-32-1',
-    title: 'Advanced Mathematics',
-    scannedAt: '2025-02-27 10:25:30',
-    printed: true,
-  },
-]
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function InventoryPage() {
   const [scanInput, setScanInput] = useState('')
   const [selectedBook, setSelectedBook] = useState<BookDetail | null>(null)
   const [showModal, setShowModal] = useState(false)
-  const [logs, setLogs] = useState<LogEntry[]>(mockLogs)
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const handleScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Fetch scan history on component mount
+  useEffect(() => {
+    fetchScanHistory()
+  }, [])
+
+  const fetchScanHistory = async () => {
+    try {
+      // Fetch recent scans from warehouse sessions
+      const response = await fetch(`${API_URL}/api/warehouse/scans/recent?limit=50`)
+      const data = await response.json()
+      
+      if (data.success && data.scans) {
+        const formattedLogs: LogEntry[] = data.scans.map((scan: any) => ({
+          id: scan.id,
+          isbn: scan.isbn,
+          title: scan.title || `ISBN: ${scan.isbn}`,
+          scannedAt: new Date(scan.scanned_at).toLocaleString(),
+          printed: false // Track if printed in this session
+        }))
+        setLogs(formattedLogs)
+      }
+    } catch (error) {
+      console.error('Failed to fetch scan history:', error)
+    }
+  }
+
+  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       const isbn = scanInput.trim()
-      const book = mockBooks[isbn]
-      
-      if (book) {
-        setSelectedBook(book)
-        setShowModal(true)
-      } else {
-        alert('Book not found in database')
+      if (!isbn) return
+
+      setLoading(true)
+      try {
+        // Fetch book details from iLMS API
+        const response = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+        const data = await response.json()
+
+        if (data.success && data.data && !data.data.Message) {
+          // Book found in iLMS system
+          const bookDetail: BookDetail = {
+            isbn: data.data.ISBN || isbn,
+            title: data.data.Title || `ISBN: ${isbn}`,
+            description: data.data.Description || 'N/A',
+            datePurchased: data.data.PurchaseApproval || 'N/A',
+            dateCatalogued: data.data.uploadFileDate || 'N/A',
+            lot: data.data.LotNo || 'N/A',
+            boxNum: data.data.BoxNo || 'N/A',
+            type: 'Mustang', // Default type
+            publisher: data.data.PublisherName || 'N/A',
+            language: data.data.LanguageofBook || 'Unknown',
+            pageCount: parseInt(data.data.EstimatedNumberofpages) || 0,
+            condition: data.data.Condition || 'N/A',
+            shipment: 'N/A',
+            projectName: 'iLMS Import'
+          }
+          setSelectedBook(bookDetail)
+          setShowModal(true)
+        } else {
+          alert('Book not found in iLMS system')
+        }
+      } catch (error) {
+        console.error('Error fetching book:', error)
+        alert('Failed to fetch book details')
+      } finally {
+        setLoading(false)
       }
       setScanInput('')
     }
@@ -107,8 +114,9 @@ export default function InventoryPage() {
     
     window.print()
     
+    // Mark as printed in current session
     const newLog: LogEntry = {
-      id: (logs.length + 1).toString(),
+      id: Date.now().toString(),
       isbn: selectedBook.isbn,
       title: selectedBook.title,
       scannedAt: new Date().toLocaleString(),
@@ -116,6 +124,9 @@ export default function InventoryPage() {
     }
     setLogs([newLog, ...logs])
     setShowModal(false)
+    
+    // Refresh scan history to get latest from database
+    fetchScanHistory()
   }
 
   const handleClose = () => {
@@ -123,30 +134,47 @@ export default function InventoryPage() {
     setScanInput('')
   }
 
+  // Barcode canvas ref
+  const barcodeCanvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Generate barcode when book is selected
+  useEffect(() => {
+    // Only run in browser (not during SSR)
+    if (typeof window === 'undefined') return
+    
+    if (selectedBook && barcodeCanvasRef.current) {
+      try {
+        // Clean ISBN - remove dashes
+        const cleanISBN = selectedBook.isbn.replace(/-/g, '')
+        
+        bwipjs.toCanvas(barcodeCanvasRef.current, {
+          bcid: 'code128',       // More flexible than EAN-13
+          text: cleanISBN,
+          scale: 2,
+          height: 10,
+          includetext: true,
+          textxalign: 'center',
+        })
+      } catch (e) {
+        console.error('Barcode generation error:', e)
+        // If barcode fails, clear canvas
+        const ctx = barcodeCanvasRef.current.getContext('2d')
+        if (ctx) {
+          ctx.clearRect(0, 0, barcodeCanvasRef.current.width, barcodeCanvasRef.current.height)
+        }
+      }
+    }
+  }, [selectedBook])
+
   return (
     <>
       {/* Print Slip Template - Hidden on screen, visible when printing */}
       {selectedBook && (
         <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:p-8">
           <div className="max-w-4xl mx-auto space-y-6">
-            {/* Barcode in Upper Middle */}
+            {/* EAN-13 Barcode at Top Center */}
             <div className="flex justify-center mb-8">
-              <div className="text-center">
-                <svg className="mx-auto" width="300" height="80">
-                  {/* Simple barcode representation using SVG */}
-                  {selectedBook.isbn.split('').map((char, i) => (
-                    <rect
-                      key={i}
-                      x={i * 20}
-                      y="0"
-                      width={char === '-' ? 4 : parseInt(char) % 2 === 0 ? 8 : 12}
-                      height="60"
-                      fill="black"
-                    />
-                  ))}
-                </svg>
-                <p className="text-sm font-mono mt-2">{selectedBook.isbn}</p>
-              </div>
+              <canvas ref={barcodeCanvasRef} className="mx-auto"></canvas>
             </div>
 
             {/* Print Slip Content */}

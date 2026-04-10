@@ -409,28 +409,42 @@ router.get('/sessions', requireAuth, async (req, res) => {
   }
 })
 
-// Search book by ISBN to find which box it's in
-router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
+// Search book by ISBN to find which box it's in (PUBLIC - no auth required for Dashboard)
+router.get('/search/isbn/:isbn', async (req, res) => {
   try {
     const { isbn } = req.params
+
+    // First, try to get book details from iLMS API
+    const { ilmsApi } = await import('../services/ilms-api.js')
+    const ilmsResult = await ilmsApi.searchBookByISBN(isbn)
+    
+    let bookTitle = null
+    let ilmsBoxNo = null
+    let ilmsLotNo = null
+    
+    if (ilmsResult.success && ilmsResult.data && !ilmsResult.data.Message) {
+      bookTitle = ilmsResult.data.Title
+      ilmsBoxNo = ilmsResult.data.BoxNo
+      ilmsLotNo = ilmsResult.data.LotNo
+    }
 
     // Search in warehouse scan logs
     const { data: scans, error: scanError } = await supabaseAdmin
       .from('warehouse_book_scans')
       .select(`
         *,
-        session:warehouse_sessions(
-          box:boxes(box_number, lot:lots(lot_number))
-        ),
-        assigned_box:assigned_box_id(box_number, lot:lots(lot_number))
+        assigned_box:boxes!warehouse_book_scans_assigned_box_id_fkey(
+          box_number,
+          lot:lots(lot_number)
+        )
       `)
       .eq('isbn', isbn)
       .order('scanned_at', { ascending: false })
 
     if (scanError) throw scanError
 
-    // Also search current book location
-    const { data: book, error: bookError } = await supabase
+    // Also search current book location in books table
+    const { data: book, error: bookError } = await supabaseAdmin
       .from('books')
       .select(`
         *,
@@ -441,13 +455,54 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
 
     if (bookError && bookError.code !== 'PGRST116') throw bookError
 
+    // Determine box location
+    let boxNumber = null
+    let lotNumber = null
+    let inWarehouse = false
+    
+    if (scans && scans.length > 0) {
+      // Use most recent scan
+      const latestScan = scans[0]
+      boxNumber = latestScan.assigned_box?.box_number || null
+      lotNumber = latestScan.assigned_box?.lot?.lot_number || null
+      inWarehouse = true
+    } else if (book) {
+      boxNumber = book.box?.box_number || null
+      lotNumber = book.box?.lot?.lot_number || null
+      inWarehouse = true
+    }
+
+    // If book found in iLMS or database, return success
+    const bookFound = (ilmsResult.success && ilmsResult.data && !ilmsResult.data.Message) || book || (scans && scans.length > 0)
+
+    if (!bookFound) {
+      return res.json({
+        success: false,
+        message: 'ISBN not found in iLMS or database',
+        book: null
+      })
+    }
+
     res.json({ 
+      success: true,
+      book: {
+        isbn,
+        title: bookTitle || book?.title || 'Unknown',
+        box_number: boxNumber || ilmsBoxNo || 'Not in warehouse yet',
+        lot_number: lotNumber || ilmsLotNo || 'Unknown',
+        current_stage: book?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
+        scanned: scans && scans.length > 0,
+        scan_count: scans?.length || 0,
+        in_warehouse: inWarehouse,
+        in_ilms: ilmsResult.success && ilmsResult.data && !ilmsResult.data.Message
+      },
       scans,
-      currentLocation: book || null
+      currentLocation: book || null,
+      ilmsData: ilmsResult.success ? ilmsResult.data : null
     })
   } catch (error) {
     console.error('Search ISBN error:', error)
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 
@@ -456,24 +511,58 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
   try {
     const { limit = 50 } = req.query
 
-    const { data, error } = await supabaseAdmin
+    const { data: rejectedBooks, error } = await supabaseAdmin
       .from('warehouse_book_scans')
       .select(`
         *,
-        session:warehouse_sessions(
-          box:boxes(box_number, lot:lots(lot_number))
-        ),
-        assigned_box:assigned_box_id(box_number)
+        warehouse_sessions!inner(lot_id, lots(lot_number))
       `)
-      .neq('scan_status', 'accepted')
+      .eq('scan_status', 'rejected')
       .order('scanned_at', { ascending: false })
       .limit(parseInt(limit))
 
     if (error) throw error
 
-    res.json({ rejectedBooks: data })
+    res.json({ success: true, rejectedBooks })
   } catch (error) {
-    console.error('Get rejected books error:', error)
+    console.error('Error fetching rejected books:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get recent scans for inventory page
+router.get('/scans/recent', async (req, res) => {
+  try {
+    const { limit = 50 } = req.query
+
+    const { data: scans, error } = await supabaseAdmin
+      .from('warehouse_book_scans')
+      .select(`
+        id,
+        isbn,
+        title,
+        scan_status,
+        scanned_at,
+        warehouse_sessions(lot_id, lots(lot_number))
+      `)
+      .order('scanned_at', { ascending: false })
+      .limit(parseInt(limit))
+
+    if (error) throw error
+
+    // Format the response
+    const formattedScans = scans.map(scan => ({
+      id: scan.id,
+      isbn: scan.isbn,
+      title: scan.title || `ISBN: ${scan.isbn}`,
+      scanned_at: scan.scanned_at,
+      scan_status: scan.scan_status,
+      lot_number: scan.warehouse_sessions?.lots?.lot_number || 'N/A'
+    }))
+
+    res.json({ success: true, scans: formattedScans })
+  } catch (error) {
+    console.error('Error fetching recent scans:', error)
     res.status(500).json({ error: error.message })
   }
 })

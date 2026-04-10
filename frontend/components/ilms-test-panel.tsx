@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import bwipjs from 'bwip-js'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -13,6 +14,35 @@ export function ILMSTestPanel() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const barcodeCanvasRef = useRef<HTMLCanvasElement>(null)
+
+  // Generate barcode when result is available
+  useEffect(() => {
+    // Only run in browser (not during SSR)
+    if (typeof window === 'undefined') return
+    
+    if (result?.data?.ISBN && barcodeCanvasRef.current) {
+      try {
+        const cleanISBN = result.data.ISBN.replace(/-/g, '')
+        
+        bwipjs.toCanvas(barcodeCanvasRef.current, {
+          bcid: 'code128',       // More flexible than EAN-13
+          text: cleanISBN,
+          scale: 2,
+          height: 10,
+          includetext: true,
+          textxalign: 'center',
+        })
+      } catch (e) {
+        console.error('Barcode generation error:', e)
+        // If barcode fails, clear canvas and show error
+        const ctx = barcodeCanvasRef.current.getContext('2d')
+        if (ctx) {
+          ctx.clearRect(0, 0, barcodeCanvasRef.current.width, barcodeCanvasRef.current.height)
+        }
+      }
+    }
+  }, [result])
 
   const testAPI = async () => {
     if (!isbn.trim()) {
@@ -106,12 +136,65 @@ export function ILMSTestPanel() {
               </div>
             </div>
 
-            {/* Book Details */}
-            <div className="bg-card border border-border rounded-lg p-4 space-y-2">
-              <h3 className="font-semibold text-foreground mb-3">Book Details:</h3>
-              <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-96">
-                {JSON.stringify(result.data, null, 2)}
-              </pre>
+            {/* Book Details - Formatted Print Slip Fields */}
+            <div className="bg-card border border-border rounded-lg p-4">
+              <h3 className="font-semibold text-foreground mb-4">Book Details (Print Slip Format):</h3>
+              
+              {/* Barcode at Top Center */}
+              <div className="flex justify-center mb-6 pb-4 border-b border-border">
+                <canvas ref={barcodeCanvasRef} className="mx-auto"></canvas>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">ISBN</p>
+                  <p className="font-medium">{result.data?.ISBN || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Book Type</p>
+                  <p className="font-medium">{result.data?.BookType || 'N/A'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Title</p>
+                  <p className="font-medium">{result.data?.Title || 'N/A'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-muted-foreground">Description</p>
+                  <p className="font-medium">{result.data?.Description || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Date Purchased</p>
+                  <p className="font-medium">{result.data?.PurchaseApproval || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Date Catalogued</p>
+                  <p className="font-medium">{result.data?.uploadFileDate || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Lot Number</p>
+                  <p className="font-medium">{result.data?.LotNo || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Box Number</p>
+                  <p className="font-medium">{result.data?.BoxNo || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Publisher</p>
+                  <p className="font-medium">{result.data?.PublisherName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Language</p>
+                  <p className="font-medium">{result.data?.LanguageofBook || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Pages</p>
+                  <p className="font-medium">{result.data?.EstimatedNumberofpages || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Condition</p>
+                  <p className="font-medium">{result.data?.Condition || 'N/A'}</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
