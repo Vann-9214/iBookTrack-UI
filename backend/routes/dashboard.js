@@ -1,18 +1,19 @@
 import express from 'express'
-import { supabase } from '../config/supabase.js'
+import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
 // Get dashboard stats
-router.get('/stats', requireAuth, async (req, res) => {
+router.get('/stats', async (req, res) => {
   try {
     const { lot_number, lot_range_start, lot_range_end } = req.query
+    const db = supabaseAdmin || supabase
 
     // Build lot filter
     let lotIds = null
     if (lot_number) {
-      const { data: lot } = await supabase
+      const { data: lot } = await db
         .from('lots')
         .select('id')
         .eq('lot_number', lot_number)
@@ -20,7 +21,7 @@ router.get('/stats', requireAuth, async (req, res) => {
       
       if (lot) lotIds = [lot.id]
     } else if (lot_range_start && lot_range_end) {
-      const { data: lots } = await supabase
+      const { data: lots } = await db
         .from('lots')
         .select('id')
         .gte('lot_number', lot_range_start)
@@ -30,14 +31,14 @@ router.get('/stats', requireAuth, async (req, res) => {
     }
 
     // Get total boxes
-    let boxQuery = supabase.from('boxes').select('id', { count: 'exact', head: true })
+    let boxQuery = db.from('boxes').select('id', { count: 'exact', head: true })
     if (lotIds) boxQuery = boxQuery.in('lot_id', lotIds)
     const { count: totalBoxes } = await boxQuery
 
     // Get total books
-    let bookQuery = supabase.from('books').select('id', { count: 'exact', head: true })
+    let bookQuery = db.from('books').select('id', { count: 'exact', head: true })
     if (lotIds) {
-      const { data: boxes } = await supabase
+      const { data: boxes } = await db
         .from('boxes')
         .select('id')
         .in('lot_id', lotIds)
@@ -48,12 +49,12 @@ router.get('/stats', requireAuth, async (req, res) => {
     const { count: totalBooks } = await bookQuery
 
     // Get transmitted books count
-    let transmittedQuery = supabase
+    let transmittedQuery = db
       .from('books')
       .select('id', { count: 'exact', head: true })
       .eq('is_transmitted', true)
     if (lotIds) {
-      const { data: boxes } = await supabase
+      const { data: boxes } = await db
         .from('boxes')
         .select('id')
         .in('lot_id', lotIds)
@@ -64,7 +65,7 @@ router.get('/stats', requireAuth, async (req, res) => {
     const { count: transmittedBooks } = await transmittedQuery
 
     // Get unaccounted books count
-    let unaccountedQuery = supabase
+    let unaccountedQuery = db
       .from('unaccounted_books')
       .select('id', { count: 'exact', head: true })
       .eq('resolved', false)
@@ -73,7 +74,7 @@ router.get('/stats', requireAuth, async (req, res) => {
     // Get active lots count
     let activeLots = 0
     if (!lot_number && !lot_range_start) {
-      const { count } = await supabase
+      const { count } = await db
         .from('lots')
         .select('id', { count: 'exact', head: true })
         .neq('status', 'storage')
@@ -83,6 +84,7 @@ router.get('/stats', requireAuth, async (req, res) => {
     }
 
     res.json({
+      success: true,
       stats: {
         totalBoxes: totalBoxes || 0,
         totalBooks: totalBooks || 0,
@@ -99,7 +101,7 @@ router.get('/stats', requireAuth, async (req, res) => {
 })
 
 // Get transmission queue
-router.get('/transmission-queue', requireAuth, async (req, res) => {
+router.get('/transmission-queue', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('transmission_queue')
@@ -121,7 +123,7 @@ router.get('/transmission-queue', requireAuth, async (req, res) => {
 })
 
 // Get unaccounted books
-router.get('/unaccounted-books', requireAuth, async (req, res) => {
+router.get('/unaccounted-books', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('unaccounted_books')
@@ -140,14 +142,15 @@ router.get('/unaccounted-books', requireAuth, async (req, res) => {
 })
 
 // Get pipeline stage counts
-router.get('/pipeline-stats', requireAuth, async (req, res) => {
+router.get('/pipeline-stats', async (req, res) => {
   try {
     const { lot_number } = req.query
+    const db = supabaseAdmin || supabase
 
-    let query = supabase.from('boxes').select('current_stage')
+    let query = db.from('boxes').select('current_stage')
 
     if (lot_number) {
-      const { data: lot } = await supabase
+      const { data: lot } = await db
         .from('lots')
         .select('id')
         .eq('lot_number', lot_number)

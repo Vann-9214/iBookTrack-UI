@@ -42,12 +42,28 @@ export default function DashboardPage() {
     fetchDashboardStats()
   }, [])
 
-  const fetchDashboardStats = async () => {
+  const fetchDashboardStats = async (lotNumber?: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/dashboard/stats`)
-      const data = await response.json()
-      if (data.success) {
-        setDashboardStats(data.stats)
+      const statsUrl = lotNumber
+        ? `${API_URL}/api/dashboard/stats?lot_number=${encodeURIComponent(lotNumber)}`
+        : `${API_URL}/api/dashboard/stats`
+      const pipelineUrl = lotNumber
+        ? `${API_URL}/api/dashboard/pipeline-stats?lot_number=${encodeURIComponent(lotNumber)}`
+        : `${API_URL}/api/dashboard/pipeline-stats`
+
+      const [statsRes, pipelineRes] = await Promise.all([
+        fetch(statsUrl),
+        fetch(pipelineUrl)
+      ])
+      const statsData = await statsRes.json()
+      const pipelineData = await pipelineRes.json()
+
+      const stages = pipelineData.stageCounts || {}
+      // Map 'inspection' DB value → 'book inspection & endorsement' key used by ActivePipeline
+      stages['book inspection & endorsement'] = stages.inspection || 0
+
+      if (statsData.success) {
+        setDashboardStats({ ...statsData.stats, pipelineStages: stages })
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)
@@ -112,6 +128,7 @@ export default function DashboardPage() {
         } else if (searchValue) {
           setCurrentLot(searchValue)
           setDisplayRange(null)
+          fetchDashboardStats(`Lot ${searchValue}`)
           // Fetch books in specific lot
           const response = await fetch(`${API_URL}/api/boxes/lot/Lot ${searchValue}`)
           const data = await response.json()

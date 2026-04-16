@@ -1,5 +1,5 @@
 import express from 'express'
-import { supabase } from '../config/supabase.js'
+import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
@@ -135,22 +135,23 @@ router.put('/:id', requireAuth, async (req, res) => {
 })
 
 // Get boxes by lot number
-router.get('/lot/:lot_number', requireAuth, async (req, res) => {
+router.get('/lot/:lot_number', async (req, res) => {
   try {
     const { lot_number } = req.params
+    const db = supabaseAdmin || supabase
 
     // First get the lot
-    const { data: lot, error: lotError } = await supabase
+    const { data: lot, error: lotError } = await db
       .from('lots')
       .select('id')
       .eq('lot_number', lot_number)
       .single()
 
-    if (lotError) throw lotError
-    if (!lot) return res.status(404).json({ error: 'Lot not found' })
+    if (lotError && lotError.code !== 'PGRST116') throw lotError
+    if (!lot) return res.status(404).json({ success: false, error: 'Lot not found' })
 
     // Get all boxes for this lot
-    const { data: boxes, error: boxesError } = await supabase
+    const { data: boxes, error: boxesError } = await db
       .from('boxes')
       .select(`
         *,
@@ -161,7 +162,7 @@ router.get('/lot/:lot_number', requireAuth, async (req, res) => {
 
     if (boxesError) throw boxesError
 
-    res.json({ boxes })
+    res.json({ success: true, boxes })
   } catch (error) {
     console.error('Get boxes by lot error:', error)
     res.status(500).json({ error: error.message })

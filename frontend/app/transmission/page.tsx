@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
@@ -23,127 +23,132 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   FileUp,
   CheckCircle2,
   XCircle,
-  RotateCcw,
   Activity,
   Search,
-  ArrowUpRight,
   Loader2,
+  RefreshCw,
+  Trophy,
+  Download,
 } from "lucide-react"
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
 
-const transmissionQueue = [
-  {
-    lotId: "LOT-2024-0891",
-    fileSize: "4.2 MB",
-    progress: 100,
-    status: "verified",
-  },
-  {
-    lotId: "LOT-2024-0890",
-    fileSize: "3.8 MB",
-    progress: 100,
-    status: "verified",
-  },
-  {
-    lotId: "LOT-2024-0889",
-    fileSize: "5.1 MB",
-    progress: 45,
-    status: "sending",
-  },
-  {
-    lotId: "LOT-2024-0888",
-    fileSize: "4.0 MB",
-    progress: 100,
-    status: "failed",
-  },
-  {
-    lotId: "LOT-2024-0887",
-    fileSize: "3.5 MB",
-    progress: 100,
-    status: "verified",
-  },
-  {
-    lotId: "LOT-2024-0886",
-    fileSize: "6.2 MB",
-    progress: 78,
-    status: "sending",
-  },
-  {
-    lotId: "LOT-2024-0885",
-    fileSize: "4.8 MB",
-    progress: 100,
-    status: "verified",
-  },
-  {
-    lotId: "LOT-2024-0884",
-    fileSize: "3.9 MB",
-    progress: 100,
-    status: "failed",
-  },
-]
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-const transmissionHistory = [
-  { lotId: "LOT-2024-0850", date: "Mar 8, 2026", fileSize: "4.1 MB", status: "verified" },
-  { lotId: "LOT-2024-0849", date: "Mar 8, 2026", fileSize: "3.7 MB", status: "verified" },
-  { lotId: "LOT-2024-0848", date: "Mar 7, 2026", fileSize: "5.2 MB", status: "verified" },
-  { lotId: "LOT-2024-0847", date: "Mar 7, 2026", fileSize: "4.5 MB", status: "failed" },
-  { lotId: "LOT-2024-0846", date: "Mar 6, 2026", fileSize: "3.9 MB", status: "verified" },
-  { lotId: "LOT-2024-0845", date: "Mar 6, 2026", fileSize: "6.0 MB", status: "verified" },
-  { lotId: "LOT-2024-0844", date: "Mar 5, 2026", fileSize: "4.3 MB", status: "verified" },
-  { lotId: "LOT-2024-0843", date: "Mar 5, 2026", fileSize: "3.8 MB", status: "verified" },
-]
+function getStatusBadge(status: string) {
+  if (status === 'COMPLETED') return (
+    <Badge variant="outline" className="border-success/30 bg-success/10 text-success gap-1 text-[10px]">
+      <CheckCircle2 className="h-3 w-3" /> Completed
+    </Badge>
+  )
+  if (status === 'FAILED') return (
+    <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive gap-1 text-[10px]">
+      <XCircle className="h-3 w-3" /> Failed
+    </Badge>
+  )
+  return (
+    <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary gap-1 text-[10px]">
+      <Loader2 className="h-3 w-3 animate-spin" /> Ongoing
+    </Badge>
+  )
+}
+
+const PIE_COLORS = ['#6366f1','#22c55e','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316','#8b5cf6','#10b981','#0ea5e9','#a855f7','#84cc16','#06b6d4','#d946ef','#fb923c','#4ade80','#60a5fa','#c084fc','#34d399']
 
 export default function TransmissionMonitorPage() {
   const [historySearch, setHistorySearch] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [summary, setSummary] = useState<any>(null)
+  const [stages, setStages] = useState<any[]>([])
+  const [recentScans, setRecentScans] = useState<any[]>([])
+  const [byMachine, setByMachine] = useState<any[]>([])
+  const [showRanking, setShowRanking] = useState(false)
+  const [ranking, setRanking] = useState<any>(null)
+  const [rankingLoading, setRankingLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
-  const totalSent = 847
-  const passRate = 99.8
-  const uploadSpeed = "12.4 MB/s"
+  const fetchLiveData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/scanning/live`)
+      const data = await res.json()
+      if (data.success) {
+        setSummary(data.summary)
+        setStages(data.byStage || [])
+        setRecentScans(data.recentScans || [])
+        setByMachine(data.byMachine || [])
+        setLastUpdated(new Date())
+      }
+    } catch (e) {
+      console.error('Failed to fetch live scanning data:', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const failedCount = transmissionQueue.filter((t) => t.status === "failed").length
-
-  const filteredHistory = transmissionHistory.filter((item) =>
-    item.lotId.toLowerCase().includes(historySearch.toLowerCase())
-  )
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "verified":
-        return (
-          <Badge
-            variant="outline"
-            className="border-success/30 bg-success/10 text-success gap-1 text-[10px]"
-          >
-            <CheckCircle2 className="h-3 w-3" />
-            Verified
-          </Badge>
-        )
-      case "failed":
-        return (
-          <Badge
-            variant="outline"
-            className="border-destructive/30 bg-destructive/10 text-destructive gap-1 text-[10px]"
-          >
-            <XCircle className="h-3 w-3" />
-            Failed
-          </Badge>
-        )
-      case "sending":
-        return (
-          <Badge
-            variant="outline"
-            className="border-primary/30 bg-primary/10 text-primary gap-1 text-[10px]"
-          >
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Sending
-          </Badge>
-        )
-      default:
-        return null
+  const fetchRanking = async () => {
+    setRankingLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/scanning/ranking`)
+      const data = await res.json()
+      if (data.success) setRanking(data)
+    } catch (e) {
+      console.error('Failed to fetch ranking:', e)
+    } finally {
+      setRankingLoading(false)
     }
   }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const res = await fetch(`${API_URL}/api/scanning/export`)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `scanning-${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Export failed:', e)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleOpenRanking = () => {
+    setShowRanking(true)
+    fetchRanking()
+  }
+
+  useEffect(() => {
+    fetchLiveData()
+    const interval = setInterval(fetchLiveData, 60000)
+    return () => clearInterval(interval)
+  }, [fetchLiveData])
+
+  const transmissionStage = stages.find(s => s.Stage === 'Transmission_Archive')
+  const totalTransmitted = transmissionStage?.Completed || 0
+  const ongoingTransmissions = transmissionStage?.Ongoing || 0
+  const failedTransmissions = summary?.Failed || 0
+  const passRate = totalTransmitted + failedTransmissions > 0
+    ? ((totalTransmitted / (totalTransmitted + failedTransmissions)) * 100).toFixed(1)
+    : '100.0'
+
+  const filteredScans = recentScans.filter((item: any) =>
+    !historySearch || item.ISBN?.toLowerCase().includes(historySearch.toLowerCase()) ||
+    item.BoxNumber?.toLowerCase().includes(historySearch.toLowerCase())
+  )
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -153,13 +158,34 @@ export default function TransmissionMonitorPage() {
         <ScrollArea className="flex-1 h-0 min-h-0">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Header */}
-            <header>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Transmission Monitor
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Monitor PDF uploads, hash-check verifications, and transmission history.
-              </p>
+            <header className="flex items-start justify-between">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  Transmission Monitor
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Live scanning data from Simflex WMS — updates every 60 seconds.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {lastUpdated && (
+                  <span className="text-xs text-muted-foreground">
+                    Updated {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
+                  {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  Export
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
+                  <Trophy className="h-3.5 w-3.5" />
+                  Ranking
+                </Button>
+                <Button variant="outline" size="sm" onClick={fetchLiveData} disabled={loading} className="gap-1.5">
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
             </header>
 
             {/* Metric Cards */}
@@ -171,12 +197,13 @@ export default function TransmissionMonitorPage() {
                       <FileUp className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        Total PDFs Sent Today
-                      </p>
+                      <p className="text-sm text-muted-foreground">Transmitted Today</p>
                       <p className="text-2xl font-bold text-card-foreground">
-                        {totalSent}
+                        {loading ? '...' : totalTransmitted.toLocaleString()}
                       </p>
+                      {ongoingTransmissions > 0 && (
+                        <p className="text-xs text-primary mt-0.5">{ongoingTransmissions} in progress</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -189,12 +216,13 @@ export default function TransmissionMonitorPage() {
                       <CheckCircle2 className="h-6 w-6 text-success" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        Hash-Check Pass Rate
-                      </p>
+                      <p className="text-sm text-muted-foreground">Pass Rate</p>
                       <p className="text-2xl font-bold text-card-foreground">
-                        {passRate}%
+                        {loading ? '...' : `${passRate}%`}
                       </p>
+                      {failedTransmissions > 0 && (
+                        <p className="text-xs text-destructive mt-0.5">{failedTransmissions} failed</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -207,120 +235,57 @@ export default function TransmissionMonitorPage() {
                       <Activity className="h-6 w-6 text-chart-2" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        Active Upload Speed
-                      </p>
+                      <p className="text-sm text-muted-foreground">Total Books Today</p>
                       <p className="text-2xl font-bold text-card-foreground">
-                        {uploadSpeed}
+                        {loading ? '...' : (summary?.TotalScans || 0).toLocaleString()}
                       </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{summary?.Ongoing || 0} ongoing</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Tabs for Queue and History */}
-            <Tabs defaultValue="queue" className="w-full">
-              <div className="flex items-center justify-between">
-                <TabsList>
-                  <TabsTrigger value="queue">Transmission Queue</TabsTrigger>
-                  <TabsTrigger value="history">Transmission History</TabsTrigger>
-                </TabsList>
-                {failedCount > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="h-8 gap-1.5 text-xs"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    Retry All Failed ({failedCount})
-                  </Button>
-                )}
+            {/* Stage breakdown */}
+            {stages.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {stages.map((s: any) => (
+                  <Card key={s.Stage} className="border-border bg-card">
+                    <CardContent className="p-4">
+                      <p className="text-xs font-medium text-muted-foreground truncate">{s.Stage}</p>
+                      <p className="text-xl font-bold text-card-foreground mt-1">{s.Total.toLocaleString()}</p>
+                      <div className="mt-2 space-y-1">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-success">✓ {s.Completed}</span>
+                          <span className="text-primary">↻ {s.Ongoing}</span>
+                          {s.Failed > 0 && <span className="text-destructive">✗ {s.Failed}</span>}
+                        </div>
+                        <Progress value={s.Total > 0 ? (s.Completed / s.Total) * 100 : 0} className="h-1" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
+            )}
+
+            {/* Tabs */}
+            <Tabs defaultValue="queue" className="w-full">
+              <TabsList>
+                <TabsTrigger value="queue">Live Scan Feed</TabsTrigger>
+                <TabsTrigger value="machine">By Machine</TabsTrigger>
+              </TabsList>
 
               <TabsContent value="queue" className="mt-4">
-                <Card className="border-border bg-card">
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-border hover:bg-transparent">
-                          <TableHead className="text-xs text-muted-foreground font-medium">
-                            Lot ID
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium">
-                            File Size
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium w-48">
-                            Upload Progress
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium">
-                            Status
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium text-right">
-                            Action
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {transmissionQueue.map((item) => (
-                          <TableRow key={item.lotId} className="border-border">
-                            <TableCell className="font-mono text-xs text-card-foreground">
-                              {item.lotId}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {item.fileSize}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Progress
-                                  value={item.progress}
-                                  className="h-2 flex-1"
-                                />
-                                <span className="text-xs text-muted-foreground w-10 text-right">
-                                  {item.progress}%
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{getStatusBadge(item.status)}</TableCell>
-                            <TableCell className="text-right">
-                              {item.status === "failed" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                >
-                                  <RotateCcw className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                              {item.status === "verified" && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                >
-                                  <ArrowUpRight className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="history" className="mt-4">
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-semibold text-card-foreground">
-                        Last 30 Days
+                        Recent Scans — Today
                       </CardTitle>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          placeholder="Search by Lot ID..."
+                          placeholder="Search ISBN or Box..."
                           value={historySearch}
                           onChange={(e) => setHistorySearch(e.target.value)}
                           className="w-56 pl-9 h-8 text-sm"
@@ -332,37 +297,88 @@ export default function TransmissionMonitorPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
-                          <TableHead className="text-xs text-muted-foreground font-medium">
-                            Lot ID
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium">
-                            Date
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium">
-                            File Size
-                          </TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium text-right">
-                            Status
-                          </TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredHistory.map((item) => (
-                          <TableRow key={item.lotId} className="border-border">
-                            <TableCell className="font-mono text-xs text-card-foreground">
-                              {item.lotId}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {item.date}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {item.fileSize}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {getStatusBadge(item.status)}
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                              <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                              Loading live data...
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : filteredScans.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                              No scans found
+                            </TableCell>
+                          </TableRow>
+                        ) : filteredScans.map((item: any, i: number) => {
+                          const statusWord = item.Status?.split(' ').pop() || 'ONGOING'
+                          return (
+                            <TableRow key={i} className="border-border">
+                              <TableCell className="font-mono text-xs text-card-foreground">{item.ISBN}</TableCell>
+                              <TableCell>{getStatusBadge(statusWord)}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{item.MachineName || item.ScanMachineName || '—'}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{item.BoxNumber || '—'}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground text-right">
+                                {item.Updated ? new Date(item.Updated).toLocaleTimeString() : '—'}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="machine" className="mt-4">
+                <Card className="border-border bg-card">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-semibold text-card-foreground">
+                      Scans by Machine — Today
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-border hover:bg-transparent">
+                          <TableHead className="text-xs text-muted-foreground font-medium">Machine Name</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium w-48">Activity</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium text-right">Total Scans</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                              <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                            </TableCell>
+                          </TableRow>
+                        ) : byMachine.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No machine data for today</TableCell>
+                          </TableRow>
+                        ) : byMachine.map((m: any, i: number) => {
+                          const maxScans = byMachine[0]?.TotalScans || 1
+                          return (
+                            <TableRow key={i} className="border-border">
+                              <TableCell className="font-mono text-xs text-card-foreground">{m.MachineName}</TableCell>
+                              <TableCell>
+                                <Progress value={(m.TotalScans / maxScans) * 100} className="h-2" />
+                              </TableCell>
+                              <TableCell className="text-xs font-semibold text-right text-card-foreground">
+                                {m.TotalScans.toLocaleString()}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
                       </TableBody>
                     </Table>
                   </CardContent>
@@ -372,6 +388,111 @@ export default function TransmissionMonitorPage() {
           </div>
         </ScrollArea>
       </main>
+      {/* Ranking Modal */}
+      <Dialog open={showRanking} onOpenChange={setShowRanking}>
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Performance Ranking — {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            </DialogTitle>
+          </DialogHeader>
+
+          {rankingLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : ranking ? (
+            <div className="flex flex-col gap-4 overflow-hidden">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-4 gap-3">
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Total Books</p>
+                  <p className="text-xl font-bold">{ranking.totalBooks.toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Total Pages</p>
+                  <p className="text-xl font-bold">{ranking.totalPages.toLocaleString()}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Highest Output</p>
+                  <p className="text-xl font-bold text-amber-500">{ranking.highestOutput}</p>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Avg Output/User</p>
+                  <p className="text-xl font-bold">{ranking.avgOutput}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 overflow-hidden min-h-0">
+                {/* Table */}
+                <ScrollArea className="flex-1 h-[420px] rounded-lg border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-xs font-medium w-12">Rank</TableHead>
+                        <TableHead className="text-xs font-medium">User</TableHead>
+                        <TableHead className="text-xs font-medium text-right">Books</TableHead>
+                        <TableHead className="text-xs font-medium text-right">Pages</TableHead>
+                        <TableHead className="text-xs font-medium w-36">Score</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ranking.data.map((r: any) => {
+                        const pct = r.ScoreNum
+                        const color = pct >= 81 ? 'bg-success' : pct >= 51 ? 'bg-amber-500' : 'bg-destructive'
+                        return (
+                          <TableRow key={r.Rank} className={`border-border ${r.Rank <= 3 ? 'bg-amber-500/5' : ''}`}>
+                            <TableCell className="text-xs font-bold">
+                              {r.Rank <= 3 ? (
+                                <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                                  r.Rank === 1 ? 'bg-amber-400' : r.Rank === 2 ? 'bg-slate-400' : 'bg-amber-700'
+                                }`}>{r.Rank}</span>
+                              ) : r.Rank}
+                            </TableCell>
+                            <TableCell className="text-xs font-medium">{r.ScanUser}</TableCell>
+                            <TableCell className="text-xs text-right font-semibold">{r.Books}</TableCell>
+                            <TableCell className="text-xs text-right text-muted-foreground">{r.Pages.toLocaleString()}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                                  <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className="text-[10px] text-muted-foreground w-8 text-right">{Math.round(pct)}%</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+
+                {/* Pie Chart */}
+                <div className="w-56 shrink-0">
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">Share of Output</p>
+                  <ResponsiveContainer width="100%" height={420}>
+                    <PieChart>
+                      <Pie
+                        data={ranking.data.slice(0, 20).map((r: any) => ({ name: r.ScanUser, value: r.Books }))}
+                        cx="50%" cy="50%"
+                        innerRadius={30} outerRadius={90}
+                        dataKey="value"
+                        labelLine={false}
+                      >
+                        {ranking.data.slice(0, 20).map((_: any, i: number) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: any) => [`${v} books`, '']} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

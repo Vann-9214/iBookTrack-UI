@@ -101,4 +101,43 @@ router.get('/live', async (req, res) => {
   }
 })
 
+/**
+ * GET /api/scanning/ranking?date=2026-04-16
+ * Get performance ranking by scan user
+ */
+router.get('/ranking', async (req, res) => {
+  try {
+    const result = await simflexDb.getScanningRanking(req.query.date)
+    res.json(result)
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * GET /api/scanning/export?date=2026-04-16
+ * Get raw scan data as CSV download
+ */
+router.get('/export', async (req, res) => {
+  try {
+    const result = await simflexDb.getScanningExportData(req.query.date)
+    if (!result.success) return res.status(500).json(result)
+    const rows = result.data
+    const headers = ['ScanDate', 'ScanUser', 'BoxNumber', 'ISBN', 'PageCount', 'Status', 'Machine', 'Updated']
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => headers.map(h => {
+        const v = r[h] ?? ''
+        return `"${String(v).replace(/"/g, '""')}"`
+      }).join(','))
+    ].join('\r\n')
+    const date = req.query.date || new Date().toISOString().split('T')[0]
+    res.setHeader('Content-Type', 'text/csv')
+    res.setHeader('Content-Disposition', `attachment; filename="scanning-${date}.csv"`)
+    res.send(csv)
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 export default router
