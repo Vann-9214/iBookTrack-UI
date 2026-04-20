@@ -63,6 +63,8 @@ function getStatusBadge(status: string) {
 
 const PIE_COLORS = ['#6366f1','#22c55e','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316','#8b5cf6','#10b981','#0ea5e9','#a855f7','#84cc16','#06b6d4','#d946ef','#fb923c','#4ade80','#60a5fa','#c084fc','#34d399']
 
+const todayStr = () => new Date().toISOString().split('T')[0]
+
 export default function TransmissionMonitorPage() {
   const [historySearch, setHistorySearch] = useState("")
   const [loading, setLoading] = useState(true)
@@ -75,11 +77,15 @@ export default function TransmissionMonitorPage() {
   const [ranking, setRanking] = useState<any>(null)
   const [rankingLoading, setRankingLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [fromDate, setFromDate] = useState(todayStr())
+  const [toDate, setToDate] = useState(todayStr())
 
-  const fetchLiveData = useCallback(async () => {
+  const fetchLiveData = useCallback(async (from?: string, to?: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/scanning/live`)
+      const f = from || fromDate
+      const t = to || toDate
+      const res = await fetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}`)
       const data = await res.json()
       if (data.success) {
         setSummary(data.summary)
@@ -93,7 +99,7 @@ export default function TransmissionMonitorPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fromDate, toDate])
 
   const fetchRanking = async () => {
     setRankingLoading(true)
@@ -111,7 +117,7 @@ export default function TransmissionMonitorPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await fetch(`${API_URL}/api/scanning/export`)
+      const res = await fetch(`${API_URL}/api/scanning/export?date=${fromDate}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -131,11 +137,15 @@ export default function TransmissionMonitorPage() {
     fetchRanking()
   }
 
+  const handleSearch = () => {
+    fetchLiveData(fromDate, toDate)
+  }
+
   useEffect(() => {
     fetchLiveData()
-    const interval = setInterval(fetchLiveData, 60000)
+    const interval = setInterval(() => fetchLiveData(), 60000)
     return () => clearInterval(interval)
-  }, [fetchLiveData])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const transmissionStage = stages.find(s => s.Stage === 'Transmission_Archive')
   const totalTransmitted = transmissionStage?.Completed || 0
@@ -167,12 +177,29 @@ export default function TransmissionMonitorPage() {
                   Live scanning data from Simflex WMS — updates every 60 seconds.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                {lastUpdated && (
-                  <span className="text-xs text-muted-foreground">
-                    Updated {lastUpdated.toLocaleTimeString()}
-                  </span>
-                )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">From</span>
+                  <Input
+                    type="date"
+                    value={fromDate}
+                    onChange={e => setFromDate(e.target.value)}
+                    className="h-8 w-36 text-xs"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">To</span>
+                  <Input
+                    type="date"
+                    value={toDate}
+                    onChange={e => setToDate(e.target.value)}
+                    className="h-8 w-36 text-xs"
+                  />
+                </div>
+                <Button size="sm" onClick={handleSearch} disabled={loading} className="h-8 gap-1.5">
+                  <Search className="h-3.5 w-3.5" />
+                  Search
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
                   {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   Export
@@ -181,10 +208,15 @@ export default function TransmissionMonitorPage() {
                   <Trophy className="h-3.5 w-3.5" />
                   Ranking
                 </Button>
-                <Button variant="outline" size="sm" onClick={fetchLiveData} disabled={loading} className="gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5">
                   <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
+                {lastUpdated && (
+                  <span className="text-xs text-muted-foreground">
+                    Updated {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
               </div>
             </header>
 
@@ -280,7 +312,7 @@ export default function TransmissionMonitorPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-semibold text-card-foreground">
-                        Recent Scans — Today
+                        {fromDate === toDate ? `Recent Scans — ${fromDate}` : `Recent Scans — ${fromDate} to ${toDate}`}
                       </CardTitle>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -297,24 +329,27 @@ export default function TransmissionMonitorPage() {
                     <Table>
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
+                          <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">Scan User</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
                           <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium text-right">Pages</TableHead>
                           <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
                           <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
-                          <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
                           <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {loading ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                               Loading live data...
                             </TableCell>
                           </TableRow>
                         ) : filteredScans.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                               No scans found
                             </TableCell>
                           </TableRow>
@@ -322,10 +357,15 @@ export default function TransmissionMonitorPage() {
                           const statusWord = item.Status?.split(' ').pop() || 'ONGOING'
                           return (
                             <TableRow key={i} className="border-border">
-                              <TableCell className="font-mono text-xs text-card-foreground">{item.ISBN}</TableCell>
-                              <TableCell>{getStatusBadge(statusWord)}</TableCell>
-                              <TableCell className="text-xs text-muted-foreground">{item.MachineName || item.ScanMachineName || '—'}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">
+                                {item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}
+                              </TableCell>
+                              <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
                               <TableCell className="text-xs text-muted-foreground">{item.BoxNumber || '—'}</TableCell>
+                              <TableCell className="font-mono text-xs text-card-foreground">{item.ISBN}</TableCell>
+                              <TableCell className="text-xs text-right font-semibold text-card-foreground">{item.PageCount ?? '—'}</TableCell>
+                              <TableCell>{getStatusBadge(statusWord)}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground">{item.MachineName || '—'}</TableCell>
                               <TableCell className="text-xs text-muted-foreground text-right">
                                 {item.Updated ? new Date(item.Updated).toLocaleTimeString() : '—'}
                               </TableCell>
@@ -342,7 +382,7 @@ export default function TransmissionMonitorPage() {
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base font-semibold text-card-foreground">
-                      Scans by Machine — Today
+                      {fromDate === toDate ? `Scans by Machine — ${fromDate}` : `Scans by Machine — ${fromDate} to ${toDate}`}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">

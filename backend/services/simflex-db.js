@@ -20,9 +20,12 @@ async function query(script) {
 /**
  * Get today's scanning statistics from zeusz_IsbnStatus
  */
-export async function getTodayScanningSummary() {
+export async function getTodayScanningSummary(startDate, endDate) {
   try {
-    const rows = await query('SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE)) GROUP BY Status ORDER BY cnt DESC')
+    const where = startDate && endDate
+      ? `CAST(ScanDate AS DATE) BETWEEN '${startDate}' AND '${endDate}'`
+      : `ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))`
+    const rows = await query(`SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`)
     const data = Array.isArray(rows) ? rows : []
     const total = data.reduce((s, r) => s + r.cnt, 0)
     const completed = data.filter(r => r.Status && r.Status.includes('COMPLETED')).reduce((s, r) => s + r.cnt, 0)
@@ -53,9 +56,12 @@ export async function getScanningData(startDate, endDate) {
 /**
  * Get scanning stats by machine
  */
-export async function getScanningByMachine() {
+export async function getScanningByMachine(startDate, endDate) {
   try {
-    const rows = await query('SELECT ScanMachineName AS MachineName, COUNT(*) AS TotalScans FROM zeusz_IsbnStatus WHERE ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE)) GROUP BY ScanMachineName ORDER BY TotalScans DESC')
+    const where = startDate && endDate
+      ? `CAST(ScanDate AS DATE) BETWEEN '${startDate}' AND '${endDate}'`
+      : `ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))`
+    const rows = await query(`SELECT ScanMachineName AS MachineName, COUNT(*) AS TotalScans FROM zeusz_IsbnStatus WHERE ${where} GROUP BY ScanMachineName ORDER BY TotalScans DESC`)
     return { success: true, data: Array.isArray(rows) ? rows : [] }
   } catch (error) {
     console.error('Error fetching machine stats:', error)
@@ -66,9 +72,12 @@ export async function getScanningByMachine() {
 /**
  * Get scanning stats by stage (Scanning, Preval, Tif2PDF, Validate, Transmission_Archive)
  */
-export async function getScanningByStage() {
+export async function getScanningByStage(startDate, endDate) {
   try {
-    const rows = await query('SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE)) GROUP BY Status ORDER BY cnt DESC')
+    const where = startDate && endDate
+      ? `CAST(ScanDate AS DATE) BETWEEN '${startDate}' AND '${endDate}'`
+      : `ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))`
+    const rows = await query(`SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`)
     const data = Array.isArray(rows) ? rows : []
     // Parse "Stage STATUS" format into grouped stages
     const stageMap = {}

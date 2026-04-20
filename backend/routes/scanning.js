@@ -77,23 +77,23 @@ router.get('/by-stage', async (req, res) => {
  */
 router.get('/live', async (req, res) => {
   try {
-    const today = new Date()
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0))
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999))
-    
+    const today = new Date().toISOString().split('T')[0]
+    const fromDate = req.query.from || today
+    const toDate = req.query.to || today
+
     const [summary, byMachine, byStage, data] = await Promise.all([
-      simflexDb.getTodayScanningSummary(),
-      simflexDb.getScanningByMachine(),
-      simflexDb.getScanningByStage(),
-      simflexDb.getScanningData(startOfDay, endOfDay)
+      simflexDb.getTodayScanningSummary(fromDate, toDate),
+      simflexDb.getScanningByMachine(fromDate, toDate),
+      simflexDb.getScanningByStage(fromDate, toDate),
+      simflexDb.getScanningData(fromDate, toDate)
     ])
-    
+
     res.json({
       success: true,
       summary: summary.data,
       byMachine: byMachine.data,
       byStage: byStage.data,
-      recentScans: data.data?.slice(0, 50) // Latest 50 scans
+      recentScans: data.data?.slice(0, 200)
     })
   } catch (error) {
     console.error('Error in /live:', error)
