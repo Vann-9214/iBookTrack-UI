@@ -81,11 +81,12 @@ router.get('/live', async (req, res) => {
     const fromDate = req.query.from || today
     const toDate = req.query.to || today
 
-    const [summary, byMachine, byStage, data] = await Promise.all([
+    const [summary, byMachine, byStage, data, allTime] = await Promise.all([
       simflexDb.getTodayScanningSummary(fromDate, toDate),
       simflexDb.getScanningByMachine(fromDate, toDate),
       simflexDb.getScanningByStage(fromDate, toDate),
-      simflexDb.getScanningData(fromDate, toDate)
+      simflexDb.getScanningData(fromDate, toDate),
+      simflexDb.getTotalScansAllTime()
     ])
 
     res.json({
@@ -93,7 +94,8 @@ router.get('/live', async (req, res) => {
       summary: summary.data,
       byMachine: byMachine.data,
       byStage: byStage.data,
-      recentScans: data.data?.slice(0, 200)
+      recentScans: data.data?.slice(0, 200),
+      allTimeTotal: allTime.total || 0
     })
   } catch (error) {
     console.error('Error in /live:', error)

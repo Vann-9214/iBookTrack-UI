@@ -51,19 +51,34 @@ export default function DashboardPage() {
         ? `${API_URL}/api/dashboard/pipeline-stats?lot_number=${encodeURIComponent(lotNumber)}`
         : `${API_URL}/api/dashboard/pipeline-stats`
 
-      const [statsRes, pipelineRes] = await Promise.all([
+      const [statsRes, pipelineRes, simflexRes] = await Promise.all([
         fetch(statsUrl),
-        fetch(pipelineUrl)
+        fetch(pipelineUrl),
+        fetch(`${API_URL}/api/scanning/live`).catch(() => null)
       ])
       const statsData = await statsRes.json()
       const pipelineData = await pipelineRes.json()
+
+      // Get daily transmitted count + all-time total from Simflex
+      let dailyTransmitted = 0
+      let simflexAllTime = 0
+      if (simflexRes && simflexRes.ok) {
+        const simflex = await simflexRes.json()
+        if (simflex.success) {
+          if (simflex.byStage) {
+            const transmitStage = simflex.byStage.find((s: any) => s.Stage === 'Transmission_Archive')
+            dailyTransmitted = transmitStage?.Completed || 0
+          }
+          simflexAllTime = simflex.allTimeTotal || 0
+        }
+      }
 
       const stages = pipelineData.stageCounts || {}
       // Map 'inspection' DB value → 'book inspection & endorsement' key used by ActivePipeline
       stages['book inspection & endorsement'] = stages.inspection || 0
 
       if (statsData.success) {
-        setDashboardStats({ ...statsData.stats, pipelineStages: stages })
+        setDashboardStats({ ...statsData.stats, pipelineStages: stages, dailyTransmitted, totalBooks: simflexAllTime || statsData.stats.totalBooks })
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)

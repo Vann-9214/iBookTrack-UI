@@ -260,16 +260,42 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     if (scanError) throw scanError
 
-    // Update book's box assignment if accepted
-    if (book && assignedBoxId) {
-      await supabase
-        .from('books')
-        .update({ 
-          box_id: assignedBoxId,
-          current_stage: 'inspection',
-          status: scan_status === 'accepted' ? 'validated' : 'rejected'
-        })
-        .eq('id', book.id)
+    // Update existing book OR insert new one if not in books table yet
+    if (assignedBoxId) {
+      if (book) {
+        await supabaseAdmin
+          .from('books')
+          .update({
+            box_id: assignedBoxId,
+            current_stage: 'inspection',
+            status: scan_status === 'accepted' ? 'validated' : 'rejected'
+          })
+          .eq('id', book.id)
+      } else {
+        // Book not in books table yet — insert it now from warehouse scan
+        const { data: newBook } = await supabaseAdmin
+          .from('books')
+          .insert({
+            isbn,
+            barcode: isbn,
+            box_id: assignedBoxId,
+            title: null,
+            status: scan_status === 'accepted' ? 'validated' : 'rejected',
+            current_stage: 'inspection',
+            is_transmitted: false,
+            is_unaccounted: false
+          })
+          .select()
+          .single()
+
+        // Link the scan log to the new book
+        if (newBook) {
+          await supabaseAdmin
+            .from('warehouse_book_scans')
+            .update({ book_id: newBook.id })
+            .eq('id', scanLog.id)
+        }
+      }
     }
 
     // Update box counts (use admin to bypass RLS)

@@ -99,6 +99,20 @@ export async function getScanningByStage(startDate, endDate) {
 }
 
 /**
+ * Get all-time total scan count from Simflex
+ */
+export async function getTotalScansAllTime() {
+  try {
+    const rows = await query(`SELECT COUNT(*) AS Total FROM zeusz_IsbnStatus`)
+    const data = Array.isArray(rows) ? rows : []
+    return { success: true, total: data[0]?.Total || 0 }
+  } catch (error) {
+    console.error('Error fetching all-time total:', error)
+    return { success: false, total: 0 }
+  }
+}
+
+/**
  * Get performance ranking by scan user for a given date
  */
 export async function getScanningRanking(date) {
@@ -144,5 +158,6 @@ export default {
   getScanningByMachine,
   getScanningByStage,
   getScanningRanking,
-  getScanningExportData
+  getScanningExportData,
+  getTotalScansAllTime
 }

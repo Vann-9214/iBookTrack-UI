@@ -1,26 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { X, Printer, Barcode } from 'lucide-react'
-import bwipjs from 'bwip-js'
-
-interface BookDetail {
-  isbn: string
-  title: string
-  description: string
-  datePurchased: string
-  dateCatalogued: string
-  lot: string
-  boxNum: string
-  type: 'Mustang' | 'Jaguar'
-  publisher: string
-  language: string
-  pageCount: number
-  condition: string
-  shipment: string
-  projectName: string
-}
+import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History } from 'lucide-react'
 
 interface LogEntry {
   id: string
@@ -30,387 +12,395 @@ interface LogEntry {
   printed: boolean
 }
 
+interface BookInBox {
+  id: string
+  isbn: string
+  title: string
+  book_type: string
+  current_stage: string
+  is_transmitted: boolean
+}
+
+interface Box {
+  id: string
+  box_number: string
+  lot_id: string
+  total_books: number
+  books_received: number
+  books_transmitted: number
+  current_stage: string
+  created_at: string
+  lot: { lot_number: string; status: string }
+  books: BookInBox[] | { count: number }[]
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+const STAGE_COLORS: Record<string, string> = {
+  intake: 'bg-gray-100 text-gray-700',
+  cut: 'bg-orange-100 text-orange-700',
+  inspection: 'bg-yellow-100 text-yellow-700',
+  scan: 'bg-blue-100 text-blue-700',
+  validation: 'bg-purple-100 text-purple-700',
+  qa: 'bg-pink-100 text-pink-700',
+  transmit: 'bg-green-100 text-green-700',
+  storage: 'bg-emerald-100 text-emerald-700',
+}
+
+const LOT_OPTIONS = Array.from({ length: 100 }, (_, i) => `Lot ${i + 1}`)
+const LOT_ALIASES = Array.from({ length: 100 }, (_, i) => [`Lot ${i + 1}`, `Lot-${i + 1}`, `LOT ${i + 1}`, `LOT-${i + 1}`])
+
 export default function InventoryPage() {
-  const [scanInput, setScanInput] = useState('')
-  const [selectedBook, setSelectedBook] = useState<BookDetail | null>(null)
-  const [showModal, setShowModal] = useState(false)
+  const [activeTab, setActiveTab] = useState<'boxes' | 'history'>('boxes')
+
+  // --- Boxes tab state ---
+  const [boxes, setBoxes] = useState<Box[]>([])
+  const [boxSearch, setBoxSearch] = useState('')
+  const [lotFilter, setLotFilter] = useState('')
+  const [stageFilter, setStageFilter] = useState('')
+  const [expandedBox, setExpandedBox] = useState<string | null>(null)
+  const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
+  const [loadingBoxes, setLoadingBoxes] = useState(false)
+  const [loadingBooks, setLoadingBooks] = useState<string | null>(null)
+
+  // --- History tab state ---
   const [logs, setLogs] = useState<LogEntry[]>([])
+  const [scanInput, setScanInput] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Fetch scan history on component mount
-  useEffect(() => {
-    fetchScanHistory()
-  }, [])
+  const authHeader = (): Record<string, string> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
+  useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter])
+  useEffect(() => { fetchScanHistory() }, [])
+
+  const fetchBoxes = async () => {
+    setLoadingBoxes(true)
+    try {
+      let url = `${API_URL}/api/boxes`
+      const params: string[] = []
+      if (stageFilter) params.push(`current_stage=${stageFilter}`)
+      if (params.length) url += '?' + params.join('&')
+
+      const res = await fetch(url, { credentials: 'include', headers: authHeader() })
+      const data = await res.json()
+      let result: Box[] = data.boxes || []
+
+      if (lotFilter) {
+        const idx = LOT_OPTIONS.indexOf(lotFilter)
+        const aliases = idx >= 0 ? LOT_ALIASES[idx].map(a => a.toLowerCase()) : [lotFilter.toLowerCase()]
+        result = result.filter(b => aliases.includes((b.lot?.lot_number || '').toLowerCase()))
+      }
+      setBoxes(result)
+    } catch (e) {
+      console.error('Failed to fetch boxes:', e)
+    } finally {
+      setLoadingBoxes(false)
+    }
+  }
+
+  const fetchBooksInBox = async (boxId: string) => {
+    if (boxBooks[boxId]) return
+    setLoadingBooks(boxId)
+    try {
+      const res = await fetch(`${API_URL}/api/boxes/${boxId}`, { credentials: 'include', headers: authHeader() })
+      const data = await res.json()
+      if (data.box?.books) {
+        setBoxBooks(prev => ({ ...prev, [boxId]: data.box.books }))
+      }
+    } catch (e) {
+      console.error('Failed to fetch books in box:', e)
+    } finally {
+      setLoadingBooks(null)
+    }
+  }
+
+  const toggleBox = (boxId: string) => {
+    if (expandedBox === boxId) {
+      setExpandedBox(null)
+    } else {
+      setExpandedBox(boxId)
+      fetchBooksInBox(boxId)
+    }
+  }
 
   const fetchScanHistory = async () => {
     try {
-      // Fetch recent scans from warehouse sessions
-      const response = await fetch(`${API_URL}/api/warehouse/scans/recent?limit=50`)
-      const data = await response.json()
-      
+      const res = await fetch(`${API_URL}/api/warehouse/scans/recent?limit=50`)
+      const data = await res.json()
       if (data.success && data.scans) {
-        const formattedLogs: LogEntry[] = data.scans.map((scan: any) => ({
-          id: scan.id,
-          isbn: scan.isbn,
-          title: scan.title || `ISBN: ${scan.isbn}`,
-          scannedAt: new Date(scan.scanned_at).toLocaleString(),
-          printed: false // Track if printed in this session
-        }))
-        setLogs(formattedLogs)
+        setLogs(data.scans.map((s: any) => ({
+          id: s.id,
+          isbn: s.isbn,
+          title: s.title || `ISBN: ${s.isbn}`,
+          scannedAt: new Date(s.scanned_at).toLocaleString(),
+          printed: false,
+        })))
       }
-    } catch (error) {
-      console.error('Failed to fetch scan history:', error)
+    } catch (e) {
+      console.error('Failed to fetch scan history:', e)
     }
   }
 
   const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const isbn = scanInput.trim()
-      if (!isbn) return
-
-      setLoading(true)
-      try {
-        // Fetch book details from iLMS API
-        const response = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
-        const data = await response.json()
-
-        if (data.success && data.data && !data.data.Message) {
-          // Book found in iLMS system
-          const bookDetail: BookDetail = {
-            isbn: data.data.ISBN || isbn,
-            title: data.data.Title || `ISBN: ${isbn}`,
-            description: data.data.Description || 'N/A',
-            datePurchased: data.data.PurchaseApproval || 'N/A',
-            dateCatalogued: data.data.uploadFileDate || 'N/A',
-            lot: data.data.LotNo || 'N/A',
-            boxNum: data.data.BoxNo || 'N/A',
-            type: 'Mustang', // Default type
-            publisher: data.data.PublisherName || 'N/A',
-            language: data.data.LanguageofBook || 'Unknown',
-            pageCount: parseInt(data.data.EstimatedNumberofpages) || 0,
-            condition: data.data.Condition || 'N/A',
-            shipment: 'N/A',
-            projectName: 'iLMS Import'
-          }
-          setSelectedBook(bookDetail)
-          setShowModal(true)
-        } else {
-          alert('Book not found in iLMS system')
+    if (e.key !== 'Enter') return
+    const isbn = scanInput.trim()
+    if (!isbn) return
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+      const data = await res.json()
+      if (data.success && data.data && !data.data.Message) {
+        const d = data.data
+        const newLog: LogEntry = {
+          id: Date.now().toString(),
+          isbn: d.ISBN || isbn,
+          title: d.Title || `ISBN: ${isbn}`,
+          scannedAt: new Date().toLocaleString(),
+          printed: false,
         }
-      } catch (error) {
-        console.error('Error fetching book:', error)
-        alert('Failed to fetch book details')
-      } finally {
-        setLoading(false)
+        setLogs(prev => [newLog, ...prev])
+      } else {
+        alert('Book not found in iLMS system')
       }
+    } catch (e) {
+      alert('Failed to fetch book details')
+    } finally {
+      setLoading(false)
       setScanInput('')
     }
   }
 
-  const handlePrint = () => {
-    if (!selectedBook) return
-    
-    window.print()
-    
-    // Mark as printed in current session
-    const newLog: LogEntry = {
-      id: Date.now().toString(),
-      isbn: selectedBook.isbn,
-      title: selectedBook.title,
-      scannedAt: new Date().toLocaleString(),
-      printed: true,
-    }
-    setLogs([newLog, ...logs])
-    setShowModal(false)
-    
-    // Refresh scan history to get latest from database
-    fetchScanHistory()
-  }
-
-  const handleClose = () => {
-    setShowModal(false)
-    setScanInput('')
-  }
-
-  // Barcode canvas ref
-  const barcodeCanvasRef = useRef<HTMLCanvasElement>(null)
-
-  // Generate barcode when book is selected
-  useEffect(() => {
-    // Only run in browser (not during SSR)
-    if (typeof window === 'undefined') return
-    
-    if (selectedBook && barcodeCanvasRef.current) {
-      try {
-        // Clean ISBN - remove dashes
-        const cleanISBN = selectedBook.isbn.replace(/-/g, '')
-        
-        bwipjs.toCanvas(barcodeCanvasRef.current, {
-          bcid: 'code128',       // More flexible than EAN-13
-          text: cleanISBN,
-          scale: 2,
-          height: 10,
-          includetext: true,
-          textxalign: 'center',
-        })
-      } catch (e) {
-        console.error('Barcode generation error:', e)
-        // If barcode fails, clear canvas
-        const ctx = barcodeCanvasRef.current.getContext('2d')
-        if (ctx) {
-          ctx.clearRect(0, 0, barcodeCanvasRef.current.width, barcodeCanvasRef.current.height)
-        }
-      }
-    }
-  }, [selectedBook])
+  const filteredBoxes = boxes.filter(b => {
+    if (!boxSearch) return true
+    const q = boxSearch.toLowerCase()
+    return (
+      b.box_number?.toLowerCase().includes(q) ||
+      b.lot?.lot_number?.toLowerCase().includes(q) ||
+      b.current_stage?.toLowerCase().includes(q)
+    )
+  })
 
   return (
-    <>
-      {/* Print Slip Template - Hidden on screen, visible when printing */}
-      {selectedBook && (
-        <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:p-8">
-          <div className="max-w-4xl mx-auto space-y-6">
-            {/* EAN-13 Barcode at Top Center */}
-            <div className="flex justify-center mb-8">
-              <canvas ref={barcodeCanvasRef} className="mx-auto"></canvas>
-            </div>
-
-            {/* Print Slip Content */}
-            <div className="border-2 border-black p-6 space-y-4">
-              <h1 className="text-3xl font-bold text-center mb-6 border-b-2 border-black pb-4">BOOK SLIP</h1>
-              
-              <div className="grid grid-cols-2 gap-6 text-lg">
-                <div>
-                  <p className="font-semibold text-gray-600">ISBN:</p>
-                  <p className="font-mono text-xl font-bold">{selectedBook.isbn}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-600">Date:</p>
-                  <p className="font-bold">{new Date().toLocaleDateString()}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 text-lg">
-                <div>
-                  <p className="font-semibold text-gray-600">Project Name:</p>
-                  <p className="font-bold">{selectedBook.projectName}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-600">Book Type:</p>
-                  <p className={`font-bold ${selectedBook.type === 'Mustang' ? 'text-blue-600' : 'text-purple-600'}`}>
-                    {selectedBook.type}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 text-lg">
-                <div>
-                  <p className="font-semibold text-gray-600">Shipment:</p>
-                  <p className="font-bold">{selectedBook.shipment}</p>
-                </div>
-                <div>
-                  <p className="font-semibold text-gray-600">Box #:</p>
-                  <p className="font-bold">{selectedBook.boxNum}</p>
-                </div>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-300">
-                <p className="font-semibold text-gray-600">Title:</p>
-                <p className="font-bold text-xl">{selectedBook.title}</p>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-gray-300">
-                <p className="font-semibold text-gray-600">Barcode:</p>
-                <p className="font-mono text-lg font-bold">{selectedBook.isbn}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Application UI */}
-      <div className="flex min-h-screen bg-white print:hidden">
-        <DashboardSidebar />
-        <main className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex min-h-screen bg-background">
+      <DashboardSidebar />
+      <main className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
+
           {/* Header */}
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory Gate</h1>
-            <p className="text-sm text-muted-foreground mt-1">Scan books to view details and print slips</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory</h1>
+            <p className="text-sm text-muted-foreground mt-1">Browse all boxes and scan history</p>
           </header>
 
-          {/* Scanner Input - Simple and Prominent */}
-          <div className="bg-white border-2 border-blue-600 rounded-lg p-8 shadow-sm">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                <Barcode className="h-5 w-5 text-blue-600" />
-                Scan ISBN / Barcode
-              </label>
-              <input
-                type="text"
-                value={scanInput}
-                onChange={(e) => setScanInput(e.target.value)}
-                onKeyDown={handleScan}
-                placeholder="Scan or enter ISBN and press Enter..."
-                className="w-full px-6 py-4 text-lg bg-white border-2 border-blue-600 rounded-lg text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-600"
-                autoFocus
-              />
-              <p className="text-xs text-gray-600 mt-2">Press Enter after scanning to retrieve book details</p>
-            </div>
+          {/* Tabs */}
+          <div className="flex gap-1 border-b border-border">
+            <button
+              onClick={() => setActiveTab('boxes')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'boxes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            >
+              <Package className="h-4 w-4" /> Boxes
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            >
+              <History className="h-4 w-4" /> Scan History
+            </button>
           </div>
 
-          {/* Modal Popup */}
-          {showModal && selectedBook && (
-            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-              <div className="bg-white border border-gray-300 rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto shadow-xl">
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-300 sticky top-0 bg-white">
-                  <h2 className="text-2xl font-bold text-gray-900">Book Details</h2>
-                  <button
-                    onClick={handleClose}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Close"
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
+          {/* ── BOXES TAB ── */}
+          {activeTab === 'boxes' && (
+            <div className="flex flex-col gap-4">
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search box number, lot..."
+                    value={boxSearch}
+                    onChange={e => setBoxSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
                 </div>
+                <select
+                  value={lotFilter}
+                  onChange={e => setLotFilter(e.target.value)}
+                  className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">All Lots</option>
+                  {(() => {
+                    const fromBoxes = Array.from(new Set(boxes.map(b => b.lot?.lot_number).filter(Boolean))).sort()
+                    const opts = fromBoxes.length > 0 ? fromBoxes : LOT_OPTIONS
+                    return opts.map(l => <option key={l} value={l}>{l}</option>)
+                  })()}
+                </select>
+                <select
+                  value={stageFilter}
+                  onChange={e => setStageFilter(e.target.value)}
+                  className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">All Stages</option>
+                  {['intake','cut','inspection','scan','validation','qa','transmit','storage'].map(s => (
+                    <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+                  ))}
+                </select>
+              </div>
 
-                {/* Book Details Content */}
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">ISBN</p>
-                      <p className="text-lg font-mono text-gray-900 mt-1">{selectedBook.isbn}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Book Type</p>
-                      <p className={`text-lg font-semibold mt-1 ${selectedBook.type === 'Mustang' ? 'text-blue-600' : 'text-purple-600'}`}>
-                        {selectedBook.type}
-                      </p>
-                    </div>
-                  </div>
+              {/* Count */}
+              <p className="text-xs text-muted-foreground">{filteredBoxes.length} box{filteredBoxes.length !== 1 ? 'es' : ''} found</p>
 
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Title</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedBook.title}</p>
-                  </div>
+              {/* Box List */}
+              {loadingBoxes ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">Loading boxes...</div>
+              ) : filteredBoxes.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground text-sm">No boxes found</div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {filteredBoxes.map(box => {
+                    const isOpen = expandedBox === box.id
+                    const books = boxBooks[box.id]
+                    const rawBooks = box.books as any[]
+                    const bookCount = (() => {
+                      if (Array.isArray(rawBooks) && rawBooks.length > 0) {
+                        const first = rawBooks[0]
+                        if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
+                        if (typeof first?.isbn !== 'undefined') return rawBooks.length
+                      }
+                      return box.total_books || 0
+                    })()
 
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Description</p>
-                    <p className="text-sm text-gray-700 mt-1 leading-relaxed">{selectedBook.description}</p>
-                  </div>
+                    return (
+                      <div key={box.id} className="border border-border rounded-lg overflow-hidden bg-card">
+                        {/* Box Header Row */}
+                        <button
+                          onClick={() => toggleBox(box.id)}
+                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+                        >
+                          {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                          <Package className="h-4 w-4 shrink-0 text-primary" />
+                          <span className="font-semibold text-sm text-foreground flex-1">{box.box_number}</span>
+                          <span className="text-xs text-muted-foreground mr-2">{box.lot?.lot_number || '—'}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STAGE_COLORS[box.current_stage] || 'bg-muted text-muted-foreground'}`}>
+                            {box.current_stage}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-3 shrink-0">
+                            <BookOpen className="inline h-3 w-3 mr-1" />{bookCount} books
+                          </span>
+                        </button>
 
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Date Purchased</p>
-                      <p className="text-sm text-gray-900 mt-1">{selectedBook.datePurchased}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Date Catalogued</p>
-                      <p className="text-sm text-gray-900 mt-1">{selectedBook.dateCatalogued}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Lot Number</p>
-                      <p className="text-sm text-gray-900 mt-1 font-semibold">{selectedBook.lot}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Box Number</p>
-                      <p className="text-sm text-gray-900 mt-1 font-semibold">{selectedBook.boxNum}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Publisher</p>
-                      <p className="text-gray-900 mt-1">{selectedBook.publisher}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Language</p>
-                      <p className="text-gray-900 mt-1">{selectedBook.language}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Pages</p>
-                      <p className="text-gray-900 mt-1">{selectedBook.pageCount}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Condition</p>
-                    <p className="text-sm text-gray-900 mt-1">{selectedBook.condition}</p>
-                  </div>
+                        {/* Expanded Books */}
+                        {isOpen && (
+                          <div className="border-t border-border bg-muted/20 px-4 py-3">
+                            {loadingBooks === box.id ? (
+                              <p className="text-xs text-muted-foreground py-2">Loading books...</p>
+                            ) : books && books.length > 0 ? (
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-muted-foreground border-b border-border">
+                                      <th className="pb-2 text-left font-medium pr-4">ISBN</th>
+                                      <th className="pb-2 text-left font-medium pr-4">Title</th>
+                                      <th className="pb-2 text-left font-medium pr-4">Type</th>
+                                      <th className="pb-2 text-left font-medium pr-4">Stage</th>
+                                      <th className="pb-2 text-left font-medium">Transmitted</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {books.map((book, i) => (
+                                      <tr key={book.id || i} className="border-b border-border/50 last:border-0">
+                                        <td className="py-1.5 pr-4 font-mono text-foreground">{book.isbn}</td>
+                                        <td className="py-1.5 pr-4 text-foreground max-w-[200px] truncate">{book.title || '—'}</td>
+                                        <td className="py-1.5 pr-4 text-muted-foreground">{book.book_type || '—'}</td>
+                                        <td className="py-1.5 pr-4">
+                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${STAGE_COLORS[book.current_stage] || 'bg-muted text-muted-foreground'}`}>
+                                            {book.current_stage || '—'}
+                                          </span>
+                                        </td>
+                                        <td className="py-1.5">
+                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.is_transmitted ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                            {book.is_transmitted ? 'Yes' : 'No'}
+                                          </span>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground py-2">No books logged in this box yet.</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
+              )}
+            </div>
+          )}
 
-                {/* Modal Footer with Action Buttons */}
-                <div className="flex gap-3 p-6 border-t border-gray-300 bg-gray-50 sticky bottom-0">
-                  <button
-                    onClick={handleClose}
-                    className="flex-1 px-6 py-3 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 text-gray-900 font-medium transition-colors"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={handlePrint}
-                    className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 print:hidden"
-                  >
-                    <Printer className="h-5 w-5" />
-                    Print Slip
-                  </button>
+          {/* ── HISTORY TAB ── */}
+          {activeTab === 'history' && (
+            <div className="flex flex-col gap-4">
+              {/* Scanner Input */}
+              <div className="border-2 border-primary rounded-lg p-6">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2 mb-2">
+                  <Barcode className="h-5 w-5 text-primary" />
+                  Scan ISBN / Barcode
+                </label>
+                <input
+                  type="text"
+                  value={scanInput}
+                  onChange={e => setScanInput(e.target.value)}
+                  onKeyDown={handleScan}
+                  placeholder={loading ? 'Searching...' : 'Scan or type ISBN and press Enter...'}
+                  disabled={loading}
+                  className="w-full px-4 py-3 text-base border-2 border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
+                  autoFocus
+                />
+                <p className="text-xs text-muted-foreground mt-2">Press Enter after scanning to look up in iLMS</p>
+              </div>
+
+              {/* Log Table */}
+              <div className="border border-border rounded-lg overflow-hidden bg-card">
+                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">Scan History</h2>
+                  <span className="text-xs text-muted-foreground">{logs.length} entries</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 border-b border-border">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">ISBN</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Title</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Scanned At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {logs.length > 0 ? logs.map(log => (
+                        <tr key={log.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 font-mono text-xs text-foreground">{log.isbn}</td>
+                          <td className="px-4 py-3 text-foreground max-w-xs truncate">{log.title}</td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{log.scannedAt}</td>
+                        </tr>
+                      )) : (
+                        <tr>
+                          <td colSpan={3} className="px-4 py-10 text-center text-muted-foreground text-sm">No scans yet</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Live Log Table */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">Scan History</h2>
-
-            <div className="bg-white border border-gray-300 rounded-lg overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-300">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-900">ISBN</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-900">Title</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-900">Scanned At</th>
-                      <th className="px-4 py-3 text-left font-semibold text-gray-900">Printed</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.length > 0 ? (
-                      logs.map((log) => (
-                        <tr key={log.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3 font-mono text-xs text-gray-900">{log.isbn}</td>
-                          <td className="px-4 py-3 text-gray-900 max-w-xs truncate">{log.title}</td>
-                          <td className="px-4 py-3 text-gray-600 text-xs">{log.scannedAt}</td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              log.printed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {log.printed ? 'Yes' : 'No'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
-                          No scans yet
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
-      </div>
-    </>
+    </div>
   )
 }
