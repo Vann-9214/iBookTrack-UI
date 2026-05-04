@@ -1,294 +1,310 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { authFetch } from "@/lib/auth-api"
+import { toast } from "sonner"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  ZoomOut,
-  RotateCw,
-  RefreshCcw,
-  CheckCircle,
-  AlertTriangle,
-} from "lucide-react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Layers, Package, CheckCircle, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Search } from "lucide-react"
 
-const commonIssues = [
-  { value: "bent-page", label: "Bent Page" },
-  { value: "missing-content", label: "Missing Content" },
-  { value: "blurred-text", label: "Blurred Text" },
-  { value: "torn-page", label: "Torn Page" },
-  { value: "water-damage", label: "Water Damage" },
-  { value: "ink-smudge", label: "Ink Smudge" },
-  { value: "binding-issue", label: "Binding Issue" },
-  { value: "wrong-orientation", label: "Wrong Orientation" },
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+const COMMON_ISSUES = [
+  { value: "bent-page",        label: "Bent Page" },
+  { value: "missing-content",  label: "Missing Content" },
+  { value: "blurred-text",     label: "Blurred Text" },
+  { value: "torn-page",        label: "Torn Page" },
+  { value: "water-damage",     label: "Water Damage" },
+  { value: "ink-smudge",       label: "Ink Smudge" },
+  { value: "binding-issue",    label: "Binding Issue" },
+  { value: "wrong-orientation",label: "Wrong Orientation" },
+  { value: "duplicate",        label: "Duplicate" },
+  { value: "other",            label: "Other" },
 ]
 
-const mockPages = Array.from({ length: 50 }, (_, i) => ({
-  pageNumber: i + 1,
-  hasIssue: [5, 12, 23, 34].includes(i + 1),
-}))
+interface BookEntry {
+  id: string
+  isbn: string
+  title: string | null
+  scan_status: string
+  scanned_at: string
+}
 
-export default function QualityCheckingPage() {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [selectedIssue, setSelectedIssue] = useState("")
-  const [customIssue, setCustomIssue] = useState("")
-  const [remarks, setRemarks] = useState("")
+interface BoxEntry {
+  id: string
+  box_number: string
+  total_books: number
+  received_at: string | null
+  lot: { lot_number: string } | null
+  books?: BookEntry[]
+}
 
-  const currentPageData = mockPages[currentPage - 1]
+interface BookIssue {
+  issue: string
+  remarks: string
+  saved: boolean
+}
 
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1)
+export default function BookInspectionPage() {
+  const [boxes, setBoxes] = useState<BoxEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [expandedLot, setExpandedLot] = useState<string | null>(null)
+  const [loadingBooks, setLoadingBooks] = useState<string | null>(null)
+  const [bookIssues, setBookIssues] = useState<Record<string, BookIssue>>({})
+  const [saving, setSaving] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState('')
+
+  const fetchBoxes = useCallback(async () => {
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes?current_stage=qc`)
+      const data = await res.json()
+      if (data.boxes) {
+        // Only show boxes that have been received at QC (received_at is set)
+        setBoxes(data.boxes.filter((b: BoxEntry) => b.received_at !== null))
+      }
+      setLastUpdated(new Date().toLocaleTimeString())
+    } catch (e) {
+      console.error('Failed to fetch boxes:', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchBoxes()
+    const interval = setInterval(fetchBoxes, 20000)
+    return () => clearInterval(interval)
+  }, [fetchBoxes])
+
+  const loadLotBooks = async (lotNumber: string, lotBoxes: BoxEntry[]) => {
+    if (expandedLot === lotNumber) { setExpandedLot(null); return }
+    setExpandedLot(lotNumber)
+    // Load books for any box in this lot that hasn't been loaded yet
+    const unloaded = lotBoxes.filter(b => !b.books)
+    if (unloaded.length === 0) return
+    setLoadingBooks(lotNumber)
+    try {
+      await Promise.all(unloaded.map(async box => {
+        const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+        const data = await res.json()
+        if (data.box?.books) {
+          setBoxes(prev => prev.map(b => b.id === box.id ? { ...b, books: data.box.books } : b))
+        }
+      }))
+    } catch (e) {
+      console.error('Failed to fetch books:', e)
+    } finally {
+      setLoadingBooks(null)
+    }
   }
 
-  const handleNextPage = () => {
-    if (currentPage < mockPages.length) setCurrentPage(currentPage + 1)
+  const setIssueField = (bookId: string, field: keyof BookIssue, value: string | boolean) => {
+    setBookIssues(prev => ({
+      ...prev,
+      [bookId]: { ...{ issue: '', remarks: '', saved: false }, ...prev[bookId], [field]: value }
+    }))
   }
 
-  const handleSync = () => {
-    const issueToSync = selectedIssue === "__other__" ? customIssue.trim() : selectedIssue
-    console.log("Syncing to backend:", { selectedIssue: issueToSync, remarks })
+  const saveIssue = async (book: BookEntry, boxId: string) => {
+    const entry = bookIssues[book.id]
+    if (!entry?.issue) { toast.error('Select an issue first'); return }
+    setSaving(book.id)
+    try {
+      const res = await authFetch(`${API_URL}/api/books/${book.id}/flag`, {
+        method: 'POST',
+        body: JSON.stringify({ issue: entry.issue, remarks: entry.remarks, box_id: boxId })
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+      setIssueField(book.id, 'saved', true)
+      toast.success('Issue flagged')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save issue')
+    } finally {
+      setSaving(null)
+    }
   }
 
-  const handleRemarksChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setRemarks(e.target.value)
-    e.target.style.height = "auto"
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 220)}px`
-  }
+  // Group QC boxes by lot, flatten all books under each lot
+  const lotMap = new Map<string, { lotNumber: string; boxes: BoxEntry[] }>()
+  boxes.forEach(box => {
+    const lotNum = box.lot?.lot_number || 'Unknown'
+    if (!lotMap.has(lotNum)) lotMap.set(lotNum, { lotNumber: lotNum, boxes: [] })
+    lotMap.get(lotNum)!.boxes.push(box)
+  })
+  const lots = Array.from(lotMap.values()).sort((a, b) => a.lotNumber.localeCompare(b.lotNumber))
+
+  const filteredLots = lots.filter(l =>
+    l.lotNumber.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
-
       <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex flex-1 flex-col min-h-0 p-6 lg:p-8 gap-6">
-          {/* Header */}
-          <header>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Book Inspection & Endorsement
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Perform page-by-page audits and log remarks for quality control.
-            </p>
-          </header>
+        <ScrollArea className="flex-1 h-0 min-h-0">
+          <div className="flex flex-col gap-6 p-6 lg:p-8">
 
-          {/* Split Screen Layout */}
-          <div className="flex flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-card">
-            {/* Left: Book Viewer */}
-            <div className="flex flex-1 flex-col border-r border-border">
-              {/* Viewer Toolbar */}
-              <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page{" "}
-                    <span className="font-medium text-foreground">
-                      {currentPage}
-                    </span>{" "}
-                    of {mockPages.length}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handleNextPage}
-                    disabled={currentPage === mockPages.length}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <ZoomOut className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <ZoomIn className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <RotateCw className="h-4 w-4" />
-                  </Button>
-                </div>
+            {/* Header */}
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Book Inspection & Endorsement</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Expand a lot to see its boxes, then expand a box to inspect all ISBNs and flag any issues.
+                </p>
               </div>
+              <button onClick={fetchBoxes} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors self-start sm:self-auto">
+                <RefreshCw className="h-3.5 w-3.5" />
+                {lastUpdated && <span>{lastUpdated}</span>}
+              </button>
+            </header>
 
-              {/* Book Viewer Area */}
-              <ScrollArea className="flex-1 h-0 min-h-0">
-                <div className="flex h-full items-center justify-center p-8 lg:p-10">
-                  <div className="relative flex aspect-[3/4] w-full max-w-lg items-center justify-center rounded-lg border border-border bg-card shadow-sm">
-                    <div className="flex flex-col items-center gap-4 text-muted-foreground">
-                      <FileText className="h-16 w-16 opacity-50" />
-                      <div className="text-center">
-                        <p className="font-medium text-foreground">
-                          Page {currentPage}
-                        </p>
-                        <p className="text-sm">
-                          Digital book content would render here
-                        </p>
-                      </div>
-                    </div>
-                    {currentPageData?.hasIssue && (
-                      <Badge
-                        variant="outline"
-                        className="absolute top-4 right-4 border-warning/30 bg-warning/10 text-warning gap-1"
-                      >
-                        <AlertTriangle className="h-3 w-3" />
-                        Flagged
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </ScrollArea>
+            {/* Search */}
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search lot number or box..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
             </div>
 
-            {/* Right: Audit Controls Sidebar */}
-            <div className="flex w-80 shrink-0 flex-col overflow-hidden lg:w-96">
-              <ScrollArea className="flex-1 h-0 min-h-0">
-                <div className="flex flex-col gap-6 p-6">
-                  {/* Book Info */}
-                  <Card className="border-border bg-card">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-card-foreground">
-                        Book Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">
-                          Book Title
-                        </label>
-                        <Input
-                          value="Operations Manual v3.2"
-                          readOnly
-                          className="mt-1.5"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">
-                          ISBN
-                        </label>
-                        <Input
-                          value="978-3-16-148410-0"
-                          readOnly
-                          className="mt-1.5 font-mono"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+            {/* Lot List */}
+            {loading ? (
+              <div className="py-16 text-center text-sm text-muted-foreground">Loading...</div>
+            ) : filteredLots.length === 0 ? (
+              <div className="py-16 text-center">
+                <p className="text-sm font-medium text-muted-foreground">No lots ready for inspection.</p>
+                <p className="text-xs text-muted-foreground mt-1">Boxes must be at QC stage and marked as <strong>Received</strong> on Station Checkpoints first.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {filteredLots.map(lot => {
+                  const isLotOpen = expandedLot === lot.lotNumber
+                  const allBooks = lot.boxes.flatMap(b => b.books || [])
+                  const totalBooks = lot.boxes.reduce((s, b) => s + (b.total_books || 0), 0)
+                  const flaggedCount = allBooks.filter(b => bookIssues[b.id]?.saved).length
 
-                  {/* Audit Controls */}
-                  <Card className="border-border bg-card">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-card-foreground">
-                        Audit Controls
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col gap-4">
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">
-                          Common Issues
-                        </label>
-                        <select
-                          value={selectedIssue}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setSelectedIssue(value)
-                            if (value !== "__other__") setCustomIssue("")
-                          }}
-                          className="mt-1.5 h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
-                        >
-                          <option value="" disabled>
-                            Select an issue...
-                          </option>
-                          {commonIssues.map((issue) => (
-                            <option key={issue.value} value={issue.value}>
-                              {issue.label}
-                            </option>
-                          ))}
-                          <option value="__other__">Other (type custom issue)</option>
-                        </select>
-                        {selectedIssue === "__other__" && (
-                          <Input
-                            value={customIssue}
-                            onChange={(e) => setCustomIssue(e.target.value)}
-                            placeholder="Type the specific issue..."
-                            className="mt-2"
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground">
-                          Specific Remarks
-                        </label>
-                        <Textarea
-                          placeholder="Add detailed notes about this page..."
-                          value={remarks}
-                          onChange={handleRemarksChange}
-                          wrap="soft"
-                          className="mt-1.5 min-h-[100px] max-h-[220px] w-full resize-none overflow-x-hidden overflow-y-auto [field-sizing:fixed] [word-break:break-all]"
-                        />
-                      </div>
-                      <Button
-                        className="w-full gap-2"
-                        onClick={handleSync}
-                      >
-                        <RefreshCcw className="h-4 w-4" />
-                        Sync to Backend
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  return (
+                    <Card key={lot.lotNumber} className="border-border bg-card">
+                      {/* Lot header */}
+                      <button className="w-full text-left" onClick={() => loadLotBooks(lot.lotNumber, lot.boxes)}>
+                        <CardHeader className="flex flex-row items-center gap-3 py-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-100 border border-yellow-300 shrink-0">
+                            <Layers className="h-4 w-4 text-yellow-700" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-semibold text-card-foreground">{lot.lotNumber}</span>
+                              <Badge variant="outline" className="text-[10px] border-yellow-300 text-yellow-700 bg-yellow-50">QC</Badge>
+                              <Badge variant="outline" className="text-[10px]">{lot.boxes.length} box{lot.boxes.length !== 1 ? 'es' : ''}</Badge>
+                              <Badge variant="outline" className="text-[10px]">{totalBooks} books</Badge>
+                              {flaggedCount > 0 && (
+                                <Badge variant="outline" className="text-[10px] border-red-300 text-red-600 bg-red-50 gap-1">
+                                  <AlertTriangle className="h-2.5 w-2.5" />{flaggedCount} flagged
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          {isLotOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                        </CardHeader>
+                      </button>
 
-                  {/* Page Status */}
-                  <Card className="border-border bg-card">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-semibold text-card-foreground">
-                        Current Page Status
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2">
-                        {currentPageData?.hasIssue ? (
-                          <>
-                            <AlertTriangle className="h-4 w-4 text-warning" />
-                            <span className="text-sm text-warning">
-                              Issue flagged on this page
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="h-4 w-4 text-success" />
-                            <span className="text-sm text-success">
-                              No issues detected
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </ScrollArea>
-            </div>
+                      {/* Flat book list under lot */}
+                      {isLotOpen && (
+                        <CardContent className="pt-0 border-t border-border px-0 pb-0">
+                          {loadingBooks === lot.lotNumber ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground">Loading books...</div>
+                          ) : allBooks.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground">No books loaded yet.</div>
+                          ) : (
+                            <div className="divide-y divide-border">
+                              {/* Column headers */}
+                              <div className="px-4 py-2 grid grid-cols-[2rem_1fr_8rem_6rem] gap-2 bg-muted/40">
+                                <span className="text-[10px] font-medium text-muted-foreground">#</span>
+                                <span className="text-[10px] font-medium text-muted-foreground">ISBN / Title</span>
+                                <span className="text-[10px] font-medium text-muted-foreground">Box</span>
+                                <span className="text-[10px] font-medium text-muted-foreground">Status</span>
+                              </div>
+                              {lot.boxes.flatMap(box =>
+                                (box.books || []).map((book, idx) => {
+                                  const issueEntry = bookIssues[book.id]
+                                  const isFlagged = issueEntry?.saved
+                                  const isOther = issueEntry?.issue === 'other'
+                                  const globalIdx = lot.boxes.slice(0, lot.boxes.indexOf(box)).reduce((s, b) => s + (b.books?.length || 0), 0) + idx
+
+                                  return (
+                                    <div key={`${box.id}-${book.id}`} className="px-4 py-2.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                                      {/* # + ISBN + Title */}
+                                      <div className="flex-1 min-w-0 grid grid-cols-[2rem_1fr] gap-2 items-start">
+                                        <span className="text-[10px] text-muted-foreground pt-0.5">#{globalIdx + 1}</span>
+                                        <div className="min-w-0">
+                                          <p className="font-mono text-xs font-medium text-foreground">{book.isbn}</p>
+                                          <p className="text-[11px] text-muted-foreground truncate">{book.title || <span className="italic">No title</span>}</p>
+                                          <p className="text-[10px] text-muted-foreground/60">{box.box_number}</p>
+                                        </div>
+                                      </div>
+
+                                      {/* Issue controls */}
+                                      {!isFlagged ? (
+                                        <div className="flex items-center gap-2 flex-wrap sm:shrink-0 pl-8 sm:pl-0">
+                                          <select
+                                            value={issueEntry?.issue || ''}
+                                            onChange={e => setIssueField(book.id, 'issue', e.target.value)}
+                                            className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none"
+                                          >
+                                            <option value="">No issue</option>
+                                            {COMMON_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+                                          </select>
+                                          {isOther && (
+                                            <input
+                                              type="text"
+                                              placeholder="Describe..."
+                                              value={issueEntry?.remarks || ''}
+                                              onChange={e => setIssueField(book.id, 'remarks', e.target.value)}
+                                              className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none w-32"
+                                            />
+                                          )}
+                                          {issueEntry?.issue && (
+                                            <button
+                                              onClick={() => saveIssue(book, box.id)}
+                                              disabled={saving === book.id}
+                                              className="h-7 px-2.5 rounded-md bg-red-500 text-white text-xs font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                                            >
+                                              {saving === book.id ? '...' : 'Flag'}
+                                            </button>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div className="text-xs pl-8 sm:pl-0 sm:shrink-0 flex items-center gap-1.5">
+                                          <Badge variant="outline" className="text-[10px] border-red-300 text-red-600 bg-red-50 gap-1">
+                                            <AlertTriangle className="h-2.5 w-2.5" />
+                                            {COMMON_ISSUES.find(i => i.value === issueEntry.issue)?.label || issueEntry.issue}
+                                          </Badge>
+                                          {issueEntry.remarks && <span className="text-muted-foreground text-[10px]">— {issueEntry.remarks}</span>}
+                                          <button onClick={() => setBookIssues(prev => { const n = { ...prev }; delete n[book.id]; return n })} className="text-muted-foreground hover:text-foreground underline text-[10px] ml-1">Edit</button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })
+                              )}
+                            </div>
+                          )}
+                        </CardContent>
+                      )}
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+
           </div>
-
-        </div>
+        </ScrollArea>
       </main>
     </div>
   )

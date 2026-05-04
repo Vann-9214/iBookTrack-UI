@@ -9,12 +9,13 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const { lot_id, current_stage, box_number } = req.query
 
-    let query = supabase
+    const db = supabaseAdmin || supabase
+    let query = db
       .from('boxes')
       .select(`
         *,
         lot:lots(lot_number, shipment_id, status),
-        books:books(count)
+        scans:warehouse_book_scans(count)
       `)
       .order('created_at', { ascending: false })
 
@@ -33,17 +34,94 @@ router.get('/', requireAuth, async (req, res) => {
   }
 })
 
-// Get single box by ID with all books
+// Get recent pipeline transitions (for Checkpoint Monitor logs)
+router.get('/pipeline-transitions', requireAuth, async (req, res) => {
+  try {
+    const { limit = 50 } = req.query
+
+    const { data, error } = await supabase
+      .from('pipeline_events')
+      .select(`
+        id,
+        from_stage,
+        to_stage,
+        moved_by_name,
+        notes,
+        created_at,
+        box:boxes(box_number, lot:lots(lot_number))
+      `)
+      .order('created_at', { ascending: false })
+      .limit(parseInt(limit))
+
+    if (error) throw error
+
+    res.json({ success: true, transitions: data })
+  } catch (error) {
+    console.error('Get pipeline transitions error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get pipeline stage counts (for Active Pipeline visualization)
+router.get('/stats/pipeline', requireAuth, async (req, res) => {
+  try {
+    const { lot_number } = req.query
+
+    let query = supabase
+      .from('boxes')
+      .select('current_stage')
+
+    if (lot_number) {
+      const { data: lot } = await supabase
+        .from('lots')
+        .select('id')
+        .eq('lot_number', lot_number)
+        .single()
+
+      if (lot) {
+        query = query.eq('lot_id', lot.id)
+      }
+    }
+
+    const { data, error } = await query
+
+    if (error) throw error
+
+    const stageCounts = {
+      warehouse: 0,
+      inventory: 0,
+      cut: 0,
+      qc: 0,
+      scan: 0,
+      qa: 0,
+      transmit: 0,
+      storage: 0
+    }
+
+    data.forEach(box => {
+      if (stageCounts[box.current_stage] !== undefined) {
+        stageCounts[box.current_stage]++
+      }
+    })
+
+    res.json({ stageCounts })
+  } catch (error) {
+    console.error('Get pipeline stats error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get single box by ID with all scanned books
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
 
-    const { data: box, error: boxError } = await supabase
+    const db = supabaseAdmin || supabase
+    const { data: box, error: boxError } = await db
       .from('boxes')
       .select(`
         *,
-        lot:lots(lot_number, shipment_id, status),
-        books:books(*)
+        lot:lots(lot_number, shipment_id, status)
       `)
       .eq('id', id)
       .single()
@@ -51,7 +129,14 @@ router.get('/:id', requireAuth, async (req, res) => {
     if (boxError) throw boxError
     if (!box) return res.status(404).json({ error: 'Box not found' })
 
-    res.json({ box })
+    // Pull scanned books from warehouse_book_scans for this box
+    const { data: scans } = await db
+      .from('warehouse_book_scans')
+      .select('id, isbn, title, scan_status, scanned_at')
+      .eq('assigned_box_id', id)
+      .order('scanned_at', { ascending: true })
+
+    res.json({ box: { ...box, books: scans || [] } })
   } catch (error) {
     console.error('Get box error:', error)
     res.status(500).json({ error: error.message })
@@ -169,53 +254,143 @@ router.get('/lot/:lot_number', async (req, res) => {
   }
 })
 
-// Get pipeline stage counts (for Active Pipeline visualization)
-router.get('/stats/pipeline', requireAuth, async (req, res) => {
+// Receive box at current station (marks arrival, does NOT advance stage)
+router.post('/:id/receive', requireAuth, async (req, res) => {
   try {
-    const { lot_number } = req.query
+    const { id } = req.params
+    const db = supabaseAdmin || supabase
 
-    let query = supabase
+    const { data: box, error: boxError } = await db
       .from('boxes')
-      .select('current_stage')
+      .select('id, lot_id, current_stage, box_number')
+      .eq('id', id)
+      .single()
 
-    // If lot_number provided, filter by it
-    if (lot_number) {
-      const { data: lot } = await supabase
-        .from('lots')
-        .select('id')
-        .eq('lot_number', lot_number)
-        .single()
+    if (boxError || !box) return res.status(404).json({ error: 'Box not found' })
 
-      if (lot) {
-        query = query.eq('lot_id', lot.id)
-      }
-    }
+    const { data: updatedBox, error: updateError } = await db
+      .from('boxes')
+      .update({ received_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
 
-    const { data, error } = await query
+    if (updateError) throw updateError
 
-    if (error) throw error
-
-    // Count boxes per stage
-    const stageCounts = {
-      intake: 0,
-      cut: 0,
-      inspection: 0,
-      scan: 0,
-      validation: 0,
-      qa: 0,
-      transmit: 0,
-      storage: 0
-    }
-
-    data.forEach(box => {
-      if (stageCounts[box.current_stage] !== undefined) {
-        stageCounts[box.current_stage]++
-      }
+    // Log receipt event
+    await db.from('pipeline_events').insert({
+      box_id: id,
+      lot_id: box.lot_id,
+      from_stage: box.current_stage,
+      to_stage: box.current_stage,
+      moved_by: req.user.id,
+      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
+      notes: `Received at ${box.current_stage}`
     })
 
-    res.json({ stageCounts })
+    res.json({ success: true, box: updatedBox })
   } catch (error) {
-    console.error('Get pipeline stats error:', error)
+    console.error('Receive box error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Advance box to next stage (checkpoint receive)
+router.post('/:id/advance', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { notes } = req.body
+
+    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'qc', 'scan', 'qa', 'transmit', 'storage']
+
+    const db = supabaseAdmin || supabase
+
+    const { data: box, error: boxError } = await db
+      .from('boxes')
+      .select('*, lot:lots(lot_number)')
+      .eq('id', id)
+      .single()
+
+    if (boxError || !box) return res.status(404).json({ error: 'Box not found', detail: boxError?.message })
+
+    const currentIdx = STAGE_ORDER.indexOf(box.current_stage)
+    if (currentIdx === -1 || currentIdx >= STAGE_ORDER.length - 1) {
+      return res.status(400).json({ error: 'Box is already at the final stage' })
+    }
+
+    const nextStage = STAGE_ORDER[currentIdx + 1]
+
+    // Update box stage and clear received_at for the new stage
+    const { data: updatedBox, error: updateError } = await db
+      .from('boxes')
+      .update({ current_stage: nextStage, received_at: null })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+
+    // Log pipeline event
+    await db.from('pipeline_events').insert({
+      box_id: id,
+      lot_id: box.lot_id,
+      from_stage: box.current_stage,
+      to_stage: nextStage,
+      moved_by: req.user.id,
+      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
+      notes: notes || null
+    })
+
+    res.json({ success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage })
+  } catch (error) {
+    console.error('Advance box stage error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Rollback box to previous stage (undo accidental advance)
+router.post('/:id/rollback', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { to_stage } = req.body
+    const db = supabaseAdmin || supabase
+
+    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'qc', 'scan', 'qa', 'transmit', 'storage']
+
+    if (!to_stage || !STAGE_ORDER.includes(to_stage)) {
+      return res.status(400).json({ error: 'Invalid target stage' })
+    }
+
+    const { data: box, error: boxError } = await db
+      .from('boxes')
+      .select('id, lot_id, current_stage')
+      .eq('id', id)
+      .single()
+
+    if (boxError || !box) return res.status(404).json({ error: 'Box not found' })
+
+    const { data: updatedBox, error: updateError } = await db
+      .from('boxes')
+      .update({ current_stage: to_stage })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+
+    await db.from('pipeline_events').insert({
+      box_id: id,
+      lot_id: box.lot_id,
+      from_stage: box.current_stage,
+      to_stage,
+      moved_by: req.user.id,
+      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
+      notes: 'Rolled back (undo)'
+    })
+
+    res.json({ success: true, box: updatedBox })
+  } catch (error) {
+    console.error('Rollback box stage error:', error)
     res.status(500).json({ error: error.message })
   }
 })

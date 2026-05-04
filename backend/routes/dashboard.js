@@ -166,11 +166,11 @@ router.get('/pipeline-stats', async (req, res) => {
     if (error) throw error
 
     const stageCounts = {
-      intake: 0,
+      warehouse: 0,
+      inventory: 0,
       cut: 0,
-      inspection: 0,
+      qc: 0,
       scan: 0,
-      validation: 0,
       qa: 0,
       transmit: 0,
       storage: 0

@@ -1,13 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { authFetch } from '@/lib/auth-api'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History } from 'lucide-react'
+import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer } from 'lucide-react'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const bwipjs = require('bwip-js')
 
 interface LogEntry {
   id: string
   isbn: string
   title: string
+  language: string
   scannedAt: string
   printed: boolean
 }
@@ -15,10 +19,9 @@ interface LogEntry {
 interface BookInBox {
   id: string
   isbn: string
-  title: string
-  book_type: string
-  current_stage: string
-  is_transmitted: boolean
+  title: string | null
+  scan_status: string
+  scanned_at: string
 }
 
 interface Box {
@@ -32,19 +35,20 @@ interface Box {
   created_at: string
   lot: { lot_number: string; status: string }
   books: BookInBox[] | { count: number }[]
+  scans: { count: number }[]
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 const STAGE_COLORS: Record<string, string> = {
-  intake: 'bg-gray-100 text-gray-700',
-  cut: 'bg-orange-100 text-orange-700',
-  inspection: 'bg-yellow-100 text-yellow-700',
-  scan: 'bg-blue-100 text-blue-700',
-  validation: 'bg-purple-100 text-purple-700',
-  qa: 'bg-pink-100 text-pink-700',
-  transmit: 'bg-green-100 text-green-700',
-  storage: 'bg-emerald-100 text-emerald-700',
+  warehouse:  'bg-gray-100 text-gray-700',
+  inventory:  'bg-slate-100 text-slate-700',
+  cut:        'bg-orange-100 text-orange-700',
+  qc:         'bg-yellow-100 text-yellow-700',
+  scan:       'bg-blue-100 text-blue-700',
+  qa:         'bg-purple-100 text-purple-700',
+  transmit:   'bg-green-100 text-green-700',
+  storage:    'bg-emerald-100 text-emerald-700',
 }
 
 const LOT_OPTIONS = Array.from({ length: 100 }, (_, i) => `Lot ${i + 1}`)
@@ -62,16 +66,19 @@ export default function InventoryPage() {
   const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
   const [loadingBoxes, setLoadingBoxes] = useState(false)
   const [loadingBooks, setLoadingBooks] = useState<string | null>(null)
+  const [boxScanInput, setBoxScanInput] = useState('')
+  const [boxScanResult, setBoxScanResult] = useState<Box | null>(null)
+  const [boxScanNotFound, setBoxScanNotFound] = useState(false)
+  const [printBox, setPrintBox] = useState<Box | null>(null)
+  const [printBooks, setPrintBooks] = useState<BookInBox[]>([])
+  const [loadingPrint, setLoadingPrint] = useState<string | null>(null)
+  const barcodeRef = useRef<HTMLCanvasElement>(null)
 
   // --- History tab state ---
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [scanInput, setScanInput] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const authHeader = (): Record<string, string> => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
-    return token ? { Authorization: `Bearer ${token}` } : {}
-  }
 
   useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter])
   useEffect(() => { fetchScanHistory() }, [])
@@ -84,7 +91,7 @@ export default function InventoryPage() {
       if (stageFilter) params.push(`current_stage=${stageFilter}`)
       if (params.length) url += '?' + params.join('&')
 
-      const res = await fetch(url, { credentials: 'include', headers: authHeader() })
+      const res = await authFetch(url)
       const data = await res.json()
       let result: Box[] = data.boxes || []
 
@@ -105,7 +112,7 @@ export default function InventoryPage() {
     if (boxBooks[boxId]) return
     setLoadingBooks(boxId)
     try {
-      const res = await fetch(`${API_URL}/api/boxes/${boxId}`, { credentials: 'include', headers: authHeader() })
+      const res = await authFetch(`${API_URL}/api/boxes/${boxId}`)
       const data = await res.json()
       if (data.box?.books) {
         setBoxBooks(prev => ({ ...prev, [boxId]: data.box.books }))
@@ -114,6 +121,47 @@ export default function InventoryPage() {
       console.error('Failed to fetch books in box:', e)
     } finally {
       setLoadingBooks(null)
+    }
+  }
+
+  const handlePrintLabel = async (box: Box) => {
+    setLoadingPrint(box.id)
+    try {
+      let books: BookInBox[] = boxBooks[box.id]
+      if (!books) {
+        const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+        const data = await res.json()
+        books = data.box?.books || []
+        setBoxBooks(prev => ({ ...prev, [box.id]: books }))
+      }
+      setPrintBox(box)
+      setPrintBooks(books)
+    } catch (e) {
+      console.error('Failed to fetch books for label:', e)
+    } finally {
+      setLoadingPrint(null)
+    }
+  }
+
+  const handleBoxScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return
+    const query = boxScanInput.trim()
+    if (!query) return
+
+    setBoxScanNotFound(false)
+    setBoxScanResult(null)
+
+    // Find box by box_number (exact or partial match)
+    const match = boxes.find(b => b.box_number?.toLowerCase() === query.toLowerCase())
+      || boxes.find(b => b.box_number?.toLowerCase().includes(query.toLowerCase()))
+
+    if (match) {
+      setBoxScanResult(match)
+      setExpandedBox(match.id)
+      fetchBooksInBox(match.id)
+      setBoxSearch(match.box_number) // sync search filter too
+    } else {
+      setBoxScanNotFound(true)
     }
   }
 
@@ -135,6 +183,7 @@ export default function InventoryPage() {
           id: s.id,
           isbn: s.isbn,
           title: s.title || `ISBN: ${s.isbn}`,
+          language: s.language || '—',
           scannedAt: new Date(s.scanned_at).toLocaleString(),
           printed: false,
         })))
@@ -158,6 +207,7 @@ export default function InventoryPage() {
           id: Date.now().toString(),
           isbn: d.ISBN || isbn,
           title: d.Title || `ISBN: ${isbn}`,
+          language: d.LanguageofBook || '—',
           scannedAt: new Date().toLocaleString(),
           printed: false,
         }
@@ -173,6 +223,23 @@ export default function InventoryPage() {
     }
   }
 
+  useEffect(() => {
+    if (printBox && barcodeRef.current) {
+      try {
+        bwipjs.toCanvas(barcodeRef.current, {
+          bcid: 'code128',
+          text: printBox.box_number,
+          scale: 2,
+          height: 12,
+          includetext: true,
+          textxalign: 'center',
+        })
+      } catch (e) {
+        console.error('Barcode error:', e)
+      }
+    }
+  }, [printBox])
+
   const filteredBoxes = boxes.filter(b => {
     if (!boxSearch) return true
     const q = boxSearch.toLowerCase()
@@ -184,7 +251,54 @@ export default function InventoryPage() {
   })
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <>
+    {/* ── PRINT LABEL OVERLAY (print-only) ── */}
+    {printBox && (
+      <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:p-6 print:z-[9999]">
+        <div className="max-w-2xl mx-auto">
+          {/* Box barcode centered */}
+          <div className="flex flex-col items-center mb-4">
+            <canvas ref={barcodeRef} />
+            <p className="text-xs text-gray-500 mt-1">Box: {printBox.box_number}</p>
+          </div>
+          {/* Header info */}
+          <div className="border border-black p-3 mb-3 grid grid-cols-3 gap-2 text-xs">
+            <div><span className="font-bold">Lot:</span> {printBox.lot?.lot_number || '—'}</div>
+            <div><span className="font-bold">Box:</span> {printBox.box_number}</div>
+            <div><span className="font-bold">Stage:</span> {printBox.current_stage}</div>
+            <div><span className="font-bold">Total Books:</span> {printBooks.length || printBox.total_books}</div>
+            <div><span className="font-bold">Date:</span> {new Date().toLocaleDateString()}</div>
+          </div>
+          {/* ISBN / Title table */}
+          <table className="w-full text-[10px] border-collapse">
+            <thead>
+              <tr className="bg-gray-200">
+                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">#</th>
+                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">ISBN</th>
+                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">Title</th>
+                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {printBooks.length > 0 ? printBooks.map((book, i) => (
+                <tr key={book.id || i} className="odd:bg-white even:bg-gray-50">
+                  <td className="border border-gray-300 px-1 py-0.5">{i + 1}</td>
+                  <td className="border border-gray-300 px-1 py-0.5 font-mono">{book.isbn}</td>
+                  <td className="border border-gray-300 px-1 py-0.5">{book.title || '—'}</td>
+                  <td className="border border-gray-300 px-1 py-0.5 capitalize">{book.scan_status || '—'}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={4} className="border border-gray-300 px-2 py-2 text-center text-gray-400 italic">No book records in database for this box</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
+    <div className="flex min-h-screen bg-background print:hidden">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
@@ -214,6 +328,34 @@ export default function InventoryPage() {
           {/* ── BOXES TAB ── */}
           {activeTab === 'boxes' && (
             <div className="flex flex-col gap-4">
+
+              {/* Box Barcode Scanner */}
+              <div className="border-2 border-primary rounded-lg p-4 bg-primary/5">
+                <label className="text-xs font-semibold text-primary uppercase tracking-wide flex items-center gap-2 mb-2">
+                  <Barcode className="h-4 w-4" /> Scan Box Barcode
+                </label>
+                <input
+                  type="text"
+                  value={boxScanInput}
+                  onChange={e => { setBoxScanInput(e.target.value); setBoxScanNotFound(false) }}
+                  onKeyDown={handleBoxScan}
+                  placeholder="Scan or type box number and press Enter..."
+                  className="w-full px-4 py-3 text-base border-2 border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                  autoFocus
+                />
+                {boxScanNotFound && (
+                  <p className="text-xs text-destructive mt-2">Box not found. Check the box number and try again.</p>
+                )}
+                {boxScanResult && (
+                  <div className="mt-2 flex items-center gap-2 text-xs text-green-700">
+                    <Package className="h-3.5 w-3.5" />
+                    <span className="font-semibold">{boxScanResult.box_number}</span>
+                    <span className="text-muted-foreground">— {boxScanResult.lot?.lot_number} · {boxScanResult.current_stage} · {boxScanResult.total_books} books</span>
+                    <button onClick={() => { setBoxScanResult(null); setBoxScanInput(''); setBoxSearch('') }} className="ml-auto text-muted-foreground hover:text-foreground">✕ Clear</button>
+                  </div>
+                )}
+              </div>
+
               {/* Filters */}
               <div className="flex flex-wrap gap-3">
                 <div className="relative flex-1 min-w-[200px]">
@@ -244,8 +386,8 @@ export default function InventoryPage() {
                   className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
                   <option value="">All Stages</option>
-                  {['intake','cut','inspection','scan','validation','qa','transmit','storage'].map(s => (
-                    <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+                  {[['warehouse','Warehouse'],['inventory','Inventory'],['cut','Cut'],['qc','QC'],['scan','Scan'],['qa','QA'],['transmit','Transmit'],['storage','Storage']].map(([val,label]) => (
+                    <option key={val} value={val}>{label}</option>
                   ))}
                 </select>
               </div>
@@ -263,12 +405,11 @@ export default function InventoryPage() {
                   {filteredBoxes.map(box => {
                     const isOpen = expandedBox === box.id
                     const books = boxBooks[box.id]
-                    const rawBooks = box.books as any[]
+                    const rawScans = box.scans as any[]
                     const bookCount = (() => {
-                      if (Array.isArray(rawBooks) && rawBooks.length > 0) {
-                        const first = rawBooks[0]
+                      if (Array.isArray(rawScans) && rawScans.length > 0) {
+                        const first = rawScans[0]
                         if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
-                        if (typeof first?.isbn !== 'undefined') return rawBooks.length
                       }
                       return box.total_books || 0
                     })()
@@ -276,21 +417,33 @@ export default function InventoryPage() {
                     return (
                       <div key={box.id} className="border border-border rounded-lg overflow-hidden bg-card">
                         {/* Box Header Row */}
-                        <button
-                          onClick={() => toggleBox(box.id)}
-                          className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
-                        >
-                          {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                          <Package className="h-4 w-4 shrink-0 text-primary" />
-                          <span className="font-semibold text-sm text-foreground flex-1">{box.box_number}</span>
-                          <span className="text-xs text-muted-foreground mr-2">{box.lot?.lot_number || '—'}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STAGE_COLORS[box.current_stage] || 'bg-muted text-muted-foreground'}`}>
-                            {box.current_stage}
-                          </span>
-                          <span className="text-xs text-muted-foreground ml-3 shrink-0">
-                            <BookOpen className="inline h-3 w-3 mr-1" />{bookCount} books
-                          </span>
-                        </button>
+                        <div className="flex items-center">
+                          <button
+                            onClick={() => toggleBox(box.id)}
+                            className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+                          >
+                            {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+                            <Package className="h-4 w-4 shrink-0 text-primary" />
+                            <span className="font-semibold text-sm text-foreground flex-1">{box.box_number}</span>
+                            <span className="text-xs text-muted-foreground mr-2">{box.lot?.lot_number || '—'}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STAGE_COLORS[box.current_stage] || 'bg-muted text-muted-foreground'}`}>
+                              {box.current_stage}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-3 shrink-0">
+                              <BookOpen className="inline h-3 w-3 mr-1" />{bookCount} books
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => { handlePrintLabel(box).then(() => setTimeout(() => window.print(), 300)) }}
+                            disabled={loadingPrint === box.id}
+                            className="px-3 py-3 text-muted-foreground hover:text-primary hover:bg-muted/40 transition-colors shrink-0 border-l border-border"
+                            title="Print box label"
+                          >
+                            {loadingPrint === box.id
+                              ? <span className="text-[10px]">...</span>
+                              : <Printer className="h-4 w-4" />}
+                          </button>
+                        </div>
 
                         {/* Expanded Books */}
                         {isOpen && (
@@ -304,9 +457,8 @@ export default function InventoryPage() {
                                     <tr className="text-muted-foreground border-b border-border">
                                       <th className="pb-2 text-left font-medium pr-4">ISBN</th>
                                       <th className="pb-2 text-left font-medium pr-4">Title</th>
-                                      <th className="pb-2 text-left font-medium pr-4">Type</th>
-                                      <th className="pb-2 text-left font-medium pr-4">Stage</th>
-                                      <th className="pb-2 text-left font-medium">Transmitted</th>
+                                      <th className="pb-2 text-left font-medium pr-4">Status</th>
+                                      <th className="pb-2 text-left font-medium">Scanned At</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -314,16 +466,13 @@ export default function InventoryPage() {
                                       <tr key={book.id || i} className="border-b border-border/50 last:border-0">
                                         <td className="py-1.5 pr-4 font-mono text-foreground">{book.isbn}</td>
                                         <td className="py-1.5 pr-4 text-foreground max-w-[200px] truncate">{book.title || '—'}</td>
-                                        <td className="py-1.5 pr-4 text-muted-foreground">{book.book_type || '—'}</td>
                                         <td className="py-1.5 pr-4">
-                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${STAGE_COLORS[book.current_stage] || 'bg-muted text-muted-foreground'}`}>
-                                            {book.current_stage || '—'}
+                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${book.scan_status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {book.scan_status || '—'}
                                           </span>
                                         </td>
-                                        <td className="py-1.5">
-                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.is_transmitted ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                            {book.is_transmitted ? 'Yes' : 'No'}
-                                          </span>
+                                        <td className="py-1.5 text-xs text-muted-foreground">
+                                          {book.scanned_at ? new Date(book.scanned_at).toLocaleString() : '—'}
                                         </td>
                                       </tr>
                                     ))}
@@ -377,6 +526,7 @@ export default function InventoryPage() {
                       <tr>
                         <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">ISBN</th>
                         <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Title</th>
+                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Language</th>
                         <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Scanned At</th>
                       </tr>
                     </thead>
@@ -385,11 +535,12 @@ export default function InventoryPage() {
                         <tr key={log.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-mono text-xs text-foreground">{log.isbn}</td>
                           <td className="px-4 py-3 text-foreground max-w-xs truncate">{log.title}</td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">{log.language}</td>
                           <td className="px-4 py-3 text-muted-foreground text-xs">{log.scannedAt}</td>
                         </tr>
                       )) : (
                         <tr>
-                          <td colSpan={3} className="px-4 py-10 text-center text-muted-foreground text-sm">No scans yet</td>
+                          <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground text-sm">No scans yet</td>
                         </tr>
                       )}
                     </tbody>
@@ -402,5 +553,6 @@ export default function InventoryPage() {
         </div>
       </main>
     </div>
+    </>
   )
 }

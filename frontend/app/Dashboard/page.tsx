@@ -74,8 +74,6 @@ export default function DashboardPage() {
       }
 
       const stages = pipelineData.stageCounts || {}
-      // Map 'inspection' DB value → 'book inspection & endorsement' key used by ActivePipeline
-      stages['book inspection & endorsement'] = stages.inspection || 0
 
       if (statsData.success) {
         setDashboardStats({ ...statsData.stats, pipelineStages: stages, dailyTransmitted, totalBooks: simflexAllTime || statsData.stats.totalBooks })

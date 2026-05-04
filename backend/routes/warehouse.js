@@ -70,7 +70,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
 router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
   try {
     const { session_id } = req.params
-    const { isbn, scan_status, rejection_reason, notes } = req.body
+    const { isbn, title: scannedTitle, scan_status, rejection_reason, notes } = req.body
 
     if (!isbn) {
       return res.status(400).json({ error: 'ISBN is required' })
@@ -93,17 +93,6 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
     if (session.status !== 'in_progress') {
       return res.status(400).json({ error: 'Session is not in progress' })
     }
-
-    // Find the book by ISBN (just for reference, not required for warehouse scanning)
-    const { data: books, error: bookError } = await supabase
-      .from('books')
-      .select('*')
-      .eq('isbn', isbn)
-      .limit(1)
-
-    if (bookError) throw bookError
-
-    const book = books && books.length > 0 ? books[0] : null
 
     // Get lot_id and lot_number from session
     const lotId = session.lot_id
@@ -148,7 +137,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
           box_number: boxNumber,
           lot_id: lotId,
           box_type: boxType,
-          current_stage: 'inspection',
+          current_stage: 'warehouse',
           total_books: 0,
           is_sealed: false
         })
@@ -243,14 +232,11 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
       .from('warehouse_book_scans')
       .insert({
         session_id,
-        book_id: book?.id,
         isbn,
         scan_status,
         rejection_reason,
         notes,
-        title: book?.title,
-        book_type: book?.book_type,
-        condition: book?.condition,
+        title: scannedTitle || null,
         assigned_box_id: assignedBoxId,
         scanned_by: req.user.id,
         scanned_by_name: req.user.name || req.user.email
@@ -260,43 +246,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     if (scanError) throw scanError
 
-    // Update existing book OR insert new one if not in books table yet
-    if (assignedBoxId) {
-      if (book) {
-        await supabaseAdmin
-          .from('books')
-          .update({
-            box_id: assignedBoxId,
-            current_stage: 'inspection',
-            status: scan_status === 'accepted' ? 'validated' : 'rejected'
-          })
-          .eq('id', book.id)
-      } else {
-        // Book not in books table yet — insert it now from warehouse scan
-        const { data: newBook } = await supabaseAdmin
-          .from('books')
-          .insert({
-            isbn,
-            barcode: isbn,
-            box_id: assignedBoxId,
-            title: null,
-            status: scan_status === 'accepted' ? 'validated' : 'rejected',
-            current_stage: 'inspection',
-            is_transmitted: false,
-            is_unaccounted: false
-          })
-          .select()
-          .single()
-
-        // Link the scan log to the new book
-        if (newBook) {
-          await supabaseAdmin
-            .from('warehouse_book_scans')
-            .update({ book_id: newBook.id })
-            .eq('id', scanLog.id)
-        }
-      }
-    }
+    // warehouse_book_scans is the source of truth — no books table writes needed
 
     // Update box counts (use admin to bypass RLS)
     if (assignedBoxId) {
@@ -461,6 +411,7 @@ router.get('/search/isbn/:isbn', async (req, res) => {
         *,
         assigned_box:boxes!warehouse_book_scans_assigned_box_id_fkey(
           box_number,
+          current_stage,
           lot:lots(lot_number)
         )
       `)
@@ -516,7 +467,7 @@ router.get('/search/isbn/:isbn', async (req, res) => {
         title: bookTitle || book?.title || 'Unknown',
         box_number: boxNumber || ilmsBoxNo || 'Not in warehouse yet',
         lot_number: lotNumber || ilmsLotNo || 'Unknown',
-        current_stage: book?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
+        current_stage: scans?.[0]?.assigned_box?.current_stage || book?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
         in_warehouse: inWarehouse,
@@ -589,6 +540,49 @@ router.get('/scans/recent', async (req, res) => {
     res.json({ success: true, scans: formattedScans })
   } catch (error) {
     console.error('Error fetching recent scans:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Backfill missing titles in warehouse_book_scans from iLMS
+router.post('/backfill-titles', requireAuth, async (req, res) => {
+  try {
+    const { ilmsApi } = await import('../services/ilms-api.js')
+
+    // Get all scans with no title
+    const { data: scans, error } = await supabaseAdmin
+      .from('warehouse_book_scans')
+      .select('id, isbn')
+      .is('title', null)
+
+    if (error) throw error
+    if (!scans || scans.length === 0) {
+      return res.json({ success: true, updated: 0, message: 'No scans missing titles' })
+    }
+
+    let updated = 0
+    let failed = 0
+
+    for (const scan of scans) {
+      try {
+        const result = await ilmsApi.searchBookByISBN(scan.isbn)
+        if (result.success && result.data && !result.data.Message && result.data.Title) {
+          await supabaseAdmin
+            .from('warehouse_book_scans')
+            .update({ title: result.data.Title })
+            .eq('id', scan.id)
+          updated++
+        } else {
+          failed++
+        }
+      } catch (_) {
+        failed++
+      }
+    }
+
+    res.json({ success: true, total: scans.length, updated, failed })
+  } catch (error) {
+    console.error('Backfill titles error:', error)
     res.status(500).json({ error: error.message })
   }
 })

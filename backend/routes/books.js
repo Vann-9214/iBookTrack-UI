@@ -1,5 +1,5 @@
 import express from 'express'
-import { supabase } from '../config/supabase.js'
+import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 import { ilmsApi } from '../services/ilms-api.js'
 
@@ -331,6 +331,51 @@ router.post('/scan/:id/print', requireAuth, async (req, res) => {
     res.json({ success: true })
   } catch (error) {
     console.error('Mark printed error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Flag a book with a QC issue (from Book Inspection page)
+// :id is a warehouse_book_scans row ID
+router.post('/:id/flag', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { issue, remarks, box_id } = req.body
+    const db = supabaseAdmin || supabase
+
+    if (!issue) return res.status(400).json({ error: 'issue is required' })
+
+    // Look up the scan record (source of truth for scanned books)
+    const { data: scan, error: scanError } = await db
+      .from('warehouse_book_scans')
+      .select('id, isbn, title, assigned_box_id')
+      .eq('id', id)
+      .single()
+
+    if (scanError || !scan) return res.status(404).json({ error: 'Scan record not found' })
+
+    // Insert a QC flag record (log it, don't delete the scan)
+    const { error: flagError } = await db
+      .from('qc_flags')
+      .upsert({
+        scan_id: id,
+        isbn: scan.isbn,
+        title: scan.title,
+        box_id: scan.assigned_box_id || box_id || null,
+        issue,
+        remarks: remarks || null,
+        flagged_by: req.user.id,
+        flagged_by_name: req.user.user_metadata?.name || req.user.email
+      }, { onConflict: 'scan_id' })
+
+    if (flagError) {
+      console.error('QC flag insert error:', flagError)
+      return res.status(500).json({ error: flagError.message })
+    }
+
+    res.json({ success: true, scan_id: id, issue, remarks })
+  } catch (error) {
+    console.error('Flag book error:', error)
     res.status(500).json({ error: error.message })
   }
 })

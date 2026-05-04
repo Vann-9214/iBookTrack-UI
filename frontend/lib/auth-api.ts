@@ -123,6 +123,32 @@ export async function getValidAccessToken(): Promise<string | null> {
   return tokenData?.access_token || null
 }
 
+// Drop-in fetch wrapper — refreshes token if expired, redirects to /login on 401
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getValidAccessToken()
+  if (!token) {
+    if (typeof window !== 'undefined') window.location.href = '/login'
+    throw new Error('Session expired. Please log in again.')
+  }
+
+  const headers = new Headers(options.headers)
+  headers.set('Authorization', `Bearer ${token}`)
+  if (!headers.has('Content-Type') && options.body) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const res = await fetch(url, { ...options, headers })
+
+  if (res.status === 401) {
+    // Token was just refreshed but still 401 — clear and redirect
+    clearTokenData()
+    if (typeof window !== 'undefined') window.location.href = '/login'
+    throw new Error('Session expired. Please log in again.')
+  }
+
+  return res
+}
+
 export async function authRequest({ endpoint, payload }: AuthRequestOptions): Promise<AuthSuccess> {
   const response = await fetch(`${getApiBaseUrl()}${endpoint}`, {
     method: 'POST',

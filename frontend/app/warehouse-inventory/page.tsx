@@ -55,8 +55,8 @@ export default function WarehouseInventoryPage() {
   const [activeBoxType, setActiveBoxType] = useState<'accepted' | 'rejected'>('accepted') // Which box we're scanning into
   const { toast } = useToast()
 
-  // Generate static lots 1-50
-  const lots = Array.from({ length: 50 }, (_, i) => `Lot ${i + 1}`)
+  // Generate static lots 1-100
+  const lots = Array.from({ length: 100 }, (_, i) => `Lot ${i + 1}`)
 
   const handleNewSession = async () => {
     if (!activeLot) {
@@ -330,6 +330,7 @@ export default function WarehouseInventoryPage() {
         },
         body: JSON.stringify({
           isbn: bookData.isbn,
+          title: bookData.title,
           scan_status: 'accepted', // Auto-accept as Pass/Received
           rejection_reason: null
         })
@@ -420,6 +421,7 @@ export default function WarehouseInventoryPage() {
         },
         body: JSON.stringify({
           isbn: currentScan.isbn,
+          title: currentScan.title,
           scan_status: scanStatus,
           rejection_reason: status === 'reject' ? 'Rejected by warehouse staff' : null
         })
