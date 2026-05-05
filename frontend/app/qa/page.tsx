@@ -82,18 +82,34 @@ export default function BookInspectionPage() {
   const loadLotBooks = async (lotNumber: string, lotBoxes: BoxEntry[]) => {
     if (expandedLot === lotNumber) { setExpandedLot(null); return }
     setExpandedLot(lotNumber)
-    // Load books for any box in this lot that hasn't been loaded yet
     const unloaded = lotBoxes.filter(b => !b.books)
-    if (unloaded.length === 0) return
     setLoadingBooks(lotNumber)
     try {
-      await Promise.all(unloaded.map(async box => {
+      // Load books for boxes not yet fetched
+      const updatedBoxes = await Promise.all(lotBoxes.map(async box => {
+        if (box.books) return box
         const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
         const data = await res.json()
-        if (data.box?.books) {
-          setBoxes(prev => prev.map(b => b.id === box.id ? { ...b, books: data.box.books } : b))
-        }
+        const books = data.box?.books || []
+        setBoxes(prev => prev.map(b => b.id === box.id ? { ...b, books } : b))
+        return { ...box, books }
       }))
+
+      // Load existing flags for all scan IDs in this lot
+      const allScanIds = updatedBoxes.flatMap(b => (b.books || []).map((bk: BookEntry) => bk.id)).filter(Boolean)
+      if (allScanIds.length > 0) {
+        const flagRes = await authFetch(`${API_URL}/api/books/flags?scan_ids=${allScanIds.join(',')}`)
+        const flagData = await flagRes.json()
+        if (flagData.flags?.length > 0) {
+          setBookIssues(prev => {
+            const updated = { ...prev }
+            flagData.flags.forEach((f: { scan_id: string; issue: string; remarks: string }) => {
+              updated[f.scan_id] = { issue: f.issue, remarks: f.remarks || '', saved: true }
+            })
+            return updated
+          })
+        }
+      }
     } catch (e) {
       console.error('Failed to fetch books:', e)
     } finally {

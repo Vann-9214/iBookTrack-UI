@@ -9,12 +9,20 @@ const router = express.Router()
  */
 router.get('/finished-lots', async (req, res) => {
   try {
+    // Debug: log distinct final_status values
+    const { data: statusSample } = await supabaseAdmin
+      .from('imported_books_staging')
+      .select('final_status')
+      .not('final_status', 'is', null)
+      .limit(10)
+    console.log('[Reports] Sample final_status values:', statusSample?.map(r => r.final_status))
+
     // Get total count (all data)
     const { count: totalBooks, error: countError } = await supabaseAdmin
       .from('imported_books_staging')
       .select('*', { count: 'exact', head: true })
     
-    if (countError) throw countError
+    if (countError) console.warn('Count query warning:', countError.message)
 
     // Get transmitted count
     const { count: transmitted, error: transmittedError } = await supabaseAdmin
@@ -22,7 +30,7 @@ router.get('/finished-lots', async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .ilike('final_status', 'transmitted')
     
-    if (transmittedError) throw transmittedError
+    if (transmittedError) console.warn('Transmitted count warning:', transmittedError.message)
 
     // Get rejected count
     const { count: rejected, error: rejectedError } = await supabaseAdmin
@@ -31,9 +39,12 @@ router.get('/finished-lots', async (req, res) => {
       .not('final_status', 'is', null)
       .not('final_status', 'ilike', 'transmitted')
     
-    if (rejectedError) throw rejectedError
+    if (rejectedError) console.warn('Rejected count warning:', rejectedError.message)
 
-    const booksToGo = totalBooks - transmitted
+    const safeTotal = totalBooks || 0
+    const safeTransmitted = transmitted || 0
+    const safeRejected = rejected || 0
+    const booksToGo = safeTotal - safeTransmitted
 
     // Get lot breakdown using RPC or raw SQL for aggregation
     const { data: lotData, error: lotError } = await supabaseAdmin
@@ -135,18 +146,18 @@ router.get('/finished-lots', async (req, res) => {
 
     res.json({
       overview: {
-        totalBooks: totalBooks || 0,
-        transmitted: transmitted || 0,
-        rejected: rejected || 0,
+        totalBooks: safeTotal,
+        transmitted: safeTransmitted,
+        rejected: safeRejected,
         booksToGo,
-        completionRate: totalBooks ? ((transmitted / totalBooks) * 100).toFixed(2) : '0'
+        completionRate: safeTotal ? ((safeTransmitted / safeTotal) * 100).toFixed(2) : '0'
       },
       lotBreakdown: validLots,
       vendorBreakdown: vendorBreakdown.sort((a, b) => b.total - a.total)
     })
   } catch (error) {
-    console.error('Error fetching finished lots report:', error)
-    res.status(500).json({ error: error.message })
+    console.error('Error fetching finished lots report:', error.message || error)
+    res.status(500).json({ error: error.message || 'Internal server error' })
   }
 })
 

@@ -335,6 +335,27 @@ router.post('/scan/:id/print', requireAuth, async (req, res) => {
   }
 })
 
+// Get existing QC flags for a list of scan IDs
+router.get('/flags', requireAuth, async (req, res) => {
+  try {
+    const { scan_ids } = req.query
+    const db = supabaseAdmin || supabase
+
+    let query = db.from('qc_flags').select('scan_id, issue, remarks, flagged_at, flagged_by_name')
+    if (scan_ids) {
+      const ids = scan_ids.split(',').filter(Boolean)
+      query = query.in('scan_id', ids)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    res.json({ success: true, flags: data || [] })
+  } catch (error) {
+    console.error('Get flags error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Flag a book with a QC issue (from Book Inspection page)
 // :id is a warehouse_book_scans row ID
 router.post('/:id/flag', requireAuth, async (req, res) => {

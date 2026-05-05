@@ -39,6 +39,13 @@ interface BoxItem {
   lot: { lot_number: string } | null
 }
 
+interface ScannedBook {
+  id: string
+  isbn: string
+  title: string | null
+  scan_status: string
+}
+
 interface Transition {
   id: string
   from_stage: string | null
@@ -61,6 +68,8 @@ export default function StationCheckpointsPage() {
   const [confirmBox, setConfirmBox] = useState<BoxItem | null>(null)
   const [undoEntry, setUndoEntry] = useState<{ box: BoxItem; fromStage: string; toStage: string } | null>(null)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [scannedBox, setScannedBox] = useState<{ box: BoxItem; books: ScannedBook[] } | null>(null)
+  const [loadingScannedBox, setLoadingScannedBox] = useState(false)
 
   const fetchData = useCallback(async () => {
     try {
@@ -146,7 +155,7 @@ export default function StationCheckpointsPage() {
     }
   }
 
-  const handleScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return
     const q = scanInput.trim().toLowerCase()
     if (!q) return
@@ -155,6 +164,18 @@ export default function StationCheckpointsPage() {
       setHighlightBox(match.id)
       setTimeout(() => setHighlightBox(null), 4000)
       document.getElementById(`box-${match.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Also fetch and show contents
+      setLoadingScannedBox(true)
+      setScannedBox(null)
+      try {
+        const res = await authFetch(`${API_URL}/api/boxes/${match.id}`)
+        const data = await res.json()
+        setScannedBox({ box: match, books: data.box?.books || [] })
+      } catch {
+        toast.error('Failed to load box contents')
+      } finally {
+        setLoadingScannedBox(false)
+      }
     } else {
       toast.warning(`Box "${scanInput}" not found`)
     }
@@ -186,6 +207,55 @@ export default function StationCheckpointsPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <ScrollArea className="flex-1 h-0 min-h-0">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
+
+            {/* Scanned Box Contents Modal */}
+            {(scannedBox || loadingScannedBox) && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setScannedBox(null)}>
+                <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-foreground font-mono">{scannedBox?.box.box_number}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {scannedBox?.box.lot?.lot_number} · <span className="capitalize">{scannedBox?.box.current_stage}</span> · {scannedBox?.box.total_books} books
+                      </p>
+                    </div>
+                    <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+                  </div>
+                  {loadingScannedBox ? (
+                    <p className="text-sm text-muted-foreground py-6 text-center">Loading contents...</p>
+                  ) : scannedBox && scannedBox.books.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-6 text-center">No scan records found for this box.</p>
+                  ) : (
+                    <div className="overflow-y-auto flex-1">
+                      <table className="w-full text-xs">
+                        <thead className="sticky top-0 bg-card">
+                          <tr className="text-muted-foreground border-b border-border">
+                            <th className="pb-2 text-left font-medium w-6">#</th>
+                            <th className="pb-2 text-left font-medium pr-3">ISBN</th>
+                            <th className="pb-2 text-left font-medium pr-3">Title</th>
+                            <th className="pb-2 text-left font-medium">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {scannedBox?.books.map((book, i) => (
+                            <tr key={book.id} className="border-b border-border/40 last:border-0">
+                              <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
+                              <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
+                              <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || '—'}</td>
+                              <td className="py-1.5">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${book.scan_status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {book.scan_status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Confirmation Dialog */}
             {confirmBox && (
