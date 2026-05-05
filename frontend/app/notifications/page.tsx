@@ -61,19 +61,13 @@ const typeConfig = {
 }
 
 export default function NotificationsPage() {
-  const { notifications: liveNotifications, loading, error } = useLiveNotifications(24, 5000)
+  const { notifications: liveNotifications, loading, error, markAsRead, markAllAsRead, unreadCount } = useLiveNotifications(24, 5000)
   const [dismissedNotificationIds, setDismissedNotificationIds] = useState<string[]>([])
-  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([])
   const [filterType, setFilterType] = useState<NotificationType | 'all'>('all')
 
   const visibleNotifications = useMemo(() => {
-    return liveNotifications
-      .filter((notification) => !dismissedNotificationIds.includes(notification.id))
-      .map((notification) => ({
-        ...notification,
-        read: readNotificationIds.includes(notification.id) ? true : notification.read,
-      }))
-  }, [liveNotifications, dismissedNotificationIds, readNotificationIds])
+    return liveNotifications.filter((notification) => !dismissedNotificationIds.includes(notification.id))
+  }, [liveNotifications, dismissedNotificationIds])
 
   const filteredNotifications = useMemo(() => {
     return filterType === 'all'
@@ -81,14 +75,11 @@ export default function NotificationsPage() {
       : visibleNotifications.filter((notification) => notification.type === filterType)
   }, [filterType, visibleNotifications])
 
-  const displayUnreadCount = visibleNotifications.filter((notification) => !notification.read).length
+  const displayUnreadCount = unreadCount
 
   const deleteNotification = (id: string) => {
+    markAsRead(id)
     setDismissedNotificationIds((current) => (current.includes(id) ? current : [...current, id]))
-  }
-
-  const markAsRead = (id: string) => {
-    setReadNotificationIds((current) => (current.includes(id) ? current : [...current, id]))
   }
 
   const typeCounts = useMemo(() => ({
@@ -106,19 +97,26 @@ export default function NotificationsPage() {
         <ScrollArea className="flex-1 h-0 min-h-0">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}
-            <header>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Notifications
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {loading
-                  ? 'Loading live notifications...'
-                  : error
-                    ? `Unable to refresh live notifications: ${error}`
-                    : displayUnreadCount > 0 
-                      ? `You have ${displayUnreadCount} unread notification${displayUnreadCount !== 1 ? 's' : ''}` 
-                  : 'All notifications read'}
-              </p>
+            <header className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  Notifications
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {loading
+                    ? 'Loading live notifications...'
+                    : error
+                      ? `Unable to refresh live notifications: ${error}`
+                      : displayUnreadCount > 0
+                        ? `You have ${displayUnreadCount} unread notification${displayUnreadCount !== 1 ? 's' : ''}`
+                    : 'All notifications read'}
+                </p>
+              </div>
+              {displayUnreadCount > 0 && (
+                <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                  Mark all as read
+                </Button>
+              )}
             </header>
 
             {/* Filter Buttons */}

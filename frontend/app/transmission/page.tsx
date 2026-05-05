@@ -39,7 +39,7 @@ import {
   Trophy,
   Download,
 } from "lucide-react"
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -61,7 +61,6 @@ function getStatusBadge(status: string) {
   )
 }
 
-const PIE_COLORS = ['#6366f1','#22c55e','#f59e0b','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316','#8b5cf6','#10b981','#0ea5e9','#a855f7','#84cc16','#06b6d4','#d946ef','#fb923c','#4ade80','#60a5fa','#c084fc','#34d399']
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -508,25 +507,62 @@ export default function TransmissionMonitorPage() {
                   </Table>
                 </ScrollArea>
 
-                {/* Pie Chart */}
-                <div className="w-56 shrink-0">
-                  <p className="text-xs text-muted-foreground mb-2 font-medium">Share of Output</p>
-                  <ResponsiveContainer width="100%" height={420}>
-                    <PieChart>
-                      <Pie
-                        data={ranking.data.slice(0, 20).map((r: any) => ({ name: r.ScanUser, value: r.Books }))}
-                        cx="50%" cy="50%"
-                        innerRadius={30} outerRadius={90}
-                        dataKey="value"
-                        labelLine={false}
-                      >
-                        {ranking.data.slice(0, 20).map((_: any, i: number) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(v: any) => [`${v} books`, '']} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                {/* Score Distribution Bar Chart */}
+                <div className="flex-1 flex flex-col">
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">Score Distribution</p>
+                  {(() => {
+                    const buckets = [
+                      { label: 'Below 50%', min: 0,  max: 50  },
+                      { label: '51–60%',    min: 51, max: 60  },
+                      { label: '61–70%',    min: 61, max: 70  },
+                      { label: '71–80%',    min: 71, max: 80  },
+                      { label: '81–90%',    min: 81, max: 90  },
+                      { label: '91–95%',    min: 91, max: 95  },
+                      { label: '96–99%',    min: 96, max: 99  },
+                      { label: '100%',      min: 100,max: 100 },
+                    ]
+                    const bucketColors = ['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#6366f1']
+                    const chartData = buckets.map((b, i) => ({
+                      label: b.label,
+                      users: ranking.data.filter((r: any) => r.ScoreNum >= b.min && r.ScoreNum <= b.max).length,
+                      color: bucketColors[i],
+                    }))
+                    return (
+                      <ResponsiveContainer width="100%" height={420}>
+                        <BarChart
+                          data={chartData}
+                          layout="vertical"
+                          margin={{ top: 0, right: 24, bottom: 0, left: 8 }}
+                        >
+                          <XAxis
+                            type="number"
+                            allowDecimals={false}
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={false}
+                            domain={[0, 'dataMax']}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="label"
+                            width={64}
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <Tooltip
+                            cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                            formatter={(v: any) => [`${v} user${v !== 1 ? 's' : ''}`, 'Count']}
+                          />
+                          <Bar dataKey="users" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                            {chartData.map((entry, i) => (
+                              <Cell key={i} fill={entry.color} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )
+                  })()}
                 </div>
               </div>
             </div>

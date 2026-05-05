@@ -202,7 +202,7 @@ export function DashboardSidebar() {
   const [user, setUser] = useState<SidebarUser>(fallbackUser)
   const router = useRouter()
   const pathname = usePathname()
-  const { notifications, unreadCount } = useLiveNotifications(5, 5000)
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useLiveNotifications(5, 5000)
 
   const isActive = (href: string) => pathname === href
   const isWarehouseSection = pathname === '/warehouse-inventory' || pathname === '/inventory'
@@ -468,8 +468,13 @@ export function DashboardSidebar() {
             side="top"
             sideOffset={10}
           >
-            <div className="px-4 py-3 border-b border-border">
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
               <p className="text-sm font-semibold text-foreground">Notifications</p>
+              {unreadCount > 0 && (
+                <button onClick={markAllAsRead} className="text-xs text-primary hover:underline">
+                  Mark all as read
+                </button>
+              )}
             </div>
             <div className="max-h-[400px] overflow-y-auto">
               {notifications.length === 0 ? (
@@ -494,13 +499,17 @@ export function DashboardSidebar() {
                     key={notification.id}
                     className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border/50 last:border-0"
                     type="button"
+                    onClick={() => markAsRead(notification.id)}
                   >
                     <div className="flex gap-3">
                       <div className={cn('h-8 w-8 rounded-full flex items-center justify-center shrink-0', typeStyles[notification.type])}>
                         {iconMap[notification.type]}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate">{notification.title}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-foreground truncate">{notification.title}</p>
+                          {!notification.read && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                        </div>
                         <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notification.message}</p>
                         <p className="text-[10px] text-muted-foreground mt-1">{notification.timestamp}</p>
                       </div>

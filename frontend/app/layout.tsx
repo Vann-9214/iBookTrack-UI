@@ -28,7 +28,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           {children}
           <Toaster />
-          <SonnerToaster position="top-right" richColors />
+          <SonnerToaster position="bottom-right" richColors />
         </ThemeProvider>
         <Analytics />
       </body>

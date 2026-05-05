@@ -9,140 +9,29 @@ const router = express.Router()
  */
 router.get('/finished-lots', async (req, res) => {
   try {
-    // Debug: log distinct final_status values
-    const { data: statusSample } = await supabaseAdmin
-      .from('imported_books_staging')
-      .select('final_status')
-      .not('final_status', 'is', null)
-      .limit(10)
-    console.log('[Reports] Sample final_status values:', statusSample?.map(r => r.final_status))
+    // Set longer timeout then run RPC
+    await supabaseAdmin.rpc('set_config', { setting: 'statement_timeout', value: '30000', is_local: true }).catch(() => {})
+    const { data: lotData, error: lotError } = await supabaseAdmin.rpc('get_lot_stats')
 
-    // Get total count (all data)
-    const { count: totalBooks, error: countError } = await supabaseAdmin
-      .from('imported_books_staging')
-      .select('*', { count: 'exact', head: true })
-    
-    if (countError) console.warn('Count query warning:', countError.message)
-
-    // Get transmitted count
-    const { count: transmitted, error: transmittedError } = await supabaseAdmin
-      .from('imported_books_staging')
-      .select('*', { count: 'exact', head: true })
-      .ilike('final_status', 'transmitted')
-    
-    if (transmittedError) console.warn('Transmitted count warning:', transmittedError.message)
-
-    // Get rejected count
-    const { count: rejected, error: rejectedError } = await supabaseAdmin
-      .from('imported_books_staging')
-      .select('*', { count: 'exact', head: true })
-      .not('final_status', 'is', null)
-      .not('final_status', 'ilike', 'transmitted')
-    
-    if (rejectedError) console.warn('Rejected count warning:', rejectedError.message)
-
-    const safeTotal = totalBooks || 0
-    const safeTransmitted = transmitted || 0
-    const safeRejected = rejected || 0
-    const booksToGo = safeTotal - safeTransmitted
-
-    // Get lot breakdown using RPC or raw SQL for aggregation
-    const { data: lotData, error: lotError } = await supabaseAdmin
-      .rpc('get_lot_stats')
-    
-    // Fallback: If RPC doesn't exist, fetch unique lots and count separately
-    let lotBreakdown = []
-    if (lotError || !lotData) {
-      // Get unique lot numbers
-      const { data: lots } = await supabaseAdmin
-        .from('imported_books_staging')
-        .select('lot_no')
-        .not('lot_no', 'is', null)
-      
-      const uniqueLots = [...new Set(lots?.map(l => l.lot_no) || [])]
-      
-      // Get stats for each lot (top 10 only for performance)
-      lotBreakdown = await Promise.all(
-        uniqueLots.slice(0, 10).map(async (lot) => {
-          const { count: total } = await supabaseAdmin
-            .from('imported_books_staging')
-            .select('*', { count: 'exact', head: true })
-            .eq('lot_no', lot)
-          
-          const { count: lotTransmitted } = await supabaseAdmin
-            .from('imported_books_staging')
-            .select('*', { count: 'exact', head: true })
-            .eq('lot_no', lot)
-            .ilike('final_status', 'transmitted')
-          
-          const { count: lotRejected } = await supabaseAdmin
-            .from('imported_books_staging')
-            .select('*', { count: 'exact', head: true })
-            .eq('lot_no', lot)
-            .not('final_status', 'is', null)
-            .not('final_status', 'ilike', 'transmitted')
-          
-          return {
-            lot,
-            total: total || 0,
-            transmitted: lotTransmitted || 0,
-            rejected: lotRejected || 0,
-            completionRate: total ? ((lotTransmitted / total) * 100).toFixed(2) : '0'
-          }
-        })
-      )
-    } else {
-      lotBreakdown = lotData
+    if (lotError) {
+      console.error('get_lot_stats RPC error:', lotError.message)
+      // Return empty data gracefully rather than crashing
+      return res.json({ overview: { totalBooks: 0, transmitted: 0, rejected: 0, booksToGo: 0, completionRate: '0' }, lotBreakdown: [], vendorBreakdown: [] })
     }
 
-    // Get vendor breakdown (top 10)
-    const { data: vendors } = await supabaseAdmin
-      .from('imported_books_staging')
-      .select('vendor_name')
-      .not('vendor_name', 'is', null)
-    
-    const uniqueVendors = [...new Set(vendors?.map(v => v.vendor_name) || [])].slice(0, 10)
-    
-    const vendorBreakdown = await Promise.all(
-      uniqueVendors.map(async (vendor) => {
-        const { count: total } = await supabaseAdmin
-          .from('imported_books_staging')
-          .select('*', { count: 'exact', head: true })
-          .eq('vendor_name', vendor)
-        
-        const { count: vendorTransmitted } = await supabaseAdmin
-          .from('imported_books_staging')
-          .select('*', { count: 'exact', head: true })
-          .eq('vendor_name', vendor)
-          .ilike('final_status', 'transmitted')
-        
-        const { count: vendorRejected } = await supabaseAdmin
-          .from('imported_books_staging')
-          .select('*', { count: 'exact', head: true })
-          .eq('vendor_name', vendor)
-          .not('final_status', 'is', null)
-          .not('final_status', 'ilike', 'transmitted')
-        
-        return {
-          vendor,
-          total: total || 0,
-          transmitted: vendorTransmitted || 0,
-          rejected: vendorRejected || 0,
-          completionRate: total ? ((vendorTransmitted / total) * 100).toFixed(2) : '0'
-        }
-      })
-    )
-
-    // Filter out invalid lots and sort in ascending order
-    const validLots = lotBreakdown.filter(lot => {
-      // Only include lots that match Lot-XX or Lot-XXM pattern
-      return /^Lot-\d{1,2}M?$/i.test(lot.lot)
-    }).sort((a, b) => {
-      // Extract number from lot name for proper sorting
+    const lotBreakdown = (lotData || []).filter(lot =>
+      /^Lot-\d{1,3}M?$/i.test(lot.lot)
+    ).sort((a, b) => {
       const numA = parseInt(a.lot.match(/\d+/)?.[0] || '0')
       const numB = parseInt(b.lot.match(/\d+/)?.[0] || '0')
-      return numA - numB // Ascending order
+      return numA - numB
     })
+
+    // Derive overview totals from RPC results — no separate COUNT queries needed
+    const safeTotal = lotBreakdown.reduce((s, l) => s + Number(l.total || 0), 0)
+    const safeTransmitted = lotBreakdown.reduce((s, l) => s + Number(l.transmitted || 0), 0)
+    const safeRejected = lotBreakdown.reduce((s, l) => s + Number(l.rejected || 0), 0)
+    const booksToGo = safeTotal - safeTransmitted
 
     res.json({
       overview: {
@@ -152,8 +41,8 @@ router.get('/finished-lots', async (req, res) => {
         booksToGo,
         completionRate: safeTotal ? ((safeTransmitted / safeTotal) * 100).toFixed(2) : '0'
       },
-      lotBreakdown: validLots,
-      vendorBreakdown: vendorBreakdown.sort((a, b) => b.total - a.total)
+      lotBreakdown,
+      vendorBreakdown: []
     })
   } catch (error) {
     console.error('Error fetching finished lots report:', error.message || error)
@@ -170,6 +59,7 @@ router.get('/chart-data', async (req, res) => {
     const { type } = req.query
     let chartData = []
 
+    await supabaseAdmin.rpc('set_config', { setting: 'statement_timeout', value: '30000', is_local: true }).catch(() => {})
     switch (type) {
       case 'lot-comparison':
         // Get top 10 lots with transmitted vs rejected
@@ -303,11 +193,15 @@ router.get('/chart-data', async (req, res) => {
  */
 router.get('/indic-books', async (req, res) => {
   try {
+    await supabaseAdmin.rpc('set_config', { setting: 'statement_timeout', value: '30000', is_local: true }).catch(() => {})
     // Get overall INDIC statistics
     const { data: indicStats, error: statsError } = await supabaseAdmin
       .rpc('get_indic_stats')
     
-    if (statsError) throw statsError
+    if (statsError) {
+      console.error('Error fetching INDIC stats:', statsError.message)
+      return res.json({ overview: { totalBooks: 0, transmitted: 0, rejected: 0, booksToGo: 0, completionRate: '0' }, lotBreakdown: [] })
+    }
 
     const stats = indicStats?.[0] || {
       total_indic: 0,

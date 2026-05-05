@@ -69,6 +69,8 @@ export default function InventoryPage() {
   const [boxScanInput, setBoxScanInput] = useState('')
   const [boxScanResult, setBoxScanResult] = useState<Box | null>(null)
   const [boxScanNotFound, setBoxScanNotFound] = useState(false)
+  const [scannedBoxModal, setScannedBoxModal] = useState<{ box: Box; books: BookInBox[] } | null>(null)
+  const [loadingScannedBox, setLoadingScannedBox] = useState(false)
   const [printBox, setPrintBox] = useState<Box | null>(null)
   const [printBooks, setPrintBooks] = useState<BookInBox[]>([])
   const [loadingPrint, setLoadingPrint] = useState<string | null>(null)
@@ -150,6 +152,7 @@ export default function InventoryPage() {
 
     setBoxScanNotFound(false)
     setBoxScanResult(null)
+    setScannedBoxModal(null)
 
     // Find box by box_number (exact or partial match)
     const match = boxes.find(b => b.box_number?.toLowerCase() === query.toLowerCase())
@@ -158,11 +161,24 @@ export default function InventoryPage() {
     if (match) {
       setBoxScanResult(match)
       setExpandedBox(match.id)
-      fetchBooksInBox(match.id)
-      setBoxSearch(match.box_number) // sync search filter too
+      setBoxSearch(match.box_number)
+      // Fetch books and show modal
+      setLoadingScannedBox(true)
+      try {
+        const res = await authFetch(`${API_URL}/api/boxes/${match.id}`)
+        const data = await res.json()
+        const books = data.box?.books || []
+        setBoxBooks(prev => ({ ...prev, [match.id]: books }))
+        setScannedBoxModal({ box: match, books })
+      } catch {
+        setScannedBoxModal({ box: match, books: [] })
+      } finally {
+        setLoadingScannedBox(false)
+      }
     } else {
       setBoxScanNotFound(true)
     }
+    setBoxScanInput('')
   }
 
   const toggleBox = (boxId: string) => {
@@ -552,6 +568,54 @@ export default function InventoryPage() {
 
         </div>
       </main>
+      {/* Scanned Box Contents Modal */}
+      {(scannedBoxModal || loadingScannedBox) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setScannedBoxModal(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-base font-semibold text-foreground font-mono">{scannedBoxModal?.box.box_number}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {scannedBoxModal?.box.lot?.lot_number} · <span className="capitalize">{scannedBoxModal?.box.current_stage}</span> · {scannedBoxModal?.box.total_books} books
+                </p>
+              </div>
+              <button onClick={() => setScannedBoxModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+            </div>
+            {loadingScannedBox ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Loading contents...</p>
+            ) : scannedBoxModal && scannedBoxModal.books.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No scan records found for this box.</p>
+            ) : (
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-card">
+                    <tr className="text-muted-foreground border-b border-border">
+                      <th className="pb-2 text-left font-medium w-6">#</th>
+                      <th className="pb-2 text-left font-medium pr-3">ISBN</th>
+                      <th className="pb-2 text-left font-medium pr-3">Title</th>
+                      <th className="pb-2 text-left font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scannedBoxModal?.books.map((book, i) => (
+                      <tr key={book.id} className="border-b border-border/40 last:border-0">
+                        <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
+                        <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
+                        <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>
+                        <td className="py-1.5">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${
+                            book.scan_status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>{book.scan_status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
     </>
   )

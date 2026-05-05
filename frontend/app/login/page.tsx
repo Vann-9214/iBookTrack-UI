@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { toast } from 'sonner'
 import '../landing-page/landing_page.css'
 import { HeaderSection } from '../landing-page/components'
 import { authRequest, storeTokenData } from '@/lib/auth-api'
@@ -67,6 +68,7 @@ export default function LoginPage() {
           name: data.user?.name || getDisplayNameFromEmail(data.user?.email || email),
         })
       )
+      toast.success('Login successful!')
       setLeaving(true)
       sessionStorage.setItem('from_login', '1')
       setTimeout(() => router.push('/Dashboard'), 300)

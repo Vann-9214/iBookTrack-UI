@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Book, Package } from "lucide-react"
+import { Search, Book, Package, Barcode } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
+import { authFetch } from "@/lib/auth-api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -36,6 +37,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [dashboardStats, setDashboardStats] = useState<any>(null)
   const { toast } = useToast()
+  const [boxScanInput, setBoxScanInput] = useState('')
+  const [boxScanModal, setBoxScanModal] = useState<{ box: any; books: any[] } | null>(null)
+  const [loadingBoxScan, setLoadingBoxScan] = useState(false)
 
   // Fetch dashboard stats on mount
   useEffect(() => {
@@ -177,6 +181,28 @@ export default function DashboardPage() {
     }
   }
 
+  const handleBoxScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return
+    const q = boxScanInput.trim()
+    if (!q) return
+    setBoxScanModal(null)
+    setLoadingBoxScan(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/by-number/${encodeURIComponent(q)}`)
+      const data = await res.json()
+      if (data.box) {
+        setBoxScanModal({ box: data.box, books: data.box.books || [] })
+      } else {
+        toast({ title: 'Not Found', description: `Box "${q}" not found`, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to look up box', variant: 'destructive' })
+    } finally {
+      setLoadingBoxScan(false)
+      setBoxScanInput('')
+    }
+  }
+
   const displayText = displayRange || (currentLot ? `Lot ${currentLot}` : "")
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -196,17 +222,29 @@ export default function DashboardPage() {
                   Real-time overview of the 8-step pipeline, transmissions, and warehouse activity.
                 </p>
               </div>
-              <Dialog open={searchOpen} onOpenChange={setSearchOpen} modal={false}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="default" 
-                    size="default" 
-                    className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
-                  >
-                    <Search className="h-4 w-4" />
-                    Search ISBN / Lot
-                  </Button>
-                </DialogTrigger>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={boxScanInput}
+                    onChange={e => setBoxScanInput(e.target.value)}
+                    onKeyDown={handleBoxScan}
+                    placeholder="Scan box barcode..."
+                    className="pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-52"
+                  />
+                </div>
+                <Dialog open={searchOpen} onOpenChange={setSearchOpen} modal={false}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="default" 
+                      size="default" 
+                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+                    >
+                      <Search className="h-4 w-4" />
+                      Search ISBN / Lot
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
                   <DialogHeader>
                     <DialogTitle>Search Dashboard</DialogTitle>
@@ -286,7 +324,8 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 </DialogContent>
-              </Dialog>
+                </Dialog>
+              </div>
             </header>
 
             {/* Top Stats Bar */}
@@ -405,6 +444,55 @@ export default function DashboardPage() {
           </div>
         </ScrollArea>
       </DashboardMain>
+
+      {/* Box Scan Modal */}
+      {(boxScanModal || loadingBoxScan) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBoxScanModal(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-base font-semibold text-foreground font-mono">{boxScanModal?.box.box_number}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books} books
+                </p>
+              </div>
+              <button onClick={() => setBoxScanModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+            </div>
+            {loadingBoxScan ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">Loading contents...</p>
+            ) : boxScanModal && boxScanModal.books.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-8 text-center">No scan records found for this box.</p>
+            ) : (
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-card">
+                    <tr className="text-muted-foreground border-b border-border">
+                      <th className="pb-2 text-left font-medium w-6">#</th>
+                      <th className="pb-2 text-left font-medium pr-3">ISBN</th>
+                      <th className="pb-2 text-left font-medium pr-3">Title</th>
+                      <th className="pb-2 text-left font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {boxScanModal?.books.map((book: any, i: number) => (
+                      <tr key={book.id} className="border-b border-border/40 last:border-0">
+                        <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
+                        <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
+                        <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>
+                        <td className="py-1.5">
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${
+                            book.scan_status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>{book.scan_status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

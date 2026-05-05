@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { toast } from 'sonner'
 import '../landing-page/landing_page.css'
 import { HeaderSection } from '../landing-page/components'
 import { authRequest } from '@/lib/auth-api'
@@ -55,7 +56,8 @@ export default function RegisterPage() {
         payload: { name, email, password },
       })
       console.log('Registration response:', data)
-      router.push('/login')
+      toast.success('Registered successfully! Redirecting to login...')
+      setTimeout(() => router.push('/login'), 1500)
     } catch (err: unknown) {
       console.error('Registration error:', err)
       setError(err instanceof Error ? err.message : 'Registration failed.')

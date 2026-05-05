@@ -114,12 +114,12 @@ router.get('/stats', async (req, res) => {
     }
     const { count: transmittedBooks } = await transmittedQuery
 
-    // Get unaccounted books count
-    let unaccountedQuery = db
-      .from('unaccounted_books')
+    // Get QC flagged books count from qc_flags (always use admin to bypass RLS)
+    const adminDb = supabaseAdmin || db
+    const { count: unaccountedBooks, error: flagCountError } = await adminDb
+      .from('qc_flags')
       .select('id', { count: 'exact', head: true })
-      .eq('resolved', false)
-    const { count: unaccountedBooks } = await unaccountedQuery
+    if (flagCountError) console.warn('qc_flags count error:', flagCountError.message)
 
     // Get active lots count
     let activeLots = 0
@@ -146,6 +146,22 @@ router.get('/stats', async (req, res) => {
     })
   } catch (error) {
     console.error('Get dashboard stats error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get QC flagged books list
+router.get('/qc-flags', requireAuth, async (req, res) => {
+  try {
+    const db = supabaseAdmin || supabase
+    const { data, error } = await db
+      .from('qc_flags')
+      .select('scan_id, isbn, title, box_id, issue, remarks, flagged_by_name, flagged_at')
+      .order('flagged_at', { ascending: false })
+    if (error) throw error
+    res.json({ success: true, flags: data || [] })
+  } catch (error) {
+    console.error('Get QC flags error:', error)
     res.status(500).json({ error: error.message })
   }
 })
