@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useLiveNotifications } from '@/hooks/use-live-notifications'
 import Image from 'next/image'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +39,7 @@ import {
 type SidebarUser = {
   name: string
   email: string
+  profilePicture?: string | null
 }
 
 type Notification = {
@@ -134,6 +137,9 @@ function parseStoredUser(rawUser: string | null): SidebarUser | null {
     const name = typeof parsed.name === 'string' && parsed.name.trim()
       ? parsed.name
       : deriveNameFromEmail(email)
+    const profilePicture = typeof parsed.profilePicture === 'string' && parsed.profilePicture.trim()
+      ? parsed.profilePicture
+      : null
 
     if (!name && !email) {
       return null
@@ -142,6 +148,7 @@ function parseStoredUser(rawUser: string | null): SidebarUser | null {
     return {
       name: name || fallbackUser.name,
       email: email || fallbackUser.email,
+      profilePicture,
     }
   } catch {
     return null
@@ -178,10 +185,15 @@ function decodeTokenUser(token: string | null): SidebarUser | null {
     return {
       name: name || fallbackUser.name,
       email: email || fallbackUser.email,
+      profilePicture: null,
     }
   } catch {
     return null
   }
+}
+
+function getUserInitials(user: SidebarUser) {
+  return getInitials(user.name, user.email)
 }
 
 export function DashboardSidebar() {
@@ -190,16 +202,32 @@ export function DashboardSidebar() {
   const [user, setUser] = useState<SidebarUser>(fallbackUser)
   const router = useRouter()
   const pathname = usePathname()
+  const { notifications, unreadCount } = useLiveNotifications(5, 5000)
 
   const isActive = (href: string) => pathname === href
   const isWarehouseSection = pathname === '/warehouse-inventory' || pathname === '/inventory'
-  const initials = getInitials(user.name, user.email)
+  const initials = getUserInitials(user)
 
   useEffect(() => {
-    const storedUser = parseStoredUser(window.localStorage.getItem('ibooktrack_user'))
-    const tokenUser = decodeTokenUser(window.localStorage.getItem('access_token'))
+    const syncUser = () => {
+      const storedUser = parseStoredUser(window.localStorage.getItem('ibooktrack_user'))
+      const tokenUser = decodeTokenUser(window.localStorage.getItem('access_token'))
+      const profilePicture = window.localStorage.getItem('ibooktrack_profile_picture')
 
-    setUser(storedUser ?? tokenUser ?? fallbackUser)
+      setUser({
+        ...(storedUser ?? tokenUser ?? fallbackUser),
+        profilePicture: storedUser?.profilePicture ?? profilePicture,
+      })
+    }
+
+    syncUser()
+    window.addEventListener('storage', syncUser)
+    window.addEventListener('ibooktrack-user-updated', syncUser as EventListener)
+
+    return () => {
+      window.removeEventListener('storage', syncUser)
+      window.removeEventListener('ibooktrack-user-updated', syncUser as EventListener)
+    }
   }, [])
 
   const handleLogout = () => {
@@ -424,7 +452,11 @@ export function DashboardSidebar() {
             >
               <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </span>
               {!collapsed && <span>Notifications</span>}
             </button>
@@ -440,21 +472,32 @@ export function DashboardSidebar() {
               <p className="text-sm font-semibold text-foreground">Notifications</p>
             </div>
             <div className="max-h-[400px] overflow-y-auto">
-              {sampleNotifications.map((notification) => {
+              {notifications.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+                  Live notifications will appear here as activity is recorded.
+                </div>
+              ) : notifications.map((notification) => {
                 const typeStyles = {
                   success: 'bg-success/10 text-success',
                   warning: 'bg-warning/10 text-warning',
                   error: 'bg-destructive/10 text-destructive',
                   info: 'bg-info/10 text-blue-500',
                 }
+                const iconMap = {
+                  success: <CheckCircle2 className="h-4 w-4" />,
+                  warning: <AlertTriangle className="h-4 w-4" />,
+                  error: <XCircle className="h-4 w-4" />,
+                  info: <AlertCircle className="h-4 w-4" />,
+                }
                 return (
                   <button
                     key={notification.id}
                     className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border/50 last:border-0"
+                    type="button"
                   >
                     <div className="flex gap-3">
                       <div className={cn('h-8 w-8 rounded-full flex items-center justify-center shrink-0', typeStyles[notification.type])}>
-                        {notification.icon}
+                        {iconMap[notification.type]}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-foreground truncate">{notification.title}</p>
@@ -487,9 +530,12 @@ export function DashboardSidebar() {
               )}
               title="Account"
             >
-              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-muted text-xl font-semibold text-foreground">
-                {initials}
-              </span>
+              <Avatar className="h-14 w-14 shrink-0 border border-border">
+                <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                <AvatarFallback className="bg-muted text-xl font-semibold text-foreground">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
 
               {!collapsed && (
                 <span className="min-w-0 flex-1">

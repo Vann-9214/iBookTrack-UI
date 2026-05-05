@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import {
   CheckCircle2,
@@ -20,93 +18,16 @@ import {
   Filter,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-type NotificationType = 'success' | 'warning' | 'error' | 'info'
+import { useLiveNotifications, type NotificationType } from "@/hooks/use-live-notifications"
 
 interface Notification {
-  id: number
+  id: string
   type: NotificationType
   title: string
   message: string
   timestamp: string
   read: boolean
-  icon: React.ReactNode
 }
-
-const allNotifications: Notification[] = [
-  {
-    id: 1,
-    type: 'success',
-    title: 'Box Transmitted Successfully',
-    message: 'LOT-2024-0891 | BOX-001 (150 books) has been successfully transmitted to the central system.',
-    timestamp: '2 minutes ago',
-    read: false,
-    icon: <CheckCircle2 className="h-5 w-5" />,
-  },
-  {
-    id: 2,
-    type: 'warning',
-    title: 'Incomplete Transmission',
-    message: 'LOT-2024-0889 | BOX-003: Only 120 out of 180 books have been transmitted. Please check for discrepancies.',
-    timestamp: '15 minutes ago',
-    read: false,
-    icon: <AlertTriangle className="h-5 w-5" />,
-  },
-  {
-    id: 3,
-    type: 'error',
-    title: 'Unaccounted Books Detected',
-    message: 'ISBN 978-0-13-468602-8 is missing at the Intake station. Reported by Paolo Garcia on Mar 16, 2026.',
-    timestamp: '28 minutes ago',
-    read: true,
-    icon: <XCircle className="h-5 w-5" />,
-  },
-  {
-    id: 4,
-    type: 'info',
-    title: 'Station Status Update',
-    message: 'Scan Station is now processing LOT-2024-0890. Estimated completion time: 30 minutes.',
-    timestamp: '45 minutes ago',
-    read: true,
-    icon: <AlertCircle className="h-5 w-5" />,
-  },
-  {
-    id: 5,
-    type: 'warning',
-    title: 'Bottleneck Detected',
-    message: 'Validation station has 5+ boxes in queue. Consider increasing staff or resources at this station.',
-    timestamp: '1 hour ago',
-    read: true,
-    icon: <AlertTriangle className="h-5 w-5" />,
-  },
-  {
-    id: 6,
-    type: 'success',
-    title: 'Lot Received Successfully',
-    message: 'LOT-2024-0892 has been received at the Warehouse with 200 boxes. All items accounted for.',
-    timestamp: '2 hours ago',
-    read: true,
-    icon: <CheckCircle2 className="h-5 w-5" />,
-  },
-  {
-    id: 7,
-    type: 'error',
-    title: 'Missing Items Report',
-    message: 'ISBN 978-0-13-468603-5 missing at QA Review station. Reported by Lisa Tan on Mar 16, 2026.',
-    timestamp: '3 hours ago',
-    read: true,
-    icon: <XCircle className="h-5 w-5" />,
-  },
-  {
-    id: 8,
-    type: 'info',
-    title: 'Daily Report Generated',
-    message: 'Your daily operational report has been generated and is ready for download.',
-    timestamp: '4 hours ago',
-    read: true,
-    icon: <AlertCircle className="h-5 w-5" />,
-  },
-]
 
 const typeConfig = {
   success: {
@@ -114,46 +35,68 @@ const typeConfig = {
     border: 'border-success/20',
     text: 'text-success',
     badge: 'bg-success/20 text-success',
+    icon: CheckCircle2,
   },
   warning: {
     bg: 'bg-warning/10',
     border: 'border-warning/20',
     text: 'text-warning',
     badge: 'bg-warning/20 text-warning',
+    icon: AlertTriangle,
   },
   error: {
     bg: 'bg-destructive/10',
     border: 'border-destructive/20',
     text: 'text-destructive',
     badge: 'bg-destructive/20 text-destructive',
+    icon: XCircle,
   },
   info: {
     bg: 'bg-blue-500/10',
     border: 'border-blue-500/20',
     text: 'text-blue-500',
     badge: 'bg-blue-500/20 text-blue-500',
+    icon: AlertCircle,
   },
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(allNotifications)
+  const { notifications: liveNotifications, loading, error } = useLiveNotifications(24, 5000)
+  const [dismissedNotificationIds, setDismissedNotificationIds] = useState<string[]>([])
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([])
   const [filterType, setFilterType] = useState<NotificationType | 'all'>('all')
 
-  const filteredNotifications = filterType === 'all' 
-    ? notifications 
-    : notifications.filter(n => n.type === filterType)
+  const visibleNotifications = useMemo(() => {
+    return liveNotifications
+      .filter((notification) => !dismissedNotificationIds.includes(notification.id))
+      .map((notification) => ({
+        ...notification,
+        read: readNotificationIds.includes(notification.id) ? true : notification.read,
+      }))
+  }, [liveNotifications, dismissedNotificationIds, readNotificationIds])
 
-  const unreadCount = notifications.filter(n => !n.read).length
+  const filteredNotifications = useMemo(() => {
+    return filterType === 'all'
+      ? visibleNotifications
+      : visibleNotifications.filter((notification) => notification.type === filterType)
+  }, [filterType, visibleNotifications])
 
-  const deleteNotification = (id: number) => {
-    setNotifications(notifications.filter(n => n.id !== id))
+  const displayUnreadCount = visibleNotifications.filter((notification) => !notification.read).length
+
+  const deleteNotification = (id: string) => {
+    setDismissedNotificationIds((current) => (current.includes(id) ? current : [...current, id]))
   }
 
-  const markAsRead = (id: number) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ))
+  const markAsRead = (id: string) => {
+    setReadNotificationIds((current) => (current.includes(id) ? current : [...current, id]))
   }
+
+  const typeCounts = useMemo(() => ({
+    success: visibleNotifications.filter((notification) => notification.type === 'success').length,
+    warning: visibleNotifications.filter((notification) => notification.type === 'warning').length,
+    error: visibleNotifications.filter((notification) => notification.type === 'error').length,
+    info: visibleNotifications.filter((notification) => notification.type === 'info').length,
+  }), [visibleNotifications])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -168,8 +111,12 @@ export default function NotificationsPage() {
                 Notifications
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                {unreadCount > 0 
-                  ? `You have ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}` 
+                {loading
+                  ? 'Loading live notifications...'
+                  : error
+                    ? `Unable to refresh live notifications: ${error}`
+                    : displayUnreadCount > 0 
+                      ? `You have ${displayUnreadCount} unread notification${displayUnreadCount !== 1 ? 's' : ''}` 
                   : 'All notifications read'}
               </p>
             </header>
@@ -183,7 +130,7 @@ export default function NotificationsPage() {
                 className="gap-2"
               >
                 <Filter className="h-4 w-4" />
-                All ({notifications.length})
+                All ({visibleNotifications.length})
               </Button>
               <Button
                 variant={filterType === 'success' ? 'default' : 'outline'}
@@ -191,7 +138,7 @@ export default function NotificationsPage() {
                 onClick={() => setFilterType('success')}
                 className="gap-2"
               >
-                Success ({notifications.filter(n => n.type === 'success').length})
+                Success ({typeCounts.success})
               </Button>
               <Button
                 variant={filterType === 'warning' ? 'default' : 'outline'}
@@ -199,7 +146,7 @@ export default function NotificationsPage() {
                 onClick={() => setFilterType('warning')}
                 className="gap-2"
               >
-                Warning ({notifications.filter(n => n.type === 'warning').length})
+                Warning ({typeCounts.warning})
               </Button>
               <Button
                 variant={filterType === 'error' ? 'default' : 'outline'}
@@ -207,7 +154,7 @@ export default function NotificationsPage() {
                 onClick={() => setFilterType('error')}
                 className="gap-2"
               >
-                Error ({notifications.filter(n => n.type === 'error').length})
+                Error ({typeCounts.error})
               </Button>
               <Button
                 variant={filterType === 'info' ? 'default' : 'outline'}
@@ -215,7 +162,7 @@ export default function NotificationsPage() {
                 onClick={() => setFilterType('info')}
                 className="gap-2"
               >
-                Info ({notifications.filter(n => n.type === 'info').length})
+                Info ({typeCounts.info})
               </Button>
             </div>
 
@@ -226,13 +173,14 @@ export default function NotificationsPage() {
                   <CardContent className="flex flex-col items-center justify-center py-12">
                     <AlertCircle className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
                     <p className="text-muted-foreground text-center">
-                      No notifications found
+                      {loading ? 'Loading live notifications...' : 'No notifications found'}
                     </p>
                   </CardContent>
                 </Card>
               ) : (
                 filteredNotifications.map((notification) => {
                   const config = typeConfig[notification.type]
+                  const Icon = config.icon
                   return (
                     <Card
                       key={notification.id}
@@ -250,7 +198,7 @@ export default function NotificationsPage() {
                           config.bg,
                           config.text
                         )}>
-                          {notification.icon}
+                          <Icon className="h-5 w-5" />
                         </div>
 
                         {/* Content */}

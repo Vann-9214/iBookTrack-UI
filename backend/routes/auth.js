@@ -1,6 +1,7 @@
 import express from 'express'
 import rateLimit from 'express-rate-limit'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
+import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
@@ -28,6 +29,22 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function sanitize(str) {
   return typeof str === 'string' ? str.trim() : ''
+}
+
+async function fetchProfileByUserId(userId) {
+  if (!supabaseAdmin || !userId) return null
+
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('name, email')
+    .eq('id', userId)
+    .single()
+
+  if (error || !data) {
+    return null
+  }
+
+  return data
 }
 
 // ── POST /api/auth/register ────────────────────────────────
@@ -64,13 +81,15 @@ router.post('/register', registerLimiter, async (req, res) => {
     return res.status(400).json({ error: error.message })
   }
 
+  const profile = await fetchProfileByUserId(data.user?.id)
+
   // Don't leak internal user object — return only safe fields
   return res.status(201).json({
     message: 'Registration successful. Check your email to confirm your account.',
     user: {
       id:    data.user?.id,
-      email: data.user?.email,
-      name:  data.user?.user_metadata?.name,
+      email: profile?.email || data.user?.email,
+      name:  profile?.name || data.user?.user_metadata?.name,
     },
   })
 })
@@ -93,12 +112,14 @@ router.post('/login', loginLimiter, async (req, res) => {
   // Use same generic error for wrong email OR wrong password (prevents user enumeration)
   if (error) return res.status(401).json({ error: 'Invalid credentials.' })
 
+  const profile = await fetchProfileByUserId(data.user?.id)
+
   return res.json({
     message: 'Login successful.',
     user: {
       id:    data.user?.id,
-      email: data.user?.email,
-      name:  data.user?.user_metadata?.name,
+      email: profile?.email || data.user?.email,
+      name:  profile?.name || data.user?.user_metadata?.name,
     },
     access_token:  data.session?.access_token,
     refresh_token: data.session?.refresh_token,
@@ -157,6 +178,113 @@ router.post('/refresh', async (req, res) => {
   } catch (error) {
     console.error('Token refresh error:', error)
     return res.status(401).json({ error: 'Failed to refresh token.' })
+  }
+})
+
+// ── POST /api/auth/password ───────────────────────────────
+router.post('/password', requireAuth, async (req, res) => {
+  const currentPassword = sanitize(req.body.currentPassword)
+  const newPassword = sanitize(req.body.newPassword)
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current password and new password are required.' })
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters.' })
+  }
+
+  try {
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: req.user.email,
+      password: currentPassword,
+    })
+
+    if (verifyError) {
+      return res.status(400).json({ error: 'Current password is incorrect.' })
+    }
+
+    if (!supabaseAdmin) {
+      return res.status(500).json({ error: 'Password update is unavailable.' })
+    }
+
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
+      password: newPassword,
+    })
+
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message })
+    }
+
+    return res.json({ message: 'Password updated successfully.' })
+  } catch (error) {
+    console.error('Password update error:', error)
+    return res.status(500).json({ error: error.message })
+  }
+})
+
+// ── PATCH /api/auth/profile ────────────────────────────────
+router.patch('/profile', requireAuth, async (req, res) => {
+  const name = sanitize(req.body.name)
+  const email = sanitize(req.body.email).toLowerCase()
+
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and email are required.' })
+  }
+
+  if (!EMAIL_REGEX.test(email)) {
+    return res.status(400).json({ error: 'Invalid email address.' })
+  }
+
+  if (!supabaseAdmin) {
+    return res.status(500).json({ error: 'Profile update is unavailable.' })
+  }
+
+  try {
+    const previousEmail = req.user.email
+    const previousName = req.user.user_metadata?.name || req.user.user_metadata?.full_name || ''
+
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
+      email,
+      user_metadata: {
+        name,
+        full_name: name,
+      },
+    })
+
+    if (authError) {
+      return res.status(500).json({ error: authError.message })
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .update({ name, email })
+      .eq('id', req.user.id)
+      .select('name, email')
+      .single()
+
+    if (error) {
+      await supabaseAdmin.auth.admin.updateUserById(req.user.id, {
+        email: previousEmail,
+        user_metadata: {
+          name: previousName,
+          full_name: previousName,
+        },
+      })
+      return res.status(500).json({ error: error.message })
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: 'Profile not found.' })
+    }
+
+    return res.json({
+      message: 'Profile updated successfully.',
+      user: data,
+    })
+  } catch (error) {
+    console.error('Profile update error:', error)
+    return res.status(500).json({ error: error.message })
   }
 })
 
