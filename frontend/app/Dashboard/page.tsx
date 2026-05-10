@@ -480,9 +480,9 @@ export default function DashboardPage() {
                         <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
                         <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>
                         <td className="py-1.5">
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${
-                            book.scan_status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}>{book.scan_status}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                          }`}>{book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}</span>
                         </td>
                       </tr>
                     ))}

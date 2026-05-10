@@ -40,14 +40,13 @@ interface ActivePipelineProps {
 
 export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) {
   const pipelineSteps = [
-    { label: "Warehouse",  count: stats?.pipelineStages?.warehouse  || 0, unit: stats?.pipelineStages?.warehouse  === 1 ? "Box" : "Boxes" },
-    { label: "Inventory",  count: stats?.pipelineStages?.inventory  || 0, unit: stats?.pipelineStages?.inventory  === 1 ? "Box" : "Boxes" },
-    { label: "Cut",        count: stats?.pipelineStages?.cut        || 0, unit: stats?.pipelineStages?.cut        === 1 ? "Box" : "Boxes" },
-    { label: "QC",         count: stats?.pipelineStages?.qc         || 0, unit: stats?.pipelineStages?.qc         === 1 ? "Box" : "Boxes" },
-    { label: "Scan",       count: stats?.pipelineStages?.scan       || 0, unit: stats?.pipelineStages?.scan       === 1 ? "Box" : "Boxes" },
-    { label: "QA",         count: stats?.pipelineStages?.qa         || 0, unit: stats?.pipelineStages?.qa         === 1 ? "Box" : "Boxes" },
-    { label: "Transmit",   count: stats?.pipelineStages?.transmit   || 0, unit: stats?.pipelineStages?.transmit   === 1 ? "Box" : "Boxes" },
-    { label: "Storage",    count: stats?.pipelineStages?.storage    || 0, unit: stats?.pipelineStages?.storage    === 1 ? "Box" : "Boxes" },
+    { label: "Warehouse",    count: stats?.pipelineStages?.warehouse    || 0, unit: stats?.pipelineStages?.warehouse    === 1 ? "Box" : "Boxes" },
+    { label: "Inventory",    count: stats?.pipelineStages?.inventory    || 0, unit: stats?.pipelineStages?.inventory    === 1 ? "Box" : "Boxes" },
+    { label: "Cut",          count: stats?.pipelineStages?.cut          || 0, unit: stats?.pipelineStages?.cut          === 1 ? "Box" : "Boxes" },
+    { label: "Endorsement",  count: stats?.pipelineStages?.endorsement  || 0, unit: stats?.pipelineStages?.endorsement  === 1 ? "Box" : "Boxes" },
+    { label: "Scan",         count: stats?.pipelineStages?.scan         || 0, unit: stats?.pipelineStages?.scan         === 1 ? "Box" : "Boxes" },
+    { label: "Transmit",     count: stats?.pipelineStages?.transmit     || 0, unit: stats?.pipelineStages?.transmit     === 1 ? "Box" : "Boxes" },
+    { label: "Storage",      count: stats?.pipelineStages?.storage      || 0, unit: stats?.pipelineStages?.storage      === 1 ? "Box" : "Boxes" },
   ]
   return (
     <Card className="border-border bg-card">

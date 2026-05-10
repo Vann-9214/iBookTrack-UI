@@ -16,18 +16,17 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'qc', 'scan', 'qa', 'transmit', 'storage'] as const
+const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'] as const
 type Stage = typeof STAGE_ORDER[number]
 
 const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color: string }> = {
-  warehouse:  { label: 'Warehouse',  icon: Package,     color: 'bg-gray-100 text-gray-700 border-gray-300' },
-  inventory:  { label: 'Inventory',  icon: Warehouse,   color: 'bg-slate-100 text-slate-700 border-slate-300' },
-  cut:        { label: 'Cut',        icon: Scissors,    color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  qc:         { label: 'QC',         icon: CheckCircle, color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-  scan:       { label: 'Scan',       icon: Camera,      color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  qa:         { label: 'QA',         icon: Shield,      color: 'bg-purple-100 text-purple-700 border-purple-300' },
-  transmit:   { label: 'Transmit',   icon: Radio,       color: 'bg-green-100 text-green-700 border-green-300' },
-  storage:    { label: 'Storage',    icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+  warehouse:   { label: 'Warehouse',   icon: Package,     color: 'bg-gray-100 text-gray-700 border-gray-300' },
+  inventory:   { label: 'Inventory',   icon: Warehouse,   color: 'bg-slate-100 text-slate-700 border-slate-300' },
+  cut:         { label: 'Cut',         icon: Scissors,    color: 'bg-orange-100 text-orange-700 border-orange-300' },
+  endorsement: { label: 'Endorsement', icon: CheckCircle, color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+  scan:        { label: 'Scan',        icon: Camera,      color: 'bg-blue-100 text-blue-700 border-blue-300' },
+  transmit:    { label: 'Transmit',    icon: Radio,       color: 'bg-green-100 text-green-700 border-green-300' },
+  storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
 }
 
 interface BoxItem {
@@ -198,7 +197,7 @@ export default function StationCheckpointsPage() {
 
   const STAGE_LABELS: Record<string, string> = {
     warehouse: 'Warehouse', inventory: 'Inventory', cut: 'Cut',
-    qc: 'QC', scan: 'Scan', qa: 'QA', transmit: 'Transmit', storage: 'Storage'
+    endorsement: 'Endorsement', scan: 'Scan', transmit: 'Transmit', storage: 'Storage'
   }
 
   return (
@@ -243,8 +242,8 @@ export default function StationCheckpointsPage() {
                               <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
                               <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || '—'}</td>
                               <td className="py-1.5">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium capitalize ${book.scan_status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {book.scan_status}
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                  {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
                                 </span>
                               </td>
                             </tr>

@@ -91,9 +91,8 @@ router.get('/stats/pipeline', requireAuth, async (req, res) => {
       warehouse: 0,
       inventory: 0,
       cut: 0,
-      qc: 0,
+      endorsement: 0,
       scan: 0,
-      qa: 0,
       transmit: 0,
       storage: 0
     }
@@ -301,7 +300,7 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
     const { id } = req.params
     const { notes } = req.body
 
-    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'qc', 'scan', 'qa', 'transmit', 'storage']
+    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage']
 
     const db = supabaseAdmin || supabase
 
@@ -355,7 +354,7 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
     const { to_stage } = req.body
     const db = supabaseAdmin || supabase
 
-    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'qc', 'scan', 'qa', 'transmit', 'storage']
+    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage']
 
     if (!to_stage || !STAGE_ORDER.includes(to_stage)) {
       return res.status(400).json({ error: 'Invalid target stage' })

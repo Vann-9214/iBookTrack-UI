@@ -389,6 +389,8 @@ export default function TransmissionMonitorPage() {
                       <TableHeader>
                         <TableRow className="border-border hover:bg-transparent">
                           <TableHead className="text-xs text-muted-foreground font-medium">Machine Name</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">Machine ID</TableHead>
+                          <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
                           <TableHead className="text-xs text-muted-foreground font-medium w-48">Activity</TableHead>
                           <TableHead className="text-xs text-muted-foreground font-medium text-right">Total Scans</TableHead>
                         </TableRow>
@@ -396,19 +398,21 @@ export default function TransmissionMonitorPage() {
                       <TableBody>
                         {loading ? (
                           <TableRow>
-                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                               <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                             </TableCell>
                           </TableRow>
                         ) : byMachine.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No machine data for today</TableCell>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No machine data for today</TableCell>
                           </TableRow>
                         ) : byMachine.map((m: any, i: number) => {
                           const maxScans = byMachine[0]?.TotalScans || 1
                           return (
                             <TableRow key={i} className="border-border">
                               <TableCell className="font-mono text-xs text-card-foreground">{m.MachineName}</TableCell>
+                              <TableCell className="font-mono text-xs text-muted-foreground">{m.MachineID}</TableCell>
+                              <TableCell className="text-xs text-card-foreground">{m.User}</TableCell>
                               <TableCell>
                                 <Progress value={(m.TotalScans / maxScans) * 100} className="h-2" />
                               </TableCell>

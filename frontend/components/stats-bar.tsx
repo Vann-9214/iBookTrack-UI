@@ -59,9 +59,9 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
       onClick: undefined,
     },
     {
-      title: "QC Rejected Books",
+      title: "Non-Processable Books",
       value: dashboardStats?.unaccountedBooks?.toString() || "0",
-      subtext: "Flagged at QC inspection",
+      subtext: "Flagged / Non-Processable",
       icon: AlertTriangle,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
@@ -131,16 +131,16 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-destructive" /> QC Rejected Books
+                  <AlertTriangle className="h-4 w-4 text-destructive" /> Non-Processable / Flagged Books
                 </h3>
-                <p className="text-xs text-muted-foreground">{flags.length} book{flags.length !== 1 ? 's' : ''} flagged at QC inspection</p>
+                <p className="text-xs text-muted-foreground">{flags.length} book{flags.length !== 1 ? 's' : ''} flagged</p>
               </div>
               <button onClick={() => setFlagsOpen(false)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
             </div>
             {loadingFlags ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
             ) : flags.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No QC flags recorded yet.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">No flagged books recorded yet.</p>
             ) : (
               <div className="overflow-y-auto flex-1">
                 <table className="w-full text-xs">

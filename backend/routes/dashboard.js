@@ -376,9 +376,8 @@ router.get('/pipeline-stats', async (req, res) => {
       warehouse: 0,
       inventory: 0,
       cut: 0,
-      qc: 0,
+      endorsement: 0,
       scan: 0,
-      qa: 0,
       transmit: 0,
       storage: 0
     }

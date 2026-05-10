@@ -36,18 +36,15 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       lot = newLot
     }
 
-    // Create warehouse session WITHOUT creating boxes upfront
-    // Boxes will be created on-demand when first book is scanned
+    // Create warehouse session — one box per session, created on first scan
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('warehouse_sessions')
       .insert({
-        box_id: null, // No receiving box yet
-        lot_id: lot.id, // Store lot_id for box creation
+        box_id: null,       // Will be created on first scan
+        lot_id: lot.id,
         received_by: req.user.id,
-        received_by_name: req.user.name || req.user.email,
-        status: 'in_progress',
-        accepted_box_id: null, // Will be created when first accepted book
-        rejected_box_id: null  // Will be created when first rejected book
+        received_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email,
+        status: 'in_progress'
       })
       .select()
       .single()
@@ -131,7 +128,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
     // Helper function to create box on-demand
     const createBoxIfNeeded = async (boxType, lotNumber) => {
       const boxNumber = await getNextBoxNumber(lotId, boxType, lotNumber)
-      const { data: newBox } = await supabaseAdmin
+      const { data: newBox, error: boxInsertError } = await supabaseAdmin
         .from('boxes')
         .insert({
           box_number: boxNumber,
@@ -143,7 +140,13 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
         })
         .select()
         .single()
-      
+
+      if (boxInsertError) {
+        console.error('Box insert error:', boxInsertError)
+        throw new Error(`Failed to create box: ${boxInsertError.message}`)
+      }
+      if (!newBox) throw new Error('Box insert returned null — check RLS or box_type constraint on boxes table')
+
       // Increment total_boxes in lots table
       const { data: currentLot } = await supabaseAdmin
         .from('lots')
@@ -159,71 +162,37 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
       return newBox
     }
 
-    // Get or create appropriate box based on scan status
+    // All books go into one box per session regardless of status
     let assignedBoxId = null
     let currentBox = null
-    
-    if (scan_status === 'accepted') {
-      // Check if we have an accepted box
-      if (!session.accepted_box_id) {
-        // Create first accepted box
-        currentBox = await createBoxIfNeeded('accepted', lotNumber)
-        assignedBoxId = currentBox.id
-        // Update session with new box
-        await supabaseAdmin
-          .from('warehouse_sessions')
-          .update({ accepted_box_id: currentBox.id })
-          .eq('id', session_id)
-      } else {
-        // Check if current box is sealed (manually marked as full)
-        const { data: boxData } = await supabaseAdmin
-          .from('boxes')
-          .select('*')
-          .eq('id', session.accepted_box_id)
-          .single()
-        
-        if (boxData && boxData.is_sealed) {
-          // Box is sealed, create new one
-          currentBox = await createBoxIfNeeded('accepted', lotNumber)
-          assignedBoxId = currentBox.id
-          // Update session with new box
-          await supabaseAdmin
-            .from('warehouse_sessions')
-            .update({ accepted_box_id: currentBox.id })
-            .eq('id', session_id)
-        } else {
-          assignedBoxId = session.accepted_box_id
-          currentBox = boxData
-        }
-      }
+
+    if (!session.box_id) {
+      // Create the single session box on first scan
+      currentBox = await createBoxIfNeeded('processable', lotNumber)
+      assignedBoxId = currentBox.id
+      await supabaseAdmin
+        .from('warehouse_sessions')
+        .update({ box_id: currentBox.id })
+        .eq('id', session_id)
     } else {
-      // Same logic for rejected box
-      if (!session.rejected_box_id) {
-        currentBox = await createBoxIfNeeded('rejected', lotNumber)
+      // Check if current box is sealed (manually marked as full)
+      const { data: boxData } = await supabaseAdmin
+        .from('boxes')
+        .select('*')
+        .eq('id', session.box_id)
+        .single()
+
+      if (boxData && boxData.is_sealed) {
+        // Box is full — create a new one and update session
+        currentBox = await createBoxIfNeeded('processable', lotNumber)
         assignedBoxId = currentBox.id
         await supabaseAdmin
           .from('warehouse_sessions')
-          .update({ rejected_box_id: currentBox.id })
+          .update({ box_id: currentBox.id })
           .eq('id', session_id)
       } else {
-        const { data: boxData } = await supabaseAdmin
-          .from('boxes')
-          .select('*')
-          .eq('id', session.rejected_box_id)
-          .single()
-        
-        if (boxData && boxData.is_sealed) {
-          // Box is sealed, create new one
-          currentBox = await createBoxIfNeeded('rejected', lotNumber)
-          assignedBoxId = currentBox.id
-          await supabaseAdmin
-            .from('warehouse_sessions')
-            .update({ rejected_box_id: currentBox.id })
-            .eq('id', session_id)
-        } else {
-          assignedBoxId = session.rejected_box_id
-          currentBox = boxData
-        }
+        assignedBoxId = session.box_id
+        currentBox = boxData
       }
     }
 
@@ -239,7 +208,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
         title: scannedTitle || null,
         assigned_box_id: assignedBoxId,
         scanned_by: req.user.id,
-        scanned_by_name: req.user.name || req.user.email
+        scanned_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email
       })
       .select()
       .single()
@@ -266,7 +235,6 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     res.status(201).json({ 
       scanLog,
-      book: book || { isbn, found: false },
       currentBox: currentBox ? {
         box_number: currentBox.box_number,
         total_books: (currentBox.total_books || 0) + 1,
@@ -289,8 +257,6 @@ router.get('/sessions/:session_id', requireAuth, async (req, res) => {
       .select(`
         *,
         box:boxes(box_number, lot:lots(lot_number)),
-        accepted_box:accepted_box_id(box_number),
-        rejected_box:rejected_box_id(box_number),
         scans:warehouse_book_scans(*)
       `)
       .eq('id', session_id)
@@ -483,7 +449,7 @@ router.get('/search/isbn/:isbn', async (req, res) => {
   }
 })
 
-// Get rejected books
+// Get non-processable (flagged) books
 router.get('/rejected-books', requireAuth, async (req, res) => {
   try {
     const { limit = 50 } = req.query
@@ -491,10 +457,18 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
     const { data: rejectedBooks, error } = await supabaseAdmin
       .from('warehouse_book_scans')
       .select(`
-        *,
-        warehouse_sessions!inner(lot_id, lots(lot_number))
+        id,
+        isbn,
+        title,
+        rejection_reason,
+        scanned_at,
+        scanned_by_name,
+        assigned_box:boxes!warehouse_book_scans_assigned_box_id_fkey(
+          box_number,
+          lot:lots(lot_number)
+        )
       `)
-      .eq('scan_status', 'rejected')
+      .eq('scan_status', 'non_processable')
       .order('scanned_at', { ascending: false })
       .limit(parseInt(limit))
 
@@ -502,7 +476,7 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
 
     res.json({ success: true, rejectedBooks })
   } catch (error) {
-    console.error('Error fetching rejected books:', error)
+    console.error('Error fetching non-processable books:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -583,6 +557,33 @@ router.post('/backfill-titles', requireAuth, async (req, res) => {
     res.json({ success: true, total: scans.length, updated, failed })
   } catch (error) {
     console.error('Backfill titles error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Update an existing scan to non_processable (re-flag from scan log)
+router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
+  try {
+    const { scan_id } = req.params
+    const { rejection_reason, notes } = req.body
+
+    if (!rejection_reason) {
+      return res.status(400).json({ error: 'rejection_reason is required' })
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('warehouse_book_scans')
+      .update({ scan_status: 'non_processable', rejection_reason, notes: notes || null })
+      .eq('id', scan_id)
+      .select()
+      .single()
+
+    if (error) throw error
+    if (!data) return res.status(404).json({ error: 'Scan not found' })
+
+    res.json({ success: true, scan: data })
+  } catch (error) {
+    console.error('Flag scan error:', error)
     res.status(500).json({ error: error.message })
   }
 })

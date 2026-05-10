@@ -12,16 +12,27 @@ import { Layers, Package, CheckCircle, AlertTriangle, ChevronDown, ChevronRight,
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 const COMMON_ISSUES = [
-  { value: "bent-page",        label: "Bent Page" },
-  { value: "missing-content",  label: "Missing Content" },
-  { value: "blurred-text",     label: "Blurred Text" },
-  { value: "torn-page",        label: "Torn Page" },
-  { value: "water-damage",     label: "Water Damage" },
-  { value: "ink-smudge",       label: "Ink Smudge" },
-  { value: "binding-issue",    label: "Binding Issue" },
-  { value: "wrong-orientation",label: "Wrong Orientation" },
-  { value: "duplicate",        label: "Duplicate" },
-  { value: "other",            label: "Other" },
+  { value: "bleed-through",          label: "Bleed-through on page" },
+  { value: "brittle",                label: "Brittle on page" },
+  { value: "cannot-detach-sticky",   label: "Cannot be detached or sticky pages" },
+  { value: "cd-only",                label: "CD only, no text content" },
+  { value: "map-spanning",           label: "Contains a map spanning the entire book" },
+  { value: "split-pages",            label: "Contains split pages" },
+  { value: "cutoff-text",            label: "Cutoff text on page" },
+  { value: "illegible-text",         label: "Illegible text" },
+  { value: "inverted-contrast",      label: "Inverted contrast: White on black background" },
+  { value: "missing-pages",          label: "Missing page/s" },
+  { value: "no-content",             label: "No content or body text" },
+  { value: "obscured-highlight",     label: "Obscured text due to highlight marker" },
+  { value: "obscured-watermark",     label: "Obscured text due to watermarks" },
+  { value: "oversized",              label: "Oversized and cannot fit in the scanner" },
+  { value: "pen-marks",              label: "Pen marks on page" },
+  { value: "pop-up-book",            label: "Pop-up book" },
+  { value: "postcard-only",          label: "Postcard only" },
+  { value: "stained-dirty",          label: "Stained or dirty page" },
+  { value: "stamp-mark",             label: "Stamp mark on page" },
+  { value: "thick-cardboard",        label: "Thick or cardboard pages" },
+  { value: "torn-pages",             label: "Torn pages" },
 ]
 
 interface BookEntry {
@@ -59,7 +70,7 @@ export default function BookInspectionPage() {
 
   const fetchBoxes = useCallback(async () => {
     try {
-      const res = await authFetch(`${API_URL}/api/boxes?current_stage=qc`)
+      const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
       const data = await res.json()
       if (data.boxes) {
         // Only show boxes that have been received at QC (received_at is set)
@@ -195,7 +206,7 @@ export default function BookInspectionPage() {
             ) : filteredLots.length === 0 ? (
               <div className="py-16 text-center">
                 <p className="text-sm font-medium text-muted-foreground">No lots ready for inspection.</p>
-                <p className="text-xs text-muted-foreground mt-1">Boxes must be at QC stage and marked as <strong>Received</strong> on Station Checkpoints first.</p>
+                <p className="text-xs text-muted-foreground mt-1">Boxes must be at Endorsement stage and marked as <strong>Received</strong> on Station Checkpoints first.</p>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -216,7 +227,7 @@ export default function BookInspectionPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-semibold text-card-foreground">{lot.lotNumber}</span>
-                              <Badge variant="outline" className="text-[10px] border-yellow-300 text-yellow-700 bg-yellow-50">QC</Badge>
+                              <Badge variant="outline" className="text-[10px] border-yellow-300 text-yellow-700 bg-yellow-50">Endorsement</Badge>
                               <Badge variant="outline" className="text-[10px]">{lot.boxes.length} box{lot.boxes.length !== 1 ? 'es' : ''}</Badge>
                               <Badge variant="outline" className="text-[10px]">{totalBooks} books</Badge>
                               {flaggedCount > 0 && (
@@ -250,7 +261,6 @@ export default function BookInspectionPage() {
                                 (box.books || []).map((book, idx) => {
                                   const issueEntry = bookIssues[book.id]
                                   const isFlagged = issueEntry?.saved
-                                  const isOther = issueEntry?.issue === 'other'
                                   const globalIdx = lot.boxes.slice(0, lot.boxes.indexOf(box)).reduce((s, b) => s + (b.books?.length || 0), 0) + idx
 
                                   return (
@@ -276,13 +286,13 @@ export default function BookInspectionPage() {
                                             <option value="">No issue</option>
                                             {COMMON_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
                                           </select>
-                                          {isOther && (
+                                          {issueEntry?.issue && (
                                             <input
                                               type="text"
-                                              placeholder="Describe..."
+                                              placeholder="Page no. / remarks (optional)"
                                               value={issueEntry?.remarks || ''}
                                               onChange={e => setIssueField(book.id, 'remarks', e.target.value)}
-                                              className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none w-32"
+                                              className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none w-44"
                                             />
                                           )}
                                           {issueEntry?.issue && (

@@ -108,10 +108,10 @@ import warehouseRoutes from './warehouse.js'
 // Base path: /api/warehouse
 //
 // POST   /api/warehouse/sessions/start - Start warehouse receiving session
-//        Body: { box_id, accepted_box_number, rejected_box_number }
+//        Body: { lot_number }
 // POST   /api/warehouse/sessions/:session_id/scan - Scan book in session
 //        Body: { isbn, scan_status, rejection_reason?, notes? }
-//        scan_status: 'accepted' | 'rejected' | 'mismatch' | 'damaged' | 'missing_info'
+//        scan_status: 'processable' | 'non_processable'
 // GET    /api/warehouse/sessions/:session_id - Get session details with all scans
 // POST   /api/warehouse/sessions/:session_id/complete - Complete session
 // GET    /api/warehouse/sessions - Get all sessions (filter: status, limit)
