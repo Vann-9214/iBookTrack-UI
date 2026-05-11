@@ -1,16 +1,44 @@
 import axios from 'axios'
 
+const ILMS_AUTH_TOKEN = process.env.ILMS_AUTH_TOKEN ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IklOMTgiLCJpYXQiOjE3MTM5NTM2NzAsImV4cCI6MTcxNDA0MDA3MH0.ZUCaQu8BSWXgiue5LQJ6ALfsAjhohrXVqpJDYkDVwqA'
+
+const PROJECT_ENDPOINTS = {
+  mustang: 'https://mstx.innodata.com/milms/book-server/api/searchBookByIsbnOrTitleOreISBNorAuthor',
+  jaguar:  'https://jgur.innodata.com/JiLMS/book-server/api/searchBookByIsbnOrTitleOreISBNorAuthor',
+}
+
+// Legacy fallback URL
 const ILMS_BASE_URL = process.env.ILMS_BASE_URL || 'https://iLMSStaging.innodata.com/book-server/api'
-const ILMS_AUTH_TOKEN = process.env.ILMS_AUTH_TOKEN
+
+const HEADERS = {
+  'Authorization': ILMS_AUTH_TOKEN,
+  'Content-Type': 'application/json',
+}
+
+async function queryILMS(url, isbn) {
+  try {
+    const response = await axios.get(url, {
+      params: { text: isbn },
+      headers: HEADERS,
+      timeout: 10000,
+    })
+    const data = response.data
+    // ILMS returns an array; empty array or Message field = not found
+    const hasResult = Array.isArray(data)
+      ? data.length > 0 && !data[0]?.Message
+      : data && !data.Message
+    return { success: hasResult, data }
+  } catch {
+    return { success: false, data: null }
+  }
+}
 
 class ILMSApiService {
   constructor() {
     this.client = axios.create({
       baseURL: ILMS_BASE_URL,
-      headers: {
-        'Authorization': ILMS_AUTH_TOKEN,
-        'Content-Type': 'application/json'
-      },
+      headers: HEADERS,
       timeout: 30000
     })
   }
@@ -32,6 +60,33 @@ class ILMSApiService {
         data: null
       }
     }
+  }
+
+  // Search a specific project's ILMS
+  async searchByProject(isbn, project) {
+    const url = PROJECT_ENDPOINTS[project]
+    if (!url) return { success: false, data: null }
+    return queryILMS(url, isbn)
+  }
+
+  // Query both ILMS endpoints in parallel — returns which project the ISBN belongs to
+  async identifyProject(isbn) {
+    const [mustangRes, jaguarRes] = await Promise.all([
+      queryILMS(PROJECT_ENDPOINTS.mustang, isbn),
+      queryILMS(PROJECT_ENDPOINTS.jaguar,  isbn),
+    ])
+
+    if (mustangRes.success && !jaguarRes.success) {
+      return { project: 'mustang', data: mustangRes.data, mustang: mustangRes.data, jaguar: null }
+    }
+    if (jaguarRes.success && !mustangRes.success) {
+      return { project: 'jaguar',  data: jaguarRes.data,  mustang: null, jaguar: jaguarRes.data }
+    }
+    if (mustangRes.success && jaguarRes.success) {
+      // Found in both — return both, mark project as 'both'
+      return { project: 'both', data: mustangRes.data, mustang: mustangRes.data, jaguar: jaguarRes.data }
+    }
+    return { project: 'unknown', data: null, mustang: null, jaguar: null }
   }
 
   async searchBookByTitle(text) {

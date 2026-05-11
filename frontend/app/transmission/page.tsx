@@ -23,12 +23,6 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
   FileUp,
   CheckCircle2,
   XCircle,
@@ -432,15 +426,18 @@ export default function TransmissionMonitorPage() {
         </ScrollArea>
       </main>
       {/* Ranking Modal */}
-      <Dialog open={showRanking} onOpenChange={setShowRanking}>
-        <DialogContent className="max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      {showRanking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowRanking(false)}>
+        <div className="bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden" style={{ width: '90vw', maxWidth: 1100, height: '90vh' }} onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+            <div className="flex items-center gap-2 text-lg font-semibold">
               <Trophy className="h-5 w-5 text-amber-500" />
               Performance Ranking — {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-            </DialogTitle>
-          </DialogHeader>
+            </div>
+            <button onClick={() => setShowRanking(false)} className="text-muted-foreground hover:text-foreground text-xl leading-none">✕</button>
+          </div>
 
+          <div className="flex-1 overflow-hidden flex flex-col p-6 gap-5">
           {rankingLoading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -448,36 +445,36 @@ export default function TransmissionMonitorPage() {
           ) : ranking ? (
             <div className="flex flex-col gap-4 overflow-hidden">
               {/* Summary Stats */}
-              <div className="grid grid-cols-4 gap-3">
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground">Total Books</p>
-                  <p className="text-xl font-bold">{ranking.totalBooks.toLocaleString()}</p>
+              <div className="grid grid-cols-4 gap-4">
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <p className="text-sm text-muted-foreground">Total Books</p>
+                  <p className="text-3xl font-bold mt-1">{ranking.totalBooks.toLocaleString()}</p>
                 </div>
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground">Total Pages</p>
-                  <p className="text-xl font-bold">{ranking.totalPages.toLocaleString()}</p>
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <p className="text-sm text-muted-foreground">Total Pages</p>
+                  <p className="text-3xl font-bold mt-1">{ranking.totalPages.toLocaleString()}</p>
                 </div>
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground">Highest Output</p>
-                  <p className="text-xl font-bold text-amber-500">{ranking.highestOutput}</p>
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <p className="text-sm text-muted-foreground">Highest Output</p>
+                  <p className="text-3xl font-bold text-amber-500 mt-1">{ranking.highestOutput}</p>
                 </div>
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground">Avg Output/User</p>
-                  <p className="text-xl font-bold">{ranking.avgOutput}</p>
+                <div className="rounded-lg bg-muted/50 p-4">
+                  <p className="text-sm text-muted-foreground">Avg Output/User</p>
+                  <p className="text-3xl font-bold mt-1">{ranking.avgOutput}</p>
                 </div>
               </div>
 
-              <div className="flex gap-4 overflow-hidden min-h-0">
+              <div className="flex gap-6 overflow-hidden flex-1 min-h-0">
                 {/* Table */}
-                <ScrollArea className="flex-1 h-[420px] rounded-lg border border-border">
+                <ScrollArea className="flex-1 rounded-lg border border-border">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-xs font-medium w-12">Rank</TableHead>
-                        <TableHead className="text-xs font-medium">User</TableHead>
-                        <TableHead className="text-xs font-medium text-right">Books</TableHead>
-                        <TableHead className="text-xs font-medium text-right">Pages</TableHead>
-                        <TableHead className="text-xs font-medium w-36">Score</TableHead>
+                        <TableHead className="text-sm font-semibold w-14">Rank</TableHead>
+                        <TableHead className="text-sm font-semibold">User</TableHead>
+                        <TableHead className="text-sm font-semibold text-right">Books</TableHead>
+                        <TableHead className="text-sm font-semibold text-right">Pages</TableHead>
+                        <TableHead className="text-sm font-semibold w-44">Score</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -486,22 +483,20 @@ export default function TransmissionMonitorPage() {
                         const color = pct >= 81 ? 'bg-success' : pct >= 51 ? 'bg-amber-500' : 'bg-destructive'
                         return (
                           <TableRow key={r.Rank} className={`border-border ${r.Rank <= 3 ? 'bg-amber-500/5' : ''}`}>
-                            <TableCell className="text-xs font-bold">
+                            <TableCell className="text-sm font-bold">
                               {r.Rank <= 3 ? (
-                                <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white ${
-                                  r.Rank === 1 ? 'bg-amber-400' : r.Rank === 2 ? 'bg-slate-400' : 'bg-amber-700'
-                                }`}>{r.Rank}</span>
+                                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${r.Rank === 1 ? 'bg-amber-400' : r.Rank === 2 ? 'bg-slate-400' : 'bg-amber-700'}`}>{r.Rank}</span>
                               ) : r.Rank}
                             </TableCell>
-                            <TableCell className="text-xs font-medium">{r.ScanUser}</TableCell>
-                            <TableCell className="text-xs text-right font-semibold">{r.Books}</TableCell>
-                            <TableCell className="text-xs text-right text-muted-foreground">{r.Pages.toLocaleString()}</TableCell>
+                            <TableCell className="text-sm font-medium">{r.ScanUser}</TableCell>
+                            <TableCell className="text-sm text-right font-semibold">{r.Books}</TableCell>
+                            <TableCell className="text-sm text-right text-muted-foreground">{r.Pages.toLocaleString()}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                                <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
                                   <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
                                 </div>
-                                <span className="text-[10px] text-muted-foreground w-8 text-right">{Math.round(pct)}%</span>
+                                <span className="text-xs text-muted-foreground w-10 text-right font-medium">{Math.round(pct)}%</span>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -512,8 +507,9 @@ export default function TransmissionMonitorPage() {
                 </ScrollArea>
 
                 {/* Score Distribution Bar Chart */}
-                <div className="flex-1 flex flex-col">
-                  <p className="text-xs text-muted-foreground mb-2 font-medium">Score Distribution</p>
+                <div className="w-80 flex flex-col min-h-0">
+                  <p className="text-sm text-muted-foreground mb-2 font-semibold">Score Distribution</p>
+                  <div className="flex-1 min-h-0">
                   {(() => {
                     const buckets = [
                       { label: 'Below 50%', min: 0,  max: 50  },
@@ -532,16 +528,16 @@ export default function TransmissionMonitorPage() {
                       color: bucketColors[i],
                     }))
                     return (
-                      <ResponsiveContainer width="100%" height={420}>
+                      <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={chartData}
                           layout="vertical"
-                          margin={{ top: 0, right: 24, bottom: 0, left: 8 }}
+                          margin={{ top: 0, right: 28, bottom: 0, left: 8 }}
                         >
                           <XAxis
                             type="number"
                             allowDecimals={false}
-                            tick={{ fontSize: 10 }}
+                            tick={{ fontSize: 12 }}
                             tickLine={false}
                             axisLine={false}
                             domain={[0, 'dataMax']}
@@ -549,8 +545,8 @@ export default function TransmissionMonitorPage() {
                           <YAxis
                             type="category"
                             dataKey="label"
-                            width={64}
-                            tick={{ fontSize: 10 }}
+                            width={72}
+                            tick={{ fontSize: 12 }}
                             tickLine={false}
                             axisLine={false}
                           />
@@ -558,7 +554,7 @@ export default function TransmissionMonitorPage() {
                             cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                             formatter={(v: any) => [`${v} user${v !== 1 ? 's' : ''}`, 'Count']}
                           />
-                          <Bar dataKey="users" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                          <Bar dataKey="users" radius={[0, 4, 4, 0]} maxBarSize={36}>
                             {chartData.map((entry, i) => (
                               <Cell key={i} fill={entry.color} />
                             ))}
@@ -567,12 +563,15 @@ export default function TransmissionMonitorPage() {
                       </ResponsiveContainer>
                     )
                   })()}
+                  </div>
                 </div>
               </div>
             </div>
           ) : null}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -10,6 +10,7 @@ import dashboardRoutes from './routes/dashboard.js'
 import warehouseRoutes from './routes/warehouse.js'
 import reportsRoutes from './routes/reports.js'
 import scanningRoutes from './routes/scanning.js'
+import storageRoutes from './routes/storage.js'
 
 dotenv.config({ path: '../.env' })
 
@@ -72,6 +73,7 @@ app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/warehouse', warehouseRoutes)
 app.use('/api/reports', reportsRoutes)
 app.use('/api/scanning', scanningRoutes)
+app.use('/api/storage', storageRoutes)
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
