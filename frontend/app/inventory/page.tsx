@@ -22,6 +22,7 @@ interface BookInBox {
   title: string | null
   scan_status: string
   scanned_at: string
+  book_type?: string
 }
 
 interface Box {
@@ -73,8 +74,16 @@ export default function InventoryPage() {
   const [loadingScannedBox, setLoadingScannedBox] = useState(false)
   const [printBox, setPrintBox] = useState<Box | null>(null)
   const [printBooks, setPrintBooks] = useState<BookInBox[]>([])
+  const [printBookType, setPrintBookType] = useState<string>('')
   const [loadingPrint, setLoadingPrint] = useState<string | null>(null)
   const barcodeRef = useRef<HTMLCanvasElement>(null)
+  const printProcessRows = [
+    'Inventory & Registration',
+    'Cutting',
+    'Book Endorsement',
+    'Scanning',
+    'Book Storage',
+  ]
 
   // --- History tab state ---
   const [logs, setLogs] = useState<LogEntry[]>([])
@@ -136,8 +145,17 @@ export default function InventoryPage() {
         books = data.box?.books || []
         setBoxBooks(prev => ({ ...prev, [box.id]: books }))
       }
+
+      const bookTypeResponse = await authFetch(`${API_URL}/api/books?box_id=${box.id}`)
+      const bookTypeData = await bookTypeResponse.json()
+      const derivedType = Array.from(new Set((bookTypeData.books || [])
+        .map((book: { book_type?: string }) => (book.book_type || '').trim())
+        .filter(Boolean)))
+        .map((type: string) => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase())[0] || '—'
+
       setPrintBox(box)
       setPrintBooks(books)
+      setPrintBookType(derivedType)
     } catch (e) {
       console.error('Failed to fetch books for label:', e)
     } finally {
@@ -240,20 +258,31 @@ export default function InventoryPage() {
   }
 
   useEffect(() => {
-    if (printBox && barcodeRef.current) {
+    if (!printBox) return
+
+    const renderBarcode = () => {
+      if (!barcodeRef.current) return
+
       try {
+        barcodeRef.current.width = 700
+        barcodeRef.current.height = 140
         bwipjs.toCanvas(barcodeRef.current, {
           bcid: 'code128',
           text: printBox.box_number,
-          scale: 2,
-          height: 12,
+          scale: 3,
+          height: 16,
           includetext: true,
           textxalign: 'center',
+          paddingwidth: 6,
+          paddingheight: 4,
         })
       } catch (e) {
         console.error('Barcode error:', e)
       }
     }
+
+    const frame = requestAnimationFrame(renderBarcode)
+    return () => cancelAnimationFrame(frame)
   }, [printBox])
 
   const filteredBoxes = boxes.filter(b => {
@@ -270,46 +299,61 @@ export default function InventoryPage() {
     <>
     {/* ── PRINT LABEL OVERLAY (print-only) ── */}
     {printBox && (
-      <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:p-6 print:z-[9999]">
-        <div className="max-w-2xl mx-auto">
-          {/* Box barcode centered */}
-          <div className="flex flex-col items-center mb-4">
-            <canvas ref={barcodeRef} />
-            <p className="text-xs text-gray-500 mt-1">Box: {printBox.box_number}</p>
+      <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:z-[9999] print:text-[#19294f]">
+        <div className="mx-auto flex h-full w-full max-w-[900px] flex-col px-4 py-2">
+          <div className="mt-1 flex flex-col items-center justify-center">
+            <div className="flex w-full justify-center overflow-hidden py-1">
+              <canvas ref={barcodeRef} width={700} height={140} className="block w-full max-w-[640px]" />
+            </div>
           </div>
-          {/* Header info */}
-          <div className="border border-black p-3 mb-3 grid grid-cols-3 gap-2 text-xs">
+
+          <div className="mt-2 border border-black px-2 py-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-black">
             <div><span className="font-bold">Lot:</span> {printBox.lot?.lot_number || '—'}</div>
             <div><span className="font-bold">Box:</span> {printBox.box_number}</div>
             <div><span className="font-bold">Stage:</span> {printBox.current_stage}</div>
-            <div><span className="font-bold">Total Books:</span> {printBooks.length || printBox.total_books}</div>
+            <div><span className="font-bold">Type:</span> {printBookType}</div>
             <div><span className="font-bold">Date:</span> {new Date().toLocaleDateString()}</div>
           </div>
-          {/* ISBN / Title table */}
-          <table className="w-full text-[10px] border-collapse">
-            <thead>
-              <tr className="bg-gray-200">
-                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">#</th>
-                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">ISBN</th>
-                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">Title</th>
-                <th className="border border-gray-400 px-1 py-0.5 text-left font-bold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {printBooks.length > 0 ? printBooks.map((book, i) => (
-                <tr key={book.id || i} className="odd:bg-white even:bg-gray-50">
-                  <td className="border border-gray-300 px-1 py-0.5">{i + 1}</td>
-                  <td className="border border-gray-300 px-1 py-0.5 font-mono">{book.isbn}</td>
-                  <td className="border border-gray-300 px-1 py-0.5">{book.title || '—'}</td>
-                  <td className="border border-gray-300 px-1 py-0.5 capitalize">{book.scan_status || '—'}</td>
-                </tr>
-              )) : (
-                <tr>
-                  <td colSpan={4} className="border border-gray-300 px-2 py-2 text-center text-gray-400 italic">No book records in database for this box</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+
+          <div className="mt-2 border border-[#4b5563] text-[#19294f]">
+            <div className="grid grid-cols-[1.15fr_0.42fr_0.42fr] border-b border-[#4b5563] text-center text-[11px] font-medium">
+              <div className="border-r border-[#4b5563] py-1">Process</div>
+              <div className="border-r border-[#4b5563] py-1">&nbsp;</div>
+              <div className="py-1 leading-tight">No. of<br />Books</div>
+            </div>
+
+            <div className="grid grid-cols-[1.15fr_0.42fr_0.42fr] min-h-[58px] border-b border-[#4b5563] last:border-b-0">
+              <div className="border-r border-[#4b5563] px-2 py-2 text-[16px] leading-[1.02]">Inventory &amp; Registration</div>
+              <div className="border-r border-[#4b5563] flex items-center justify-center"><span className="inline-flex h-4 w-4 rounded-full border border-[#19294f] bg-[#19294f]" /></div>
+              <div className="border-r border-[#4b5563] flex items-center justify-center px-1 text-[24px] leading-none font-light tracking-tight">{printBooks.length || printBox.total_books || '—'}</div>
+            </div>
+
+            {printProcessRows.slice(1).map((label) => (
+              <div key={label} className="grid grid-cols-[1.15fr_0.42fr_0.42fr] min-h-[58px] border-b border-[#4b5563] last:border-b-0">
+                <div className="border-r border-[#4b5563] px-2 py-2 text-[16px] leading-[1.02]">{label}</div>
+                <div className="border-r border-[#4b5563] flex items-center justify-center"><span className="inline-flex h-4 w-4 rounded-full border border-[#19294f] bg-transparent" /></div>
+                <div className="border-r border-[#4b5563] flex items-center justify-center px-1 text-[24px] leading-none font-light tracking-tight">{printBooks.length || printBox.total_books || '—'}</div>
+              </div>
+            ))}
+
+            <div className="grid grid-cols-[1.15fr_0.42fr_0.42fr] border-t border-[#4b5563]">
+              <div className="border-r border-[#4b5563] px-2 py-2 text-[10px] leading-tight">
+                <div className="mb-1 text-[11px] font-medium tracking-wide">REMARKS</div>
+                <div className="space-y-0.5 text-[10px] text-black/80">
+                  <div>Mismatch Title-</div>
+                  <div>Rejects -</div>
+                  <div>Excess (not in the PL) -</div>
+                  <div>Duplicate -</div>
+                  <div>Not yet approved -</div>
+                  <div>Book not in the box -</div>
+                  <div>Common book -</div>
+                  <div>Mix Box -</div>
+                </div>
+              </div>
+              <div className="border-r border-[#4b5563]" />
+              <div className="border-r border-[#4b5563]" />
+            </div>
+          </div>
         </div>
       </div>
     )}

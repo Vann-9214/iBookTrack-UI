@@ -3,21 +3,71 @@ import { supabaseAdmin } from '../config/supabase.js'
 
 const router = express.Router()
 
+// Helper to call RPC with retry logic
+async function callRpcWithRetry(funcName, params = {}, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[Reports] Calling ${funcName} (attempt ${attempt + 1}/${maxRetries + 1})...`)
+      
+      // Create timeout promise (45 seconds)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Client timeout after 45s for ${funcName}`)), 45000)
+      )
+      
+      const rpcPromise = supabaseAdmin.rpc(funcName, params, { count: 'exact' })
+      
+      const result = await Promise.race([rpcPromise, timeoutPromise])
+      
+      // Check if the Supabase response contains an error
+      if (result.error) {
+        const errorMsg = result.error?.message || JSON.stringify(result.error)
+        console.error(`[Reports] ${funcName} attempt ${attempt + 1} returned error: ${errorMsg}`)
+        
+        // If it's a timeout error, retry. Otherwise, fail immediately
+        if (errorMsg.includes('timeout') || errorMsg.includes('57014')) {
+          if (attempt === maxRetries) {
+            throw result.error
+          }
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+          continue
+        } else {
+          throw result.error
+        }
+      }
+      
+      console.log(`[Reports] ${funcName} succeeded on attempt ${attempt + 1}`)
+      return result
+    } catch (error) {
+      console.error(`[Reports] ${funcName} attempt ${attempt + 1} failed:`, error?.message)
+      
+      if (attempt === maxRetries) {
+        throw error
+      }
+      
+      // Wait before retrying (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+    }
+  }
+}
+
 /**
  * GET /api/reports/finished-lots
  * Get statistics for finished lots (Lot 1-51) from imported_books_staging
  */
 router.get('/finished-lots', async (req, res) => {
   try {
-    // Set longer timeout then run RPC
-    await supabaseAdmin.rpc('set_config', { setting: 'statement_timeout', value: '30000', is_local: true }).catch(() => {})
-    const { data: lotData, error: lotError } = await supabaseAdmin.rpc('get_lot_stats')
+    console.log('[Reports] fetching finished-lots...')
+    
+    const { data: lotData, error: lotError } = await callRpcWithRetry('get_lot_stats')
 
     if (lotError) {
-      console.error('get_lot_stats RPC error:', lotError.message)
+      console.error('[Reports] get_lot_stats RPC error after retries:', lotError)
       // Return empty data gracefully rather than crashing
       return res.json({ overview: { totalBooks: 0, transmitted: 0, rejected: 0, booksToGo: 0, completionRate: '0' }, lotBreakdown: [], vendorBreakdown: [] })
     }
+    
+    console.log('[Reports] got', lotData?.length || 0, 'lot records')
 
     const lotBreakdown = (lotData || []).filter(lot =>
       /^Lot-\d{1,3}M?$/i.test(lot.lot)
@@ -45,8 +95,15 @@ router.get('/finished-lots', async (req, res) => {
       vendorBreakdown: []
     })
   } catch (error) {
-    console.error('Error fetching finished lots report:', error.message || error)
-    res.status(500).json({ error: error.message || 'Internal server error' })
+    console.error('[Reports] Error fetching finished lots report:', {
+      message: error?.message,
+      code: error?.code,
+      status: error?.status,
+      details: error?.details,
+      fullError: error
+    })
+    // Return empty data on catch as well
+    res.json({ overview: { totalBooks: 0, transmitted: 0, rejected: 0, booksToGo: 0, completionRate: '0' }, lotBreakdown: [], vendorBreakdown: [] })
   }
 })
 
@@ -59,14 +116,13 @@ router.get('/chart-data', async (req, res) => {
     const { type } = req.query
     let chartData = []
 
-    await supabaseAdmin.rpc('set_config', { setting: 'statement_timeout', value: '30000', is_local: true }).catch(() => {})
     switch (type) {
       case 'lot-comparison':
         // Get top 10 lots with transmitted vs rejected
-        const { data: lotStats } = await supabaseAdmin.rpc('get_lot_stats')
+        const { data: lotStats } = await callRpcWithRetry('get_lot_stats')
         
         // Get INDIC counts per lot
-        const { data: indicStats } = await supabaseAdmin.rpc('get_indic_lot_stats')
+        const { data: indicStats } = await callRpcWithRetry('get_indic_lot_stats')
         
         // Create a map of INDIC counts by lot
         const indicMap = {}
@@ -160,7 +216,7 @@ router.get('/chart-data', async (req, res) => {
 
       case 'lot-progress':
         // Get completion rate for each lot
-        const { data: progressStats } = await supabaseAdmin.rpc('get_lot_stats')
+        const { data: progressStats } = await callRpcWithRetry('get_lot_stats')
         if (progressStats) {
           chartData = progressStats
             .filter(lot => /^Lot-\d{1,2}M?$/i.test(lot.lot))
@@ -193,13 +249,13 @@ router.get('/chart-data', async (req, res) => {
  */
 router.get('/indic-books', async (req, res) => {
   try {
-    await supabaseAdmin.rpc('set_config', { setting: 'statement_timeout', value: '30000', is_local: true }).catch(() => {})
+    console.log('[Reports] fetching indic-books...')
+    
     // Get overall INDIC statistics
-    const { data: indicStats, error: statsError } = await supabaseAdmin
-      .rpc('get_indic_stats')
+    const { data: indicStats, error: statsError } = await callRpcWithRetry('get_indic_stats')
     
     if (statsError) {
-      console.error('Error fetching INDIC stats:', statsError.message)
+      console.error('[Reports] Error fetching INDIC stats:', statsError.message)
       return res.json({ overview: { totalBooks: 0, transmitted: 0, rejected: 0, booksToGo: 0, completionRate: '0' }, lotBreakdown: [] })
     }
 
@@ -215,8 +271,7 @@ router.get('/indic-books', async (req, res) => {
     const completionRate = stats.total_indic ? ((stats.transmitted / stats.total_indic) * 100).toFixed(2) : '0'
 
     // Get INDIC lot breakdown
-    const { data: lotData, error: lotError } = await supabaseAdmin
-      .rpc('get_indic_lot_stats')
+    const { data: lotData, error: lotError } = await callRpcWithRetry('get_indic_lot_stats')
     
     let lotBreakdown = []
     if (lotData) {
@@ -242,8 +297,12 @@ router.get('/indic-books', async (req, res) => {
       lotBreakdown: lotBreakdown.sort((a, b) => b.total - a.total)
     })
   } catch (error) {
-    console.error('Error fetching INDIC books report:', error)
-    res.status(500).json({ error: error.message })
+    console.error('[Reports] Error fetching INDIC books report:', {
+      message: error?.message,
+      code: error?.code,
+      fullError: error
+    })
+    res.status(500).json({ error: error?.message || 'Internal server error' })
   }
 })
 

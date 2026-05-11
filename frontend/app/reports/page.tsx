@@ -41,6 +41,7 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
   const [reportType, setReportType] = useState<'finished-lots' | 'indic-books'>('finished-lots')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setTimestamp(new Date().toLocaleString())
@@ -50,12 +51,21 @@ export default function ReportsPage() {
   const fetchReportData = async () => {
     try {
       setLoading(true)
+      setError(null)
       const endpoint = reportType === 'indic-books' ? '/api/reports/indic-books' : '/api/reports/finished-lots'
       const response = await fetch(`${API_URL}${endpoint}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
       const data = await response.json()
       setReportData(data)
     } catch (error) {
-      console.error('Error fetching report data:', error)
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      console.error('Error fetching report data:', message)
+      setError(message)
+      setReportData(null)
     } finally {
       setLoading(false)
     }
@@ -111,6 +121,13 @@ export default function ReportsPage() {
             <div className="flex items-center justify-center py-12">
               <p className="text-muted-foreground">Loading report data...</p>
             </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <p className="text-destructive font-medium mb-2">Failed to load report data</p>
+                <p className="text-sm text-muted-foreground">{error}</p>
+              </div>
+            </div>
           ) : reportData ? (
             <>
               {/* Key Metrics */}
@@ -130,11 +147,7 @@ export default function ReportsPage() {
                 reportType={reportType}
               />
             </>
-          ) : (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-destructive">Failed to load report data</p>
-            </div>
-          )}
+          ) : null}
         </div>
       </main>
 
