@@ -202,6 +202,80 @@ export async function getScanningExportData(date) {
   }
 }
 
+/**
+ * Get Simflex scan status for a list of ISBNs.
+ * Returns per-ISBN latest status, specifically checking if
+ * Transmission_Archive COMPLETED exists for each ISBN.
+ */
+export async function getSimflexStatusForISBNs(isbns) {
+  try {
+    if (!isbns || isbns.length === 0) return { success: true, data: [] }
+
+    // Build safe IN list — ISBNs are numeric/alphanumeric, no SQL injection risk
+    // but we sanitize anyway by stripping non-word characters
+    const safelist = isbns.map(i => `'${String(i).replace(/[^a-zA-Z0-9\-]/g, '')}'`).join(',')
+
+    // Get all status rows for these ISBNs (all time, not just today)
+    const rows = await query(
+      `SELECT ISBN, Status, ScanDate, Updated, PageCount, ScanUser, BoxNumber
+       FROM zeusz_IsbnStatus
+       WHERE ISBN IN (${safelist})
+       ORDER BY Updated DESC`
+    )
+
+    const data = Array.isArray(rows) ? rows : []
+
+    // Group by ISBN — we want to know if each ISBN has a Transmission_Archive COMPLETED row
+    const byIsbn = {}
+    data.forEach(r => {
+      const isbn = r.ISBN
+      if (!byIsbn[isbn]) {
+        byIsbn[isbn] = {
+          isbn,
+          statuses: [],
+          transmissionCompleted: false,
+          latestStatus: null,
+          latestUpdated: null,
+          boxNumber: r.BoxNumber || null,
+          scanUser: r.ScanUser || null,
+        }
+      }
+      byIsbn[isbn].statuses.push(r.Status)
+      // Check if this row is Transmission_Archive COMPLETED
+      if (r.Status && r.Status.toLowerCase().includes('transmission_archive') && r.Status.toUpperCase().includes('COMPLETED')) {
+        byIsbn[isbn].transmissionCompleted = true
+      }
+      // Track latest overall status
+      if (!byIsbn[isbn].latestUpdated || new Date(r.Updated) > new Date(byIsbn[isbn].latestUpdated)) {
+        byIsbn[isbn].latestStatus = r.Status
+        byIsbn[isbn].latestUpdated = r.Updated
+        byIsbn[isbn].boxNumber = r.BoxNumber || byIsbn[isbn].boxNumber
+        byIsbn[isbn].scanUser = r.ScanUser || byIsbn[isbn].scanUser
+      }
+    })
+
+    // For ISBNs not found in Simflex at all, mark explicitly
+    isbns.forEach(isbn => {
+      if (!byIsbn[isbn]) {
+        byIsbn[isbn] = {
+          isbn,
+          statuses: [],
+          transmissionCompleted: false,
+          latestStatus: null,
+          latestUpdated: null,
+          boxNumber: null,
+          scanUser: null,
+        }
+      }
+    })
+
+    return { success: true, data: Object.values(byIsbn) }
+  } catch (error) {
+    console.error('Error fetching Simflex status for ISBNs:', error)
+    return { success: false, error: error.message, data: [] }
+  }
+}
+
 export default {
   getTodayScanningSummary,
   getScanningData,
@@ -209,5 +283,6 @@ export default {
   getScanningByStage,
   getScanningRanking,
   getScanningExportData,
-  getTotalScansAllTime
+  getTotalScansAllTime,
+  getSimflexStatusForISBNs,
 }

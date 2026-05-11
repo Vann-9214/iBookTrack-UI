@@ -73,7 +73,7 @@ export default function StationCheckpointsPage() {
   const fetchData = useCallback(async () => {
     try {
       const [boxRes, transRes] = await Promise.all([
-        authFetch(`${API_URL}/api/boxes`),
+        authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true`),
         authFetch(`${API_URL}/api/boxes/pipeline-transitions?limit=50`),
       ])
       const boxData = await boxRes.json()

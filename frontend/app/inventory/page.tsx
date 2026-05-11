@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { authFetch } from '@/lib/auth-api'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer } from 'lucide-react'
+import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
@@ -75,6 +75,24 @@ export default function InventoryPage() {
   const [printBooks, setPrintBooks] = useState<BookInBox[]>([])
   const [loadingPrint, setLoadingPrint] = useState<string | null>(null)
   const barcodeRef = useRef<HTMLCanvasElement>(null)
+
+  // --- Simflex check state ---
+  const [simflexModal, setSimflexModal] = useState<null | {
+    box: Box
+    loading: boolean
+    result: {
+      autoAdvanced: boolean
+      allCompleted: boolean
+      finalStage: string
+      totalProcessable: number
+      completedCount: number
+      pendingCount: number
+      message: string
+      simflexResults: { isbn: string; transmissionCompleted: boolean; latestStatus: string | null; boxNumber: string | null }[]
+      notCompleted: { isbn: string; latestStatus: string | null }[]
+    } | null
+    error: string | null
+  }>(null)
 
   // --- History tab state ---
   const [logs, setLogs] = useState<LogEntry[]>([])
@@ -187,6 +205,23 @@ export default function InventoryPage() {
     } else {
       setExpandedBox(boxId)
       fetchBooksInBox(boxId)
+    }
+  }
+
+  const handleCheckSimflex = async (box: Box) => {
+    setSimflexModal({ box, loading: true, result: null, error: null })
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/check-simflex`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setSimflexModal(prev => prev ? { ...prev, loading: false, error: data.error || 'Request failed' } : null)
+        return
+      }
+      setSimflexModal(prev => prev ? { ...prev, loading: false, result: data } : null)
+      // If auto-advanced, refresh boxes list so the stage updates
+      if (data.autoAdvanced) fetchBoxes()
+    } catch (e) {
+      setSimflexModal(prev => prev ? { ...prev, loading: false, error: e instanceof Error ? e.message : 'Unknown error' } : null)
     }
   }
 
@@ -449,6 +484,18 @@ export default function InventoryPage() {
                               <BookOpen className="inline h-3 w-3 mr-1" />{bookCount} books
                             </span>
                           </button>
+                          {box.current_stage === 'scan' && (
+                            <button
+                              onClick={() => handleCheckSimflex(box)}
+                              disabled={simflexModal?.box.id === box.id && simflexModal.loading}
+                              className="px-3 py-3 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors shrink-0 border-l border-border"
+                              title="Check Simflex transmission status"
+                            >
+                              {simflexModal?.box.id === box.id && simflexModal.loading
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <Zap className="h-4 w-4" />}
+                            </button>
+                          )}
                           <button
                             onClick={() => { handlePrintLabel(box).then(() => setTimeout(() => window.print(), 300)) }}
                             disabled={loadingPrint === box.id}
@@ -568,6 +615,113 @@ export default function InventoryPage() {
 
         </div>
       </main>
+      {/* Simflex Check Modal */}
+      {simflexModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !simflexModal.loading && setSimflexModal(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-amber-500" />
+                  Simflex Transmission Check
+                </h3>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">{simflexModal.box.box_number} · {simflexModal.box.lot?.lot_number}</p>
+              </div>
+              {!simflexModal.loading && (
+                <button onClick={() => setSimflexModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+              )}
+            </div>
+
+            {/* Loading */}
+            {simflexModal.loading && (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+                <p className="text-sm text-muted-foreground">Checking Simflex for all ISBNs in this box…</p>
+              </div>
+            )}
+
+            {/* Error */}
+            {!simflexModal.loading && simflexModal.error && (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <AlertTriangle className="h-8 w-8 text-destructive" />
+                <p className="text-sm text-destructive font-medium">{simflexModal.error}</p>
+                <button onClick={() => handleCheckSimflex(simflexModal.box)} className="text-xs underline text-muted-foreground">Retry</button>
+              </div>
+            )}
+
+            {/* Result */}
+            {!simflexModal.loading && simflexModal.result && (
+              <div className="flex flex-col gap-4 overflow-hidden">
+                {/* Summary banner */}
+                <div className={`flex items-start gap-3 rounded-lg p-4 border ${
+                  simflexModal.result.autoAdvanced
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-amber-50 border-amber-200'
+                }`}>
+                  {simflexModal.result.autoAdvanced
+                    ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                    : <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />}
+                  <div>
+                    <p className={`text-sm font-semibold ${
+                      simflexModal.result.autoAdvanced ? 'text-green-800' : 'text-amber-800'
+                    }`}>
+                      {simflexModal.result.message}
+                    </p>
+                    <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                      <span>Total processable: <strong>{simflexModal.result.totalProcessable}</strong></span>
+                      <span className="text-green-700">Completed: <strong>{simflexModal.result.completedCount}</strong></span>
+                      {simflexModal.result.pendingCount > 0 && (
+                        <span className="text-amber-700">Pending: <strong>{simflexModal.result.pendingCount}</strong></span>
+                      )}
+                    </div>
+                    {simflexModal.result.autoAdvanced && (
+                      <p className="text-xs text-green-700 mt-1 font-medium">Box stage updated: Scan → Transmit → Storage</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* ISBN table */}
+                <div className="overflow-y-auto flex-1 rounded-lg border border-border">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-card border-b border-border">
+                      <tr className="text-muted-foreground">
+                        <th className="pb-2 pt-2 px-3 text-left font-medium">#</th>
+                        <th className="pb-2 pt-2 px-3 text-left font-medium">ISBN</th>
+                        <th className="pb-2 pt-2 px-3 text-left font-medium">Simflex Box</th>
+                        <th className="pb-2 pt-2 px-3 text-left font-medium">Latest Status</th>
+                        <th className="pb-2 pt-2 px-3 text-center font-medium">Transmitted</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {simflexModal.result.simflexResults.map((r, i) => (
+                        <tr key={r.isbn} className="border-b border-border/40 last:border-0">
+                          <td className="py-1.5 px-3 text-muted-foreground">{i + 1}</td>
+                          <td className="py-1.5 px-3 font-mono text-foreground">{r.isbn}</td>
+                          <td className="py-1.5 px-3 text-muted-foreground">{r.boxNumber || '—'}</td>
+                          <td className="py-1.5 px-3 text-muted-foreground max-w-[180px] truncate" title={r.latestStatus || ''}>
+                            {r.latestStatus || <span className="italic">Not in Simflex</span>}
+                          </td>
+                          <td className="py-1.5 px-3 text-center">
+                            {r.transmissionCompleted
+                              ? <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" />
+                              : <XCircle className="h-4 w-4 text-amber-500 mx-auto" />}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-end">
+                  <button onClick={() => setSimflexModal(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Close</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Scanned Box Contents Modal */}
       {(scannedBoxModal || loadingScannedBox) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setScannedBoxModal(null)}>

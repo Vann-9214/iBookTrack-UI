@@ -7,7 +7,7 @@ const router = express.Router()
 // Get all boxes (with optional filters)
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { lot_id, current_stage, box_number } = req.query
+    const { lot_id, current_stage, box_number, exclude_assigned_storage } = req.query
 
     const db = supabaseAdmin || supabase
     let query = db
@@ -24,10 +24,20 @@ router.get('/', requireAuth, async (req, res) => {
     if (box_number) query = query.ilike('box_number', `%${box_number}%`)
 
     const { data, error } = await query
-
     if (error) throw error
 
-    res.json({ boxes: data })
+    let boxes = data
+
+    // Exclude storage-stage boxes that are already placed in a storage slot
+    if (exclude_assigned_storage === 'true') {
+      const { data: assigned } = await db
+        .from('storage_assignments')
+        .select('box_id')
+      const assignedIds = new Set((assigned || []).map(a => a.box_id))
+      boxes = boxes.filter(b => !(b.current_stage === 'storage' && assignedIds.has(b.id)))
+    }
+
+    res.json({ boxes })
   } catch (error) {
     console.error('Get boxes error:', error)
     res.status(500).json({ error: error.message })
@@ -39,7 +49,8 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   try {
     const { limit = 50 } = req.query
 
-    const { data, error } = await supabase
+    const db = supabaseAdmin || supabase
+    const { data, error } = await db
       .from('pipeline_events')
       .select(`
         id,
@@ -391,6 +402,122 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Rollback box stage error:', error)
     res.status(500).json({ error: error.message })
+  }
+})
+
+// Check Simflex transmission status for all processable books in a box.
+// If all are Transmission_Archive COMPLETED, auto-advance box from scan → transmit → storage.
+// Box must be in 'scan' stage. Manual advance is still available separately.
+router.post('/:id/check-simflex', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const db = supabaseAdmin || supabase
+    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+
+    // 1. Get the box
+    const { data: box, error: boxError } = await db
+      .from('boxes')
+      .select('id, lot_id, current_stage, box_number, lot:lots(lot_number)')
+      .eq('id', id)
+      .single()
+
+    if (boxError || !box) return res.status(404).json({ success: false, error: 'Box not found' })
+
+    if (box.current_stage !== 'scan') {
+      return res.status(400).json({
+        success: false,
+        error: `Box is in '${box.current_stage}' stage, not 'scan'. Only boxes in scan stage can be checked.`
+      })
+    }
+
+    // 2. Get all processable ISBNs in this box from warehouse_book_scans
+    const { data: scans, error: scansError } = await db
+      .from('warehouse_book_scans')
+      .select('isbn, title, scan_status')
+      .eq('assigned_box_id', id)
+      .eq('scan_status', 'processable')
+
+    if (scansError) throw scansError
+
+    if (!scans || scans.length === 0) {
+      return res.json({
+        success: true,
+        autoAdvanced: false,
+        message: 'No processable books found in this box.',
+        isbns: [],
+        simflexResults: [],
+        allCompleted: false,
+      })
+    }
+
+    const isbns = [...new Set(scans.map(s => s.isbn))]
+
+    // 3. Query Simflex for all ISBNs
+    const simflexResult = await getSimflexStatusForISBNs(isbns)
+
+    if (!simflexResult.success) {
+      return res.status(502).json({
+        success: false,
+        error: 'Failed to reach Simflex: ' + (simflexResult.error || 'Unknown error'),
+      })
+    }
+
+    const simflexData = simflexResult.data
+
+    // 4. Check if every processable ISBN has Transmission_Archive COMPLETED
+    const notCompleted = simflexData.filter(r => !r.transmissionCompleted)
+    const allCompleted = notCompleted.length === 0
+
+    // 5. If all done → auto-advance scan → transmit → storage
+    let autoAdvanced = false
+    let finalStage = box.current_stage
+
+    if (allCompleted) {
+      const ADVANCE_STAGES = ['transmit', 'storage']
+      let currentStage = 'scan'
+
+      for (const nextStage of ADVANCE_STAGES) {
+        const { error: updateError } = await db
+          .from('boxes')
+          .update({ current_stage: nextStage, received_at: null })
+          .eq('id', id)
+
+        if (updateError) throw updateError
+
+        await db.from('pipeline_events').insert({
+          box_id: id,
+          lot_id: box.lot_id,
+          from_stage: currentStage,
+          to_stage: nextStage,
+          moved_by: req.user.id,
+          moved_by_name: req.user.user_metadata?.full_name || req.user.email,
+          notes: `Auto-advanced: all ${isbns.length} processable ISBNs confirmed Transmission_Archive COMPLETED in Simflex`,
+        })
+
+        currentStage = nextStage
+      }
+
+      autoAdvanced = true
+      finalStage = 'storage'
+    }
+
+    return res.json({
+      success: true,
+      autoAdvanced,
+      allCompleted,
+      finalStage,
+      totalProcessable: isbns.length,
+      completedCount: simflexData.filter(r => r.transmissionCompleted).length,
+      pendingCount: notCompleted.length,
+      message: allCompleted
+        ? `All ${isbns.length} books confirmed transmitted. Box automatically advanced to Storage.`
+        : `${notCompleted.length} of ${isbns.length} books not yet completed in Simflex. Box remains in Scan.`,
+      simflexResults: simflexData,
+      notCompleted: notCompleted.map(r => ({ isbn: r.isbn, latestStatus: r.latestStatus })),
+    })
+  } catch (error) {
+    console.error('Check Simflex error:', error)
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 
