@@ -97,7 +97,7 @@ export default function ReportsPage() {
                 onChange={(e) => setReportType(e.target.value as 'finished-lots' | 'indic-books')}
                 className="bg-input border border-border rounded-lg px-4 py-2 text-sm text-foreground cursor-pointer hover:bg-card transition-colors"
               >
-                <option value="finished-lots">📦 Finished Lots (970k)</option>
+                <option value="finished-lots">📦 Finished Books (970k)</option>
                 <option value="indic-books">📚 INDIC Books (215k)</option>
               </select>
               <button

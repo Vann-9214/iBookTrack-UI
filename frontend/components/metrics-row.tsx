@@ -11,7 +11,7 @@ interface MetricsRowProps {
 export function MetricsRow({ data }: MetricsRowProps) {
   const metrics = [
     {
-      label: 'Total Books (Finished Lots)',
+      label: 'Total Books (Finished Books)',
       value: data?.totalBooks.toLocaleString() || '0',
       subtext: 'Lot 1-51',
       color: 'text-primary',
@@ -31,7 +31,7 @@ export function MetricsRow({ data }: MetricsRowProps) {
     {
       label: 'Completion Rate',
       value: `${data?.completionRate || '0'}%`,
-      subtext: 'Finished Lots',
+      subtext: 'Finished Books',
       color: 'text-primary',
     },
   ]
