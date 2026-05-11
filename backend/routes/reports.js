@@ -59,7 +59,7 @@ router.get('/finished-lots', async (req, res) => {
   try {
     console.log('[Reports] fetching finished-lots...')
     
-    const { data: lotData, error: lotError } = await callRpcWithRetry('get_lot_stats')
+    const { data: lotData, error: lotError } = await callRpcWithRetry('get_lot_stats', {}, 0)
 
     if (lotError) {
       console.error('[Reports] get_lot_stats RPC error after retries:', lotError)

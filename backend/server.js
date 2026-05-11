@@ -11,6 +11,7 @@ import warehouseRoutes from './routes/warehouse.js'
 import reportsRoutes from './routes/reports.js'
 import scanningRoutes from './routes/scanning.js'
 import storageRoutes from './routes/storage.js'
+import { startSimflexPoller } from './services/simflex-poller.js'
 
 dotenv.config({ path: '../.env' })
 
@@ -81,4 +82,5 @@ app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date(
 app.listen(PORT, async () => {
   console.log(`\n🚀 Backend running at http://localhost:${PORT}`)
   await testConnection()
+  startSimflexPoller()
 })

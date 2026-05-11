@@ -142,11 +142,38 @@ router.get('/:id', requireAuth, async (req, res) => {
     // Pull scanned books from warehouse_book_scans for this box
     const { data: scans } = await db
       .from('warehouse_book_scans')
-      .select('id, isbn, title, scan_status, scanned_at')
+      .select('id, isbn, title, scan_status, scanned_at, rejection_reason')
       .eq('assigned_box_id', id)
       .order('scanned_at', { ascending: true })
 
-    res.json({ box: { ...box, books: scans || [] } })
+    // Pull existing flags for all scans in this box
+    const scanIds = (scans || []).map(s => s.id)
+    let flagMap = {}
+    if (scanIds.length > 0) {
+      const { data: flags } = await db
+        .from('qc_flags')
+        .select('scan_id, issue, remarks, flagged_at, flagged_by_name')
+        .in('scan_id', scanIds)
+      ;(flags || []).forEach(f => { flagMap[f.scan_id] = f })
+    }
+
+    const books = (scans || []).map(s => {
+      let flag = flagMap[s.id] || null
+      // If non-processable but no explicit qc_flag entry, synthesize from rejection_reason
+      if (!flag && s.scan_status === 'non_processable') {
+        flag = {
+          issue: s.rejection_reason || 'non-processable',
+          remarks: '',
+          flagged_at: s.scanned_at,
+          flagged_by_name: 'Warehouse scan',
+          source: 'scan_status',
+        }
+      }
+      return { ...s, flag }
+    })
+
+    const totalFlagCount = books.filter(b => b.flag !== null).length
+    res.json({ box: { ...box, books, flag_count: totalFlagCount } })
   } catch (error) {
     console.error('Get box error:', error)
     res.status(500).json({ error: error.message })
@@ -517,6 +544,39 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
     })
   } catch (error) {
     console.error('Check Simflex error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// DELETE /api/boxes/:id — hard delete box and all related records
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const db = supabaseAdmin || supabase
+
+    // Verify box exists
+    const { data: box, error: findError } = await db
+      .from('boxes')
+      .select('id, box_number')
+      .eq('id', id)
+      .single()
+
+    if (findError || !box) {
+      return res.status(404).json({ success: false, error: 'Box not found' })
+    }
+
+    // Delete dependents first (FK order)
+    await db.from('warehouse_book_scans').delete().eq('assigned_box_id', id)
+    await db.from('storage_assignments').delete().eq('box_id', id)
+    await db.from('pipeline_events').delete().eq('box_id', id)
+
+    // Delete the box itself
+    const { error: deleteError } = await db.from('boxes').delete().eq('id', id)
+    if (deleteError) throw deleteError
+
+    res.json({ success: true, message: `Box ${box.box_number} deleted` })
+  } catch (error) {
+    console.error('Delete box error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

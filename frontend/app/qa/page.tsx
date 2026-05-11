@@ -41,6 +41,7 @@ interface BookEntry {
   title: string | null
   scan_status: string
   scanned_at: string
+  flag?: { issue: string; remarks: string; flagged_at: string; flagged_by_name: string; source?: string } | null
 }
 
 interface BoxEntry {
@@ -93,34 +94,28 @@ export default function BookInspectionPage() {
   const loadLotBooks = async (lotNumber: string, lotBoxes: BoxEntry[]) => {
     if (expandedLot === lotNumber) { setExpandedLot(null); return }
     setExpandedLot(lotNumber)
-    const unloaded = lotBoxes.filter(b => !b.books)
     setLoadingBooks(lotNumber)
     try {
-      // Load books for boxes not yet fetched
+      // Load books for boxes not yet fetched — flags are embedded in each book
       const updatedBoxes = await Promise.all(lotBoxes.map(async box => {
         if (box.books) return box
         const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
         const data = await res.json()
-        const books = data.box?.books || []
+        const books: BookEntry[] = data.box?.books || []
         setBoxes(prev => prev.map(b => b.id === box.id ? { ...b, books } : b))
         return { ...box, books }
       }))
 
-      // Load existing flags for all scan IDs in this lot
-      const allScanIds = updatedBoxes.flatMap(b => (b.books || []).map((bk: BookEntry) => bk.id)).filter(Boolean)
-      if (allScanIds.length > 0) {
-        const flagRes = await authFetch(`${API_URL}/api/books/flags?scan_ids=${allScanIds.join(',')}`)
-        const flagData = await flagRes.json()
-        if (flagData.flags?.length > 0) {
-          setBookIssues(prev => {
-            const updated = { ...prev }
-            flagData.flags.forEach((f: { scan_id: string; issue: string; remarks: string }) => {
-              updated[f.scan_id] = { issue: f.issue, remarks: f.remarks || '', saved: true }
-            })
-            return updated
-          })
-        }
-      }
+      // Pre-populate bookIssues from embedded flag data
+      setBookIssues(prev => {
+        const updated = { ...prev }
+        updatedBoxes.flatMap(b => b.books || []).forEach(book => {
+          if (book.flag && !updated[book.id]) {
+            updated[book.id] = { issue: book.flag.issue, remarks: book.flag.remarks || '', saved: true }
+          }
+        })
+        return updated
+      })
     } catch (e) {
       console.error('Failed to fetch books:', e)
     } finally {
@@ -306,13 +301,22 @@ export default function BookInspectionPage() {
                                           )}
                                         </div>
                                       ) : (
-                                        <div className="text-xs pl-8 sm:pl-0 sm:shrink-0 flex items-center gap-1.5">
-                                          <Badge variant="outline" className="text-[10px] border-red-300 text-red-600 bg-red-50 gap-1">
-                                            <AlertTriangle className="h-2.5 w-2.5" />
-                                            {COMMON_ISSUES.find(i => i.value === issueEntry.issue)?.label || issueEntry.issue}
-                                          </Badge>
+                                        <div className="text-xs pl-8 sm:pl-0 sm:shrink-0 flex items-center gap-1.5 flex-wrap">
+                                          {book.flag?.source === 'scan_status' ? (
+                                            <Badge variant="outline" className="text-[10px] border-orange-300 text-orange-700 bg-orange-50 gap-1">
+                                              <AlertTriangle className="h-2.5 w-2.5" />
+                                              Non-Processable (Warehouse)
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-[10px] border-red-300 text-red-600 bg-red-50 gap-1">
+                                              <AlertTriangle className="h-2.5 w-2.5" />
+                                              {COMMON_ISSUES.find(i => i.value === issueEntry.issue)?.label || issueEntry.issue}
+                                            </Badge>
+                                          )}
                                           {issueEntry.remarks && <span className="text-muted-foreground text-[10px]">— {issueEntry.remarks}</span>}
-                                          <button onClick={() => setBookIssues(prev => { const n = { ...prev }; delete n[book.id]; return n })} className="text-muted-foreground hover:text-foreground underline text-[10px] ml-1">Edit</button>
+                                          <button onClick={() => setBookIssues(prev => { const n = { ...prev }; delete n[book.id]; return n })} className="text-muted-foreground hover:text-foreground underline text-[10px] ml-1">
+                                            {book.flag?.source === 'scan_status' ? 'Add QC note' : 'Edit'}
+                                          </button>
                                         </div>
                                       )}
                                     </div>

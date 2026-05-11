@@ -142,4 +142,34 @@ router.get('/export', async (req, res) => {
   }
 })
 
+// GET /api/scanning/simflex-status?isbns=isbn1,isbn2,...
+// Returns per-ISBN latest status from Simflex
+router.get('/simflex-status', async (req, res) => {
+  try {
+    const { isbns } = req.query
+    if (!isbns) return res.status(400).json({ success: false, error: 'isbns query param required' })
+
+    const isbnList = String(isbns).split(',').map(s => s.trim()).filter(Boolean)
+    if (isbnList.length === 0) return res.json({ success: true, statuses: {} })
+
+    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+    const result = await getSimflexStatusForISBNs(isbnList)
+
+    if (!result.success) {
+      return res.status(502).json({ success: false, error: result.error || 'Simflex unavailable' })
+    }
+
+    // Build isbn → status map
+    const statuses = {}
+    for (const r of result.data) {
+      statuses[r.isbn] = r.transmissionCompleted ? 'COMPLETED' : (r.latestStatus || 'Pending')
+    }
+
+    res.json({ success: true, statuses })
+  } catch (error) {
+    console.error('Simflex status error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 export default router

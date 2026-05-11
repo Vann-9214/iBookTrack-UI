@@ -280,61 +280,15 @@ router.post('/scan', requireAuth, async (req, res) => {
   }
 })
 
-// Identify which project (Mustang/Jaguar) an ISBN belongs to
-// 1. Checks own DB (warehouse_book_scans lot suffix) — instant
-// 2. Falls back to querying both ILMS endpoints in parallel
+// Identify which project (Mustang/Jaguar) an ISBN belongs to via dual ILMS query
 router.get('/identify/:isbn', requireAuth, async (req, res) => {
   try {
     const { isbn } = req.params
-    const db = supabaseAdmin || supabase
-
-    // Step 1: Check our own DB — warehouse_book_scans → lot_number suffix
-    const { data: scan } = await db
-      .from('warehouse_book_scans')
-      .select('isbn, lot:lots(lot_number)')
-      .eq('isbn', isbn)
-      .not('lot_id', 'is', null)
-      .limit(1)
-      .maybeSingle()
-
-    if (scan?.lot?.lot_number) {
-      const lotNum = scan.lot.lot_number.trim()
-      const suffix = lotNum.slice(-1).toUpperCase()
-      if (suffix === 'J') {
-        return res.json({ success: true, source: 'db', project: 'jaguar', lot_number: lotNum, data: null })
-      }
-      if (suffix === 'M') {
-        return res.json({ success: true, source: 'db', project: 'mustang', lot_number: lotNum, data: null })
-      }
-    }
-
-    // Also check boxes → lots via warehouse_book_scans assigned_box_id
-    const { data: boxScan } = await db
-      .from('warehouse_book_scans')
-      .select('isbn, box:boxes(lot:lots(lot_number))')
-      .eq('isbn', isbn)
-      .not('assigned_box_id', 'is', null)
-      .limit(1)
-      .maybeSingle()
-
-    if (boxScan?.box?.lot?.lot_number) {
-      const lotNum = boxScan.box.lot.lot_number.trim()
-      const suffix = lotNum.slice(-1).toUpperCase()
-      if (suffix === 'J') {
-        return res.json({ success: true, source: 'db', project: 'jaguar', lot_number: lotNum, data: null })
-      }
-      if (suffix === 'M') {
-        return res.json({ success: true, source: 'db', project: 'mustang', lot_number: lotNum, data: null })
-      }
-    }
-
-    // Step 2: DB has no lot info — query both ILMS in parallel
     const result = await ilmsApi.identifyProject(isbn)
     return res.json({
       success: result.project !== 'unknown',
       source: 'ilms',
       project: result.project,
-      lot_number: null,
       data: result.data,
       mustang: result.mustang,
       jaguar: result.jaguar,

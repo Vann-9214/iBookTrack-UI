@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { authFetch } from '@/lib/auth-api'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react'
+import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2 } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
@@ -84,6 +84,50 @@ export default function InventoryPage() {
     'Scanning',
     'Book Storage',
   ]
+
+  // --- Per-box Simflex ISBN status ---
+  const [simflexBookStatus, setSimflexBookStatus] = useState<Record<string, Record<string, string>>>({})
+  const [loadingSimflexStatus, setLoadingSimflexStatus] = useState<string | null>(null)
+
+  const fetchSimflexBookStatus = async (box: Box, bookList: BookInBox[]) => {
+    const processable = bookList.filter(b => b.scan_status === 'processable')
+    if (processable.length === 0) return
+    setLoadingSimflexStatus(box.id)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+      const isbns = processable.map(b => b.isbn).join(',')
+      const res = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${isbns}`)
+      const data = await res.json()
+      if (data.success && data.statuses) {
+        setSimflexBookStatus(prev => ({ ...prev, [box.id]: data.statuses }))
+      }
+    } catch (e) {
+      console.error('Failed to fetch simflex status:', e)
+    } finally {
+      setLoadingSimflexStatus(null)
+    }
+  }
+
+  // --- Delete box state ---
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; box_number: string } | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDeleteBox = async () => {
+    if (!deleteConfirm) return
+    setDeleting(true)
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+      const res = await authFetch(`${API_URL}/api/boxes/${deleteConfirm.id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Delete failed')
+      setBoxes(prev => prev.filter(b => b.id !== deleteConfirm.id))
+      setDeleteConfirm(null)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Delete failed')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   // --- Simflex check state ---
   const [simflexModal, setSimflexModal] = useState<null | {
@@ -166,10 +210,10 @@ export default function InventoryPage() {
 
       const bookTypeResponse = await authFetch(`${API_URL}/api/books?box_id=${box.id}`)
       const bookTypeData = await bookTypeResponse.json()
-      const derivedType = Array.from(new Set((bookTypeData.books || [])
+      const derivedType = (Array.from(new Set((bookTypeData.books || [])
         .map((book: { book_type?: string }) => (book.book_type || '').trim())
-        .filter(Boolean)))
-        .map((type: string) => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase())[0] || '—'
+        .filter(Boolean))) as string[])
+        .map(type => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase())[0] || '—'
 
       setPrintBox(box)
       setPrintBooks(books)
@@ -245,7 +289,7 @@ export default function InventoryPage() {
 
   const fetchScanHistory = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/warehouse/scans/recent?limit=50`)
+      const res = await authFetch(`${API_URL}/api/warehouse/scans/recent?limit=50`)
       const data = await res.json()
       if (data.success && data.scans) {
         setLogs(data.scans.map((s: any) => ({
@@ -332,6 +376,39 @@ export default function InventoryPage() {
 
   return (
     <>
+    {/* ── DELETE BOX CONFIRM DIALOG ── */}
+    {deleteConfirm && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden">
+        <div className="bg-background border border-border rounded-xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-destructive/10 rounded-full p-2"><Trash2 className="h-5 w-5 text-destructive" /></div>
+            <div>
+              <p className="font-semibold text-foreground">Delete Box</p>
+              <p className="text-xs text-muted-foreground mt-0.5">This cannot be undone</p>
+            </div>
+          </div>
+          <p className="text-sm text-foreground">
+            Permanently delete <span className="font-semibold">{deleteConfirm.box_number}</span> and all its scan records, storage assignments, and pipeline events?
+          </p>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setDeleteConfirm(null)}
+              disabled={deleting}
+              className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
+            >Cancel</button>
+            <button
+              onClick={handleDeleteBox}
+              disabled={deleting}
+              className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors flex items-center gap-2"
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* ── PRINT LABEL OVERLAY (print-only) ── */}
     {printBox && (
       <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:z-[9999] print:text-[#19294f]">
@@ -550,11 +627,39 @@ export default function InventoryPage() {
                               ? <span className="text-[10px]">...</span>
                               : <Printer className="h-4 w-4" />}
                           </button>
+                          <button
+                            onClick={() => setDeleteConfirm({ id: box.id, box_number: box.box_number })}
+                            className="px-3 py-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 border-l border-border"
+                            title="Delete box"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
 
                         {/* Expanded Books */}
                         {isOpen && (
                           <div className="border-t border-border bg-muted/20 px-4 py-3">
+                            {/* Simflex status fetch button for scan/transmit boxes */}
+                            {(box.current_stage === 'scan' || box.current_stage === 'transmit') && books && books.length > 0 && (
+                              <div className="flex items-center gap-2 mb-3">
+                                <button
+                                  onClick={() => fetchSimflexBookStatus(box, books)}
+                                  disabled={loadingSimflexStatus === box.id}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+                                >
+                                  {loadingSimflexStatus === box.id
+                                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                                    : <Zap className="h-3 w-3" />}
+                                  {loadingSimflexStatus === box.id ? 'Checking Simflex…' : 'Check Simflex Status'}
+                                </button>
+                                {simflexBookStatus[box.id] && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {Object.values(simflexBookStatus[box.id]).filter(s => s === 'COMPLETED').length}
+                                    /{books.filter(b => b.scan_status === 'processable').length} transmitted
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             {loadingBooks === box.id ? (
                               <p className="text-xs text-muted-foreground py-2">Loading books...</p>
                             ) : books && books.length > 0 ? (
@@ -564,25 +669,42 @@ export default function InventoryPage() {
                                     <tr className="text-muted-foreground border-b border-border">
                                       <th className="pb-2 text-left font-medium pr-4">ISBN</th>
                                       <th className="pb-2 text-left font-medium pr-4">Title</th>
-                                      <th className="pb-2 text-left font-medium pr-4">Status</th>
+                                      <th className="pb-2 text-left font-medium pr-4">Warehouse</th>
+                                      {simflexBookStatus[box.id] && <th className="pb-2 text-left font-medium pr-4">Simflex</th>}
                                       <th className="pb-2 text-left font-medium">Scanned At</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {books.map((book, i) => (
-                                      <tr key={book.id || i} className="border-b border-border/50 last:border-0">
-                                        <td className="py-1.5 pr-4 font-mono text-foreground">{book.isbn}</td>
-                                        <td className="py-1.5 pr-4 text-foreground max-w-[200px] truncate">{book.title || '—'}</td>
-                                        <td className="py-1.5 pr-4">
-                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                            {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status || '—'}
-                                          </span>
-                                        </td>
-                                        <td className="py-1.5 text-xs text-muted-foreground">
-                                          {book.scanned_at ? new Date(book.scanned_at).toLocaleString() : '—'}
-                                        </td>
-                                      </tr>
-                                    ))}
+                                    {books.map((book, i) => {
+                                      const sfStatus = simflexBookStatus[box.id]?.[book.isbn]
+                                      return (
+                                        <tr key={book.id || i} className="border-b border-border/50 last:border-0">
+                                          <td className="py-1.5 pr-4 font-mono text-foreground">{book.isbn}</td>
+                                          <td className="py-1.5 pr-4 text-foreground max-w-[200px] truncate">{book.title || '—'}</td>
+                                          <td className="py-1.5 pr-4">
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                              {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status || '—'}
+                                            </span>
+                                          </td>
+                                          {simflexBookStatus[box.id] && (
+                                            <td className="py-1.5 pr-4">
+                                              {book.scan_status !== 'processable' ? (
+                                                <span className="text-[10px] text-muted-foreground">—</span>
+                                              ) : sfStatus === 'COMPLETED' ? (
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">✓ Done</span>
+                                              ) : sfStatus ? (
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 truncate max-w-[120px] block">{sfStatus}</span>
+                                              ) : (
+                                                <span className="text-[10px] text-muted-foreground">Not found</span>
+                                              )}
+                                            </td>
+                                          )}
+                                          <td className="py-1.5 text-xs text-muted-foreground">
+                                            {book.scanned_at ? new Date(book.scanned_at).toLocaleString() : '—'}
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
                                   </tbody>
                                 </table>
                               </div>

@@ -387,7 +387,9 @@ export default function StationCheckpointsPage() {
                                 </div>
                                 {!isLast && (
                                   <div className="ml-2 flex flex-col gap-1 shrink-0">
-                                    {stage === 'warehouse' || box.received_at ? (
+                                    {stage === 'transmit' ? (
+                                      <span className="text-[10px] text-muted-foreground italic px-1">Auto</span>
+                                    ) : stage === 'warehouse' || box.received_at ? (
                                       <Button
                                         size="sm"
                                         variant="outline"
