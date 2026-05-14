@@ -76,7 +76,7 @@ export default function InventoryPage() {
   const [printBooks, setPrintBooks] = useState<BookInBox[]>([])
   const [printBookType, setPrintBookType] = useState<string>('')
   const [loadingPrint, setLoadingPrint] = useState<string | null>(null)
-  const barcodeRef = useRef<HTMLCanvasElement>(null)
+  const qrRef = useRef<HTMLCanvasElement>(null)
   const printProcessRows = [
     'Inventory & Registration',
     'Cutting',
@@ -270,6 +270,22 @@ export default function InventoryPage() {
     }
   }
 
+  const [movingToStorage, setMovingToStorage] = useState<string | null>(null)
+
+  const handleMoveToStorage = async (box: Box) => {
+    setMovingToStorage(box.id)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/advance`, { method: 'POST', body: JSON.stringify({}) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to advance')
+      fetchBoxes()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to move to storage')
+    } finally {
+      setMovingToStorage(null)
+    }
+  }
+
   const handleCheckSimflex = async (box: Box) => {
     setSimflexModal({ box, loading: true, result: null, error: null })
     try {
@@ -339,29 +355,29 @@ export default function InventoryPage() {
   useEffect(() => {
     if (!printBox) return
 
-    const renderBarcode = () => {
-      if (!barcodeRef.current) return
-
-      try {
-        barcodeRef.current.width = 700
-        barcodeRef.current.height = 140
-        bwipjs.toCanvas(barcodeRef.current, {
-          bcid: 'code128',
-          text: printBox.box_number,
-          scale: 3,
-          height: 16,
-          includetext: true,
-          textxalign: 'center',
-          paddingwidth: 6,
-          paddingheight: 4,
-        })
-      } catch (e) {
-        console.error('Barcode error:', e)
+    const render = () => {
+      // Code128 barcode (readable by standard 1D barcode scanners)
+      if (qrRef.current) {
+        try {
+          qrRef.current.width = 600
+          qrRef.current.height = 120
+          bwipjs.toCanvas(qrRef.current, {
+            bcid: 'code128',
+            text: printBox.box_number,
+            scale: 3,
+            height: 18,
+            includetext: false,
+            paddingwidth: 4,
+            paddingheight: 2,
+          })
+        } catch (e) {
+          console.error('Barcode error:', e)
+        }
       }
     }
 
-    const frame = requestAnimationFrame(renderBarcode)
-    return () => cancelAnimationFrame(frame)
+    const timer = setTimeout(render, 50)
+    return () => clearTimeout(timer)
   }, [printBox])
 
   const filteredBoxes = boxes.filter(b => {
@@ -409,61 +425,98 @@ export default function InventoryPage() {
       </div>
     )}
 
-    {/* ── PRINT LABEL OVERLAY (print-only) ── */}
+    {/* ── PRINT LABEL OVERLAY (print-only) A6 landscape yellow label ── */}
     {printBox && (
-      <div className="hidden print:block print:fixed print:inset-0 print:bg-white print:z-[9999] print:text-[#19294f]">
-        <div className="mx-auto flex h-full w-full max-w-[900px] flex-col px-4 py-2">
-          <div className="mt-1 flex flex-col items-center justify-center">
-            <div className="flex w-full justify-center overflow-hidden py-1">
-              <canvas ref={barcodeRef} width={700} height={140} className="block w-full max-w-[640px]" />
+      <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-start print:justify-start">
+        {/*
+          A6 landscape = 148mm × 105mm.
+          At 96dpi: 148mm ≈ 559px, 105mm ≈ 397px.
+          We use mm units via inline style for accurate print sizing.
+        */}
+        <div
+          style={{
+            width: '148mm',
+            height: '105mm',
+            backgroundColor: '#FFC107',
+            border: '2px solid #111',
+            display: 'flex',
+            flexDirection: 'row',
+            fontFamily: 'Arial, Helvetica, sans-serif',
+            color: '#111',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            padding: '3mm',
+            gap: '3mm',
+          }}
+        >
+          {/* ── LEFT: Process table + Remarks ── */}
+          <div style={{ flex: '0 0 52mm', display: 'flex', flexDirection: 'column', border: '1.5px solid #111' }}>
+            {/* Header row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', fontSize: '7pt', fontWeight: 700, textAlign: 'center' }}>
+              <div style={{ borderRight: '1px solid #111', padding: '1mm' }}>Process</div>
+              <div style={{ borderRight: '1px solid #111', padding: '1mm' }}></div>
+              <div style={{ padding: '1mm', lineHeight: 1.1 }}>No. of<br />Books</div>
             </div>
-          </div>
-
-          <div className="mt-2 border border-black px-2 py-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-black">
-            <div><span className="font-bold">Lot:</span> {printBox.lot?.lot_number || '—'}</div>
-            <div><span className="font-bold">Box:</span> {printBox.box_number}</div>
-            <div><span className="font-bold">Stage:</span> {printBox.current_stage}</div>
-            <div><span className="font-bold">Type:</span> {printBookType}</div>
-            <div><span className="font-bold">Date:</span> {new Date().toLocaleDateString()}</div>
-          </div>
-
-          <div className="mt-2 border border-[#4b5563] text-[#19294f]">
-            <div className="grid grid-cols-[1.15fr_0.42fr_0.42fr] border-b border-[#4b5563] text-center text-[11px] font-medium">
-              <div className="border-r border-[#4b5563] py-1">Process</div>
-              <div className="border-r border-[#4b5563] py-1">&nbsp;</div>
-              <div className="py-1 leading-tight">No. of<br />Books</div>
+            {/* Row 1 – empty circle + book count */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
+              <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>Inventory &amp; Registration</div>
+              <div style={{ borderRight: '1px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid #111', background: 'transparent', display: 'inline-block' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books || '—'}</div>
             </div>
-
-            <div className="grid grid-cols-[1.15fr_0.42fr_0.42fr] min-h-[58px] border-b border-[#4b5563] last:border-b-0">
-              <div className="border-r border-[#4b5563] px-2 py-2 text-[16px] leading-[1.02]">Inventory &amp; Registration</div>
-              <div className="border-r border-[#4b5563] flex items-center justify-center"><span className="inline-flex h-4 w-4 rounded-full border border-[#19294f] bg-[#19294f]" /></div>
-              <div className="border-r border-[#4b5563] flex items-center justify-center px-1 text-[24px] leading-none font-light tracking-tight">{printBooks.length || printBox.total_books || '—'}</div>
-            </div>
-
+            {/* Rows 2-5 – empty circle, no book count (filled manually) */}
             {printProcessRows.slice(1).map((label) => (
-              <div key={label} className="grid grid-cols-[1.15fr_0.42fr_0.42fr] min-h-[58px] border-b border-[#4b5563] last:border-b-0">
-                <div className="border-r border-[#4b5563] px-2 py-2 text-[16px] leading-[1.02]">{label}</div>
-                <div className="border-r border-[#4b5563] flex items-center justify-center"><span className="inline-flex h-4 w-4 rounded-full border border-[#19294f] bg-transparent" /></div>
-                <div className="border-r border-[#4b5563] flex items-center justify-center px-1 text-[24px] leading-none font-light tracking-tight">{printBooks.length || printBox.total_books || '—'}</div>
+              <div key={label} style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
+                <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>{label}</div>
+                <div style={{ borderRight: '1px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid #111', background: 'transparent', display: 'inline-block' }} />
+                </div>
+                <div style={{ borderRight: '1px solid #111' }} />
               </div>
             ))}
+            {/* Remarks */}
+            <div style={{ borderTop: '1px solid #111', padding: '1.5mm 2mm', fontSize: '6pt', lineHeight: 1.4, flex: '0 0 auto' }}>
+              <div style={{ fontWeight: 700, fontSize: '7pt', marginBottom: '0.5mm' }}>REMARKS</div>
+              <div>Mismatch Title-</div>
+              <div>Rejects -</div>
+              <div>Excess (not in the PL) -</div>
+              <div>Duplicate -</div>
+              <div>Not yet approved -</div>
+              <div>Mix Box -</div>
+            </div>
+          </div>
 
-            <div className="grid grid-cols-[1.15fr_0.42fr_0.42fr] border-t border-[#4b5563]">
-              <div className="border-r border-[#4b5563] px-2 py-2 text-[10px] leading-tight">
-                <div className="mb-1 text-[11px] font-medium tracking-wide">REMARKS</div>
-                <div className="space-y-0.5 text-[10px] text-black/80">
-                  <div>Mismatch Title-</div>
-                  <div>Rejects -</div>
-                  <div>Excess (not in the PL) -</div>
-                  <div>Duplicate -</div>
-                  <div>Not yet approved -</div>
-                  <div>Book not in the box -</div>
-                  <div>Common book -</div>
-                  <div>Mix Box -</div>
-                </div>
+          {/* ── RIGHT: bordered box with 3 sections + barcode below ── */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5mm' }}>
+            {/* 3-section bordered box */}
+            <div style={{ flex: 1, border: '2px solid #111', display: 'flex', flexDirection: 'column' }}>
+              {/* Section 1: Type */}
+              <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm 2mm', flex: '0 0 auto' }}>
+                <span style={{ fontSize: '26pt', fontWeight: 900, letterSpacing: '-0.5px', textAlign: 'center', lineHeight: 1, textTransform: 'uppercase' }}>
+                  Mustang
+                </span>
               </div>
-              <div className="border-r border-[#4b5563]" />
-              <div className="border-r border-[#4b5563]" />
+              {/* Section 2: Lot number */}
+              <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm 2mm', flex: 1 }}>
+                <span style={{ fontSize: '18pt', fontWeight: 700, textAlign: 'center', lineHeight: 1.1 }}>
+                  {printBox.lot?.lot_number || '—'}
+                </span>
+              </div>
+              {/* Section 3: Box sequence number */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm 2mm', flex: 1 }}>
+                <span style={{ fontSize: '46pt', fontWeight: 900, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px' }}>
+                  {(() => {
+                    const m = printBox.box_number.match(/-0*([1-9]\d*)$/)
+                    return m ? m[1] : printBox.box_number
+                  })()}
+                </span>
+              </div>
+            </div>
+            {/* Barcode below the box */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5mm' }}>
+              <canvas ref={qrRef} width={600} height={120} style={{ width: '100%', height: '14mm', imageRendering: 'pixelated', display: 'block' }} />
+              <div style={{ fontSize: '5pt', textAlign: 'center', wordBreak: 'break-all' }}>{printBox.box_number}</div>
             </div>
           </div>
         </div>
@@ -617,8 +670,20 @@ export default function InventoryPage() {
                                 : <Zap className="h-4 w-4" />}
                             </button>
                           )}
+                          {box.current_stage === 'transmit' && (
+                            <button
+                              onClick={() => handleMoveToStorage(box)}
+                              disabled={movingToStorage === box.id}
+                              className="px-3 py-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors shrink-0 border-l border-border"
+                              title="Move to Storage"
+                            >
+                              {movingToStorage === box.id
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : '→ Storage'}
+                            </button>
+                          )}
                           <button
-                            onClick={() => { handlePrintLabel(box).then(() => setTimeout(() => window.print(), 300)) }}
+                            onClick={() => { handlePrintLabel(box).then(() => setTimeout(() => window.print(), 600)) }}
                             disabled={loadingPrint === box.id}
                             className="px-3 py-3 text-muted-foreground hover:text-primary hover:bg-muted/40 transition-colors shrink-0 border-l border-border"
                             title="Print box label"
