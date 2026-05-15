@@ -51,49 +51,6 @@ type Notification = {
   icon: React.ReactNode
 }
 
-const sampleNotifications: Notification[] = [
-  {
-    id: 1,
-    type: 'success',
-    title: 'Box Transmitted Successfully',
-    message: 'LOT-2024-0891 | BOX-001 transmitted',
-    timestamp: '2 min ago',
-    icon: <CheckCircle2 className="h-4 w-4" />,
-  },
-  {
-    id: 2,
-    type: 'warning',
-    title: 'Incomplete Transmission',
-    message: 'LOT-2024-0889: 120/180 books',
-    timestamp: '15 min ago',
-    icon: <AlertTriangle className="h-4 w-4" />,
-  },
-  {
-    id: 3,
-    type: 'error',
-    title: 'Unaccounted Books',
-    message: 'ISBN 978-0-13-468602-8 missing',
-    timestamp: '28 min ago',
-    icon: <XCircle className="h-4 w-4" />,
-  },
-  {
-    id: 4,
-    type: 'info',
-    title: 'Station Status Update',
-    message: 'Scan Station processing LOT-2024-0890',
-    timestamp: '45 min ago',
-    icon: <AlertCircle className="h-4 w-4" />,
-  },
-  {
-    id: 5,
-    type: 'warning',
-    title: 'Bottleneck Detected',
-    message: 'Validation station has 5+ boxes queued',
-    timestamp: '1 hour ago',
-    icon: <AlertTriangle className="h-4 w-4" />,
-  },
-]
-
 const fallbackUser: SidebarUser = {
   name: 'User Account',
   email: 'No email available',

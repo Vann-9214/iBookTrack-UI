@@ -1,10 +1,15 @@
 import axios from 'axios'
 
-// Simflex WMS API Configuration (WFH Mode)
-// Endpoint discovered by decompiling WMSConnect.dll
-const SIMFLEX_API_URL = 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'
-const SIMFLEX_API_KEY = '00001111'
-const SIMFLEX_CONFIG = '046'
+// Simflex WMS API Configuration — read from .env
+// Set SIMFLEX_API_URL, SIMFLEX_API_KEY, SIMFLEX_CONFIG in your .env file.
+// Defaults are kept for local-dev convenience but should be overridden in prod.
+const SIMFLEX_API_URL = process.env.SIMFLEX_API_URL || 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'
+const SIMFLEX_API_KEY = process.env.SIMFLEX_API_KEY || ''
+const SIMFLEX_CONFIG = process.env.SIMFLEX_CONFIG || ''
+
+if (!SIMFLEX_API_KEY || !SIMFLEX_CONFIG) {
+  console.warn('⚠️  SIMFLEX_API_KEY / SIMFLEX_CONFIG not set in .env — Simflex live data will fail.')
+}
 
 async function query(script) {
   const response = await axios.get(SIMFLEX_API_URL, {
