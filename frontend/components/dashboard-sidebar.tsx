@@ -1,0 +1,591 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { useLiveNotifications } from '@/hooks/use-live-notifications'
+import Image from 'next/image'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Bell,
+  LayoutDashboard,
+  Package,
+  Warehouse,
+  Archive,
+  MapPin,
+  CheckCircle,
+  Radio,
+  Map,
+  BarChart3,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  AlertCircle,
+} from 'lucide-react'
+
+type SidebarUser = {
+  name: string
+  email: string
+  profilePicture?: string | null
+}
+
+type Notification = {
+  id: number
+  type: 'success' | 'warning' | 'error' | 'info'
+  title: string
+  message: string
+  timestamp: string
+  icon: React.ReactNode
+}
+
+const sampleNotifications: Notification[] = [
+  {
+    id: 1,
+    type: 'success',
+    title: 'Box Transmitted Successfully',
+    message: 'LOT-2024-0891 | BOX-001 transmitted',
+    timestamp: '2 min ago',
+    icon: <CheckCircle2 className="h-4 w-4" />,
+  },
+  {
+    id: 2,
+    type: 'warning',
+    title: 'Incomplete Transmission',
+    message: 'LOT-2024-0889: 120/180 books',
+    timestamp: '15 min ago',
+    icon: <AlertTriangle className="h-4 w-4" />,
+  },
+  {
+    id: 3,
+    type: 'error',
+    title: 'Unaccounted Books',
+    message: 'ISBN 978-0-13-468602-8 missing',
+    timestamp: '28 min ago',
+    icon: <XCircle className="h-4 w-4" />,
+  },
+  {
+    id: 4,
+    type: 'info',
+    title: 'Station Status Update',
+    message: 'Scan Station processing LOT-2024-0890',
+    timestamp: '45 min ago',
+    icon: <AlertCircle className="h-4 w-4" />,
+  },
+  {
+    id: 5,
+    type: 'warning',
+    title: 'Bottleneck Detected',
+    message: 'Validation station has 5+ boxes queued',
+    timestamp: '1 hour ago',
+    icon: <AlertTriangle className="h-4 w-4" />,
+  },
+]
+
+const fallbackUser: SidebarUser = {
+  name: 'User Account',
+  email: 'No email available',
+}
+
+function toTitleCase(value: string) {
+  return value
+    .split(/[._\-\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+}
+
+function deriveNameFromEmail(email?: string) {
+  if (!email) return fallbackUser.name
+
+  const localPart = email.split('@')[0]
+  const formattedName = toTitleCase(localPart)
+
+  return formattedName || fallbackUser.name
+}
+
+function getInitials(name: string, email: string) {
+  const source = name !== fallbackUser.name ? name : deriveNameFromEmail(email)
+  const initials = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('')
+
+  return initials || 'UA'
+}
+
+function parseStoredUser(rawUser: string | null): SidebarUser | null {
+  if (!rawUser) return null
+
+  try {
+    const parsed = JSON.parse(rawUser) as Partial<SidebarUser>
+    const email = typeof parsed.email === 'string' ? parsed.email : ''
+    const name = typeof parsed.name === 'string' && parsed.name.trim()
+      ? parsed.name
+      : deriveNameFromEmail(email)
+    const profilePicture = typeof parsed.profilePicture === 'string' && parsed.profilePicture.trim()
+      ? parsed.profilePicture
+      : null
+
+    if (!name && !email) {
+      return null
+    }
+
+    return {
+      name: name || fallbackUser.name,
+      email: email || fallbackUser.email,
+      profilePicture,
+    }
+  } catch {
+    return null
+  }
+}
+
+function decodeTokenUser(token: string | null): SidebarUser | null {
+  if (!token) return null
+
+  try {
+    const payload = token.split('.')[1]
+
+    if (!payload) return null
+
+    const normalizedPayload = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const decodedPayload = window.atob(normalizedPayload)
+    const parsed = JSON.parse(decodedPayload) as {
+      email?: string
+      name?: string
+      full_name?: string
+      user_metadata?: {
+        name?: string
+        full_name?: string
+      }
+    }
+
+    const email = parsed.email || ''
+    const name = parsed.user_metadata?.full_name || parsed.user_metadata?.name || parsed.full_name || parsed.name || deriveNameFromEmail(email)
+
+    if (!name && !email) {
+      return null
+    }
+
+    return {
+      name: name || fallbackUser.name,
+      email: email || fallbackUser.email,
+      profilePicture: null,
+    }
+  } catch {
+    return null
+  }
+}
+
+function getUserInitials(user: SidebarUser) {
+  return getInitials(user.name, user.email)
+}
+
+export function DashboardSidebar() {
+  const [collapsed, setCollapsed] = useState(false)
+  const [warehouseOpen, setWarehouseOpen] = useState(false)
+  const [user, setUser] = useState<SidebarUser>(fallbackUser)
+  const router = useRouter()
+  const pathname = usePathname()
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useLiveNotifications(5, 5000)
+
+  const isActive = (href: string) => pathname === href
+  const isWarehouseSection = pathname === '/warehouse-inventory' || pathname === '/inventory'
+  const initials = getUserInitials(user)
+
+  useEffect(() => {
+    const syncUser = () => {
+      const storedUser = parseStoredUser(window.localStorage.getItem('ibooktrack_user'))
+      const tokenUser = decodeTokenUser(window.localStorage.getItem('access_token'))
+      const profilePicture = window.localStorage.getItem('ibooktrack_profile_picture')
+
+      setUser({
+        ...(storedUser ?? tokenUser ?? fallbackUser),
+        profilePicture: storedUser?.profilePicture ?? profilePicture,
+      })
+    }
+
+    syncUser()
+    window.addEventListener('storage', syncUser)
+    window.addEventListener('ibooktrack-user-updated', syncUser as EventListener)
+
+    return () => {
+      window.removeEventListener('storage', syncUser)
+      window.removeEventListener('ibooktrack-user-updated', syncUser as EventListener)
+    }
+  }, [])
+
+  const handleLogout = () => {
+    window.localStorage.removeItem('access_token')
+    window.localStorage.removeItem('ibooktrack_user')
+    window.sessionStorage.removeItem('from_login')
+    router.push('/login')
+  }
+
+  return (
+    <aside
+      className={cn(
+        "relative z-20 sticky top-0 shrink-0 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300",
+        collapsed ? "w-[68px]" : "w-64"
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-5">
+        {!collapsed && (
+          <Image
+            src="/iBookTrack_logo.png"
+            alt="iBookTrack"
+            width={140}
+            height={140}
+            style={{ width: '60px', height: 'auto', transform: 'scale(3.5)', transformOrigin: 'left center', pointerEvents: 'none' }}
+            priority
+          />
+        )}
+        <button
+          className={cn(
+            'ml-auto h-7 w-7 shrink-0 flex items-center justify-center text-muted-foreground hover:text-sidebar-foreground transition-colors',
+            collapsed && 'ml-0'
+          )}
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
+      </div>
+
+      <div className="h-px bg-sidebar-border" />
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-1 max-h-screen" role="navigation" aria-label="Main navigation">
+
+        {/* Dashboard */}
+        <button
+          onClick={() => router.push('/Dashboard')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/Dashboard')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/Dashboard') ? 'page' : undefined}
+          title={collapsed ? 'Dashboard' : undefined}
+        >
+          <LayoutDashboard className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="truncate">Dashboard</span>}
+        </button>
+
+        {/* Warehouse & Inventory (expandable) */}
+        <div>
+          <button
+            onClick={() => {
+              if (collapsed) {
+                router.push('/warehouse-inventory')
+              } else {
+                setWarehouseOpen((prev) => !prev)
+              }
+            }}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              isWarehouseSection
+                ? 'bg-primary/15 text-primary'
+                : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+            )}
+            title={collapsed ? 'Warehouse & Inventory' : undefined}
+          >
+            <Package className="h-5 w-5 shrink-0" />
+            {!collapsed && (
+              <>
+                <span className="flex-1 truncate text-left">Warehouse & Inventory</span>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 shrink-0 transition-transform duration-200',
+                    warehouseOpen && 'rotate-180'
+                  )}
+                />
+              </>
+            )}
+          </button>
+
+          {/* Sub-items */}
+          {!collapsed && warehouseOpen && (
+            <div className="ml-4 mt-1 flex flex-col gap-1 border-l border-sidebar-border pl-3">
+              <button
+                onClick={() => router.push('/warehouse-inventory')}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  isActive('/warehouse-inventory')
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                )}
+                aria-current={isActive('/warehouse-inventory') ? 'page' : undefined}
+              >
+                <Warehouse className="h-4 w-4 shrink-0" />
+                <span className="truncate">Warehouse</span>
+              </button>
+              <button
+                onClick={() => router.push('/inventory')}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  isActive('/inventory')
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                )}
+                aria-current={isActive('/inventory') ? 'page' : undefined}
+              >
+                <Archive className="h-4 w-4 shrink-0" />
+                <span className="truncate">Inventory</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Station Checkpoints */}
+        <button
+          onClick={() => router.push('/checkpoints')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/checkpoints')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/checkpoints') ? 'page' : undefined}
+          title={collapsed ? 'Station Checkpoints' : undefined}
+        >
+          <MapPin className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="truncate">Station Checkpoints</span>}
+        </button>
+
+        {/* Quality Checking */}
+        <button
+          onClick={() => router.push('/qa')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/qa')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/qa') ? 'page' : undefined}
+          title={collapsed ? 'Quality Checking' : undefined}
+        >
+          <CheckCircle className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="truncate">Book Inspection & Endorsement</span>}
+        </button>
+
+        {/* Transmission Monitor */}
+        <button
+          onClick={() => router.push('/transmission')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/transmission')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/transmission') ? 'page' : undefined}
+          title={collapsed ? 'Transmission Monitor' : undefined}
+        >
+          <Radio className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="truncate">Transmission Monitor</span>}
+        </button>
+
+        {/* Warehouse Locator */}
+        <button
+          onClick={() => router.push('/locator')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/locator')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/locator') ? 'page' : undefined}
+          title={collapsed ? 'Warehouse Locator' : undefined}
+        >
+          <Map className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="truncate">Warehouse Locator</span>}
+        </button>
+
+        {/* Reports */}
+        <button
+          onClick={() => router.push('/reports')}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+            isActive('/reports')
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+          )}
+          aria-current={isActive('/reports') ? 'page' : undefined}
+          title={collapsed ? 'Reports' : undefined}
+        >
+          <BarChart3 className="h-5 w-5 shrink-0" />
+          {!collapsed && <span className="truncate">Reports</span>}
+        </button>
+
+      </nav>
+
+      <div className="h-px bg-sidebar-border" />
+
+      {/* Footer */}
+      <div className="px-3 py-4">
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                'mb-3 flex w-full items-center gap-3 rounded-2xl border border-sidebar-border bg-background text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                collapsed ? 'justify-center px-0 py-3' : 'px-3 py-3'
+              )}
+              title="Notifications"
+              type="button"
+            >
+              <span className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </span>
+              {!collapsed && <span>Notifications</span>}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align={collapsed ? 'center' : 'end'}
+            className="w-80 rounded-2xl p-0"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            side="top"
+            sideOffset={10}
+          >
+            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">Notifications</p>
+              {unreadCount > 0 && (
+                <button onClick={markAllAsRead} className="text-xs text-primary hover:underline">
+                  Mark all as read
+                </button>
+              )}
+            </div>
+            <div className="max-h-[400px] overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="px-4 py-6 text-center text-xs text-muted-foreground">
+                  Live notifications will appear here as activity is recorded.
+                </div>
+              ) : notifications.map((notification) => {
+                const typeStyles = {
+                  success: 'bg-success/10 text-success',
+                  warning: 'bg-warning/10 text-warning',
+                  error: 'bg-destructive/10 text-destructive',
+                  info: 'bg-info/10 text-blue-500',
+                }
+                const iconMap = {
+                  success: <CheckCircle2 className="h-4 w-4" />,
+                  warning: <AlertTriangle className="h-4 w-4" />,
+                  error: <XCircle className="h-4 w-4" />,
+                  info: <AlertCircle className="h-4 w-4" />,
+                }
+                return (
+                  <button
+                    key={notification.id}
+                    className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border/50 last:border-0"
+                    type="button"
+                    onClick={() => markAsRead(notification.id)}
+                  >
+                    <div className="flex gap-3">
+                      <div className={cn('h-8 w-8 rounded-full flex items-center justify-center shrink-0', typeStyles[notification.type])}>
+                        {iconMap[notification.type]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-foreground truncate">{notification.title}</p>
+                          {!notification.read && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notification.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{notification.timestamp}</p>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="px-4 py-2 border-t border-border">
+              <button 
+                onClick={() => router.push('/notifications')}
+                className="text-xs font-medium text-primary hover:underline w-full text-center"
+              >
+                View All Notifications
+              </button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                'flex w-full items-center rounded-[1.75rem] border border-sidebar-border bg-background text-left transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                collapsed ? 'justify-center px-0 py-3' : 'gap-4 px-4 py-4'
+              )}
+              title="Account"
+            >
+              <Avatar className="h-14 w-14 shrink-0 border border-border">
+                <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                <AvatarFallback className="bg-muted text-xl font-semibold text-foreground">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+
+              {!collapsed && (
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-base font-semibold text-sidebar-foreground">
+                    {user.name}
+                  </span>
+                  <span className="block truncate text-sm text-muted-foreground">
+                    {user.email}
+                  </span>
+                </span>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            align={collapsed ? 'center' : 'end'}
+            className="w-64 rounded-2xl p-2"
+            onCloseAutoFocus={(event) => event.preventDefault()}
+            side="top"
+            sideOffset={10}
+          >
+            <DropdownMenuLabel className="px-3 py-2">
+              <span className="block truncate text-sm font-semibold text-foreground">
+                {user.name}
+              </span>
+              <span className="block truncate text-xs font-normal text-muted-foreground">
+                {user.email}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="gap-3 rounded-xl px-3 py-2.5" onClick={() => router.push('/settings')}>
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="gap-3 rounded-xl px-3 py-2.5" onClick={handleLogout} variant="destructive">
+              <LogOut className="h-4 w-4" />
+              <span>Log Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </aside>
+  )
+}

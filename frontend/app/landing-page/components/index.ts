@@ -1,0 +1,12 @@
+export { AdvantageSection } from "./AdvantageSection";
+export { BrandLogo } from "./BrandLogo";
+export { CtaSection } from "./CtaSection";
+export { FeatureCard } from "./FeatureCard";
+export { FeaturesSection } from "./FeaturesSection";
+export { FooterLinks } from "./FooterLinks";
+export { FooterSection } from "./FooterSection";
+export { HeaderSection } from "./HeaderSection";
+export { HeroSection } from "./HeroSection";
+export { IllustrationHero, IllustrationTeam } from "./Illustrations";
+export { PrimaryButton } from "./PrimaryButton";
+export { SmoothScrollProvider, useSmoothScroll } from "./SmoothScrollProvider";
