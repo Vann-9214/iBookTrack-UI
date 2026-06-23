@@ -122,6 +122,16 @@ export default function WarehouseLocatorPage() {
     return "bg-muted border-border"
   }
 
+  const getCapacityColorName = (used: number, capacity: number) => {
+    const pct = capacity > 0 ? (used / capacity) * 100 : 0
+    if (pct >= 70) return pct >= 90 ? "red" : "amber"
+    return pct > 0 ? "emerald" : "neutral"
+  }
+
+  const getCapacityPercentage = (used: number, capacity: number) => {
+    return capacity > 0 ? ((used / capacity) * 100).toFixed(0) : "0"
+  }
+
   const handleSearch = async () => {
     const q = searchValue.trim()
     if (!q) { setHighlightedCells(new Set()); setSearchDone(false); setSearchResults([]); return }
@@ -225,7 +235,7 @@ export default function WarehouseLocatorPage() {
               <div className="relative flex-1 max-w-lg">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by ISBN or Box Number…"
+                  placeholder="Search by ISBN, Box #, or Lot #…"
                   value={searchValue}
                   onChange={e => setSearchValue(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleSearch()}
@@ -352,29 +362,55 @@ export default function WarehouseLocatorPage() {
       {/* ── Slot Detail Modal ─────────────────────────────────────────── */}
       {detailSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setDetailSlot(null); setExpandedBox(null) }}>
-          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-xl mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className={cn(
+            "border border-border rounded-xl shadow-xl p-5 w-full max-w-xl mx-4 max-h-[85vh] flex flex-col",
+            {
+              "bg-red-50 dark:bg-red-900/10": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "red",
+              "bg-amber-50 dark:bg-amber-900/10": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "amber",
+              "bg-emerald-50 dark:bg-emerald-900/10": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "emerald",
+              "bg-card": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "neutral"
+            }
+          )} onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary" />
                   Rack {detailSlot.rack_id} — Level {detailSlot.level}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{detailSlot.used} of {detailSlot.capacity} boxes used</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
+                </p>
               </div>
               <button onClick={() => { setDetailSlot(null); setExpandedBox(null) }} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
             </div>
 
             {/* Progress */}
-            <div className="mb-4">
+            <div className="mb-3">
               <Progress value={(detailSlot.used / detailSlot.capacity) * 100} className="h-2" />
+            </div>
+
+            {/* Fullness Legend */}
+            <div className="mb-3 text-xs text-muted-foreground flex gap-3 flex-wrap">
+              <div className="flex items-center gap-1">
+                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                <span>0–30% full</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                <span>30–70% full</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                <span>70–100% full</span>
+              </div>
             </div>
 
             {/* Assign button */}
             {detailSlot.used < detailSlot.capacity && (
               <button
                 onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
-                className="mb-4 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors"
+                className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 Assign a box to this slot

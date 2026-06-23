@@ -56,6 +56,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
       icon: Activity,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      hoverBg: "hover:bg-primary/20",
       onClick: undefined,
     },
     {
@@ -65,6 +66,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
       icon: AlertTriangle,
       color: "text-destructive",
       bgColor: "bg-destructive/10",
+      hoverBg: "hover:bg-destructive/20",
       onClick: openFlags,
     },
     {
@@ -74,6 +76,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
       icon: FileOutput,
       color: "text-success",
       bgColor: "bg-success/10",
+      hoverBg: "hover:bg-success/20",
       unit: "Books",
       onClick: undefined,
     },
@@ -84,6 +87,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
       icon: HeartPulse,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      hoverBg: "hover:bg-primary/20",
       onClick: undefined,
     },
   ]
@@ -95,7 +99,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
           <Card
             key={stat.title}
             onClick={stat.onClick}
-            className={cn("border-border bg-card hover:border-primary/30 transition-colors", stat.onClick ? "cursor-pointer" : "")}
+            className={cn("border-border bg-card transition-all duration-200", stat.hoverBg, "hover:border-primary/40 hover:shadow-md", stat.onClick ? "cursor-pointer" : "")}
           >
             <CardContent className="flex items-center gap-4 p-5">
               <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", stat.bgColor)}>

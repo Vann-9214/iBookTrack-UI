@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { usePagination } from "@/hooks/usePagination"
+import { Pagination } from "@/components/pagination"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -72,6 +74,10 @@ export default function TransmissionMonitorPage() {
   const [exporting, setExporting] = useState(false)
   const [fromDate, setFromDate] = useState(todayStr())
   const [toDate, setToDate] = useState(todayStr())
+
+  // Pagination for by machine table
+  const machinesPagination = usePagination({ totalItems: byMachine.length, defaultPageSize: 50 })
+  const paginatedByMachine = byMachine.slice(machinesPagination.offset, machinesPagination.offset + machinesPagination.limit)
 
   const fetchLiveData = useCallback(async (from?: string, to?: string) => {
     setLoading(true)
@@ -152,6 +158,10 @@ export default function TransmissionMonitorPage() {
     !historySearch || item.ISBN?.toLowerCase().includes(historySearch.toLowerCase()) ||
     item.BoxNumber?.toLowerCase().includes(historySearch.toLowerCase())
   )
+
+  // Update pagination total when filters change
+  const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 50 })
+  const paginatedRecentScans = filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit)
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -340,13 +350,13 @@ export default function TransmissionMonitorPage() {
                               Loading live data...
                             </TableCell>
                           </TableRow>
-                        ) : filteredScans.length === 0 ? (
+                        ) : paginatedRecentScans.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                               No scans found
                             </TableCell>
                           </TableRow>
-                        ) : filteredScans.map((item: any, i: number) => {
+                        ) : paginatedRecentScans.map((item: any, i: number) => {
                           const statusWord = item.Status?.split(' ').pop() || 'ONGOING'
                           return (
                             <TableRow key={i} className="border-border">
@@ -367,6 +377,17 @@ export default function TransmissionMonitorPage() {
                         })}
                       </TableBody>
                     </Table>
+                    {filteredScans.length > 0 && recentScansPagination.totalPages > 1 && (
+                      <Pagination
+                        currentPage={recentScansPagination.currentPage}
+                        totalPages={recentScansPagination.totalPages}
+                        pageSize={recentScansPagination.pageSize}
+                        onPageChange={recentScansPagination.goToPage}
+                        onPageSizeChange={recentScansPagination.setPageSize}
+                        canPrevPage={recentScansPagination.canPrevPage}
+                        canNextPage={recentScansPagination.canNextPage}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -400,7 +421,7 @@ export default function TransmissionMonitorPage() {
                           <TableRow>
                             <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No machine data for today</TableCell>
                           </TableRow>
-                        ) : byMachine.map((m: any, i: number) => {
+                        ) : paginatedByMachine.map((m: any, i: number) => {
                           const maxScans = byMachine[0]?.TotalScans || 1
                           return (
                             <TableRow key={i} className="border-border">
@@ -418,6 +439,17 @@ export default function TransmissionMonitorPage() {
                         })}
                       </TableBody>
                     </Table>
+                    {byMachine.length > 0 && machinesPagination.totalPages > 1 && (
+                      <Pagination
+                        currentPage={machinesPagination.currentPage}
+                        totalPages={machinesPagination.totalPages}
+                        pageSize={machinesPagination.pageSize}
+                        onPageChange={machinesPagination.goToPage}
+                        onPageSizeChange={machinesPagination.setPageSize}
+                        canPrevPage={machinesPagination.canPrevPage}
+                        canNextPage={machinesPagination.canNextPage}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
