@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Search, Book, Package, Barcode } from "lucide-react"
+import { Search, Book, Package, Barcode, X } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
 import { authFetch } from "@/lib/auth-api"
@@ -37,6 +37,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
   const [dashboardStats, setDashboardStats] = useState<any>(null)
   const { toast } = useToast()
+
+  const clearSearch = () => {
+    setSearchResult(null)
+    setSearchValue('')
+    setRangeStart('')
+    setRangeEnd('')
+    setCurrentLot('')
+    setDisplayRange(null)
+    fetchDashboardStats()
+  }
+
   const [boxScanInput, setBoxScanInput] = useState('')
   const [boxScanModal, setBoxScanModal] = useState<{ box: any; books: any[] } | null>(null)
   const [loadingBoxScan, setLoadingBoxScan] = useState(false)
@@ -104,7 +115,13 @@ export default function DashboardPage() {
     setLoading(true)
     try {
       if (searchType === 'isbn') {
-        // Search by ISBN
+        // Validate: ISBN must be exactly 13 digits
+        if (!searchValue.trim()) {
+          toast({ title: 'Invalid ISBN', description: 'Please enter an ISBN.', variant: 'destructive' })
+          setLoading(false)
+          return
+        }
+        // Search by ISBN using exactly what was typed (already digits-only from onChange)
         const response = await fetch(`${API_URL}/api/warehouse/search/isbn/${searchValue.trim()}`)
         const data = await response.json()
         
@@ -132,42 +149,41 @@ export default function DashboardPage() {
           setSearchResult(null)
         }
       } else if (searchType === 'lot') {
-        // Search by Lot
+        // Search by Lot — use value exactly as typed
+        const lotQuery = searchValue.trim()
         if (isRange && rangeStart && rangeEnd) {
-          setDisplayRange(`Lot ${rangeStart} - Lot ${rangeEnd}`)
+          setDisplayRange(`${rangeStart} – ${rangeEnd}`)
           setCurrentLot("")
-          // Fetch books in range
-          const response = await fetch(`${API_URL}/api/dashboard/stats?lot_range_start=${rangeStart}&lot_range_end=${rangeEnd}`)
+          const response = await fetch(`${API_URL}/api/dashboard/stats?lot_range_start=${encodeURIComponent(rangeStart)}&lot_range_end=${encodeURIComponent(rangeEnd)}`)
           const data = await response.json()
           if (data.success) {
             setSearchResult({ type: 'lot', data: data.stats, books: [] })
           }
-        } else if (searchValue) {
-          setCurrentLot(searchValue)
+        } else if (lotQuery) {
+          setCurrentLot(lotQuery)
           setDisplayRange(null)
-          fetchDashboardStats(`Lot ${searchValue}`)
-          // Fetch books in specific lot
-          const response = await fetch(`${API_URL}/api/boxes/lot/Lot ${searchValue}`)
+          fetchDashboardStats(lotQuery)
+          // Fetch boxes for this lot using the exact typed lot number
+          const response = await authFetch(`${API_URL}/api/boxes/lot/${encodeURIComponent(lotQuery)}`)
           const data = await response.json()
           
           if (data.success && data.boxes) {
-            // Get all books from all boxes in this lot
             const allBooks: any[] = []
             for (const box of data.boxes) {
-              const boxResponse = await fetch(`${API_URL}/api/boxes/${box.id}`)
+              const boxResponse = await authFetch(`${API_URL}/api/boxes/${box.id}`)
               const boxData = await boxResponse.json()
-              if (boxData.success && boxData.box.books) {
+              if (boxData.box && boxData.box.books) {
                 allBooks.push(...boxData.box.books)
               }
             }
             setSearchResult({
               type: 'lot',
-              data: { lot_number: `Lot ${searchValue}`, total_boxes: data.boxes.length, total_books: allBooks.length },
+              data: { lot_number: lotQuery, total_boxes: data.boxes.length, total_books: allBooks.length },
               books: allBooks
             })
             toast({ title: 'Lot Found', description: `Found ${allBooks.length} books in ${data.boxes.length} boxes` })
           } else {
-            toast({ title: 'Not Found', description: 'Lot not found in database', variant: 'destructive' })
+            toast({ title: 'Not Found', description: `Lot "${lotQuery}" not found. Check the exact lot number as it appears in the system.`, variant: 'destructive' })
             setSearchResult(null)
           }
         }
@@ -203,7 +219,7 @@ export default function DashboardPage() {
     }
   }
 
-  const displayText = displayRange || (currentLot ? `Lot ${currentLot}` : "")
+  const displayText = displayRange || (currentLot ? `Lot ${currentLot.replace(/^lot[-\s]*/i, '').trim()}` : "")
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
@@ -312,16 +328,41 @@ export default function DashboardPage() {
                           {searchType === "isbn" ? "ISBN Number" : "Lot Number"}
                         </label>
                         <Input
-                          placeholder={searchType === "isbn" ? "e.g., 978-0-13-468599-1" : "e.g., 34"}
+                          placeholder={searchType === "isbn" ? "ISBN number (digits only)" : "Lot number, e.g., 64"}
                           value={searchValue}
-                          onChange={(e) => setSearchValue(e.target.value)}
+                          onChange={(e) => {
+                            if (searchType === "isbn") {
+                              // Strip any non-digit characters
+                              setSearchValue(e.target.value.replace(/[^0-9]/g, ''))
+                            } else {
+                              setSearchValue(e.target.value)
+                            }
+                          }}
+                          inputMode={searchType === "isbn" ? "numeric" : "text"}
                         />
+                        {searchType === "isbn" && searchValue.length > 0 && (
+                          <p className={`text-xs mt-1 ${
+                            searchValue.length === 13 ? 'text-emerald-600'
+                            : searchValue.length > 13 ? 'text-amber-500'
+                            : 'text-muted-foreground'
+                          }`}>
+                            {searchValue.length} digit{searchValue.length !== 1 ? 's' : ''}
+                            {searchValue.length === 13 ? ' ✓' : ''}
+                          </p>
+                        )}
                       </div>
                     )}
 
-                    <Button onClick={handleSearch} className="w-full" disabled={loading}>
-                      {loading ? 'Searching...' : 'Apply Search'}
-                    </Button>
+                    <div className="flex gap-2">
+                      {searchResult && (
+                        <Button variant="outline" onClick={() => { clearSearch(); setSearchOpen(false) }} className="flex-1">
+                          Clear
+                        </Button>
+                      )}
+                      <Button onClick={handleSearch} className={searchResult ? 'flex-1' : 'w-full'} disabled={loading}>
+                        {loading ? 'Searching...' : 'Apply Search'}
+                      </Button>
+                    </div>
                   </div>
                 </DialogContent>
                 </Dialog>
@@ -335,10 +376,19 @@ export default function DashboardPage() {
             {searchResult && (
               <Card className="border-border bg-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {searchResult.type === 'isbn' ? <Book className="h-5 w-5" /> : <Package className="h-5 w-5" />}
-                    {searchResult.type === 'isbn' ? 'ISBN Search Result' : 'Lot Search Results'}
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      {searchResult.type === 'isbn' ? <Book className="h-5 w-5" /> : <Package className="h-5 w-5" />}
+                      {searchResult.type === 'isbn' ? 'ISBN Search Result' : 'Lot Search Results'}
+                    </CardTitle>
+                    <button
+                      onClick={clearSearch}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {searchResult.type === 'isbn' && searchResult.data && (
