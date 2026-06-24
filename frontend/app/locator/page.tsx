@@ -363,12 +363,12 @@ export default function WarehouseLocatorPage() {
       {detailSlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setDetailSlot(null); setExpandedBox(null) }}>
           <div className={cn(
-            "border border-border rounded-xl shadow-xl p-5 w-full max-w-xl mx-4 max-h-[85vh] flex flex-col",
+            "rounded-xl shadow-xl p-5 w-full max-w-xl mx-4 max-h-[85vh] flex flex-col",
             {
-              "bg-red-50 dark:bg-red-900/10": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "red",
-              "bg-amber-50 dark:bg-amber-900/10": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "amber",
-              "bg-emerald-50 dark:bg-emerald-900/10": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "emerald",
-              "bg-card": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "neutral"
+              "bg-white dark:bg-white border-2 border-red-400 dark:border-red-600": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "red",
+              "bg-white dark:bg-white border-2 border-amber-400 dark:border-amber-600": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "amber",
+              "bg-white dark:bg-white border-2 border-emerald-400 dark:border-emerald-600": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "emerald",
+              "bg-card border border-border": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "neutral"
             }
           )} onClick={e => e.stopPropagation()}>
             {/* Header */}
@@ -388,22 +388,6 @@ export default function WarehouseLocatorPage() {
             {/* Progress */}
             <div className="mb-3">
               <Progress value={(detailSlot.used / detailSlot.capacity) * 100} className="h-2" />
-            </div>
-
-            {/* Fullness Legend */}
-            <div className="mb-3 text-xs text-muted-foreground flex gap-3 flex-wrap">
-              <div className="flex items-center gap-1">
-                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                <span>0–30% full</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
-                <span>30–70% full</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                <span>70–100% full</span>
-              </div>
             </div>
 
             {/* Assign button */}

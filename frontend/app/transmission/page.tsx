@@ -62,6 +62,7 @@ const todayStr = () => new Date().toISOString().split('T')[0]
 
 export default function TransmissionMonitorPage() {
   const [historySearch, setHistorySearch] = useState("")
+  const [machineSearch, setMachineSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [summary, setSummary] = useState<any>(null)
@@ -76,8 +77,14 @@ export default function TransmissionMonitorPage() {
   const [toDate, setToDate] = useState(todayStr())
 
   // Pagination for by machine table
-  const machinesPagination = usePagination({ totalItems: byMachine.length, defaultPageSize: 50 })
-  const paginatedByMachine = byMachine.slice(machinesPagination.offset, machinesPagination.offset + machinesPagination.limit)
+  const filteredByMachine = byMachine.filter((m: any) =>
+    !machineSearch ||
+    m.MachineName?.toLowerCase().includes(machineSearch.toLowerCase()) ||
+    m.User?.toLowerCase().includes(machineSearch.toLowerCase()) ||
+    m.MachineID?.toLowerCase().includes(machineSearch.toLowerCase())
+  )
+  const machinesPagination = usePagination({ totalItems: filteredByMachine.length, defaultPageSize: 50 })
+  const paginatedByMachine = filteredByMachine.slice(machinesPagination.offset, machinesPagination.offset + machinesPagination.limit)
 
   const fetchLiveData = useCallback(async (from?: string, to?: string) => {
     setLoading(true)
@@ -395,9 +402,20 @@ export default function TransmissionMonitorPage() {
               <TabsContent value="machine" className="mt-4">
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-semibold text-card-foreground">
-                      {fromDate === toDate ? `Scans by Machine — ${fromDate}` : `Scans by Machine — ${fromDate} to ${toDate}`}
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-semibold text-card-foreground">
+                        {fromDate === toDate ? `Scans by Machine — ${fromDate}` : `Scans by Machine — ${fromDate} to ${toDate}`}
+                      </CardTitle>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Search machine or user..."
+                          value={machineSearch}
+                          onChange={(e) => setMachineSearch(e.target.value)}
+                          className="w-56 pl-9 h-8 text-sm"
+                        />
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="p-0">
                     <Table>
@@ -417,12 +435,12 @@ export default function TransmissionMonitorPage() {
                               <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                             </TableCell>
                           </TableRow>
-                        ) : byMachine.length === 0 ? (
+                        ) : filteredByMachine.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No machine data for today</TableCell>
+                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</TableCell>
                           </TableRow>
                         ) : paginatedByMachine.map((m: any, i: number) => {
-                          const maxScans = byMachine[0]?.TotalScans || 1
+                          const maxScans = filteredByMachine[0]?.TotalScans || 1
                           return (
                             <TableRow key={i} className="border-border">
                               <TableCell className="font-mono text-xs text-card-foreground">{m.MachineName}</TableCell>
@@ -439,7 +457,7 @@ export default function TransmissionMonitorPage() {
                         })}
                       </TableBody>
                     </Table>
-                    {byMachine.length > 0 && machinesPagination.totalPages > 1 && (
+                    {filteredByMachine.length > 0 && machinesPagination.totalPages > 1 && (
                       <Pagination
                         currentPage={machinesPagination.currentPage}
                         totalPages={machinesPagination.totalPages}

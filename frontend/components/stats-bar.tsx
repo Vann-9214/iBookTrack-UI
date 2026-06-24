@@ -99,7 +99,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
           <Card
             key={stat.title}
             onClick={stat.onClick}
-            className={cn("border-border bg-card transition-all duration-200", stat.hoverBg, "hover:border-primary/40 hover:shadow-md", stat.onClick ? "cursor-pointer" : "")}
+            className={cn("border-border bg-card transition-all duration-200", stat.hoverBg, "hover:border-gray-400/20 hover:shadow-md", stat.onClick ? "cursor-pointer" : "")}
           >
             <CardContent className="flex items-center gap-4 p-5">
               <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", stat.bgColor)}>
