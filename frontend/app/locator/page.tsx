@@ -1,19 +1,27 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronRight, Trash2, BookOpen, RefreshCw, AlertTriangle } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, RefreshCw, AlertTriangle, LayoutGrid, Pencil, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-const RACKS = ["A", "B", "C", "D"]
-const LEVELS = [4, 3, 2, 1]
+const RACK_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('')
+const DEFAULT_RACKS = ["A", "B", "C", "D"]
+const DEFAULT_LEVELS = [4, 3, 2, 1]
+const DEFAULT_SECTIONS = 26
+
+// rack_id naming: Section 1 uses bare "A"/"B" for backward compat with existing data;
+// sections 2+ use "S{n}-A" etc.
+function rackId(section: number, rack: string) {
+  return section === 1 ? rack : `S${section}-${rack}`
+}
 
 type BookEntry = { isbn: string; title: string }
 
@@ -57,6 +65,7 @@ type SearchResult = {
 }
 
 export default function WarehouseLocatorPage() {
+  const [totalSections, setTotalSections] = useState(DEFAULT_SECTIONS)
   const [locations, setLocations] = useState<StorageLocation[]>([])
   const [readyBoxes, setReadyBoxes] = useState<ReadyBox[]>([])
   const [loadingLocations, setLoadingLocations] = useState(true)
@@ -71,6 +80,26 @@ export default function WarehouseLocatorPage() {
   const [searchDone, setSearchDone] = useState(false)
   const [highlightedCells, setHighlightedCells] = useState<Set<string>>(new Set())
 
+  // Section navigation
+  const [activeSection, setActiveSection] = useState(1)
+  // Capacity editing
+  const [editingCapacity, setEditingCapacity] = useState(false)
+  const [capacityInput, setCapacityInput] = useState('')
+  const [savingCapacity, setSavingCapacity] = useState(false)
+  const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
+  const sectionDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!sectionDropdownOpen) return
+    const handler = (e: MouseEvent) => {
+      if (sectionDropdownRef.current && !sectionDropdownRef.current.contains(e.target as Node)) {
+        setSectionDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [sectionDropdownOpen])
+
   // Slot detail modal
   const [detailSlot, setDetailSlot] = useState<StorageLocation | null>(null)
   const [expandedBox, setExpandedBox] = useState<string | null>(null)
@@ -82,6 +111,23 @@ export default function WarehouseLocatorPage() {
 
   // Remove
   const [removingId, setRemovingId] = useState<string | null>(null)
+
+  // Provisioning all 16 slots for a new section
+  const [provisioningSection, setProvisioningSection] = useState(false)
+  const [removingSection, setRemovingSection] = useState(false)
+  // Dynamic rack/level operations
+  const [addingRack, setAddingRack] = useState(false)
+  const [removingRack, setRemovingRack] = useState(false)
+  const [addingLevel, setAddingLevel] = useState(false)
+  const [removingLevel, setRemovingLevel] = useState(false)
+  const [addDropdownOpen, setAddDropdownOpen] = useState(false)
+  const [removeDropdownOpen, setRemoveDropdownOpen] = useState(false)
+  const [warningModal, setWarningModal] = useState<string | null>(null)
+  const [pendingRemove, setPendingRemove] = useState<'rack' | 'level' | null>(null)
+  const [pendingAddSection, setPendingAddSection] = useState(false)
+  const [confirmRemoveSection, setConfirmRemoveSection] = useState<number | null>(null)
+  const addDropdownRef = useRef<HTMLDivElement>(null)
+  const removeDropdownRef = useRef<HTMLDivElement>(null)
 
   const fetchLocations = useCallback(async () => {
     setLoadingLocations(true)
@@ -114,6 +160,35 @@ export default function WarehouseLocatorPage() {
   const getLocation = (rack: string, level: number) =>
     locations.find(l => l.rack_id === rack && l.level === level)
 
+  // Derive the unique rack letters for a section from actual DB locations
+  const getSectionRacks = (section: number): string[] => {
+    const prefix = section === 1 ? '' : `S${section}-`
+    const raw = locations
+      .filter(l => section === 1 ? !l.rack_id.includes('-') : l.rack_id.startsWith(prefix))
+      .map(l => section === 1 ? l.rack_id : l.rack_id.replace(prefix, ''))
+    const letters = [...new Set(raw)].sort()
+    return letters.length > 0 ? letters : DEFAULT_RACKS
+  }
+
+  // Derive the unique levels for a section from actual DB locations (descending)
+  const getSectionLevels = (section: number): number[] => {
+    const prefix = section === 1 ? '' : `S${section}-`
+    const raw = locations
+      .filter(l => section === 1 ? !l.rack_id.includes('-') : l.rack_id.startsWith(prefix))
+      .map(l => l.level)
+    const uniq = [...new Set(raw)].sort((a, b) => b - a)
+    return uniq.length > 0 ? uniq : DEFAULT_LEVELS
+  }
+
+  // Summary stats for a section
+  const getSectionStats = (section: number) => {
+    const prefix = section === 1 ? '' : `S${section}-`
+    const locs = locations.filter(l => section === 1 ? !l.rack_id.includes('-') : l.rack_id.startsWith(prefix))
+    const totalUsed = locs.reduce((s, l) => s + l.used, 0)
+    const totalCap = locs.reduce((s, l) => s + l.capacity, 0)
+    return { totalUsed, totalCap, locCount: locs.length }
+  }
+
   const getCapacityColor = (used: number, capacity: number) => {
     const pct = capacity > 0 ? (used / capacity) * 100 : 0
     if (pct >= 90) return "bg-red-100 border-red-400 dark:bg-red-900/30 dark:border-red-600"
@@ -145,6 +220,13 @@ export default function WarehouseLocatorPage() {
         setSearchUnlocated(data.unlocated || [])
         const cells = new Set<string>((data.results || []).map((r: SearchResult) => `${r.rack_id}-${r.level}`))
         setHighlightedCells(cells)
+        // Auto-navigate to section of first result
+        if ((data.results || []).length > 0) {
+          const firstRack: string = data.results[0].rack_id
+          // Detect section: bare letters = section 1, "S{n}-X" = section n
+          const match = firstRack.match(/^S(\d+)-/)
+          setActiveSection(match ? parseInt(match[1]) : 1)
+        }
       }
     } finally {
       setSearchLoading(false)
@@ -164,6 +246,203 @@ export default function WarehouseLocatorPage() {
     setAssignSlot(loc)
     setAssigningBoxId(null)
     await fetchReadyBoxes()
+  }
+
+  // Add a new rack column (next letter) with slots for every existing level
+  const handleAddRack = async () => {
+    const racks = getSectionRacks(activeSection)
+    const levels = getSectionLevels(activeSection)
+    const nextLetter = RACK_LETTERS[racks.length] // next after last existing rack
+    if (!nextLetter) return
+    setAddingRack(true)
+    try {
+      const newSlots: StorageLocation[] = []
+      for (const level of levels) {
+        const res = await authFetch(`${API_URL}/api/storage/locations/provision`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ section: activeSection, racks: [nextLetter], levels: [level], capacity: 38 }),
+        })
+        const data = await res.json()
+        if (res.ok) newSlots.push(...(data.locations || []))
+      }
+      setLocations(prev => {
+        const merged = [...prev]
+        for (const loc of newSlots) {
+          if (!merged.find(l => l.rack_id === loc.rack_id && l.level === loc.level)) merged.push(loc)
+        }
+        return merged
+      })
+    } finally { setAddingRack(false) }
+  }
+
+  // Remove the last rack column (only if all its slots are empty)
+  const handleRemoveRack = async (confirmed = false) => {
+    const racks = getSectionRacks(activeSection)
+    if (racks.length <= 1) return
+    const lastRack = racks[racks.length - 1]
+    const lastRackId = rackId(activeSection, lastRack)
+    const rackLocs = locations.filter(l => l.rack_id === lastRackId)
+    const occupiedLocs = rackLocs.filter(l => l.used > 0)
+    if (occupiedLocs.length > 0) {
+      setWarningModal(
+        `Rack ${lastRack} has ${occupiedLocs.length} occupied slot${occupiedLocs.length > 1 ? 's' : ''}: ` +
+        `${occupiedLocs.map(l => `Level ${l.level} (${l.used} box${l.used > 1 ? 'es' : ''})`).join(', ')}. ` +
+        `Clear all boxes from this rack before removing it.`
+      )
+      setPendingRemove(null)
+      return
+    }
+    if (!confirmed) { setPendingRemove('rack'); return }
+    setRemovingRack(true)
+    setPendingRemove(null)
+    try {
+      for (const loc of rackLocs) {
+        await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
+      }
+      setLocations(prev => prev.filter(l => l.rack_id !== lastRackId))
+      setRemoveDropdownOpen(false)
+    } finally { setRemovingRack(false) }
+  }
+
+  // Add a new level row with slots for every existing rack
+  const handleAddLevel = async () => {
+    const racks = getSectionRacks(activeSection)
+    const levels = getSectionLevels(activeSection)
+    const nextLevel = Math.max(...levels) + 1
+    setAddingLevel(true)
+    try {
+      const newSlots: StorageLocation[] = []
+      for (const rack of racks) {
+        const res = await authFetch(`${API_URL}/api/storage/locations/provision`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ section: activeSection, racks: [rack], levels: [nextLevel], capacity: 38 }),
+        })
+        const data = await res.json()
+        if (res.ok) newSlots.push(...(data.locations || []))
+      }
+      setLocations(prev => {
+        const merged = [...prev]
+        for (const loc of newSlots) {
+          if (!merged.find(l => l.rack_id === loc.rack_id && l.level === loc.level)) merged.push(loc)
+        }
+        return merged
+      })
+    } finally { setAddingLevel(false) }
+  }
+
+  // Remove the highest level row (only if all its slots are empty)
+  const handleRemoveLevel = async (confirmed = false) => {
+    const racks = getSectionRacks(activeSection)
+    const levels = getSectionLevels(activeSection)
+    if (levels.length <= 1) return
+    const topLevel = Math.max(...levels)
+    const rackIds = racks.map(r => rackId(activeSection, r))
+    const topLocs = locations.filter(l => rackIds.includes(l.rack_id) && l.level === topLevel)
+    const occupiedLocs = topLocs.filter(l => l.used > 0)
+    if (occupiedLocs.length > 0) {
+      setWarningModal(
+        `Level ${topLevel} has ${occupiedLocs.length} occupied slot${occupiedLocs.length > 1 ? 's' : ''}: ` +
+        `${occupiedLocs.map(l => `Rack ${l.rack_id.includes('-') ? l.rack_id.split('-')[1] : l.rack_id} (${l.used} box${l.used > 1 ? 'es' : ''})`).join(', ')}. ` +
+        `Clear all boxes from this level before removing it.`
+      )
+      setPendingRemove(null)
+      return
+    }
+    if (!confirmed) { setPendingRemove('level'); return }
+    setRemovingLevel(true)
+    setPendingRemove(null)
+    try {
+      for (const loc of topLocs) {
+        await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
+      }
+      setLocations(prev => prev.filter(l => !(rackIds.includes(l.rack_id) && l.level === topLevel)))
+      setRemoveDropdownOpen(false)
+    } finally { setRemovingLevel(false) }
+  }
+
+  const handleRemoveSection = async (section: number, confirmed = false) => {
+    if (section <= 1) return
+    const sectionRacks = getSectionRacks(section).map((r: string) => rackId(section, r))
+    const sectionLocs = locations.filter(l => sectionRacks.includes(l.rack_id))
+    const hasBoxes = sectionLocs.some(l => l.used > 0)
+    if (hasBoxes) {
+      const occupied = sectionLocs.filter(l => l.used > 0)
+      setWarningModal(
+        `Section ${section} still has boxes in ${occupied.length} slot${occupied.length > 1 ? 's' : ''}. ` +
+        `Clear all boxes before removing this section.`
+      )
+      return
+    }
+    if (!confirmed) { setConfirmRemoveSection(section); return }
+    setConfirmRemoveSection(null)
+    setRemovingSection(true)
+    try {
+      for (const loc of sectionLocs) {
+        await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
+      }
+      setLocations(prev => prev.filter(l => !sectionRacks.includes(l.rack_id)))
+      const newTotal = section - 1
+      setTotalSections(newTotal)
+      setActiveSection(Math.min(activeSection, newTotal))
+    } catch (e) {
+      alert('Failed to remove section')
+    } finally {
+      setRemovingSection(false)
+    }
+  }
+
+  const handleEditCapacity = async () => {
+    if (!detailSlot) return
+    const newCap = parseInt(capacityInput)
+    if (isNaN(newCap) || newCap < 1) return
+    setSavingCapacity(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/storage/locations/${detailSlot.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capacity: newCap }),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Failed to update capacity'); return }
+      setLocations(prev => prev.map(l => l.id === detailSlot.id ? { ...l, capacity: newCap } : l))
+      setDetailSlot(prev => prev ? { ...prev, capacity: newCap } : prev)
+      setEditingCapacity(false)
+    } finally {
+      setSavingCapacity(false)
+    }
+  }
+
+  // Bulk-provision all 16 slots for a section if they don't exist yet
+  const provisionSection = async (section: number) => {
+    setProvisioningSection(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/storage/locations/provision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section, capacity: 38 }),
+      })
+      const data = await res.json()
+      if (!res.ok) { console.error(data.error || 'Failed to provision section'); return }
+      // Replace/add all 16 slots for this section; preserve assignment data for existing ones
+      setLocations(prev => {
+        const incoming: StorageLocation[] = data.locations || []
+        const incomingKeys = new Set(incoming.map(l => `${l.rack_id}-${l.level}`))
+        // Keep all locations NOT belonging to this section, then add the full section set
+        const others = prev.filter(l => !incomingKeys.has(`${l.rack_id}-${l.level}`))
+        // For each incoming slot, preserve existing assignments/used if already loaded
+        const merged = incoming.map(loc => {
+          const existing = prev.find(l => l.rack_id === loc.rack_id && l.level === loc.level)
+          return existing ?? loc
+        })
+        return [...others, ...merged]
+      })
+    } catch (e) {
+      console.error('Failed to provision section', e)
+    } finally {
+      setProvisioningSection(false)
+    }
   }
 
   const handleAssign = async () => {
@@ -209,13 +488,42 @@ export default function WarehouseLocatorPage() {
     }
   }, [locations])
 
+  // Close add/remove dropdowns on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (addDropdownRef.current && !addDropdownRef.current.contains(e.target as Node)) setAddDropdownOpen(false)
+      if (removeDropdownRef.current && !removeDropdownRef.current.contains(e.target as Node)) {
+        setRemoveDropdownOpen(false)
+        setPendingRemove(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Reset capacity edit state when modal closes
+  useEffect(() => {
+    if (!detailSlot) { setEditingCapacity(false); setCapacityInput('') }
+  }, [detailSlot])
+
+  // Auto-provision when switching to a section that has no slots yet
+  useEffect(() => {
+    if (loadingLocations || provisioningSection) return
+    const expectedCount = DEFAULT_RACKS.length * DEFAULT_LEVELS.length // 16
+    const sectionRacks = DEFAULT_RACKS.map(r => rackId(activeSection, r))
+    const existingCount = locations.filter(l => sectionRacks.includes(l.rack_id)).length
+    if (existingCount < expectedCount) {
+      provisionSection(activeSection)
+    }
+  }, [activeSection, locations, loadingLocations, provisioningSection])
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <ScrollArea className="flex-1 h-0 min-h-0">
-          <div className="flex flex-col gap-6 p-6 lg:p-8 max-w-5xl mx-auto">
+          <div className="flex flex-col gap-6 p-6 lg:p-8 max-w-4xl mx-auto">
 
             {/* Header */}
             <header className="flex items-start justify-between">
@@ -230,7 +538,7 @@ export default function WarehouseLocatorPage() {
               </button>
             </header>
 
-            {/* Search */}
+            {/* Search + Section dropdown */}
             <div className="flex items-center gap-2">
               <div className="relative flex-1 max-w-lg">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -250,6 +558,99 @@ export default function WarehouseLocatorPage() {
                   <X className="h-4 w-4" />
                 </Button>
               )}
+              {/* Section dropdown trigger */}
+              <div className="relative" ref={sectionDropdownRef}>
+                <Button
+                  variant="outline"
+                  className="h-10 gap-2 px-3"
+                  onClick={() => setSectionDropdownOpen(o => !o)}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="text-sm">Section {activeSection}</span>
+                  {sectionDropdownOpen
+                    ? <ChevronUp className="h-3.5 w-3.5" />
+                    : <ChevronDown className="h-3.5 w-3.5" />}
+                </Button>
+                {sectionDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-xl border border-border bg-card shadow-lg p-3">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Select Section</p>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {Array.from({ length: totalSections }, (_, i) => i + 1).map(s => {
+                        const { totalUsed, totalCap, locCount } = getSectionStats(s)
+                        const pct = totalCap > 0 ? (totalUsed / totalCap) * 100 : 0
+                        const dotColor = locCount === 0 ? 'bg-muted-foreground/25' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : pct > 0 ? 'bg-emerald-500' : 'bg-muted-foreground/25'
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => { setActiveSection(s); setSectionDropdownOpen(false) }}
+                            className={cn(
+                              "flex flex-col items-center justify-center gap-1 h-10 rounded-lg border text-xs font-semibold transition-all",
+                              activeSection === s
+                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/60"
+                            )}
+                          >
+                            <span>{s}</span>
+                            <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-emerald-500" />Active</span>
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-amber-500" />70–90%</span>
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-red-500" />&gt;90%</span>
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {totalSections > 1 && (
+                          <button
+                            onClick={() => handleRemoveSection(totalSections)}
+                            disabled={removingSection}
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-destructive/50 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+                            title={`Remove Section ${totalSections}`}
+                          >
+                            {removingSection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                            Remove
+                          </button>
+                        )}
+                        {pendingAddSection ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px] text-muted-foreground">Add Section {totalSections + 1}?</span>
+                            <button
+                              onClick={() => {
+                                const next = totalSections + 1
+                                setTotalSections(next)
+                                setActiveSection(next)
+                                setSectionDropdownOpen(false)
+                                setPendingAddSection(false)
+                              }}
+                              className="px-1.5 py-0.5 rounded text-[11px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                            >
+                              Yes
+                            </button>
+                            <button
+                              onClick={() => setPendingAddSection(false)}
+                              className="px-1.5 py-0.5 rounded text-[11px] font-medium text-muted-foreground hover:bg-muted transition-colors"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setPendingAddSection(true)}
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
+                          >
+                            <Plus className="h-3 w-3" />
+                            Add
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Search results */}
@@ -266,7 +667,11 @@ export default function WarehouseLocatorPage() {
                       <span className="text-sm font-semibold text-primary">{r.location_label}</span>
                       <button onClick={() => {
                         const loc = locations.find(l => l.id === r.location_id)
-                        if (loc) setDetailSlot(loc)
+                        if (loc) {
+                          const match = loc.rack_id.match(/^S(\d+)-/)
+                          setActiveSection(match ? parseInt(match[1]) : 1)
+                          setDetailSlot(loc)
+                        }
                       }} className="text-xs underline text-muted-foreground hover:text-foreground">View slot</button>
                     </div>
                   ))
@@ -300,59 +705,186 @@ export default function WarehouseLocatorPage() {
 
             {/* Warehouse Grid */}
             <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-center text-card-foreground mb-5">Warehouse Layout</h2>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
+                {(() => {
+                  const { totalUsed, totalCap } = getSectionStats(activeSection)
+                  const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
+                  return totalCap > 0 ? (
+                    <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
+                  ) : null
+                })()}
+              </div>
 
               {loadingLocations ? (
                 <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
                   <Loader2 className="h-6 w-6 animate-spin" />
                   <span className="text-sm">Loading storage map…</span>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {/* Rack column headers */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
-                    {RACKS.map(r => (
-                      <div key={r} className="flex-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
-                    ))}
-                  </div>
-
-                  {/* Grid rows */}
-                  {LEVELS.map(level => (
-                    <div key={level} className="flex items-center gap-2">
-                      <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
-                      {RACKS.map(rack => {
-                        const loc = getLocation(rack, level)
-                        const isHighlighted = highlightedCells.has(`${rack}-${level}`)
-                        const used = loc?.used ?? 0
-                        const capacity = loc?.capacity ?? 20
-                        return (
-                          <button
-                            key={`${rack}-${level}`}
-                            onClick={() => loc && setDetailSlot(loc)}
-                            disabled={!loc}
-                            className={cn(
-                              "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
-                              loc ? getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
-                              isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
-                              loc && "hover:scale-105 hover:shadow-md cursor-pointer"
-                            )}
-                          >
-                            {loc && used > 0 ? (
+              ) : (() => {
+                const sectionRacks = getSectionRacks(activeSection)
+                const sectionLevels = getSectionLevels(activeSection)
+                return (
+                  <div className="flex flex-col gap-3">
+                    {/* Rack column headers + add/remove dropdowns */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
+                      {sectionRacks.map(r => (
+                        <div key={r} className="flex-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
+                      ))}
+                      {/* Add dropdown */}
+                      <div className="relative shrink-0" ref={addDropdownRef}>
+                        <button
+                          onClick={() => { setAddDropdownOpen(o => !o); setRemoveDropdownOpen(false) }}
+                          title="Add rack or level"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg border border-dashed border-primary/50 text-primary hover:bg-primary/5 transition-colors"
+                        >
+                          {addingRack || addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                        </button>
+                        {addDropdownOpen && (
+                          <div className="absolute right-0 top-full mt-1 z-20 flex flex-col gap-1 rounded-lg border border-border bg-card shadow-lg p-1.5 min-w-[120px]">
+                            <button
+                              onClick={() => { handleAddRack(); setAddDropdownOpen(false) }}
+                              disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
+                              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-40 text-left"
+                            >
+                              <Plus className="h-3.5 w-3.5 text-primary shrink-0" />
+                              Add Rack
+                            </button>
+                            <button
+                              onClick={() => { handleAddLevel(); setAddDropdownOpen(false) }}
+                              disabled={addingLevel}
+                              className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-40 text-left"
+                            >
+                              <Plus className="h-3.5 w-3.5 text-primary shrink-0" />
+                              Add Level
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Remove dropdown */}
+                      <div className="relative shrink-0" ref={removeDropdownRef}>
+                        <button
+                          onClick={() => { setRemoveDropdownOpen(o => !o); setAddDropdownOpen(false) }}
+                          title="Remove rack or level"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg border border-dashed border-destructive/40 text-destructive hover:bg-destructive/5 transition-colors"
+                        >
+                          {removingRack || removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                        {removeDropdownOpen && (
+                          <div className="absolute right-0 top-full mt-1 z-20 flex flex-col gap-1 rounded-lg border border-border bg-card shadow-lg p-1.5 min-w-[180px]">
+                            {/* Confirm step */}
+                            {pendingRemove ? (
                               <>
-                                <Package className="h-4 w-4 text-foreground/60" />
-                                <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                <p className="px-2.5 py-1 text-[11px] text-muted-foreground">
+                                  Remove {pendingRemove === 'rack'
+                                    ? `Rack ${getSectionRacks(activeSection).at(-1)}`
+                                    : `Level ${Math.max(...getSectionLevels(activeSection))}`
+                                  } from Section {activeSection}?
+                                </p>
+                                <div className="flex gap-1 px-1">
+                                  <button
+                                    onClick={() => { pendingRemove === 'rack' ? handleRemoveRack(true) : handleRemoveLevel(true) }}
+                                    disabled={removingRack || removingLevel}
+                                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md text-[11px] font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
+                                  >
+                                    {removingRack || removingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                    Yes, Remove
+                                  </button>
+                                  <button
+                                    onClick={() => setPendingRemove(null)}
+                                    className="flex-1 py-1.5 rounded-md text-[11px] font-medium text-muted-foreground hover:bg-muted transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
                               </>
-                            ) : loc ? (
-                              <Plus className="h-4 w-4 text-muted-foreground/40" />
-                            ) : null}
-                          </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleRemoveRack()}
+                                  disabled={removingRack || sectionRacks.length <= 1}
+                                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 text-left"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                                  Remove Rack {sectionRacks.at(-1)}
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveLevel()}
+                                  disabled={removingLevel || sectionLevels.length <= 1}
+                                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 text-left"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                                  Remove Level {Math.max(...sectionLevels)}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Rack usage subtotals */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-16" />
+                      {sectionRacks.map(r => {
+                        const rId = rackId(activeSection, r)
+                        const rackLocs = locations.filter(l => l.rack_id === rId)
+                        const rUsed = rackLocs.reduce((s, l) => s + l.used, 0)
+                        const rCap = rackLocs.reduce((s, l) => s + l.capacity, 0)
+                        return (
+                          <div key={r} className="flex-1 text-center text-[10px] text-muted-foreground">
+                            {rCap > 0 ? `${rUsed}/${rCap}` : '—'}
+                          </div>
                         )
                       })}
+                      <div className="w-8 shrink-0" />
+                      <div className="w-8 shrink-0" />
                     </div>
-                  ))}
-                </div>
-              )}
+
+                    {/* Grid rows (levels) */}
+                    {sectionLevels.map(level => (
+                      <div key={level} className="flex items-center gap-2">
+                        <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
+                        {sectionRacks.map(rack => {
+                          const loc = getLocation(rackId(activeSection, rack), level)
+                          const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
+                          const used = loc?.used ?? 0
+                          const capacity = loc?.capacity ?? 20
+                          return (
+                            <button
+                              key={`${rack}-${level}`}
+                              onClick={() => loc && setDetailSlot(loc)}
+                              disabled={!loc}
+                              title={loc ? `Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
+                              className={cn(
+                                "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
+                                loc ? getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
+                                isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
+                                loc && "hover:scale-105 hover:shadow-md cursor-pointer"
+                              )}
+                            >
+                              {provisioningSection && !loc ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                              ) : loc && used > 0 ? (
+                                <>
+                                  <Package className="h-4 w-4 text-foreground/60" />
+                                  <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                </>
+                              ) : loc ? (
+                                <Plus className="h-4 w-4 text-muted-foreground/40" />
+                              ) : null}
+                            </button>
+                          )
+                        })}
+                        {/* Spacers to align under the two dropdown buttons */}
+                        <div className="w-8 shrink-0" />
+                        <div className="w-8 shrink-0" />
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
 
           </div>
@@ -373,16 +905,47 @@ export default function WarehouseLocatorPage() {
           )} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
-              <div>
+              <div className="flex-1 min-w-0">
                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-primary" />
+                  <MapPin className="h-4 w-4 text-primary shrink-0" />
                   Rack {detailSlot.rack_id} — Level {detailSlot.level}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
-                </p>
+                {editingCapacity ? (
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className="text-xs text-muted-foreground">{detailSlot.used} used /</span>
+                    <input
+                      type="number"
+                      min={detailSlot.used}
+                      value={capacityInput}
+                      onChange={e => setCapacityInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleEditCapacity(); if (e.key === 'Escape') setEditingCapacity(false) }}
+                      className="w-16 h-6 text-xs border border-primary rounded px-1.5 focus:outline-none focus:ring-1 focus:ring-primary"
+                      autoFocus
+                    />
+                    <span className="text-xs text-muted-foreground">max</span>
+                    <button onClick={handleEditCapacity} disabled={savingCapacity} className="p-0.5 text-primary hover:bg-primary/10 rounded">
+                      {savingCapacity ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    </button>
+                    <button onClick={() => setEditingCapacity(false)} className="p-0.5 text-muted-foreground hover:bg-muted rounded">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <p className="text-xs text-muted-foreground">
+                      {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
+                    </p>
+                    <button
+                      onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
+                      className="p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded transition-colors"
+                      title="Edit capacity"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
               </div>
-              <button onClick={() => { setDetailSlot(null); setExpandedBox(null) }} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+              <button onClick={() => { setDetailSlot(null); setExpandedBox(null) }} className="text-muted-foreground hover:text-foreground text-lg leading-none ml-3">✕</button>
             </div>
 
             {/* Progress */}
@@ -533,6 +1096,56 @@ export default function WarehouseLocatorPage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm Remove Section Modal ─────────────────────────────── */}
+      {confirmRemoveSection !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmRemoveSection(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-1">Remove Section {confirmRemoveSection}?</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  This will permanently delete all {getSectionRacks(confirmRemoveSection).length * getSectionLevels(confirmRemoveSection).length} slot records for Section {confirmRemoveSection}. This cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setConfirmRemoveSection(null)} disabled={removingSection}>Cancel</Button>
+              <Button
+                variant="destructive"
+                disabled={removingSection}
+                onClick={() => handleRemoveSection(confirmRemoveSection, true)}
+              >
+                {removingSection ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Yes, Remove
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Warning Modal ──────────────────────────────────────────────── */}
+      {warningModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setWarningModal(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground mb-1">Cannot Remove</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{warningModal}</p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setWarningModal(null)}>Got it</Button>
+            </div>
           </div>
         </div>
       )}
