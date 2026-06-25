@@ -10,9 +10,7 @@ export const FooterSection = () => (
       <div className="footer-brand">
         <BrandLogo compact />
         <p>
-          Copyright (c) 2026 Innodata Knowledges Inc.
-          <br />
-          All rights reserved
+          Intelligent book digitization and warehouse management for modern production teams.
         </p>
       </div>
 
@@ -23,11 +21,14 @@ export const FooterSection = () => (
         <h4>Stay up to date</h4>
         <form className="subscribe" onSubmit={(event) => event.preventDefault()}>
           <input type="email" placeholder="Your email address" aria-label="Your email address" />
-          <button type="submit" aria-label="Submit email">
-            {"->"}
+          <button type="submit" aria-label="Subscribe">
+            Subscribe
           </button>
         </form>
       </div>
+    </div>
+    <div className="footer-bottom">
+      <span>© 2026 Innodata Knowledge Inc. All rights reserved.</span>
     </div>
   </footer>
 );

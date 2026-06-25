@@ -20,6 +20,7 @@ const resolveActiveLabel = (pathname: string, hash: string) => {
 export const HeaderSection = () => {
   const pathname = usePathname();
   const [activeLabel, setActiveLabel] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
   const isOnLandingPage = pathname === "/landing-page";
   const { scrollTo } = useSmoothScroll();
 
@@ -53,10 +54,16 @@ export const HeaderSection = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, [isOnLandingPage]);
 
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   const handleNavClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     link: { href: string; label: string }
   ) => {
+    setMenuOpen(false);
     if (!isOnLandingPage) return; // let Next.js navigate normally for other pages
 
     const hash = link.href.includes("#") ? link.href.split("#")[1] : null;
@@ -83,21 +90,59 @@ export const HeaderSection = () => {
     <header className="top-nav">
       <div className="container">
         <BrandLogo />
-        <ul className="nav-links">
-          {NAV_LINKS.map((link) => (
-            <li key={link.label}>
-              <Link
-                href={link.href}
-                className={activeLabel === link.label ? "active" : undefined}
-                onClick={(e) => handleNavClick(e, link)}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <PrimaryButton label="Sign up" href="/register" />
+
+        {/* Desktop: links + button grouped on the right */}
+        <div className="nav-right">
+          <ul className="nav-links">
+            {NAV_LINKS.map((link) => (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className={activeLabel === link.label ? "active" : undefined}
+                  onClick={(e) => handleNavClick(e, link)}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <PrimaryButton label="Sign up" href="/register" />
+        </div>
+
+        {/* Hamburger button — mobile only */}
+        <button
+          className={`nav-hamburger${menuOpen ? " open" : ""}`}
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
       </div>
+
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className="nav-mobile-menu">
+          <ul>
+            {NAV_LINKS.map((link) => (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className={activeLabel === link.label ? "active" : undefined}
+                  onClick={(e) => handleNavClick(e, link)}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <div className="nav-mobile-cta">
+            <PrimaryButton label="Sign up" href="/register" />
+          </div>
+        </div>
+      )}
     </header>
   );
 };
