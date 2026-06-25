@@ -90,20 +90,24 @@ export const HeaderSection = () => {
     <header className="top-nav">
       <div className="container">
         <BrandLogo />
-        <ul className="nav-links">
-          {NAV_LINKS.map((link) => (
-            <li key={link.label}>
-              <Link
-                href={link.href}
-                className={activeLabel === link.label ? "active" : undefined}
-                onClick={(e) => handleNavClick(e, link)}
-              >
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <PrimaryButton label="Sign up" href="/register" />
+
+        {/* Desktop: links + button grouped on the right */}
+        <div className="nav-right">
+          <ul className="nav-links">
+            {NAV_LINKS.map((link) => (
+              <li key={link.label}>
+                <Link
+                  href={link.href}
+                  className={activeLabel === link.label ? "active" : undefined}
+                  onClick={(e) => handleNavClick(e, link)}
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <PrimaryButton label="Sign up" href="/register" />
+        </div>
 
         {/* Hamburger button — mobile only */}
         <button

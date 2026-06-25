@@ -145,3 +145,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── No selection / no drag for non-interactive UI pages ── */
+.no-select,
+.no-select * {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Always allow selection inside form fields */
+.no-select input,
+.no-select textarea,
+.no-select [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}

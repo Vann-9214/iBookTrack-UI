@@ -28,7 +28,7 @@ export const SmoothScrollProvider = ({ children, header }: Props) => {
     } else {
       const containerRect = sb.containerEl.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      const offset = sb.scrollTop + (targetRect.top - containerRect.top) - 84; // 84px nav height
+      const offset = sb.scrollTop + (targetRect.top - containerRect.top) - 72; // 72px nav height
       sb.scrollTo(0, offset, 800);
     }
   };

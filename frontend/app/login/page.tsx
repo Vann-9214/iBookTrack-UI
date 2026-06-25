@@ -84,280 +84,144 @@ export default function LoginPage() {
 
 
   return (
-    <div className="min-h-screen bg-white pt-[84px]">
+    /* Full viewport, no scroll ever */
+    <div className="h-screen overflow-hidden bg-white pt-[56px]">
       <HeaderSection />
 
-      <div className="flex h-[calc(100vh-84px)] overflow-hidden bg-white">
-        {/* ── Left Panel ── */}
-        <div className="hidden lg:flex w-2/5 items-center justify-center pl-32">
-          <Image
-            src="/iBookTrack_logoA.png"
-            alt="iBookTrack Logo"
-            width={650}
-            height={200}
-            priority
-            className="object-contain"
-          />
+      <div className="no-select flex h-[calc(100vh-56px)]">
+        {/* ── Left Panel — desktop only ── */}
+        <div className="hidden lg:flex w-[45%] flex-col items-center justify-center relative overflow-hidden flex-shrink-0"
+          style={{ background: "linear-gradient(145deg, #0f1e3a 0%, #1a3460 55%, #1f5fa8 100%)" }}>
+          <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full opacity-20"
+            style={{ background: "radial-gradient(circle, #60a5fa, transparent)" }} />
+          <div className="absolute -bottom-32 -right-16 w-96 h-96 rounded-full opacity-15"
+            style={{ background: "radial-gradient(circle, #93c5fd, transparent)" }} />
+          <div className="relative z-10 flex flex-col items-center text-center px-12 max-w-md gap-6">
+            <Image src="/iBookTrack_logoA.png" alt="iBookTrack Logo" width={280} height={90} priority
+              className="object-contain" style={{ filter: "brightness(0) invert(1)", opacity: 0.92 }} />
+            <p className="text-blue-100 text-base leading-relaxed opacity-80 mt-2">
+              The unified Warehouse Management System for zero-error book digitization.
+            </p>
+            <div className="flex gap-6 mt-4">
+              {[["6+", "Pipeline Steps"], ["100%", "Chain of Custody"], ["0", "Manual Logs"]].map(([val, label]) => (
+                <div key={label} className="flex flex-col items-center gap-1">
+                  <span className="text-white font-bold text-2xl" style={{ fontFamily: "Sora, sans-serif" }}>{val}</span>
+                  <span className="text-blue-200 text-xs opacity-70">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* ── Right Panel ── */}
-        <div className="flex w-full lg:w-3/5 items-start justify-center px-8 pt-20 pb-12">
-          <div className={`auth-card${leaving ? ' auth-card--leaving' : ''} w-full max-w-sm`}>
+        {/* Mobile: dark gradient bg matching left panel; Desktop: light bg */}
+        <div className="relative flex w-full lg:w-[55%] items-center justify-center overflow-hidden"
+          style={{ background: "linear-gradient(145deg, #0f1e3a 0%, #1a3460 55%, #1f5fa8 100%)" }}>
 
+          {/* Mobile-only decorative blobs (hidden on lg, shown on mobile) */}
+          <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-20 lg:hidden"
+            style={{ background: "radial-gradient(circle, #60a5fa, transparent)" }} />
+          <div className="absolute -bottom-28 -left-16 w-80 h-80 rounded-full opacity-15 lg:hidden"
+            style={{ background: "radial-gradient(circle, #93c5fd, transparent)" }} />
 
+          {/* On desktop override back to light bg */}
+          <div className="absolute inset-0 hidden lg:block bg-[#f8faff]" />
 
-          {/* Logo */}
+          <div className={`auth-card${leaving ? ' auth-card--leaving' : ''} relative z-10 w-full mx-4 lg:mx-0 max-w-[440px] bg-white rounded-2xl shadow-xl border border-white/20 lg:border-gray-100 px-6 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10`}>
 
-          <div className="flex justify-center mb-5">
-
-            <Image
-
-            src="/iBookTrack_logoN.png"
-
-            alt="iBookTrack"
-
-            width={150}
-
-            height={56}
-
-            priority
-
-            className="object-contain h-auto"
-
-            />
-
-          </div>
-
-
-
-          <h1 className="text-center text-3xl font-bold text-gray-900 mb-5">
-
-            Log in to your account
-
-          </h1>
-
-          <p className="text-center text-sm text-gray-500 mb-8">
-
-            Welcome back! Please enter your details.
-
-          </p>
-
-
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5" noValidate>
-
-
-
-            {/* Email */}
-
-            <div className="flex flex-col gap-1.5">
-
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">
-
-                Email
-
-              </label>
-
-              <input
-
-                id="email"
-
-                type="email"
-
-                autoComplete="email"
-
-                placeholder="Enter your email"
-
-                value={email}
-
-                onChange={(e) => setEmail(e.target.value)}
-
-                className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-
-              />
-
+            {/* Logo — mobile only */}
+            <div className="flex justify-center mb-3 sm:mb-4 lg:hidden">
+              <Image src="/iBookTrack_logoN.png" alt="iBookTrack" width={856} height={204}
+                priority className="object-contain" style={{ width: 130, height: "auto" }} />
             </div>
 
+            {/* Heading */}
+            <h1 className="font-bold text-gray-900 mb-1 text-center text-2xl sm:text-3xl lg:text-[2rem]"
+              style={{ fontFamily: "Sora, sans-serif", letterSpacing: "-0.025em" }}>
+              Welcome back
+            </h1>
+            <p className="text-center text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6 leading-relaxed">
+              Log in to your iBookTrack account to continue.
+            </p>
 
+            <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 sm:gap-3.5" noValidate>
 
-            {/* Password */}
-
-            <div className="flex flex-col gap-1.5">
-
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
-
-                Password
-
-              </label>
-
-              <div className="relative">
-
-                <input
-
-                  id="password"
-
-                  type={showPassword ? 'text' : 'password'}
-
-                  autoComplete="current-password"
-
-                  placeholder="Enter your password"
-
-                  value={password}
-
-                  onChange={(e) => setPassword(e.target.value)}
-
-                  className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 pr-10 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-
-                />
-
-                <button
-
-                  type="button"
-
-                  onClick={() => setShowPassword((v) => !v)}
-
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-
-                >
-
-                  {showPassword ? (
-
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-
-                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-
-                      <line x1="1" y1="1" x2="23" y2="23" />
-
-                    </svg>
-
-                  ) : (
-
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-
-                      <circle cx="12" cy="12" r="3" />
-
-                    </svg>
-
-                  )}
-
-                </button>
-
+              {/* Email */}
+              <div className="flex flex-col gap-1">
+                <label htmlFor="email" className="text-[0.7rem] sm:text-[0.78rem] font-semibold text-gray-500 uppercase tracking-wide">Email</label>
+                <input id="email" type="email" autoComplete="email" placeholder="you@example.com"
+                  value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="h-9 sm:h-10 lg:h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 sm:px-3.5 text-sm lg:text-base text-gray-900 placeholder-gray-400 outline-none transition focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
               </div>
 
-            </div>
+              {/* Password */}
+              <div className="flex flex-col gap-1">
+                <label htmlFor="password" className="text-[0.7rem] sm:text-[0.78rem] font-semibold text-gray-500 uppercase tracking-wide">Password</label>
+                <div className="relative">
+                  <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password"
+                    placeholder="Enter your password"
+                    value={password} onChange={(e) => setPassword(e.target.value)}
+                    className="h-9 sm:h-10 lg:h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 sm:px-3.5 pr-10 text-sm lg:text-base text-gray-900 placeholder-gray-400 outline-none transition focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                  <button type="button" onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
 
+              {/* Remember me + Forgot */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-3.5 w-3.5 sm:h-4 sm:w-4 rounded border-gray-300 accent-blue-600" />
+                  <span className="text-xs sm:text-sm text-gray-500">Remember me</span>
+                </label>
+                <button type="button" onClick={() => router.push('/forgot-password')}
+                  className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                  Forgot password?
+                </button>
+              </div>
 
-
-            {/* Remember me + Forgot */}
-
-            <div className="flex items-center justify-between">
-
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-
-                <input
-
-                  type="checkbox"
-
-                  checked={rememberMe}
-
-                  onChange={(e) => setRememberMe(e.target.checked)}
-
-                  className="h-4 w-4 rounded border-gray-300 accent-blue-600"
-
-                />
-
-                <span className="text-sm text-gray-600">Remember me</span>
-
-              </label>
-
-              <button
-                type="button"
-                onClick={() => router.push('/forgot-password')}
-                className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
-              >
-
-                Forgot password
-
-              </button>
-
-            </div>
-
-
-
-            {/* Error message */}
-
-            {error && (
-
-              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 border border-red-200" role="alert">
-
-                {error}
-
-              </p>
-
-            )}
-
-
-
-            {/* Submit */}
-
-            <button
-
-              type="submit"
-
-              disabled={loading}
-
-              className="h-10 w-full rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
-
-            >
-
-              {loading ? (
-
-                <span className="flex items-center justify-center gap-2">
-
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-
-                  </svg>
-
-                  Logging in…
-
-                </span>
-
-              ) : (
-
-                'Log in'
-
+              {/* Error */}
+              {error && (
+                <p className="rounded-xl bg-red-50 px-3 py-2 text-xs sm:text-sm text-red-600 border border-red-100" role="alert">{error}</p>
               )}
 
-            </button>
+              {/* Submit */}
+              <button type="submit" disabled={loading}
+                className="mt-0.5 h-9 sm:h-10 lg:h-11 w-full rounded-xl bg-blue-600 text-sm lg:text-base font-bold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm shadow-blue-200">
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Logging in…
+                  </span>
+                ) : 'Log in'}
+              </button>
 
-          </form>
+            </form>
 
-
-
-          <p className="mt-6 text-center text-sm text-gray-500">
-
-            Don&apos;t have an account?{' '}
-
-            <button
-              type="button"
-              onClick={() => router.push('/register')}
-              className="cursor-pointer font-medium text-blue-600 hover:text-blue-700 transition-colors"
-            >
-
-              Sign up
-
-            </button>
-          </p>
+            <p className="mt-4 sm:mt-5 text-center text-xs sm:text-sm text-gray-400">
+              Don&apos;t have an account?{' '}
+              <button type="button" onClick={() => router.push('/register')}
+                className="font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Sign up
+              </button>
+            </p>
           </div>
         </div>
       </div>
