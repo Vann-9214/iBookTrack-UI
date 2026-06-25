@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -175,7 +174,7 @@ export default function TransmissionMonitorPage() {
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Header */}
             <header className="flex items-start justify-between">
@@ -473,7 +472,7 @@ export default function TransmissionMonitorPage() {
               </TabsContent>
             </Tabs>
           </div>
-        </ScrollArea>
+        </div>
       </main>
       {/* Ranking Modal */}
       {showRanking && (
@@ -516,7 +515,7 @@ export default function TransmissionMonitorPage() {
 
               <div className="flex gap-6 overflow-hidden flex-1 min-h-0">
                 {/* Table */}
-                <ScrollArea className="flex-1 rounded-lg border border-border">
+                <div className="flex-1 rounded-lg border border-border overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-border hover:bg-transparent">
@@ -554,7 +553,7 @@ export default function TransmissionMonitorPage() {
                       })}
                     </TableBody>
                   </Table>
-                </ScrollArea>
+                </div>
 
                 {/* Score Distribution Bar Chart */}
                 <div className="w-80 flex flex-col min-h-0">

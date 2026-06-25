@@ -6,7 +6,6 @@ import { StatsBar } from "@/components/stats-bar"
 import { ActivePipeline } from "@/components/active-pipeline"
 import { TransmissionQueue } from "@/components/transmission-queue"
 import { UnaccountedBooks } from "@/components/missing-item-log"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
@@ -226,7 +225,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <DashboardMain>
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}
             <header className="flex items-start justify-between gap-4">
@@ -492,7 +491,7 @@ export default function DashboardPage() {
               <UnaccountedBooks />
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </DashboardMain>
 
       {/* Box Scan Modal */}

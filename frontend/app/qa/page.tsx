@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { authFetch } from "@/lib/auth-api"
 import { toast } from "sonner"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Layers, Package, CheckCircle, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Search } from "lucide-react"
@@ -173,7 +172,7 @@ export default function BookInspectionPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 
             {/* Header */}
@@ -341,7 +340,7 @@ export default function BookInspectionPage() {
             )}
 
           </div>
-        </ScrollArea>
+        </div>
       </main>
     </div>
   )

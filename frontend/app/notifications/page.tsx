@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -94,7 +93,7 @@ export default function NotificationsPage() {
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}
             <header className="flex items-start justify-between gap-4">
@@ -252,7 +251,7 @@ export default function NotificationsPage() {
               )}
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </main>
     </div>
   )
