@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { authFetch } from "@/lib/auth-api"
 import { toast } from "sonner"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Layers, Package, CheckCircle, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Search } from "lucide-react"
@@ -75,7 +74,12 @@ export default function BookInspectionPage() {
       const data = await res.json()
       if (data.boxes) {
         // Only show boxes that have been received at QC (received_at is set)
-        setBoxes(data.boxes.filter((b: BoxEntry) => b.received_at !== null))
+        const incoming: BoxEntry[] = data.boxes.filter((b: BoxEntry) => b.received_at !== null)
+        // Preserve already-loaded books so expanded lots don't disappear on refresh
+        setBoxes(prev => incoming.map(box => {
+          const existing = prev.find(p => p.id === box.id)
+          return existing?.books ? { ...box, books: existing.books } : box
+        }))
       }
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (e) {
@@ -102,9 +106,11 @@ export default function BookInspectionPage() {
         const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
         const data = await res.json()
         const books: BookEntry[] = data.box?.books || []
-        setBoxes(prev => prev.map(b => b.id === box.id ? { ...b, books } : b))
         return { ...box, books }
       }))
+      // Single batched update — avoids race with periodic fetchBoxes refresh
+      const bookMap = new Map(updatedBoxes.map(b => [b.id, b.books]))
+      setBoxes(prev => prev.map(b => bookMap.has(b.id) ? { ...b, books: bookMap.get(b.id) ?? [] } : b))
 
       // Pre-populate bookIssues from embedded flag data
       setBookIssues(prev => {
@@ -166,7 +172,7 @@ export default function BookInspectionPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 
             {/* Header */}
@@ -334,7 +340,7 @@ export default function BookInspectionPage() {
             )}
 
           </div>
-        </ScrollArea>
+        </div>
       </main>
     </div>
   )

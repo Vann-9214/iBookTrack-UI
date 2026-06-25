@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { authFetch } from '@/lib/auth-api'
+import { usePagination } from '@/hooks/usePagination'
+import { Pagination } from '@/components/pagination'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2 } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -390,6 +392,10 @@ export default function InventoryPage() {
     )
   })
 
+  // Add pagination for boxes
+  const pagination = usePagination({ totalItems: filteredBoxes.length, defaultPageSize: 50 })
+  const paginatedBoxes = filteredBoxes.slice(pagination.offset, pagination.offset + pagination.limit)
+
   return (
     <>
     {/* ── DELETE BOX CONFIRM DIALOG ── */}
@@ -623,11 +629,11 @@ export default function InventoryPage() {
               {/* Box List */}
               {loadingBoxes ? (
                 <div className="py-12 text-center text-muted-foreground text-sm">Loading boxes...</div>
-              ) : filteredBoxes.length === 0 ? (
+              ) : paginatedBoxes.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground text-sm">No boxes found</div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {filteredBoxes.map(box => {
+                  {paginatedBoxes.map(box => {
                     const isOpen = expandedBox === box.id
                     const books = boxBooks[box.id]
                     const rawScans = box.scans as any[]
@@ -782,6 +788,19 @@ export default function InventoryPage() {
                     )
                   })}
                 </div>
+              )}
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <Pagination
+                  currentPage={pagination.currentPage}
+                  totalPages={pagination.totalPages}
+                  pageSize={pagination.pageSize}
+                  onPageChange={pagination.goToPage}
+                  onPageSizeChange={pagination.setPageSize}
+                  canPrevPage={pagination.canPrevPage}
+                  canNextPage={pagination.canNextPage}
+                />
               )}
             </div>
           )}

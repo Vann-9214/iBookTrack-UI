@@ -256,20 +256,29 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 })
 
-// Get boxes by lot number
+// Get boxes by lot number.
+// Accepts the lot number in any common format: "64", "Lot-64", "LOT-64", "Lot 64", etc.
 router.get('/lot/:lot_number', async (req, res) => {
   try {
     const { lot_number } = req.params
     const db = supabaseAdmin || supabase
 
-    // First get the lot
-    const { data: lot, error: lotError } = await db
-      .from('lots')
-      .select('id')
-      .eq('lot_number', lot_number)
-      .single()
+    // Extract the numeric/alphanumeric part after any "Lot-" prefix
+    const raw = lot_number.trim()
+    const num = raw.replace(/^lot[-\s]*/i, '').trim()
 
-    if (lotError && lotError.code !== 'PGRST116') throw lotError
+    // Try candidates in order until one matches (case-insensitive)
+    const candidates = [raw, `Lot-${num}`, `LOT-${num}`, `Lot ${num}`, `lot-${num}`]
+    let lot = null
+    for (const candidate of candidates) {
+      const { data } = await db
+        .from('lots')
+        .select('id, lot_number')
+        .ilike('lot_number', candidate)
+        .maybeSingle()
+      if (data) { lot = data; break }
+    }
+
     if (!lot) return res.status(404).json({ success: false, error: 'Lot not found' })
 
     // Get all boxes for this lot

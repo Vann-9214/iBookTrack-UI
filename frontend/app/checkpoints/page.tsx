@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { authFetch } from "@/lib/auth-api"
 import { toast } from "sonner"
+import { usePagination } from "@/hooks/usePagination"
+import { Pagination } from "@/components/pagination"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -69,6 +70,16 @@ export default function StationCheckpointsPage() {
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [scannedBox, setScannedBox] = useState<{ box: BoxItem; books: ScannedBook[] } | null>(null)
   const [loadingScannedBox, setLoadingScannedBox] = useState(false)
+  
+  // Use refs to track previous data and prevent unnecessary re-renders
+  const prevBoxesRef = useRef<BoxItem[]>([])
+  const prevTransitionsRef = useRef<Transition[]>([])
+
+  // Helper to check if data actually changed
+  const hasDataChanged = useCallback((oldData: any[], newData: any[]): boolean => {
+    if (oldData.length !== newData.length) return true
+    return oldData.some((item, i) => JSON.stringify(item) !== JSON.stringify(newData[i]))
+  }, [])
 
   const fetchData = useCallback(async () => {
     try {
@@ -80,15 +91,23 @@ export default function StationCheckpointsPage() {
       const transData = await transRes.json()
       console.log('[Checkpoints] boxes response:', boxData)
       console.log('[Checkpoints] transitions response:', transData)
-      if (boxData.boxes) setBoxes(boxData.boxes)
-      if (transData.success) setTransitions(transData.transitions)
+      
+      // Only update state if data actually changed
+      if (boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
+        setBoxes(boxData.boxes)
+        prevBoxesRef.current = boxData.boxes
+      }
+      if (transData.success && hasDataChanged(prevTransitionsRef.current, transData.transitions)) {
+        setTransitions(transData.transitions)
+        prevTransitionsRef.current = transData.transitions
+      }
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [hasDataChanged])
 
   useEffect(() => {
     fetchData()
@@ -186,6 +205,10 @@ export default function StationCheckpointsPage() {
     return acc
   }, {} as Record<Stage, BoxItem[]>)
 
+  // Pagination for transitions log
+  const transitionsPagination = usePagination({ totalItems: transitions.length, defaultPageSize: 50 })
+  const paginatedTransitions = transitions.slice(transitionsPagination.offset, transitionsPagination.offset + transitionsPagination.limit)
+
   const formatTime = (iso: string) => {
     const d = new Date(iso)
     const diff = Math.floor((Date.now() - d.getTime()) / 1000)
@@ -204,7 +227,7 @@ export default function StationCheckpointsPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 
             {/* Scanned Box Contents Modal */}
@@ -453,7 +476,7 @@ export default function StationCheckpointsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {transitions.map((t) => (
+                      {paginatedTransitions.map((t) => (
                         <TableRow key={t.id} className="border-border">
                           <TableCell className="font-mono text-xs text-card-foreground">
                             {t.box?.box_number || '—'}
@@ -486,11 +509,22 @@ export default function StationCheckpointsPage() {
                     </TableBody>
                   </Table>
                 )}
+                {transitions.length > 0 && transitionsPagination.totalPages > 1 && (
+                  <Pagination
+                    currentPage={transitionsPagination.currentPage}
+                    totalPages={transitionsPagination.totalPages}
+                    pageSize={transitionsPagination.pageSize}
+                    onPageChange={transitionsPagination.goToPage}
+                    onPageSizeChange={transitionsPagination.setPageSize}
+                    canPrevPage={transitionsPagination.canPrevPage}
+                    canNextPage={transitionsPagination.canNextPage}
+                  />
+                )}
               </CardContent>
             </Card>
 
           </div>
-        </ScrollArea>
+        </div>
       </main>
     </div>
   )

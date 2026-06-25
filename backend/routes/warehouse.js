@@ -359,15 +359,31 @@ router.get('/search/isbn/:isbn', async (req, res) => {
     // First, try to get book details from iLMS API
     const { ilmsApi } = await import('../services/ilms-api.js')
     const ilmsResult = await ilmsApi.searchBookByISBN(isbn)
-    
+
     let bookTitle = null
     let ilmsBoxNo = null
     let ilmsLotNo = null
-    
-    if (ilmsResult.success && ilmsResult.data && !ilmsResult.data.Message) {
-      bookTitle = ilmsResult.data.Title
-      ilmsBoxNo = ilmsResult.data.BoxNo
-      ilmsLotNo = ilmsResult.data.LotNo
+    let ilmsExactMatch = null
+
+    if (ilmsResult.success && ilmsResult.data) {
+      // iLMS returns a general text search — filter to only the entry whose ISBN
+      // exactly matches what was searched (case-insensitive, strip hyphens/spaces)
+      const normalize = s => String(s || '').replace(/[-\s]/g, '').toLowerCase()
+      const searchedNorm = normalize(isbn)
+
+      const candidates = Array.isArray(ilmsResult.data)
+        ? ilmsResult.data
+        : [ilmsResult.data]
+
+      ilmsExactMatch = candidates.find(
+        item => item && !item.Message && normalize(item.ISBN) === searchedNorm
+      ) || null
+
+      if (ilmsExactMatch) {
+        bookTitle = ilmsExactMatch.Title
+        ilmsBoxNo = ilmsExactMatch.BoxNo
+        ilmsLotNo = ilmsExactMatch.LotNo
+      }
     }
 
     // Search in warehouse scan logs
@@ -415,8 +431,8 @@ router.get('/search/isbn/:isbn', async (req, res) => {
       inWarehouse = true
     }
 
-    // If book found in iLMS or database, return success
-    const bookFound = (ilmsResult.success && ilmsResult.data && !ilmsResult.data.Message) || book || (scans && scans.length > 0)
+    // If book found in iLMS (exact ISBN match) or database, return success
+    const bookFound = ilmsExactMatch || book || (scans && scans.length > 0)
 
     if (!bookFound) {
       return res.json({
@@ -437,11 +453,11 @@ router.get('/search/isbn/:isbn', async (req, res) => {
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
         in_warehouse: inWarehouse,
-        in_ilms: ilmsResult.success && ilmsResult.data && !ilmsResult.data.Message
+        in_ilms: !!ilmsExactMatch
       },
       scans,
       currentLocation: book || null,
-      ilmsData: ilmsResult.success ? ilmsResult.data : null
+      ilmsData: ilmsExactMatch || null
     })
   } catch (error) {
     console.error('Search ISBN error:', error)

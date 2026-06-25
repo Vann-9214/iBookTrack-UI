@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { authFetch } from '@/lib/auth-api'
 
@@ -219,7 +218,7 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}
             <header>
@@ -411,7 +410,7 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </main>
     </div>
   )

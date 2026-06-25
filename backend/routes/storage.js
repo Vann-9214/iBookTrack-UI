@@ -57,6 +57,122 @@ router.get('/locations', requireAuth, async (req, res) => {
   }
 })
 
+// ─── POST /api/storage/locations/provision ───────────────────────────────────
+// Bulk-upsert all 16 slots (racks A-D × levels 1-4) for a given section.
+// Section 1 uses bare rack IDs ('A','B','C','D'); sections 2+ use 'S{n}-A' etc.
+// Body: { section, capacity? }   (capacity defaults to 38)
+router.post('/locations/provision', requireAuth, async (req, res) => {
+  try {
+    const { section, capacity = 38 } = req.body
+    if (!section || Number(section) < 1) {
+      return res.status(400).json({ success: false, error: 'section is required' })
+    }
+
+    const sec = Number(section)
+    const racks = req.body.racks || ['A', 'B', 'C', 'D']
+    const levels = req.body.levels || [1, 2, 3, 4]
+
+    const rows = racks.flatMap(rack =>
+      levels.map(level => ({
+        rack_id: sec === 1 ? rack : `S${sec}-${rack}`,
+        level: Number(level),
+        capacity: Number(capacity),
+      }))
+    )
+
+    // Upsert to create missing rows (ignoreDuplicates skips existing ones silently)
+    const { error: upsertError } = await db()
+      .from('storage_locations')
+      .upsert(rows, { onConflict: 'rack_id,level', ignoreDuplicates: true })
+
+    if (upsertError) throw upsertError
+
+    // Always fetch ALL rows for this section — upsert only returns newly inserted rows
+    const rackIds = rows.map(r => r.rack_id)
+    const { data, error: fetchError } = await db()
+      .from('storage_locations')
+      .select('id, rack_id, level, capacity')
+      .in('rack_id', rackIds)
+
+    if (fetchError) throw fetchError
+
+    const normalized = (data || []).map(loc => ({
+      id: loc.id,
+      rack_id: loc.rack_id,
+      level: loc.level,
+      capacity: loc.capacity,
+      used: 0,
+      assignments: [],
+    }))
+
+    res.status(201).json({ success: true, locations: normalized })
+  } catch (error) {
+    console.error('Provision section error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// ─── PATCH /api/storage/locations/:id ────────────────────────────────────────
+// Update the capacity of a storage slot.
+// Body: { capacity }
+router.patch('/locations/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { capacity } = req.body
+    if (capacity == null || Number(capacity) < 1) {
+      return res.status(400).json({ success: false, error: 'capacity must be at least 1' })
+    }
+
+    // Ensure new capacity is not less than current usage
+    const { data: loc, error: locError } = await db()
+      .from('storage_locations')
+      .select('capacity, assignments:storage_assignments(id)')
+      .eq('id', id)
+      .single()
+
+    if (locError || !loc) return res.status(404).json({ success: false, error: 'Location not found' })
+
+    const usedCount = (loc.assignments || []).length
+    if (Number(capacity) < usedCount) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot set capacity below current usage (${usedCount} boxes assigned)`
+      })
+    }
+
+    const { data, error } = await db()
+      .from('storage_locations')
+      .update({ capacity: Number(capacity) })
+      .eq('id', id)
+      .select('id, rack_id, level, capacity')
+      .single()
+
+    if (error) throw error
+
+    res.json({ success: true, location: data })
+  } catch (error) {
+    console.error('Update location capacity error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// ─── DELETE /api/storage/locations/:id ───────────────────────────────────────
+// Delete a storage location slot (assignments cascade-deleted by FK constraint).
+router.delete('/locations/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { error } = await db()
+      .from('storage_locations')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Delete storage location error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 // ─── GET /api/storage/ready-boxes ────────────────────────────────────────────
 // Returns boxes in 'storage' stage that have NOT yet been assigned to a location
 router.get('/ready-boxes', requireAuth, async (req, res) => {

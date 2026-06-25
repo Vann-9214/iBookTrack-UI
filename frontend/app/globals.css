@@ -9,7 +9,7 @@
 }
 
 :root {
-  --background: oklch(0.98 0 0);
+  --background: oklch(98.35% 0.008 253.85);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -138,7 +138,7 @@
   }
 
   html {
-    overflow-y: scroll;
+    overflow: hidden;
   }
 
   body {
