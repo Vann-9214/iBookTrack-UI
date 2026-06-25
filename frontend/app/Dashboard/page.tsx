@@ -397,17 +397,17 @@ export default function DashboardPage() {
                       <div className="flex gap-2">
                         {searchResult.data.in_warehouse && (
                           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
-                            ✓ In Warehouse
+                            In Warehouse
                           </span>
                         )}
                         {searchResult.data.in_ilms && (
                           <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                            📚 Found in iLMS
+                            Found in iLMS
                           </span>
                         )}
                         {!searchResult.data.in_warehouse && (
                           <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
-                            ⚠️ Not Scanned Yet
+                            Not Scanned Yet
                           </span>
                         )}
                       </div>
@@ -422,11 +422,11 @@ export default function DashboardPage() {
                           <p className="font-semibold text-base">{searchResult.data.title || 'Unknown Title'}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">📦 Box Number</p>
+                          <p className="text-sm text-muted-foreground">Box Number</p>
                           <p className="font-bold text-lg text-primary">{searchResult.data.box_number || 'Not assigned'}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground">📍 Lot Number</p>
+                          <p className="text-sm text-muted-foreground">Lot Number</p>
                           <p className="font-bold text-lg text-primary">{searchResult.data.lot_number || 'Unknown'}</p>
                         </div>
                         <div>
