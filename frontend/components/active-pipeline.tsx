@@ -100,7 +100,10 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
 
   // Get current page of boxes
   const paginatedBoxes = boxes.slice(pagination.offset, pagination.offset + pagination.limit)
-  const selectedStepLabel = pipelineSteps.find(s => s.stage === selectedStage)?.label
+  const selectedStep = pipelineSteps.find(s => s.stage === selectedStage)
+  const selectedStepLabel = selectedStep?.label
+  const selectedStepCfg = selectedStage ? statusConfig[getStepStatus(selectedStep?.count ?? 0)] : null
+  const totalBooksInStage = boxes.reduce((sum, b) => sum + b.total_books, 0)
 
   return (
     <>
@@ -198,48 +201,83 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
       </Card>
 
       {/* Modal for viewing boxes in selected stage */}
-      {selectedStage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedStage(null)}>
-          <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">
-                Boxes in {selectedStepLabel}
-              </h3>
+      {selectedStage && selectedStepCfg && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedStage(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+
+            {/* Colored header */}
+            <div className={cn("px-6 py-5 flex items-center justify-between", selectedStepCfg.cardBg)}>
+              <div className="flex items-center gap-3">
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white text-sm font-bold", selectedStepCfg.bar)}>
+                  {pipelineSteps.findIndex(s => s.stage === selectedStage) + 1}
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-800">{selectedStepLabel} Stage</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={cn("h-2 w-2 rounded-full", selectedStepCfg.dot)} />
+                    <span className="text-xs text-gray-500">{selectedStepCfg.label}</span>
+                  </div>
+                </div>
+              </div>
               <button
                 onClick={() => setSelectedStage(null)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
+            {/* Summary strip */}
+            {!loadingBoxes && boxes.length > 0 && (
+              <div className="flex items-center gap-6 px-6 py-3 bg-gray-50 border-b border-gray-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">Boxes</span>
+                  <span className="text-sm font-bold text-gray-800">{boxes.length}</span>
+                </div>
+                <div className="h-3 w-px bg-gray-200" />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">Total Books</span>
+                  <span className="text-sm font-bold text-gray-800">{totalBooksInStage.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+
             {/* Content */}
             {loadingBoxes ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                <span className="text-sm text-gray-400">Loading boxes...</span>
               </div>
             ) : paginatedBoxes.length === 0 ? (
-              <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                No boxes found in this stage.
+              <div className="flex flex-col items-center justify-center py-16 gap-2">
+                <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
+                  <span className="text-xl">📦</span>
+                </div>
+                <span className="text-sm font-medium text-gray-500">No boxes in this stage</span>
               </div>
             ) : (
               <>
-                <div className="flex-1 overflow-y-auto mb-4">
+                <div className="flex-1 overflow-y-auto">
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-muted/50 border-b border-border">
+                    <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
                       <tr>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Box #</th>
-                        <th className="text-left py-3 px-4 font-medium text-muted-foreground">Lot #</th>
-                        <th className="text-right py-3 px-4 font-medium text-muted-foreground">Books</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide w-10">#</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Box</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot</th>
+                        <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Books</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {paginatedBoxes.map((box) => (
-                        <tr key={box.id} className="border-b border-border/40 hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-4 font-mono font-semibold text-foreground">{box.box_number}</td>
-                          <td className="py-3 px-4 text-foreground">{box.lot?.lot_number || '—'}</td>
-                          <td className="py-3 px-4 text-right text-muted-foreground">{box.total_books}</td>
+                    <tbody className="divide-y divide-gray-50">
+                      {paginatedBoxes.map((box, idx) => (
+                        <tr key={box.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-3 px-4 text-xs text-gray-300">{pagination.offset + idx + 1}</td>
+                          <td className="py-3 px-4 font-semibold text-gray-800">{box.box_number}</td>
+                          <td className="py-3 px-4 text-gray-500">{box.lot?.lot_number || '—'}</td>
+                          <td className="py-3 px-4 text-right">
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">
+                              {box.total_books.toLocaleString()}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -248,16 +286,17 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
 
                 {/* Pagination */}
                 {pagination.totalPages > 1 && (
-                  <Pagination
-                    currentPage={pagination.currentPage}
-                    totalPages={pagination.totalPages}
-                    pageSize={pagination.pageSize}
-                    onPageChange={pagination.goToPage}
-                    onPageSizeChange={pagination.setPageSize}
-                    canPrevPage={pagination.canPrevPage}
-                    canNextPage={pagination.canNextPage}
-                    className="mt-auto"
-                  />
+                  <div className="border-t border-gray-100 px-4 py-3">
+                    <Pagination
+                      currentPage={pagination.currentPage}
+                      totalPages={pagination.totalPages}
+                      pageSize={pagination.pageSize}
+                      onPageChange={pagination.goToPage}
+                      onPageSizeChange={pagination.setPageSize}
+                      canPrevPage={pagination.canPrevPage}
+                      canNextPage={pagination.canNextPage}
+                    />
+                  </div>
                 )}
               </>
             )}

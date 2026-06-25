@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { Activity, AlertTriangle, FileOutput, HeartPulse } from "lucide-react"
+import { Activity, AlertTriangle, FileOutput, HeartPulse, Loader2, X } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -150,46 +149,79 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
 
       {/* QC Flagged Books Modal */}
       {flagsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setFlagsOpen(false)}>
-          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-destructive" /> Non-Processable / Flagged Books
-                </h3>
-                <p className="text-xs text-muted-foreground">{flags.length} book{flags.length !== 1 ? 's' : ''} flagged</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setFlagsOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+
+            {/* Red header */}
+            <div className="px-6 py-5 flex items-center justify-between bg-red-50">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500 text-white">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-800">Non-Processable Books</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="h-2 w-2 rounded-full bg-red-500" />
+                    <span className="text-xs text-gray-500">Needs review</span>
+                  </div>
+                </div>
               </div>
-              <button onClick={() => setFlagsOpen(false)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+              <button
+                onClick={() => setFlagsOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
+
+            {/* Summary strip */}
+            {!loadingFlags && flags.length > 0 && (
+              <div className="flex items-center gap-6 px-6 py-3 bg-gray-50 border-b border-gray-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">Flagged Books</span>
+                  <span className="text-sm font-bold text-red-600">{flags.length}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Content */}
             {loadingFlags ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">Loading...</p>
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                <span className="text-sm text-gray-400">Loading flagged books...</span>
+              </div>
             ) : flags.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No flagged books recorded yet.</p>
+              <div className="flex flex-col items-center justify-center py-16 gap-2">
+                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <span className="text-xl">✅</span>
+                </div>
+                <span className="text-sm font-medium text-gray-500">No flagged books recorded yet</span>
+              </div>
             ) : (
               <div className="overflow-y-auto flex-1">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-card">
-                    <tr className="text-muted-foreground border-b border-border">
-                      <th className="pb-2 text-left font-medium w-6">#</th>
-                      <th className="pb-2 text-left font-medium pr-3">ISBN</th>
-                      <th className="pb-2 text-left font-medium pr-3">Title</th>
-                      <th className="pb-2 text-left font-medium pr-3">Issue</th>
-                      <th className="pb-2 text-left font-medium">Flagged By</th>
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide w-10">#</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">ISBN</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Issue</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Flagged By</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-50">
                     {flags.map((f, i) => (
-                      <tr key={f.scan_id} className="border-b border-border/40 last:border-0">
-                        <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
-                        <td className="py-1.5 font-mono pr-3">{f.isbn}</td>
-                        <td className="py-1.5 pr-3 max-w-[200px] truncate text-foreground">{f.title || '—'}</td>
-                        <td className="py-1.5 pr-3">
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">
+                      <tr key={f.scan_id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4 text-xs text-gray-300">{i + 1}</td>
+                        <td className="py-3 px-4 font-semibold text-gray-800">{f.isbn}</td>
+                        <td className="py-3 px-4 text-gray-500 max-w-[160px] truncate">{f.title || '—'}</td>
+                        <td className="py-3 px-4">
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
                             {ISSUE_LABELS[f.issue] || f.issue}
                           </span>
-                          {f.remarks && <span className="ml-1 text-muted-foreground">{f.remarks}</span>}
+                          {f.remarks && <span className="ml-2 text-xs text-gray-400">{f.remarks}</span>}
                         </td>
-                        <td className="py-1.5 text-muted-foreground">{f.flagged_by_name || '—'}</td>
+                        <td className="py-3 px-4 text-gray-500">{f.flagged_by_name || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
