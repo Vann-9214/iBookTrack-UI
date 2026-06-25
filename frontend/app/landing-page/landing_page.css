@@ -104,6 +104,113 @@ html {
   font-weight: 700;
 }
 
+/* Hamburger button — hidden on desktop, shown on mobile */
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: auto;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.nav-hamburger:hover {
+  background: rgba(47, 128, 237, 0.08);
+}
+
+.nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 999px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  transform-origin: center;
+}
+
+/* Animate to X when open */
+.nav-hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.nav-hamburger.open span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.nav-hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile dropdown menu */
+.nav-mobile-menu {
+  display: none;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(8px);
+  padding: 16px 0 20px;
+  animation: slideDown 0.2s ease both;
+}
+
+.nav-mobile-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: min(1180px, 92vw);
+  margin: 0 auto;
+}
+
+.nav-mobile-menu ul li a {
+  display: block;
+  padding: 13px 4px;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1rem;
+  border-bottom: 1px solid var(--line);
+  transition: color 0.15s ease;
+}
+
+.nav-mobile-menu ul li:last-child a {
+  border-bottom: none;
+}
+
+.nav-mobile-menu ul li a.active,
+.nav-mobile-menu ul li a:hover {
+  color: var(--brand);
+}
+
+.nav-mobile-cta {
+  width: min(1180px, 92vw);
+  margin: 16px auto 0;
+}
+
+.nav-mobile-cta .button {
+  display: block;
+  width: 100%;
+  max-width: none;
+  text-align: center;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .nav-links a.active,
 .nav-links a:hover {
   color: var(--brand);
@@ -571,8 +678,22 @@ footer {
     gap: 12px;
   }
 
+  /* Hide desktop nav links and sign-up button; show hamburger */
   .nav-links {
     display: none;
+  }
+
+  .top-nav > .container > .button {
+    display: none;
+  }
+
+  .nav-hamburger {
+    display: flex;
+  }
+
+  /* Show mobile dropdown */
+  .nav-mobile-menu {
+    display: block;
   }
 
   .hero .container {
