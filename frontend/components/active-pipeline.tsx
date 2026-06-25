@@ -11,32 +11,38 @@ import { authFetch } from "@/lib/auth-api"
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 function getStepStatus(count: number) {
-  if (count >= 5) return "bottleneck"
-  if (count >= 3) return "busy"
+  if (count >= 5) return "busy"
   if (count === 0) return "idle"
-  return "normal"
+  return "active"
 }
 
-const statusStyles = {
-  bottleneck: {
-    node: "bg-warning text-warning-foreground border-warning",
-    bar: "bg-warning",
-    pulse: true,
+const statusConfig = {
+  active: {
+    nodeRing: "border-blue-400 text-blue-500",
+    countColor: "text-blue-500",
+    bar: "bg-blue-400",
+    cardBg: "bg-blue-50",
+    dot: "bg-blue-400",
+    dotLabel: "Active",
+    label: "Active",
   },
   busy: {
-    node: "bg-primary/20 text-primary border-primary/50",
-    bar: "bg-primary",
-    pulse: false,
-  },
-  normal: {
-    node: "bg-card text-card-foreground border-border",
-    bar: "bg-primary/50",
-    pulse: false,
+    nodeRing: "border-orange-400 text-orange-500",
+    countColor: "text-orange-500",
+    bar: "bg-orange-400",
+    cardBg: "bg-orange-50",
+    dot: "bg-orange-400",
+    dotLabel: "Busy / Bottleneck",
+    label: "Busy",
   },
   idle: {
-    node: "bg-card text-muted-foreground border-border/50",
-    bar: "bg-muted",
-    pulse: false,
+    nodeRing: "border-gray-300 text-gray-400",
+    countColor: "text-gray-400",
+    bar: "bg-gray-400",
+    cardBg: "bg-gray-50",
+    dot: "bg-gray-400",
+    dotLabel: "Idle",
+    label: "Idle",
   },
 }
 
@@ -105,92 +111,85 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Desktop: horizontal */}
-          <div className="hidden lg:flex items-start gap-0">
+          {/* Desktop: card layout */}
+          <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
               const status = getStepStatus(step.count)
-              const styles = statusStyles[status]
+              const cfg = statusConfig[status]
               return (
-                <div key={step.label} className="flex items-start flex-1 min-w-0">
-                  <div className="flex flex-col items-center gap-2 flex-1">
-                    {/* Node - now clickable button */}
-                    <button
-                      onClick={() => setSelectedStage(step.stage)}
-                      disabled={step.count === 0}
-                      className={cn(
-                        "flex h-14 w-14 items-center justify-center rounded-full border-2 text-sm font-bold transition-all cursor-pointer",
-                        step.count === 0 ? "cursor-not-allowed opacity-50" : "hover:ring-2 hover:ring-primary/50",
-                        styles.node,
-                        styles.pulse && "animate-pulse"
-                      )}
-                      title={step.count > 0 ? `Click to view ${step.count} ${step.unit.toLowerCase()} in ${step.label}` : `No boxes in ${step.label}`}
-                    >
-                      {step.count}
-                    </button>
-                    {/* Label */}
-                    <span className="text-xs font-medium text-center text-card-foreground">
-                      {step.label}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">
-                      {step.count} {step.unit}
-                    </span>
-                  </div>
-                  {/* Connector */}
-                  {i < pipelineSteps.length - 1 && (
-                    <div className="flex items-center self-center mt-1 -mx-1">
-                      <div className={cn("h-0.5 w-6 xl:w-10", styles.bar)} />
-                      <div
-                        className={cn(
-                          "h-0 w-0 border-y-[4px] border-y-transparent border-l-[6px]",
-                          status === "bottleneck"
-                            ? "border-l-warning"
-                            : status === "busy"
-                              ? "border-l-primary"
-                              : "border-l-muted-foreground/30"
-                        )}
-                      />
-                    </div>
+                <button
+                  key={step.label}
+                  onClick={() => step.count > 0 && setSelectedStage(step.stage)}
+                  disabled={step.count === 0}
+                  className={cn(
+                    "flex-1 min-w-0 flex flex-col items-center gap-0 rounded-xl transition-all duration-200",
+                    step.count > 0 ? "cursor-pointer hover:scale-105 hover:brightness-95" : "cursor-default"
                   )}
-                </div>
+                  title={step.count > 0 ? `Click to view ${step.count} ${step.unit.toLowerCase()} in ${step.label}` : `No boxes in ${step.label}`}
+                >
+                  {/* Step number circle */}
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold mb-2", cfg.nodeRing)}>
+                    {i + 1}
+                  </div>
+                  {/* Card body */}
+                  <div className={cn("w-full rounded-xl px-3 pt-3 pb-2 flex flex-col items-center gap-1", cfg.cardBg)}>
+                    <span className="text-xs font-semibold text-gray-600">{step.label}</span>
+                    <span className={cn("text-2xl font-bold leading-tight", cfg.countColor)}>{step.count}</span>
+                    {/* Colored underline bar */}
+                    <div className={cn("h-0.5 w-full rounded-full my-1", cfg.bar)} />
+                    {/* Status dot + label */}
+                    <div className="flex items-center gap-1">
+                      <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
+                      <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
+                    </div>
+                  </div>
+                </button>
               )
             })}
+          </div>
+
+          {/* Legend */}
+          <div className="hidden lg:flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-blue-400" />
+              <span className="text-xs text-muted-foreground">Active</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-orange-400" />
+              <span className="text-xs text-muted-foreground">Busy / Bottleneck</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-gray-400" />
+              <span className="text-xs text-muted-foreground">Idle</span>
+            </div>
           </div>
 
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
               const status = getStepStatus(step.count)
-              const styles = statusStyles[status]
+              const cfg = statusConfig[status]
               return (
                 <button
                   key={step.label}
-                  onClick={() => setSelectedStage(step.stage)}
+                  onClick={() => step.count > 0 && setSelectedStage(step.stage)}
                   disabled={step.count === 0}
                   className={cn(
                     "flex items-center gap-3 transition-opacity",
                     step.count === 0 ? "cursor-not-allowed opacity-50" : "hover:opacity-80"
                   )}
                 >
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold",
-                      styles.node,
-                      styles.pulse && "animate-pulse"
-                    )}
-                  >
-                    {step.count}
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold", cfg.nodeRing)}>
+                    {i + 1}
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-sm font-medium text-card-foreground">{step.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {step.count} {step.unit}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{step.count} {step.unit}</span>
                   </div>
-                  {status === "bottleneck" && (
-                    <span className="ml-auto rounded-full bg-warning/20 px-2 py-0.5 text-[10px] font-semibold text-warning">
-                      BOTTLENECK
-                    </span>
-                  )}
+                  <div className="ml-auto flex items-center gap-1">
+                    <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
+                    <span className="text-xs text-muted-foreground">{cfg.label}</span>
+                  </div>
                 </button>
               )
             })}

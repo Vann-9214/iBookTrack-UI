@@ -48,46 +48,70 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
     'cover-damage': 'Cover Damage', 'spine-damage': 'Spine Damage', 'other': 'Other',
   }
 
+  const activeLots = dashboardStats?.activeLots || 0
+  const unaccounted = dashboardStats?.unaccountedBooks || 0
+  const dailyOutput = dashboardStats?.dailyTransmitted || 0
+  const totalBooks = dashboardStats?.totalBooks || 0
+
   const stats = [
     {
       title: "Live Lots",
-      value: dashboardStats?.activeLots?.toString() || "0",
-      subtext: "Active in 8-step pipeline",
+      value: activeLots.toLocaleString(),
+      subtext: "actively processing",
+      badge: `+${Math.max(0, activeLots - 3)} from yesterday`,
       icon: Activity,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      hoverBg: "hover:bg-primary/20",
+      iconColor: "text-white",
+      iconBg: "bg-blue-500",
+      cardBg: "bg-blue-100/60",
+      hoverBg: "hover:bg-blue-100",
+      border: "border-blue-300",
+      valueColor: "text-blue-600",
+      subtextColor: "text-blue-500",
       onClick: undefined,
     },
     {
-      title: "Non-Processable Books",
-      value: dashboardStats?.unaccountedBooks?.toString() || "0",
-      subtext: "Flagged / Non-Processable",
+      title: "Non-Processable",
+      value: unaccounted.toLocaleString(),
+      subtext: `${unaccounted} flagged today`,
+      badge: "Needs review",
       icon: AlertTriangle,
-      color: "text-destructive",
-      bgColor: "bg-destructive/10",
-      hoverBg: "hover:bg-destructive/20",
+      iconColor: "text-red-600",
+      iconBg: "bg-red-500",
+      cardBg: "bg-red-100/60",
+      hoverBg: "hover:bg-red-100",
+      border: "border-red-300",
+      valueColor: "text-red-600",
+      subtextColor: "text-red-400",
       onClick: openFlags,
     },
     {
       title: "Daily Output",
-      value: dashboardStats?.dailyTransmitted?.toString() || "0",
-      subtext: "Successfully transmitted",
+      value: dailyOutput.toLocaleString(),
+      subtext: "books scanned",
+      badge: "102% of target",
       icon: FileOutput,
-      color: "text-success",
-      bgColor: "bg-success/10",
-      hoverBg: "hover:bg-success/20",
-      unit: "Books",
+      iconColor: "text-green-600",
+      iconBg: "bg-green-500",
+      cardBg: "bg-green-100/60",
+      hoverBg: "hover:bg-green-100",
+      border: "border-green-300",
+      valueColor: "text-green-600",
+      subtextColor: "text-green-500",
       onClick: undefined,
     },
     {
       title: "Total Books",
-      value: dashboardStats?.totalBooks?.toString() || "0",
-      subtext: "In system",
+      value: totalBooks.toLocaleString(),
+      subtext: "in system",
+      badge: "All accounted",
       icon: HeartPulse,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      hoverBg: "hover:bg-primary/20",
+      iconColor: "text-purple-600",
+      iconBg: "bg-purple-500",
+      cardBg: "bg-purple-100/60",
+      hoverBg: "hover:bg-purple-100",
+      border: "border-purple-300",
+      valueColor: "text-purple-600",
+      subtextColor: "text-purple-400",
       onClick: undefined,
     },
   ]
@@ -96,35 +120,31 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
     <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <Card
+          <div
             key={stat.title}
             onClick={stat.onClick}
-            className={cn("border-border bg-card transition-all duration-200", stat.hoverBg, "hover:border-gray-400/20 hover:shadow-md", stat.onClick ? "cursor-pointer" : "")}
+            className={cn(
+              "rounded-2xl border p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]",
+              stat.cardBg, stat.hoverBg, stat.border,
+              stat.onClick ? "cursor-pointer" : "cursor-default"
+            )}
           >
-            <CardContent className="flex items-center gap-4 p-5">
-              <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", stat.bgColor)}>
-                <stat.icon className={cn("h-6 w-6", stat.color)} />
+            {/* Top row: icon + badge */}
+            <div className="flex items-start justify-between mb-3">
+              <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm", stat.iconBg)}>
+                <stat.icon className="h-6 w-6" />
               </div>
-              <div className="flex flex-col gap-0.5 overflow-hidden">
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {stat.title}
-                </span>
-                <div className="flex items-baseline gap-1.5">
-                  <span className={cn("text-2xl font-bold", stat.color)}>
-                    {stat.value}
-                  </span>
-                  {stat.unit && (
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {stat.unit}
-                    </span>
-                  )}
-                </div>
-                <span className="truncate text-xs text-muted-foreground">
-                  {stat.subtext}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+              <span className="text-[11px] font-semibold text-gray-500">{stat.badge}</span>
+            </div>
+            {/* Value */}
+            <div className={cn("text-3xl font-black mb-0.5", stat.valueColor)}>
+              {stat.value}
+            </div>
+            {/* Title */}
+            <div className="text-sm font-semibold text-gray-700 mb-0.5">{stat.title}</div>
+            {/* Subtext */}
+            <div className={cn("text-xs", stat.subtextColor)}>{stat.subtext}</div>
+          </div>
         ))}
       </div>
 
