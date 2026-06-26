@@ -7,7 +7,7 @@ const router = express.Router()
 // Start a new warehouse receiving session
 router.post('/sessions/start', requireAuth, async (req, res) => {
   try {
-    const { lot_number } = req.body
+    const { lot_number, box_id } = req.body
 
     if (!lot_number) {
       return res.status(400).json({ error: 'lot_number is required' })
@@ -36,11 +36,24 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       lot = newLot
     }
 
-    // Create warehouse session — one box per session, created on first scan
+    // Validate optional pre-selected box belongs to the lot
+    let assignedBoxId = null
+    if (box_id) {
+      const { data: selectedBox } = await supabaseAdmin
+        .from('boxes')
+        .select('id, lot_id')
+        .eq('id', box_id)
+        .single()
+      if (selectedBox && selectedBox.lot_id === lot.id) {
+        assignedBoxId = selectedBox.id
+      }
+    }
+
+    // Create warehouse session — use selected box if provided, otherwise create on first scan
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('warehouse_sessions')
       .insert({
-        box_id: null,       // Will be created on first scan
+        box_id: assignedBoxId, // null means box will be created on first scan
         lot_id: lot.id,
         received_by: req.user.id,
         received_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email,
@@ -55,7 +68,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       session,
       lot_id: lot.id,
       lot_number: lot.lot_number,
-      message: 'Session started. Boxes will be created as you scan books.'
+      message: assignedBoxId ? 'Session started with selected box.' : 'Session started. Boxes will be created as you scan books.'
     })
   } catch (error) {
     console.error('Start warehouse session error:', error)

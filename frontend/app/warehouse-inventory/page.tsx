@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { ScannerInput } from '@/components/scanner-input'
 import { BookInfoCard } from '@/components/book-info-card'
@@ -49,12 +49,29 @@ interface WarehouseSession {
   total_scanned: number
   total_processable: number
   total_non_processable: number
+  box_id?: string | null
+}
+
+interface Lot {
+  id: string
+  lot_number: string
+}
+
+interface Box {
+  id: string
+  box_number: string
+  is_sealed?: boolean
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function WarehouseInventoryPage() {
-  const [activeLot, setActiveLot] = useState('Lot 1')
+  const [activeLot, setActiveLot] = useState<string>('')
+  const [activeLotId, setActiveLotId] = useState<string>('')
+  const [lots, setLots] = useState<Lot[]>([])
+  const [selectedBox, setSelectedBox] = useState<string>('')
+  const [boxes, setBoxes] = useState<Box[]>([])
+  const [boxesLoading, setBoxesLoading] = useState(false)
   const [sessionActive, setSessionActive] = useState(false)
   const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([])
   const [currentScan, setCurrentScan] = useState<any>(null)
@@ -70,7 +87,59 @@ export default function WarehouseInventoryPage() {
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false)
   const { toast } = useToast()
 
-  const lots = Array.from({ length: 100 }, (_, i) => `Lot ${i + 1}`)
+  // Fetch available lots on mount
+  useEffect(() => {
+    const fetchLots = async () => {
+      try {
+        const token = await getValidAccessToken()
+        const response = await fetch(`${API_URL}/api/lots`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+        const data = await response.json()
+        if (response.ok && data.lots) {
+          setLots(data.lots)
+          if (data.lots.length > 0 && !activeLot) {
+            const first = data.lots[0]
+            setActiveLot(first.lot_number)
+            setActiveLotId(first.id)
+          }
+        }
+      } catch {
+        toast({ title: 'Error', description: 'Failed to load lots', variant: 'destructive' })
+      }
+    }
+    fetchLots()
+  }, [])
+
+  // Fetch boxes for the selected lot
+  useEffect(() => {
+    if (!activeLotId) {
+      setBoxes([])
+      setSelectedBox('')
+      return
+    }
+    const fetchBoxes = async () => {
+      setBoxesLoading(true)
+      try {
+        const token = await getValidAccessToken()
+        const response = await fetch(`${API_URL}/api/boxes?lot_id=${encodeURIComponent(activeLotId)}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+        const data = await response.json()
+        if (response.ok && data.boxes) {
+          setBoxes(data.boxes)
+        } else {
+          setBoxes([])
+        }
+      } catch {
+        setBoxes([])
+      } finally {
+        setBoxesLoading(false)
+      }
+    }
+    fetchBoxes()
+    setSelectedBox('')
+  }, [activeLotId])
 
   const handleNewSession = async () => {
     if (!activeLot) { alert('Please select a lot first'); return }
@@ -81,7 +150,7 @@ export default function WarehouseInventoryPage() {
       const response = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: activeLot })
+        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox || null })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to start session')
@@ -89,8 +158,14 @@ export default function WarehouseInventoryPage() {
       setSessionActive(true)
       setScannedBooks([])
       setCurrentScan(null)
-      setCurrentBoxNumber('')
-      setCurrentBoxBooks(0)
+      if (selectedBox) {
+        const selected = boxes.find(b => b.id === selectedBox)
+        setCurrentBoxNumber(selected?.box_number || '')
+        setCurrentBoxBooks(0)
+      } else {
+        setCurrentBoxNumber('')
+        setCurrentBoxBooks(0)
+      }
       toast({ title: 'Session Started', description: `Session started for ${data.lot_number}.` })
     } catch (error) {
       toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to start session', variant: 'destructive' })
@@ -113,7 +188,7 @@ export default function WarehouseInventoryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       })
-      setSessionActive(false); setScannedBooks([]); setCurrentScan(null); setCurrentSession(null)
+      setSessionActive(false); setScannedBooks([]); setCurrentScan(null); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0)
       toast({ title: 'Session Closed', description: 'Session closed successfully.' })
     } catch { toast({ title: 'Error', description: 'Failed to complete session', variant: 'destructive' }) } finally { setLoading(false) }
   }
@@ -292,16 +367,35 @@ export default function WarehouseInventoryPage() {
             <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-end gap-4">
               <div className="flex-1">
                 <label className="text-sm font-medium text-foreground block mb-1">Lot</label>
-                <Select value={activeLot} onValueChange={setActiveLot}>
+                <Select value={activeLot} onValueChange={(value) => {
+                  const lot = lots.find(l => l.lot_number === value)
+                  setActiveLot(value)
+                  setActiveLotId(lot?.id || '')
+                  setSelectedBox('')
+                }}>
                   <SelectTrigger className="w-full sm:w-64 h-9">
                     <SelectValue placeholder="Select a lot" />
                   </SelectTrigger>
                   <SelectContent>
                     {lots.map(l => (
-                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                      <SelectItem key={l.id} value={l.lot_number}>{l.lot_number}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex-1">
+                <label className="text-sm font-medium text-foreground block mb-1">Box</label>
+                <Select value={selectedBox} onValueChange={setSelectedBox} disabled={!activeLotId || boxesLoading || boxes.length === 0}>
+                  <SelectTrigger className="w-full sm:w-64 h-9">
+                    <SelectValue placeholder={!activeLotId ? 'Select a lot first' : boxesLoading ? 'Loading boxes…' : boxes.length === 0 ? 'No boxes available' : 'Select a box (optional)'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {boxes.map(b => (
+                      <SelectItem key={b.id} value={b.id}>{b.box_number}{b.is_sealed ? ' (sealed)' : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Optional: choose an existing box for this session.</p>
               </div>
               <button onClick={handleNewSession} disabled={loading}
                 className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50">
