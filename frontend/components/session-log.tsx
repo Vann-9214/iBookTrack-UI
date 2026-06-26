@@ -79,7 +79,7 @@ export function SessionLog({ books }: SessionLogProps) {
                     ['wrong-lot', 'reject'].includes(book.status) ? 'bg-muted/20' : ''
                   }`}
                 >
-                  <td className="py-3 px-4 font-mono text-xs text-foreground">{book.isbn}</td>
+                  <td className="py-3 px-4 text-xs text-foreground">{book.isbn}</td>
                   <td className="py-3 px-4 text-foreground truncate">{book.title}</td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">

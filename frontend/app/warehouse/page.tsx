@@ -293,7 +293,7 @@ export default function WarehousePage() {
                     )}
                     <div>
                       <p className="text-xs font-semibold text-gray-600 uppercase mb-1">ISBN</p>
-                      <p className="text-lg font-mono">{currentBook.isbn}</p>
+                      <p className="text-lg">{currentBook.isbn}</p>
                     </div>
                     {currentBook.title && (
                       <div>
@@ -345,7 +345,7 @@ export default function WarehousePage() {
                       scanLogs.map(log => (
                         <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex-1 min-w-0">
-                            <p className="font-mono text-sm">{log.isbn}</p>
+                            <p className="text-sm">{log.isbn}</p>
                             <p className="text-xs text-muted-foreground truncate">{log.title || 'Unknown Title'}</p>
                             {log.rejection_reason && (
                               <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(log.rejection_reason)}</p>

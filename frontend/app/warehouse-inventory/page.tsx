@@ -253,7 +253,7 @@ export default function WarehouseInventoryPage() {
                   </h3>
                   <button onClick={() => setFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">✕</button>
                 </div>
-                <p className="text-xs text-muted-foreground font-mono mb-3">{flagModalBook.isbn} — {flagModalBook.title}</p>
+                <p className="text-xs text-muted-foreground mb-3">{flagModalBook.isbn} — {flagModalBook.title}</p>
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
@@ -321,7 +321,7 @@ export default function WarehouseInventoryPage() {
                   {currentBoxNumber && (
                     <div>
                       <p className="text-xs text-muted-foreground">Current Box</p>
-                      <p className="text-sm font-mono font-semibold text-foreground">{currentBoxNumber} <span className="font-normal text-muted-foreground">({currentBoxBooks} books)</span></p>
+                      <p className="text-sm font-semibold text-foreground">{currentBoxNumber} <span className="font-normal text-muted-foreground">({currentBoxBooks} books)</span></p>
                     </div>
                   )}
                 </div>
@@ -357,7 +357,7 @@ export default function WarehouseInventoryPage() {
                 <div className="bg-card border-2 border-primary/40 rounded-xl p-4 flex items-center justify-between gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Currently scanning</p>
-                    <p className="font-mono text-sm font-semibold text-foreground">{currentScan.isbn}</p>
+                    <p className="text-sm font-semibold text-foreground">{currentScan.isbn}</p>
                     <p className="text-sm text-muted-foreground">{currentScan.title}</p>
                   </div>
                   <div className="flex gap-2 shrink-0">
@@ -387,7 +387,7 @@ export default function WarehouseInventoryPage() {
                     {scannedBooks.map(book => (
                       <div key={book.id} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors">
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-mono font-medium text-foreground">{book.isbn}</p>
+                          <p className="text-xs font-medium text-foreground">{book.isbn}</p>
                           <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
                           {book.flag_issue && (
                             <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>

@@ -384,7 +384,7 @@ export default function TransmissionMonitorPage() {
                               </td>
                               <td className="text-xs font-semibold text-gray-800 px-4 py-3">{item.ScanUser || '—'}</td>
                               <td className="text-xs text-gray-500 px-4 py-3">{item.BoxNumber || '—'}</td>
-                              <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
+                              <td className="text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
                               <td className="text-xs text-right font-semibold text-gray-800 px-4 py-3">{item.PageCount ?? '—'}</td>
                               <td className="px-4 py-3">{getStatusBadge(statusWord)}</td>
                               <td className="text-xs text-gray-500 px-4 py-3">{item.MachineName || '—'}</td>
@@ -461,7 +461,7 @@ export default function TransmissionMonitorPage() {
                           return (
                             <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                               <td className="font-semibold text-xs text-gray-800 px-4 py-3">{m.MachineName}</td>
-                              <td className="font-mono text-xs text-gray-500 px-4 py-3">{m.MachineID}</td>
+                              <td className="text-xs text-gray-500 px-4 py-3">{m.MachineID}</td>
                               <td className="text-xs text-gray-700 px-4 py-3">{m.User}</td>
                               <td className="px-4 py-3">
                                 <Progress value={(m.TotalScans / maxScans) * 100} className="h-2" />

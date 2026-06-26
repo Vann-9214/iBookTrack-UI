@@ -27,7 +27,7 @@ interface LotStatusRow {
 }
 
 type FilterStatus = 'all' | ComputedStatus
-type SortKey = 'lot_number' | 'computed_status' | 'total_boxes' | 'transmitted' | 'pending'
+type SortKey = 'lot_number' | 'computed_status' | 'total_boxes' | 'transmitted' | 'pending' | 'progress'
 type SortDir = 'asc' | 'desc'
 
 const STATUS_META: Record<ComputedStatus, { label: string; color: string; bg: string; icon: React.ElementType }> = {
@@ -42,8 +42,8 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null)
   const [timestamp, setTimestamp] = useState('')
   const [filter, setFilter] = useState<FilterStatus>('all')
-  const [sortKey, setSortKey] = useState<SortKey>('lot_number')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [sortKey, setSortKey] = useState<SortKey>('progress')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [search, setSearch] = useState('')
 
   const fetchData = useCallback(async () => {
@@ -80,10 +80,17 @@ export default function ReportsPage() {
     .filter(l => filter === 'all' || l.computed_status === filter)
     .filter(l => !search || l.lot_number.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
-      let av: string | number = a[sortKey] ?? ''
-      let bv: string | number = b[sortKey] ?? ''
-      if (typeof av === 'string' && typeof bv === 'string') {
-        av = av.toLowerCase(); bv = bv.toLowerCase()
+      let av: string | number
+      let bv: string | number
+      if (sortKey === 'progress') {
+        av = a.total_scans > 0 ? a.transmitted / a.total_scans : 0
+        bv = b.total_scans > 0 ? b.transmitted / b.total_scans : 0
+      } else {
+        av = a[sortKey] ?? ''
+        bv = b[sortKey] ?? ''
+        if (typeof av === 'string' && typeof bv === 'string') {
+          av = av.toLowerCase(); bv = bv.toLowerCase()
+        }
       }
       return sortDir === 'asc' ? (av < bv ? -1 : av > bv ? 1 : 0) : (av > bv ? -1 : av < bv ? 1 : 0)
     })
@@ -215,7 +222,9 @@ export default function ReportsPage() {
                         <span className="flex items-center gap-1">Pending <SortIcon k="pending" /></span>
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Non-Processable</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">Progress</th>
+                      <th className={thCls('progress')} onClick={() => handleSort('progress')}>
+                        <span className="flex items-center gap-1">Progress <SortIcon k="progress" /></span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -225,7 +234,7 @@ export default function ReportsPage() {
                       const pct = lot.total_scans > 0 ? Math.round((lot.transmitted / lot.total_scans) * 100) : 0
                       return (
                         <tr key={lot.lot_id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-mono font-semibold text-foreground">{lot.lot_number}</td>
+                          <td className="px-4 py-3 font-semibold text-foreground">{lot.lot_number}</td>
                           <td className="px-4 py-3">
                             <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold', meta.bg, meta.color)}>
                               <Icon className="h-3.5 w-3.5" />

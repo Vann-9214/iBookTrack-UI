@@ -428,7 +428,7 @@ export default function DashboardPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="col-span-full">
                           <p className="text-sm text-muted-foreground">ISBN</p>
-                          <p className="font-mono text-lg font-bold">{searchResult.data.isbn}</p>
+                          <p className="text-lg font-bold">{searchResult.data.isbn}</p>
                         </div>
                         <div className="col-span-full">
                           <p className="text-sm text-muted-foreground">Title</p>
@@ -476,7 +476,7 @@ export default function DashboardPage() {
                             searchResult.books.map((book: any, index: number) => (
                               <div key={book.id || index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                                 <div className="flex-1">
-                                  <p className="font-mono text-sm font-semibold">{book.isbn}</p>
+                                  <p className="text-sm font-semibold">{book.isbn}</p>
                                   <p className="text-sm text-muted-foreground">{book.title || 'No title'}</p>
                                 </div>
                                 <div className="text-right">
@@ -514,7 +514,7 @@ export default function DashboardPage() {
           <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="text-base font-semibold text-foreground font-mono">{boxScanModal?.box.box_number}</h3>
+                <h3 className="text-base font-semibold text-foreground">{boxScanModal?.box.box_number}</h3>
                 <p className="text-xs text-muted-foreground">
                   {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books} books
                 </p>
@@ -540,7 +540,7 @@ export default function DashboardPage() {
                     {boxScanModal?.books.map((book: any, i: number) => (
                       <tr key={book.id} className="border-b border-border/40 last:border-0">
                         <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
-                        <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
+                        <td className="py-1.5 pr-3">{book.isbn}</td>
                         <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>
                         <td className="py-1.5">
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${

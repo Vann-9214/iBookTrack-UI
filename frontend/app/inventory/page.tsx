@@ -762,7 +762,7 @@ export default function InventoryPage() {
                                       const sfStatus = simflexBookStatus[box.id]?.[book.isbn]
                                       return (
                                         <tr key={book.id || i} className="border-b border-border/50 last:border-0">
-                                          <td className="py-1.5 pr-4 font-mono text-foreground">{book.isbn}</td>
+                                          <td className="py-1.5 pr-4 text-foreground">{book.isbn}</td>
                                           <td className="py-1.5 pr-4 text-foreground max-w-[200px] truncate">{book.title || '—'}</td>
                                           <td className="py-1.5 pr-4">
                                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -858,7 +858,7 @@ export default function InventoryPage() {
                     <tbody>
                       {logs.length > 0 ? logs.map(log => (
                         <tr key={log.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-mono text-xs text-foreground">{log.isbn}</td>
+                          <td className="px-4 py-3 text-xs text-foreground">{log.isbn}</td>
                           <td className="px-4 py-3 text-foreground max-w-xs truncate">{log.title}</td>
                           <td className="px-4 py-3 text-muted-foreground text-xs">{log.language}</td>
                           <td className="px-4 py-3 text-muted-foreground text-xs">{log.scannedAt}</td>
@@ -888,7 +888,7 @@ export default function InventoryPage() {
                   <Zap className="h-4 w-4 text-amber-500" />
                   Simflex Transmission Check
                 </h3>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">{simflexModal.box.box_number} · {simflexModal.box.lot?.lot_number}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{simflexModal.box.box_number} · {simflexModal.box.lot?.lot_number}</p>
               </div>
               {!simflexModal.loading && (
                 <button onClick={() => setSimflexModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
@@ -959,7 +959,7 @@ export default function InventoryPage() {
                       {simflexModal.result.simflexResults.map((r, i) => (
                         <tr key={r.isbn} className="border-b border-border/40 last:border-0">
                           <td className="py-1.5 px-3 text-muted-foreground">{i + 1}</td>
-                          <td className="py-1.5 px-3 font-mono text-foreground">{r.isbn}</td>
+                          <td className="py-1.5 px-3 text-foreground">{r.isbn}</td>
                           <td className="py-1.5 px-3 text-muted-foreground">{r.boxNumber || '—'}</td>
                           <td className="py-1.5 px-3 text-muted-foreground max-w-[180px] truncate" title={r.latestStatus || ''}>
                             {r.latestStatus || <span className="italic">Not in Simflex</span>}
@@ -990,7 +990,7 @@ export default function InventoryPage() {
           <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="text-base font-semibold text-foreground font-mono">{scannedBoxModal?.box.box_number}</h3>
+                <h3 className="text-base font-semibold text-foreground">{scannedBoxModal?.box.box_number}</h3>
                 <p className="text-xs text-muted-foreground">
                   {scannedBoxModal?.box.lot?.lot_number} · <span className="capitalize">{scannedBoxModal?.box.current_stage}</span> · {scannedBoxModal?.box.total_books} books
                 </p>
@@ -1016,7 +1016,7 @@ export default function InventoryPage() {
                     {scannedBoxModal?.books.map((book, i) => (
                       <tr key={book.id} className="border-b border-border/40 last:border-0">
                         <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
-                        <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
+                        <td className="py-1.5 pr-3">{book.isbn}</td>
                         <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>
                         <td className="py-1.5">
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${

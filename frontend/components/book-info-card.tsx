@@ -36,7 +36,7 @@ export function BookInfoCard({ book }: BookInfoCardProps) {
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">ISBN</p>
-              <p className="font-mono text-sm text-foreground">{book.isbn}</p>
+              <p className="text-sm text-foreground">{book.isbn}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Language</p>

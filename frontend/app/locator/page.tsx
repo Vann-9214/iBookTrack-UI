@@ -587,7 +587,7 @@ export default function WarehouseLocatorPage() {
                     <div key={r.assignment_id} className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
                       <MapPin className="h-4 w-4 text-primary shrink-0" />
                       <div className="flex-1 text-sm">
-                        <span className="font-semibold text-foreground font-mono">{r.box_number}</span>
+                        <span className="font-semibold text-foreground">{r.box_number}</span>
                         {r.lot_number && <span className="text-muted-foreground ml-2">· Lot {r.lot_number}</span>}
                       </div>
                       <span className="text-sm font-semibold text-primary">{r.location_label}</span>
@@ -1007,7 +1007,7 @@ export default function WarehouseLocatorPage() {
                             ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                           <Package className="h-4 w-4 text-primary shrink-0" />
-                          <span className="font-mono text-sm font-semibold text-foreground truncate">{a.box_number}</span>
+                          <span className="text-sm font-semibold text-foreground truncate">{a.box_number}</span>
                           {a.lot_number && <span className="text-xs text-muted-foreground shrink-0">Lot {a.lot_number}</span>}
                           <span className="text-xs text-muted-foreground ml-auto shrink-0">
                             <BookOpen className="inline h-3 w-3 mr-0.5" />{a.books.length} books
@@ -1031,7 +1031,7 @@ export default function WarehouseLocatorPage() {
                               <tbody>
                                 {a.books.map((b, i) => (
                                   <tr key={i} className="border-b border-border/20 last:border-0">
-                                    <td className="py-1 pr-3 font-mono text-foreground whitespace-nowrap">{b.isbn}</td>
+                                    <td className="py-1 pr-3 text-foreground whitespace-nowrap">{b.isbn}</td>
                                     <td className="py-1 text-muted-foreground truncate max-w-[200px]" title={b.title}>{b.title}</td>
                                   </tr>
                                 ))}
@@ -1148,7 +1148,7 @@ export default function WarehouseLocatorPage() {
                               />
                               <Package className="h-4 w-4 text-primary shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="font-mono text-sm font-semibold text-foreground">{b.box_number}</p>
+                                <p className="text-sm font-semibold text-foreground">{b.box_number}</p>
                                 {b.lot_number && <p className="text-xs text-muted-foreground">Lot {b.lot_number}</p>}
                               </div>
                               <span className="text-xs text-muted-foreground shrink-0">

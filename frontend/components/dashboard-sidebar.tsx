@@ -330,7 +330,7 @@ export function DashboardSidebar() {
           title="Warehouse Locator"
         >
           <Map className="h-5 w-5 shrink-0" />
-          <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse Locator</span>
+          <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
         </button>
 
         {/* Reports */}

@@ -334,7 +334,7 @@ export default function BookInspectionPage() {
                                       <tr key={`${box.id}-${book.id}`} className={`border-b border-gray-50 transition-colors ${isFlagged ? 'bg-red-50/40 hover:bg-red-50' : 'hover:bg-gray-50'}`}>
                                         <td className="px-5 py-3.5 text-xs text-gray-400 align-middle">{globalIdx + 1}</td>
                                         <td className="px-5 py-3.5 align-middle">
-                                          <span className="font-mono text-xs font-bold text-gray-800 break-all">{book.isbn}</span>
+                                          <span className="text-xs font-bold text-gray-800 break-all">{book.isbn}</span>
                                         </td>
                                         <td className="px-5 py-3.5 align-middle">
                                           <span className="text-xs text-gray-600 line-clamp-2">{book.title || <span className="italic text-gray-400">No title</span>}</span>

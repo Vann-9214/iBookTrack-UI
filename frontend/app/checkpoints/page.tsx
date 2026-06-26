@@ -306,7 +306,7 @@ export default function StationCheckpointsPage() {
                 <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h3 className="text-base font-semibold text-foreground font-mono">{scannedBox?.box.box_number}</h3>
+                      <h3 className="text-base font-semibold text-foreground">{scannedBox?.box.box_number}</h3>
                       <p className="text-xs text-muted-foreground">
                         {scannedBox?.box.lot?.lot_number} · <span className="capitalize">{scannedBox?.box.current_stage}</span> · {scannedBox?.box.total_books} books
                       </p>
@@ -332,7 +332,7 @@ export default function StationCheckpointsPage() {
                           {scannedBox?.books.map((book, i) => (
                             <tr key={book.id} className="border-b border-border/40 last:border-0">
                               <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
-                              <td className="py-1.5 font-mono pr-3">{book.isbn}</td>
+                              <td className="py-1.5 pr-3">{book.isbn}</td>
                               <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || '—'}</td>
                               <td className="py-1.5">
                                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -355,7 +355,7 @@ export default function StationCheckpointsPage() {
                 <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
                   <h3 className="text-base font-semibold text-foreground mb-1">Confirm Receive</h3>
                   <p className="text-sm text-muted-foreground mb-1">
-                    Move <span className="font-mono font-semibold text-foreground">{confirmBox.box_number}</span> from
+                    Move <span className="font-semibold text-foreground">{confirmBox.box_number}</span> from
                   </p>
                   <div className="flex items-center gap-2 mb-4">
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STAGE_META[confirmBox.current_stage]?.color}`}>
@@ -438,7 +438,7 @@ export default function StationCheckpointsPage() {
                                 )}
                               >
                                 <div className="min-w-0">
-                                  <p className="text-sm font-mono font-medium text-card-foreground">{box.box_number}</p>
+                                  <p className="text-sm font-medium text-card-foreground">{box.box_number}</p>
                                   <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · {box.total_books} books</p>
                                 </div>
                                 {renderBoxAction(box)}
@@ -463,7 +463,7 @@ export default function StationCheckpointsPage() {
             {undoEntry && (
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-card border border-border rounded-xl shadow-lg px-4 py-3 text-sm">
                 <span className="text-foreground">
-                  <span className="font-mono font-semibold">{undoEntry.box.box_number}</span> moved to <span className="font-semibold capitalize">{STAGE_LABELS[undoEntry.toStage]}</span>
+                  <span className="font-semibold">{undoEntry.box.box_number}</span> moved to <span className="font-semibold capitalize">{STAGE_LABELS[undoEntry.toStage]}</span>
                 </span>
                 <button onClick={handleUndo} className="ml-2 px-3 py-1 rounded-lg bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 text-xs font-semibold transition-colors">Undo</button>
                 <button onClick={() => { setUndoEntry(null); if (undoTimer.current) clearTimeout(undoTimer.current) }} className="text-muted-foreground hover:text-foreground">✕</button>
@@ -563,7 +563,7 @@ export default function StationCheckpointsPage() {
                         <div className="space-y-1.5 mt-auto">
                           {previewBoxes.map(box => (
                             <div key={box.id} className="flex items-center justify-between text-xs rounded-md border border-border bg-muted/40 px-2 py-1.5">
-                              <span className="font-mono text-card-foreground truncate pr-2">{box.box_number}</span>
+                              <span className="text-card-foreground truncate pr-2">{box.box_number}</span>
                               <span className="text-muted-foreground truncate">{box.lot?.lot_number || '—'}</span>
                             </div>
                           ))}
@@ -693,7 +693,7 @@ export default function StationCheckpointsPage() {
                     <TableBody>
                       {paginatedTransitions.map((t) => (
                         <TableRow key={t.id} className="border-border hover:bg-muted/30">
-                          <TableCell className="font-mono text-xs text-card-foreground px-4 py-3">
+                          <TableCell className="text-xs text-card-foreground px-4 py-3">
                             {t.box?.box_number || '—'}
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground px-4 py-3">
