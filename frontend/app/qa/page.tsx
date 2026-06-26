@@ -70,6 +70,7 @@ export default function BookInspectionPage() {
   const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const persistedFlags = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -128,9 +129,8 @@ export default function BookInspectionPage() {
     setExpandedLot(lotNumber)
     setLoadingBooks(lotNumber)
     try {
-      // Load books for boxes not yet fetched — flags are embedded in each book
+      // Always re-fetch from server to get fresh flag data
       const updatedBoxes = await Promise.all(lotBoxes.map(async box => {
-        if (box.books) return box
         const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
         const data = await res.json()
         const books: BookEntry[] = data.box?.books || []
@@ -140,12 +140,16 @@ export default function BookInspectionPage() {
       const bookMap = new Map(updatedBoxes.map(b => [b.id, b.books]))
       setBoxes(prev => prev.map(b => bookMap.has(b.id) ? { ...b, books: bookMap.get(b.id) ?? [] } : b))
 
-      // Pre-populate bookIssues from embedded flag data
+      // Always overwrite bookIssues from fresh server data — never use stale state
       setBookIssues(prev => {
         const updated = { ...prev }
         updatedBoxes.flatMap(b => b.books || []).forEach(book => {
-          if (book.flag && !updated[book.id]) {
+          if (book.flag) {
             updated[book.id] = { issue: book.flag.issue, remarks: book.flag.remarks || '', saved: true }
+            persistedFlags.current.add(book.id)
+          } else {
+            delete updated[book.id]
+            persistedFlags.current.delete(book.id)
           }
         })
         return updated
@@ -369,14 +373,9 @@ export default function BookInspectionPage() {
                                                   {saving === book.id ? '…' : 'Flag'}
                                                 </button>
                                               ) : (
-                                                <button
-                                                  onClick={() => saveIssue(book, box.id)}
-                                                  disabled={saving === book.id}
-                                                  className="h-8 px-3 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-50 inline-flex items-center gap-1"
-                                                >
-                                                  <CheckCircle2 className="h-3.5 w-3.5" />
-                                                  {saving === book.id ? '…' : 'Mark as OK'}
-                                                </button>
+                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                                                  <CheckCircle2 className="h-3.5 w-3.5" /> OK
+                                                </span>
                                               )}
                                             </div>
                                           ) : (
@@ -446,9 +445,28 @@ export default function BookInspectionPage() {
           <div className="max-h-64 overflow-y-auto">
             <button
               type="button"
-              onClick={() => { setIssueField(openDropdown!, 'issue', ''); setOpenDropdown(null); setDropdownPos(null) }}
+              onClick={async () => {
+                const bookId = openDropdown!
+                const hadPersistedFlag = persistedFlags.current.has(bookId)
+                setOpenDropdown(null)
+                setDropdownPos(null)
+                if (hadPersistedFlag) {
+                  try {
+                    const res = await authFetch(`${API_URL}/api/books/${bookId}/flag`, { method: 'DELETE' })
+                    if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+                    setBookIssues(prev => { const n = { ...prev }; delete n[bookId]; return n })
+                    persistedFlags.current.delete(bookId)
+                    toast.success('Book marked as OK')
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : 'Failed to clear flag')
+                    setIssueField(bookId, 'saved', true)
+                  }
+                } else {
+                  setIssueField(bookId, 'issue', '')
+                }
+              }}
               className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
-                !bookIssues[openDropdown!]?.issue ? 'bg-gray-100 text-gray-700' : 'text-gray-400 hover:bg-gray-50'
+                !bookIssues[openDropdown!]?.issue ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-green-50 hover:text-green-700'
               }`}
             >
               — No issue
