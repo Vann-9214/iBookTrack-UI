@@ -21,7 +21,6 @@ import {
   Trophy,
   Download,
 } from "lucide-react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -475,7 +474,7 @@ export default function TransmissionMonitorPage() {
                 <p className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
               </div>
             </div>
-            <button onClick={() => setShowRanking(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all">✕</button>
+            <button onClick={() => setShowRanking(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-amber-200 text-gray-600 hover:bg-amber-100 hover:text-gray-900 transition-all font-semibold text-sm">✕</button>
           </div>
 
           <div className="flex-1 overflow-hidden flex flex-col p-6 gap-5">
@@ -506,38 +505,48 @@ export default function TransmissionMonitorPage() {
               </div>
 
               <div className="flex gap-6 overflow-hidden flex-1 min-h-0">
-                {/* Table */}
-                <div className="flex-1 rounded-xl border border-gray-200 overflow-y-auto">
+                {/* Ranking Table */}
+                <div className="flex-1 rounded-xl border border-gray-200 overflow-y-auto min-w-0">
                   <table className="w-full text-sm">
-                    <thead className="sticky top-0 bg-white border-b border-gray-100">
+                    <colgroup>
+                      <col className="w-[8%]" />
+                      <col className="w-[36%]" />
+                      <col className="w-[24%]" />
+                      <col className="w-[8%]" />
+                      <col className="w-[12%]" />
+                    </colgroup>
+                    <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
                       <tr>
-                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left w-14">Rank</th>
+                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Rank</th>
                         <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
                         <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Books</th>
                         <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Pages</th>
-                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left w-44">Score</th>
+                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Score</th>
                       </tr>
                     </thead>
                     <tbody>
                       {ranking.data.map((r: any) => {
                         const pct = r.ScoreNum
-                        const color = pct >= 81 ? 'bg-green-500' : pct >= 51 ? 'bg-amber-500' : 'bg-red-500'
+                        const barColor = pct >= 90 ? '#6366f1' : pct >= 75 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444'
+                        const medal = r.Rank === 1 ? '🥇' : r.Rank === 2 ? '🥈' : r.Rank === 3 ? '🥉' : null
                         return (
-                          <tr key={r.Rank} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${r.Rank <= 3 ? 'bg-amber-50/50' : ''}`}>
-                            <td className="px-4 py-3 text-sm font-bold text-gray-800">
-                              {r.Rank <= 3 ? (
-                                <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ${r.Rank === 1 ? 'bg-amber-400' : r.Rank === 2 ? 'bg-slate-400' : 'bg-amber-700'}`}>{r.Rank}</span>
-                              ) : r.Rank}
+                          <tr key={r.Rank} className={`border-b border-gray-50 transition-colors ${r.Rank <= 3 ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-gray-50'}`}>
+                            <td className="px-4 py-3 align-middle">
+                              {medal ? (
+                                <span className="text-lg leading-none">{medal}</span>
+                              ) : (
+                                <span className="text-sm font-bold text-gray-400">{r.Rank}</span>
+                              )}
                             </td>
-                            <td className="px-4 py-3 text-sm font-semibold text-gray-800">{r.ScanUser}</td>
-                            <td className="px-4 py-3 text-sm text-right font-bold text-gray-800">{r.Books}</td>
-                            <td className="px-4 py-3 text-sm text-right text-gray-500">{r.Pages.toLocaleString()}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 text-sm font-semibold text-gray-800 align-middle truncate">{r.ScanUser}</td>
+                            <td className="px-4 py-3 text-sm text-right font-bold text-gray-800 align-middle">{Number(r.Books).toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-500 align-middle">{Number(r.Pages).toLocaleString()}</td>
+                            <td className="px-4 py-3 align-middle">
                               <div className="flex items-center gap-2">
-                                <div className="flex-1 h-2.5 rounded-full bg-gray-100 overflow-hidden">
-                                  <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                                <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
                                 </div>
-                                <span className="text-xs text-gray-500 w-10 text-right font-medium">{Math.round(pct)}%</span>
+                                <span className="text-xs font-semibold w-9 text-right" style={{ color: barColor }}>{Math.round(pct)}%</span>
                               </div>
                             </td>
                           </tr>
@@ -547,64 +556,38 @@ export default function TransmissionMonitorPage() {
                   </table>
                 </div>
 
-                {/* Score Distribution Bar Chart */}
-                <div className="w-80 flex flex-col min-h-0">
-                  <p className="text-sm text-muted-foreground mb-2 font-semibold">Score Distribution</p>
-                  <div className="flex-1 min-h-0">
+                {/* Score Distribution — pure CSS, no Recharts to avoid key collision bug */}
+                <div className="w-72 flex flex-col gap-3 overflow-y-auto shrink-0">
+                  <p className="text-sm font-semibold text-gray-700 shrink-0">Score Distribution</p>
                   {(() => {
                     const buckets = [
-                      { label: 'Below 50%', min: 0,  max: 50  },
-                      { label: '51–60%',    min: 51, max: 60  },
-                      { label: '61–70%',    min: 61, max: 70  },
-                      { label: '71–80%',    min: 71, max: 80  },
-                      { label: '81–90%',    min: 81, max: 90  },
-                      { label: '91–95%',    min: 91, max: 95  },
-                      { label: '96–99%',    min: 96, max: 99  },
-                      { label: '100%',      min: 100,max: 100 },
+                      { label: '100%',      min: 100, max: 100, color: '#6366f1' },
+                      { label: '96–99%',    min: 96,  max: 99,  color: '#10b981' },
+                      { label: '91–95%',    min: 91,  max: 95,  color: '#22c55e' },
+                      { label: '81–90%',    min: 81,  max: 90,  color: '#84cc16' },
+                      { label: '71–80%',    min: 71,  max: 80,  color: '#eab308' },
+                      { label: '61–70%',    min: 61,  max: 70,  color: '#f59e0b' },
+                      { label: '51–60%',    min: 51,  max: 60,  color: '#f97316' },
+                      { label: 'Below 50%', min: 0,   max: 50,  color: '#ef4444' },
                     ]
-                    const bucketColors = ['#ef4444','#f97316','#f59e0b','#eab308','#84cc16','#22c55e','#10b981','#6366f1']
-                    const chartData = buckets.map((b, i) => ({
-                      label: b.label,
-                      users: ranking.data.filter((r: any) => r.ScoreNum >= b.min && r.ScoreNum <= b.max).length,
-                      color: bucketColors[i],
-                    }))
-                    return (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={chartData}
-                          layout="vertical"
-                          margin={{ top: 0, right: 28, bottom: 0, left: 8 }}
-                        >
-                          <XAxis
-                            type="number"
-                            allowDecimals={false}
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                            axisLine={false}
-                            domain={[0, 'dataMax']}
-                          />
-                          <YAxis
-                            type="category"
-                            dataKey="label"
-                            width={72}
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                            axisLine={false}
-                          />
-                          <Tooltip
-                            cursor={{ fill: 'rgba(0,0,0,0.05)' }}
-                            formatter={(v: any) => [`${v} user${v !== 1 ? 's' : ''}`, 'Count']}
-                          />
-                          <Bar dataKey="users" radius={[0, 4, 4, 0]} maxBarSize={36}>
-                            {chartData.map((entry, i) => (
-                              <Cell key={i} fill={entry.color} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    )
+                    const maxUsers = Math.max(...buckets.map(b => ranking.data.filter((r: any) => r.ScoreNum >= b.min && r.ScoreNum <= b.max).length), 1)
+                    return buckets.map(b => {
+                      const count = ranking.data.filter((r: any) => r.ScoreNum >= b.min && r.ScoreNum <= b.max).length
+                      const widthPct = (count / maxUsers) * 100
+                      return (
+                        <div key={b.label} className="flex items-center gap-2">
+                          <span className="text-[11px] text-gray-500 w-16 shrink-0 text-right">{b.label}</span>
+                          <div className="flex-1 h-5 bg-gray-100 rounded-md overflow-hidden">
+                            <div
+                              className="h-full rounded-md transition-all"
+                              style={{ width: `${widthPct}%`, backgroundColor: b.color, minWidth: count > 0 ? '1.5rem' : 0 }}
+                            />
+                          </div>
+                          <span className="text-[11px] font-bold w-5 text-right" style={{ color: count > 0 ? b.color : '#9ca3af' }}>{count}</span>
+                        </div>
+                      )
+                    })
                   })()}
-                  </div>
                 </div>
               </div>
             </div>
