@@ -5,6 +5,7 @@ import { authFetch } from '@/lib/auth-api'
 import { usePagination } from '@/hooks/usePagination'
 import { Pagination } from '@/components/pagination'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2 } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
@@ -599,28 +600,39 @@ export default function InventoryPage() {
                     className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                <select
-                  value={lotFilter}
-                  onChange={e => setLotFilter(e.target.value)}
-                  className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="">All Lots</option>
-                  {(() => {
-                    const fromBoxes = Array.from(new Set(boxes.map(b => b.lot?.lot_number).filter(Boolean))).sort()
-                    const opts = fromBoxes.length > 0 ? fromBoxes : LOT_OPTIONS
-                    return opts.map(l => <option key={l} value={l}>{l}</option>)
-                  })()}
-                </select>
-                <select
-                  value={stageFilter}
-                  onChange={e => setStageFilter(e.target.value)}
-                  className="px-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="">All Stages</option>
-                  {[['warehouse','Warehouse'],['inventory','Inventory'],['cut','Cut'],['qc','QC'],['scan','Scan'],['qa','QA'],['transmit','Transmit'],['storage','Storage']].map(([val,label]) => (
-                    <option key={val} value={val}>{label}</option>
-                  ))}
-                </select>
+                <Select value={lotFilter || 'all'} onValueChange={v => setLotFilter(v === 'all' ? '' : v)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All Lots" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Lots</SelectItem>
+                    {(() => {
+                      const fromBoxes = Array.from(new Set(boxes.map(b => b.lot?.lot_number).filter(Boolean))).sort()
+                      const opts = fromBoxes.length > 0 ? fromBoxes : LOT_OPTIONS
+                      return opts.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)
+                    })()}
+                  </SelectContent>
+                </Select>
+                <Select value={stageFilter || 'all'} onValueChange={v => setStageFilter(v === 'all' ? '' : v)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All Stages" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stages</SelectItem>
+                    {[
+                      ['warehouse','Warehouse'],
+                      ['inventory','Inventory'],
+                      ['cut','Cut'],
+                      ['qc','QC'],
+                      ['scan','Scan'],
+                      ['qa','QA'],
+                      ['transmit','Transmit'],
+                      ['storage','Storage'],
+                    ].map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Count */}
