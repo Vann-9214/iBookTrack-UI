@@ -81,7 +81,7 @@ export function BatchQueue() {
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-foreground">
+                    <span className="text-sm font-semibold text-foreground">
                       {batch.id}
                     </span>
                     <Badge variant="outline" className={getStatusColor(batch.status)}>

@@ -106,7 +106,7 @@ export function FileImport({ onDataImport }: FileImportProps) {
         </p>
 
         {fileName && (
-          <p className="text-xs text-primary mt-2 font-mono">
+          <p className="text-xs text-primary mt-2">
             ✓ {fileName}
           </p>
         )}

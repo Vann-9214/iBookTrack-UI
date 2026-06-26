@@ -121,8 +121,8 @@ export function TransmissionQueue() {
                 <TableRow key={i} className="border-border">
                   <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}</TableCell>
                   <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
-                  <TableCell className="font-mono text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
+                  <TableCell className="text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
                   <TableCell className="text-xs text-muted-foreground text-center">{item.PageCount || '—'}</TableCell>
                   <TableCell>{getStatusBadge(item.Status || '')}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{item.MachineName || '—'}</TableCell>

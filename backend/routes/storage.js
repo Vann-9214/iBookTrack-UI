@@ -306,6 +306,97 @@ router.delete('/assignment/:assignment_id', requireAuth, async (req, res) => {
   }
 })
 
+// ─── POST /api/storage/assign/batch ─────────────────────────────────────────────
+// Bulk assign multiple boxes to a rack/level slot
+// Body: { box_ids: string[], storage_location_id }
+router.post('/assign/batch', requireAuth, async (req, res) => {
+  try {
+    const { box_ids, storage_location_id } = req.body
+
+    if (!Array.isArray(box_ids) || box_ids.length === 0 || !storage_location_id) {
+      return res.status(400).json({ success: false, error: 'box_ids array and storage_location_id are required' })
+    }
+
+    const { data: existing, error: countError } = await db()
+      .from('storage_assignments')
+      .select('id')
+      .eq('storage_location_id', storage_location_id)
+
+    if (countError) throw countError
+
+    const { data: location, error: locError } = await db()
+      .from('storage_locations')
+      .select('capacity, rack_id, level')
+      .eq('id', storage_location_id)
+      .single()
+
+    if (locError || !location) return res.status(404).json({ success: false, error: 'Storage location not found' })
+
+    const currentCount = (existing || []).length
+    if (currentCount + box_ids.length > location.capacity) {
+      return res.status(400).json({
+        success: false,
+        error: `Rack ${location.rack_id} Level ${location.level} can only hold ${location.capacity} boxes. ${currentCount} already assigned, ${box_ids.length} selected.`
+      })
+    }
+
+    const { data: alreadyAssigned, error: alreadyError } = await db()
+      .from('storage_assignments')
+      .select('box_id')
+      .in('box_id', box_ids)
+
+    if (alreadyError) throw alreadyError
+
+    if ((alreadyAssigned || []).length > 0) {
+      const ids = alreadyAssigned.map(a => a.box_id).join(', ')
+      return res.status(400).json({ success: false, error: `Some boxes are already assigned: ${ids}` })
+    }
+
+    const { data: assignments, error: insertError } = await db()
+      .from('storage_assignments')
+      .insert(
+        box_ids.map(box_id => ({
+          storage_location_id,
+          box_id,
+          assigned_by: req.user.id,
+          assigned_by_name: req.user.user_metadata?.full_name || req.user.email,
+        }))
+      )
+      .select()
+
+    if (insertError) throw insertError
+
+    res.status(201).json({ success: true, assignments: assignments || [] })
+  } catch (error) {
+    console.error('Batch assign boxes error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// ─── DELETE /api/storage/assignments/batch ────────────────────────────────────
+// Bulk remove multiple boxes from storage slots (does NOT change box stage)
+router.delete('/assignments/batch', requireAuth, async (req, res) => {
+  try {
+    const { assignment_ids } = req.body
+
+    if (!Array.isArray(assignment_ids) || assignment_ids.length === 0) {
+      return res.status(400).json({ success: false, error: 'assignment_ids array is required' })
+    }
+
+    const { error } = await db()
+      .from('storage_assignments')
+      .delete()
+      .in('id', assignment_ids)
+
+    if (error) throw error
+
+    res.json({ success: true, message: `${assignment_ids.length} box(es) removed from storage locations` })
+  } catch (error) {
+    console.error('Batch remove assignments error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 // ─── GET /api/storage/search ──────────────────────────────────────────────────
 // Search by ISBN or box_number — returns the rack/level location
 router.get('/search', requireAuth, async (req, res) => {

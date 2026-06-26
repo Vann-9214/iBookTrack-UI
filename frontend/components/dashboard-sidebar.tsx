@@ -202,6 +202,7 @@ export function DashboardSidebar() {
     <aside
       className="group/sidebar relative z-20 sticky top-0 shrink-0 flex h-screen flex-col border-white/10 transition-all duration-300 ease-in-out w-[100px] hover:w-[220px] overflow-hidden"
       style={{ backgroundColor: '#1658EB' }}
+      onMouseLeave={() => setWarehouseOpen(false)}
     >
       {/* Header — logo fixed, pill expands rightward on hover */}
       <div className="relative flex items-center px-3 py-3" style={{ backgroundColor: '#1658EB', height: '96px' }}>
@@ -329,7 +330,7 @@ export function DashboardSidebar() {
           title="Warehouse Locator"
         >
           <Map className="h-5 w-5 shrink-0" />
-          <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse Locator</span>
+          <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
         </button>
 
         {/* Reports */}
