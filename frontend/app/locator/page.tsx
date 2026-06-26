@@ -194,7 +194,7 @@ export default function WarehouseLocatorPage() {
     if (pct >= 90) return "bg-red-100 border-red-400 dark:bg-red-900/30 dark:border-red-600"
     if (pct >= 70) return "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600"
     if (pct > 0)   return "bg-emerald-100 border-emerald-400 dark:bg-emerald-900/30 dark:border-emerald-600"
-    return "bg-muted border-border"
+    return "bg-gray-200 border-border"
   }
 
   const getCapacityColorName = (used: number, capacity: number) => {
