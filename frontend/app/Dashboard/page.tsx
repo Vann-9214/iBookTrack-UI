@@ -8,8 +8,8 @@ import { TransmissionQueue } from "@/components/transmission-queue"
 import { UnaccountedBooks } from "@/components/missing-item-log"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import { Search, Book, Package, Barcode, X } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
@@ -249,122 +249,136 @@ export default function DashboardPage() {
                     className="pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-52"
                   />
                 </div>
-                <Dialog open={searchOpen} onOpenChange={setSearchOpen} modal={false}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="default" 
-                      size="default" 
-                      className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
-                    >
-                      <Search className="h-4 w-4" />
-                      Search ISBN / Lot
-                    </Button>
-                  </DialogTrigger>
-                <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
-                  <DialogHeader>
-                    <DialogTitle>Search Dashboard</DialogTitle>
-                    <DialogDescription>
-                      Search for books by ISBN or view all books in a specific lot
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="flex gap-2">
-                      <Button
-                        variant={searchType === "isbn" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSearchType("isbn")}
-                        className="flex-1"
-                      >
-                        ISBN
-                      </Button>
-                      <Button
-                        variant={searchType === "lot" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSearchType("lot")}
-                        className="flex-1"
-                      >
-                        Lot
-                      </Button>
-                    </div>
+                <Button
+                  variant="default"
+                  size="default"
+                  onClick={() => setSearchOpen(true)}
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+                >
+                  <Search className="h-4 w-4" />
+                  Search ISBN / Lot
+                </Button>
 
-                    {searchType === "lot" && (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="range"
-                          checked={isRange}
-                          onChange={(e) => setIsRange(e.target.checked)}
-                          className="h-4 w-4"
-                        />
-                        <label htmlFor="range" className="text-sm font-medium">
-                          Search by Range
-                        </label>
+                {/* Search Dashboard Modal */}
+                {searchOpen && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSearchOpen(false)}>
+                    <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                      {/* Header */}
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/10">
+                            <Search className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-semibold text-foreground">Search Dashboard</h3>
+                            <p className="text-xs text-muted-foreground">Search by ISBN or view all books in a lot</p>
+                          </div>
+                        </div>
+                        <button onClick={() => setSearchOpen(false)} className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors">
+                          <X className="h-5 w-5" />
+                        </button>
                       </div>
-                    )}
 
-                    {isRange && searchType === "lot" ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">From Lot</label>
-                          <Input
-                            placeholder="e.g., 35"
-                            value={rangeStart}
-                            onChange={(e) => setRangeStart(e.target.value)}
-                          />
+                      {/* Body */}
+                      <div className="space-y-4 p-5 overflow-y-auto">
+                        <div className="flex gap-2">
+                          <Button
+                            variant={searchType === "isbn" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSearchType("isbn")}
+                            className="flex-1"
+                          >
+                            ISBN
+                          </Button>
+                          <Button
+                            variant={searchType === "lot" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSearchType("lot")}
+                            className="flex-1"
+                          >
+                            Lot
+                          </Button>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">To Lot</label>
-                          <Input
-                            placeholder="e.g., 36"
-                            value={rangeEnd}
-                            onChange={(e) => setRangeEnd(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="text-sm font-medium mb-1.5 block">
-                          {searchType === "isbn" ? "ISBN Number" : "Lot Number"}
-                        </label>
-                        <Input
-                          placeholder={searchType === "isbn" ? "ISBN number (digits only)" : "Lot number, e.g., 64"}
-                          value={searchValue}
-                          onChange={(e) => {
-                            if (searchType === "isbn") {
-                              // Strip any non-digit characters
-                              setSearchValue(e.target.value.replace(/[^0-9]/g, ''))
-                            } else {
-                              setSearchValue(e.target.value)
-                            }
-                          }}
-                          inputMode={searchType === "isbn" ? "numeric" : "text"}
-                        />
-                        {searchType === "isbn" && searchValue.length > 0 && (
-                          <p className={`text-xs mt-1 ${
-                            searchValue.length === 13 ? 'text-emerald-600'
-                            : searchValue.length > 13 ? 'text-amber-500'
-                            : 'text-muted-foreground'
-                          }`}>
-                            {searchValue.length} digit{searchValue.length !== 1 ? 's' : ''}
-                            {searchValue.length === 13 ? ' ✓' : ''}
-                          </p>
+
+                        {searchType === "lot" && (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="range"
+                              checked={isRange}
+                              onChange={(e) => setIsRange(e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                            <label htmlFor="range" className="text-sm font-medium">
+                              Search by Range
+                            </label>
+                          </div>
                         )}
-                      </div>
-                    )}
 
-                    <div className="flex gap-2">
-                      {searchResult && (
-                        <Button variant="outline" onClick={() => { clearSearch(); setSearchOpen(false) }} className="flex-1">
-                          Clear
-                        </Button>
-                      )}
-                      <Button onClick={handleSearch} className={searchResult ? 'flex-1' : 'w-full'} disabled={loading}>
-                        {loading ? 'Searching...' : 'Apply Search'}
-                      </Button>
+                        {isRange && searchType === "lot" ? (
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-sm font-medium mb-1.5 block">From Lot</label>
+                              <Input
+                                placeholder="e.g., 35"
+                                value={rangeStart}
+                                onChange={(e) => setRangeStart(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium mb-1.5 block">To Lot</label>
+                              <Input
+                                placeholder="e.g., 36"
+                                value={rangeEnd}
+                                onChange={(e) => setRangeEnd(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="text-sm font-medium mb-1.5 block">
+                              {searchType === "isbn" ? "ISBN Number" : "Lot Number"}
+                            </label>
+                            <Input
+                              placeholder={searchType === "isbn" ? "ISBN number (digits only)" : "Lot number, e.g., 64"}
+                              value={searchValue}
+                              onChange={(e) => {
+                                if (searchType === "isbn") {
+                                  // Strip any non-digit characters
+                                  setSearchValue(e.target.value.replace(/[^0-9]/g, ''))
+                                } else {
+                                  setSearchValue(e.target.value)
+                                }
+                              }}
+                              inputMode={searchType === "isbn" ? "numeric" : "text"}
+                            />
+                            {searchType === "isbn" && searchValue.length > 0 && (
+                              <p className={`text-xs mt-1 ${
+                                searchValue.length === 13 ? 'text-emerald-600'
+                                : searchValue.length > 13 ? 'text-amber-500'
+                                : 'text-muted-foreground'
+                              }`}>
+                                {searchValue.length} digit{searchValue.length !== 1 ? 's' : ''}
+                                {searchValue.length === 13 ? ' ✓' : ''}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          {searchResult && (
+                            <Button variant="outline" onClick={() => { clearSearch(); setSearchOpen(false) }} className="flex-1">
+                              Clear
+                            </Button>
+                          )}
+                          <Button onClick={handleSearch} className={searchResult ? 'flex-1' : 'w-full'} disabled={loading}>
+                            {loading ? 'Searching...' : 'Apply Search'}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </DialogContent>
-                </Dialog>
+                )}
               </div>
             </header>
 

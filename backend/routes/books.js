@@ -420,4 +420,24 @@ router.post('/:id/flag', requireAuth, async (req, res) => {
   }
 })
 
+// Remove a QC flag for a book (mark as OK)
+router.delete('/:id/flag', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const db = supabaseAdmin || supabase
+
+    const { error } = await db
+      .from('qc_flags')
+      .delete()
+      .eq('scan_id', id)
+
+    if (error) throw error
+
+    res.json({ success: true, scan_id: id })
+  } catch (error) {
+    console.error('Delete flag error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 export default router

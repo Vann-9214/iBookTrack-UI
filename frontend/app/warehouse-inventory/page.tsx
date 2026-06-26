@@ -7,6 +7,7 @@ import { BookInfoCard } from '@/components/book-info-card'
 import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken } from '@/lib/auth-api'
 import { AlertTriangle, CheckCircle2, Package, X } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const FLAG_ISSUES = [
   { value: "bleed-through",        label: "Bleed-through on page" },
@@ -291,10 +292,16 @@ export default function WarehouseInventoryPage() {
             <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-end gap-4">
               <div className="flex-1">
                 <label className="text-sm font-medium text-foreground block mb-1">Lot</label>
-                <select value={activeLot} onChange={e => setActiveLot(e.target.value)}
-                  className="w-full sm:w-64 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none">
-                  {lots.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
+                <Select value={activeLot} onValueChange={setActiveLot}>
+                  <SelectTrigger className="w-full sm:w-64 h-9">
+                    <SelectValue placeholder="Select a lot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {lots.map(l => (
+                      <SelectItem key={l} value={l}>{l}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <button onClick={handleNewSession} disabled={loading}
                 className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50">

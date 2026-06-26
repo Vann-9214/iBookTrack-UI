@@ -13,6 +13,7 @@ interface PaginationProps {
   canPrevPage: boolean
   canNextPage: boolean
   className?: string
+  pageSizeOptions?: number[]
 }
 
 export function Pagination({
@@ -23,9 +24,10 @@ export function Pagination({
   onPageSizeChange,
   canPrevPage,
   canNextPage,
-  className
+  className,
+  pageSizeOptions = [10, 50, 100]
 }: PaginationProps) {
-  const pageSizeOptions = [10, 50, 100]
+  const options = pageSizeOptions
 
   return (
     <div className={cn('flex items-center justify-between py-4 px-4 border-t border-border', className)}>
@@ -36,7 +38,7 @@ export function Pagination({
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
           className="text-xs px-2 py-1 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
         >
-          {pageSizeOptions.map((size) => (
+          {options.map((size) => (
             <option key={size} value={size}>
               {size}
             </option>
