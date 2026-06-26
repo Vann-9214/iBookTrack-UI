@@ -5,6 +5,7 @@ import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Package, BookOpen, ChevronUp, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { authFetch } from '@/lib/auth-api'
+import { Button } from '@/components/ui/button'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -111,14 +112,16 @@ export default function ReportsPage() {
                 {timestamp && <span className="ml-2">· Updated {timestamp}</span>}
               </p>
             </div>
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-card text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              className="gap-1.5"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               Refresh
-            </button>
+            </Button>
           </header>
 
           {/* Summary cards */}

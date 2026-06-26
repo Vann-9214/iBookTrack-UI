@@ -490,13 +490,19 @@ export default function StationCheckpointsPage() {
                     className="w-56 pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                <button
-                  onClick={fetchData}
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  {lastUpdated && <span>{lastUpdated}</span>}
-                </button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchData}
+                    disabled={loading}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  {lastUpdated && <span className="text-xs text-muted-foreground">{lastUpdated}</span>}
+                </div>
               </div>
             </header>
 

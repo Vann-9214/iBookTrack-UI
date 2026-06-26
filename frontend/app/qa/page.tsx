@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { authFetch } from "@/lib/auth-api"
 import { toast } from "sonner"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { Button } from "@/components/ui/button"
 import { Layers, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Search, CheckCircle2 } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -222,10 +223,19 @@ export default function BookInspectionPage() {
                   Expand a lot to inspect all ISBNs and flag any quality issues.
                 </p>
               </div>
-              <button onClick={fetchBoxes} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors self-start sm:self-auto">
-                <RefreshCw className="h-3.5 w-3.5" />
-                {lastUpdated && <span>Updated {lastUpdated}</span>}
-              </button>
+              <div className="flex items-center gap-3 self-start sm:self-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchBoxes}
+                  disabled={loading}
+                  className="gap-1.5"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                {lastUpdated && <span className="text-xs text-muted-foreground">Updated {lastUpdated}</span>}
+              </div>
             </header>
 
             {/* Search */}

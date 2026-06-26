@@ -534,9 +534,16 @@ export default function WarehouseLocatorPage() {
                   Assign incoming boxes to rack slots. Search by ISBN or box number to find their location.
                 </p>
               </div>
-              <button onClick={fetchLocations} disabled={loadingLocations} className="text-muted-foreground hover:text-foreground p-2 rounded-lg hover:bg-muted transition-colors">
-                <RefreshCw className={cn("h-4 w-4", loadingLocations && "animate-spin")} />
-              </button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchLocations}
+                disabled={loadingLocations}
+                className="gap-1.5"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loadingLocations ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
             </header>
 
             {/* Search */}

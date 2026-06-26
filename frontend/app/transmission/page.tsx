@@ -20,7 +20,11 @@ import {
   RefreshCw,
   Trophy,
   Download,
+  Calendar as CalendarIcon,
 } from "lucide-react"
+import { format } from "date-fns"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -60,6 +64,8 @@ export default function TransmissionMonitorPage() {
   const [exporting, setExporting] = useState(false)
   const [fromDate, setFromDate] = useState(todayStr())
   const [toDate, setToDate] = useState(todayStr())
+  const [fromDateOpen, setFromDateOpen] = useState(false)
+  const [toDateOpen, setToDateOpen] = useState(false)
 
   // Pagination for by machine table
   const filteredByMachine = byMachine.filter((m: any) =>
@@ -175,21 +181,47 @@ export default function TransmissionMonitorPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground">From</span>
-                  <Input
-                    type="date"
-                    value={fromDate}
-                    onChange={e => setFromDate(e.target.value)}
-                    className="h-8 w-36 text-xs"
-                  />
+                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-8 w-36 justify-start text-left font-normal text-xs"
+                      >
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {fromDate ? format(new Date(fromDate), 'MMM dd, yyyy') : 'Pick date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fromDate ? new Date(fromDate) : undefined}
+                        onSelect={date => { setFromDate(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground">To</span>
-                  <Input
-                    type="date"
-                    value={toDate}
-                    onChange={e => setToDate(e.target.value)}
-                    className="h-8 w-36 text-xs"
-                  />
+                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="h-8 w-36 justify-start text-left font-normal text-xs"
+                      >
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {toDate ? format(new Date(toDate), 'MMM dd, yyyy') : 'Pick date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={toDate ? new Date(toDate) : undefined}
+                        onSelect={date => { setToDate(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <Button size="sm" onClick={handleSearch} disabled={loading} className="h-8 gap-1.5">
                   <Search className="h-3.5 w-3.5" />
