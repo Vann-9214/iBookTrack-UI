@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Barcode, CheckCircle2, AlertTriangle, Package } from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth-api'
 import { ILMSTestPanel } from '@/components/ilms-test-panel'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const FLAG_ISSUES = [
   { value: "bleed-through",        label: "Bleed-through on page" },
@@ -54,10 +55,26 @@ interface Session {
   total_non_processable: number
 }
 
+interface Lot {
+  id: string
+  lot_number: string
+}
+
+interface BoxOption {
+  id: string
+  box_number: string
+  is_sealed?: boolean
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function WarehousePage() {
   const [lotNumber, setLotNumber] = useState('')
+  const [lots, setLots] = useState<Lot[]>([])
+  const [activeLotId, setActiveLotId] = useState('')
+  const [selectedBox, setSelectedBox] = useState('')
+  const [boxes, setBoxes] = useState<BoxOption[]>([])
+  const [boxesLoading, setBoxesLoading] = useState(false)
   const [sessionActive, setSessionActive] = useState(false)
   const [currentSession, setCurrentSession] = useState<Session | null>(null)
   const [scanInput, setScanInput] = useState('')
@@ -69,8 +86,57 @@ export default function WarehousePage() {
   const [flagRemarks, setFlagRemarks] = useState('')
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false)
 
+  // Fetch available lots on mount
+  useEffect(() => {
+    const fetchLots = async () => {
+      try {
+        const token = await getValidAccessToken()
+        const response = await fetch(`${API_URL}/api/lots`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+        const data = await response.json()
+        if (response.ok && data.lots) {
+          setLots(data.lots)
+        }
+      } catch {
+        // silently fail — user can still type a lot number if needed
+      }
+    }
+    fetchLots()
+  }, [])
+
+  // Fetch boxes for the selected lot
+  useEffect(() => {
+    if (!activeLotId) {
+      setBoxes([])
+      setSelectedBox('')
+      return
+    }
+    const fetchBoxes = async () => {
+      setBoxesLoading(true)
+      try {
+        const token = await getValidAccessToken()
+        const response = await fetch(`${API_URL}/api/boxes?lot_id=${encodeURIComponent(activeLotId)}`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+        const data = await response.json()
+        if (response.ok && data.boxes) {
+          setBoxes(data.boxes)
+        } else {
+          setBoxes([])
+        }
+      } catch {
+        setBoxes([])
+      } finally {
+        setBoxesLoading(false)
+      }
+    }
+    fetchBoxes()
+    setSelectedBox('')
+  }, [activeLotId])
+
   const startSession = async () => {
-    if (!lotNumber.trim()) { alert('Please enter a Lot Number'); return }
+    if (!lotNumber.trim()) { alert('Please select a Lot'); return }
     setLoading(true)
     try {
       const token = await getValidAccessToken()
@@ -78,7 +144,7 @@ export default function WarehousePage() {
       const response = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: lotNumber.trim() })
+        body: JSON.stringify({ lot_number: lotNumber.trim(), box_id: selectedBox || null })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to start session')
@@ -168,7 +234,7 @@ export default function WarehousePage() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to complete session')
-      setSessionActive(false); setCurrentSession(null); setScanLogs([]); setLotNumber('')
+      setSessionActive(false); setCurrentSession(null); setScanLogs([]); setLotNumber(''); setActiveLotId(''); setSelectedBox('')
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to complete session')
     } finally { setLoading(false) }
@@ -211,16 +277,55 @@ export default function WarehousePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Lot Number</label>
-                  <input
-                    value={lotNumber}
-                    onChange={e => setLotNumber(e.target.value)}
-                    placeholder="e.g. Lot-1"
-                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">All books scanned in this session go into one box. Flag Non-Processable ones inline.</p>
+                <div className="inline-flex flex-wrap items-end gap-2">
+                  <div>
+                    <label className="text-sm font-medium">Lot</label>
+                    <Select value={lotNumber} onValueChange={(value) => {
+                      const lot = lots.find(l => l.lot_number === value)
+                      setLotNumber(value)
+                      setActiveLotId(lot?.id || '')
+                      setSelectedBox('')
+                    }}>
+                      <SelectTrigger className="mt-1 w-40 h-10">
+                        <SelectValue placeholder="Select a lot" />
+                      </SelectTrigger>
+                      <SelectContent>
+
+                        {lots.map(l => (
+                          <SelectItem key={l.id} value={l.lot_number}>{l.lot_number}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Box</label>
+                    <Select
+                      value={selectedBox}
+                      onValueChange={setSelectedBox}
+                      disabled={!activeLotId || boxesLoading || boxes.length === 0}
+                    >
+                      <SelectTrigger className="mt-1 w-48 h-10">
+                        <SelectValue placeholder={
+                          !activeLotId
+                            ? 'Select a lot first'
+                            : boxesLoading
+                              ? 'Loading boxes…'
+                              : boxes.length === 0
+                                ? 'No boxes available'
+                                : 'Select a box'
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {boxes.map(b => (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.box_number}{b.is_sealed ? ' (sealed)' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+                <p className="text-xs text-muted-foreground">All books scanned in this session go into one box. Flag Non-Processable ones inline.</p>
                 <button onClick={startSession} disabled={loading}
                   className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50">
                   {loading ? 'Starting...' : 'Start Session'}

@@ -98,11 +98,6 @@ export default function WarehouseInventoryPage() {
         const data = await response.json()
         if (response.ok && data.lots) {
           setLots(data.lots)
-          if (data.lots.length > 0 && !activeLot) {
-            const first = data.lots[0]
-            setActiveLot(first.lot_number)
-            setActiveLotId(first.id)
-          }
         }
       } catch {
         toast({ title: 'Error', description: 'Failed to load lots', variant: 'destructive' })
@@ -364,38 +359,40 @@ export default function WarehouseInventoryPage() {
 
           {/* Session Control */}
           {!sessionActive ? (
-            <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-end gap-4">
-              <div className="flex-1">
-                <label className="text-sm font-medium text-foreground block mb-1">Lot</label>
-                <Select value={activeLot} onValueChange={(value) => {
-                  const lot = lots.find(l => l.lot_number === value)
-                  setActiveLot(value)
-                  setActiveLotId(lot?.id || '')
-                  setSelectedBox('')
-                }}>
-                  <SelectTrigger className="w-full sm:w-64 h-9">
-                    <SelectValue placeholder="Select a lot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {lots.map(l => (
-                      <SelectItem key={l.id} value={l.lot_number}>{l.lot_number}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex-1">
-                <label className="text-sm font-medium text-foreground block mb-1">Box</label>
-                <Select value={selectedBox} onValueChange={setSelectedBox} disabled={!activeLotId || boxesLoading || boxes.length === 0}>
-                  <SelectTrigger className="w-full sm:w-64 h-9">
-                    <SelectValue placeholder={!activeLotId ? 'Select a lot first' : boxesLoading ? 'Loading boxes…' : boxes.length === 0 ? 'No boxes available' : 'Select a box (optional)'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {boxes.map(b => (
-                      <SelectItem key={b.id} value={b.id}>{b.box_number}{b.is_sealed ? ' (sealed)' : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">Optional: choose an existing box for this session.</p>
+            <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-end justify-between gap-4">
+              <div className="inline-flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-1">Lot</label>
+                  <Select value={activeLot} onValueChange={(value) => {
+                    const lot = lots.find(l => l.lot_number === value)
+                    setActiveLot(value)
+                    setActiveLotId(lot?.id || '')
+                    setSelectedBox('')
+                  }}>
+                    <SelectTrigger className="w-40 h-9">
+                      <SelectValue placeholder="Select a lot" />
+                    </SelectTrigger>
+                    <SelectContent>
+
+                      {lots.map(l => (
+                        <SelectItem key={l.id} value={l.lot_number}>{l.lot_number}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-1">Box</label>
+                  <Select value={selectedBox} onValueChange={setSelectedBox} disabled={!activeLotId || boxesLoading || boxes.length === 0}>
+                    <SelectTrigger className="w-48 h-9">
+                      <SelectValue placeholder={!activeLotId ? 'Select a lot first' : boxesLoading ? 'Loading boxes…' : boxes.length === 0 ? 'No boxes available' : 'Select a box'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {boxes.map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.box_number}{b.is_sealed ? ' (sealed)' : ''}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <button onClick={handleNewSession} disabled={loading}
                 className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50">

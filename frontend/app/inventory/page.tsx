@@ -46,7 +46,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 const STAGE_COLORS: Record<string, string> = {
   warehouse:  'bg-gray-100 text-gray-700',
-  inventory:  'bg-slate-100 text-slate-700',
+  inventory:  'bg-gray-100 text-gray-700',
   cut:        'bg-orange-100 text-orange-700',
   qc:         'bg-yellow-100 text-yellow-700',
   scan:       'bg-blue-100 text-blue-700',
