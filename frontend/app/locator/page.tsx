@@ -105,12 +105,12 @@ export default function WarehouseLocatorPage() {
 
   // Assign modal
   const [assignSlot, setAssignSlot] = useState<StorageLocation | null>(null)
-  const [assigningBoxId, setAssigningBoxId] = useState<string | null>(null)
+  const [assigningBoxIds, setAssigningBoxIds] = useState<Set<string>>(new Set())
   const [assignLoading, setAssignLoading] = useState(false)
 
   // Remove
-  const [removingId, setRemovingId] = useState<string | null>(null)
-  const [confirmRemoveBox, setConfirmRemoveBox] = useState<Assignment | null>(null)
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
+  const [selectedRemoveAssignments, setSelectedRemoveAssignments] = useState<Set<string>>(new Set())
 
   // Provisioning all 16 slots for a new section
   const [provisioningSection, setProvisioningSection] = useState(false)
@@ -244,7 +244,7 @@ export default function WarehouseLocatorPage() {
 
   const openAssign = async (loc: StorageLocation) => {
     setAssignSlot(loc)
-    setAssigningBoxId(null)
+    setAssigningBoxIds(new Set())
     await fetchReadyBoxes()
   }
 
@@ -446,16 +446,16 @@ export default function WarehouseLocatorPage() {
   }
 
   const handleAssign = async () => {
-    if (!assignSlot || !assigningBoxId) return
+    if (!assignSlot || assigningBoxIds.size === 0) return
     setAssignLoading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/storage/assign`, {
+      const res = await authFetch(`${API_URL}/api/storage/assign/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ box_id: assigningBoxId, storage_location_id: assignSlot.id }),
+        body: JSON.stringify({ box_ids: Array.from(assigningBoxIds), storage_location_id: assignSlot.id }),
       })
       const data = await res.json()
-      if (!res.ok) { alert(data.error || 'Failed to assign box'); return }
+      if (!res.ok) { alert(data.error || 'Failed to assign boxes'); return }
       setAssignSlot(null)
       await fetchLocations()
       // Also refresh detail if open for same slot
@@ -468,15 +468,26 @@ export default function WarehouseLocatorPage() {
     }
   }
 
-  const handleRemove = async (assignmentId: string) => {
-    setRemovingId(assignmentId)
-    setConfirmRemoveBox(null)
+  const handleRemoveBatch = async () => {
+    if (selectedRemoveAssignments.size === 0) return
+    setRemovingIds(new Set(selectedRemoveAssignments))
     try {
-      const res = await authFetch(`${API_URL}/api/storage/assignment/${assignmentId}`, { method: 'DELETE' })
-      if (!res.ok) { const d = await res.json(); alert(d.error || 'Failed to remove'); return }
+      const res = await authFetch(`${API_URL}/api/storage/assignments/batch`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignment_ids: Array.from(selectedRemoveAssignments) }),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Failed to remove boxes'); return }
+      setSelectedRemoveAssignments(new Set())
       await fetchLocations()
+      // Also refresh detail slot if open
+      if (detailSlot) {
+        const updated = locations.find(l => l.id === detailSlot.id)
+        if (updated) setDetailSlot(updated)
+      }
     } finally {
-      setRemovingId(null)
+      setRemovingIds(new Set())
     }
   }
 
@@ -929,60 +940,109 @@ export default function WarehouseLocatorPage() {
                   This slot is empty
                 </div>
               ) : (
-                detailSlot.assignments.map(a => (
-                  <div key={a.assignment_id} className="rounded-lg border border-border bg-muted/40">
-                    {/* Box row */}
-                    <div className="flex items-center gap-2 px-3 py-2.5">
-                      <button
-                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                        onClick={() => setExpandedBox(expandedBox === a.assignment_id ? null : a.assignment_id)}
-                      >
-                        {expandedBox === a.assignment_id
-                          ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
-                        <Package className="h-4 w-4 text-primary shrink-0" />
-                        <span className="font-mono text-sm font-semibold text-foreground truncate">{a.box_number}</span>
-                        {a.lot_number && <span className="text-xs text-muted-foreground shrink-0">Lot {a.lot_number}</span>}
-                        <span className="text-xs text-muted-foreground ml-auto shrink-0">
-                          <BookOpen className="inline h-3 w-3 mr-0.5" />{a.books.length} books
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => setConfirmRemoveBox(a)}
-                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors shrink-0"
-                        title="Remove from slot"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                <>
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="select-all"
+                        checked={detailSlot.assignments.every(a => selectedRemoveAssignments.has(a.assignment_id))}
+                        onChange={() => {
+                          const all = new Set(detailSlot.assignments.map(a => a.assignment_id))
+                          setSelectedRemoveAssignments(prev => {
+                            const current = new Set(prev)
+                            const allSelected = detailSlot.assignments.every(a => current.has(a.assignment_id))
+                            if (allSelected) {
+                              detailSlot.assignments.forEach(a => current.delete(a.assignment_id))
+                            } else {
+                              detailSlot.assignments.forEach(a => current.add(a.assignment_id))
+                            }
+                            return current
+                          })
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <label htmlFor="select-all" className="text-xs text-muted-foreground">
+                        Select all
+                      </label>
                     </div>
-
-                    {/* Expanded ISBN/title list */}
-                    {expandedBox === a.assignment_id && (
-                      <div className="border-t border-border px-3 pb-2 pt-1 max-h-48 overflow-y-auto">
-                        {a.books.length === 0 ? (
-                          <p className="text-xs text-muted-foreground py-2 italic">No scanned books recorded for this box</p>
-                        ) : (
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="text-muted-foreground border-b border-border/40">
-                                <th className="text-left py-1 font-medium">ISBN</th>
-                                <th className="text-left py-1 font-medium">Title</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {a.books.map((b, i) => (
-                                <tr key={i} className="border-b border-border/20 last:border-0">
-                                  <td className="py-1 pr-3 font-mono text-foreground whitespace-nowrap">{b.isbn}</td>
-                                  <td className="py-1 text-muted-foreground truncate max-w-[200px]" title={b.title}>{b.title}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        )}
-                      </div>
+                    {selectedRemoveAssignments.size > 0 && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRemoveBatch}
+                        disabled={removingIds.size > 0}
+                        className="h-8 gap-1.5"
+                      >
+                        {removingIds.size > 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        Remove {selectedRemoveAssignments.size} box{selectedRemoveAssignments.size !== 1 ? 'es' : ''}
+                      </Button>
                     )}
                   </div>
-                ))
+                  {detailSlot.assignments.map(a => (
+                    <div key={a.assignment_id} className={cn(
+                      "rounded-lg border bg-muted/40 transition-colors",
+                      selectedRemoveAssignments.has(a.assignment_id) ? "border-primary bg-primary/5" : "border-border"
+                    )}>
+                      {/* Box row */}
+                      <div className="flex items-center gap-2 px-3 py-2.5">
+                        <input
+                          type="checkbox"
+                          checked={selectedRemoveAssignments.has(a.assignment_id)}
+                          onChange={() => {
+                            setSelectedRemoveAssignments(prev => {
+                              const next = new Set(prev)
+                              if (next.has(a.assignment_id)) next.delete(a.assignment_id)
+                              else next.add(a.assignment_id)
+                              return next
+                            })
+                          }}
+                          className="h-4 w-4 shrink-0"
+                        />
+                        <button
+                          className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                          onClick={() => setExpandedBox(expandedBox === a.assignment_id ? null : a.assignment_id)}
+                        >
+                          {expandedBox === a.assignment_id
+                            ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                          <Package className="h-4 w-4 text-primary shrink-0" />
+                          <span className="font-mono text-sm font-semibold text-foreground truncate">{a.box_number}</span>
+                          {a.lot_number && <span className="text-xs text-muted-foreground shrink-0">Lot {a.lot_number}</span>}
+                          <span className="text-xs text-muted-foreground ml-auto shrink-0">
+                            <BookOpen className="inline h-3 w-3 mr-0.5" />{a.books.length} books
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* Expanded ISBN/title list */}
+                      {expandedBox === a.assignment_id && (
+                        <div className="border-t border-border px-3 pb-2 pt-1 max-h-48 overflow-y-auto">
+                          {a.books.length === 0 ? (
+                            <p className="text-xs text-muted-foreground py-2 italic">No scanned books recorded for this box</p>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="text-muted-foreground border-b border-border/40">
+                                  <th className="text-left py-1 font-medium">ISBN</th>
+                                  <th className="text-left py-1 font-medium">Title</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {a.books.map((b, i) => (
+                                  <tr key={i} className="border-b border-border/20 last:border-0">
+                                    <td className="py-1 pr-3 font-mono text-foreground whitespace-nowrap">{b.isbn}</td>
+                                    <td className="py-1 text-muted-foreground truncate max-w-[200px]" title={b.title}>{b.title}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
               )}
             </div>
           </div>
@@ -1018,35 +1078,94 @@ export default function WarehouseLocatorPage() {
               </div>
             ) : (
               <>
-                <p className="text-xs text-muted-foreground mb-3">Select a box to place in this slot:</p>
-                <div className="flex-1 overflow-y-auto flex flex-col gap-2 mb-4">
-                  {readyBoxes.map(b => (
-                    <button
-                      key={b.id}
-                      onClick={() => setAssigningBoxId(b.id)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                        assigningBoxId === b.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:bg-muted/60"
-                      )}
-                    >
-                      <Package className="h-4 w-4 text-primary shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-mono text-sm font-semibold text-foreground">{b.box_number}</p>
-                        {b.lot_number && <p className="text-xs text-muted-foreground">Lot {b.lot_number}</p>}
+                {(() => {
+                  const remainingCapacity = assignSlot ? Math.max(0, assignSlot.capacity - assignSlot.used) : 0
+                  const selectableIds = readyBoxes.slice(0, remainingCapacity).map(b => b.id)
+                  const allSelectableSelected = selectableIds.length > 0 && selectableIds.every(id => assigningBoxIds.has(id))
+                  const atCapacity = assigningBoxIds.size >= remainingCapacity
+                  return (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="assign-select-all"
+                            checked={allSelectableSelected}
+                            onChange={() => {
+                              if (allSelectableSelected) {
+                                setAssigningBoxIds(new Set())
+                              } else {
+                                setAssigningBoxIds(new Set(selectableIds))
+                              }
+                            }}
+                            className="h-4 w-4"
+                          />
+                          <label htmlFor="assign-select-all" className="text-xs text-muted-foreground">Select up to {remainingCapacity} box{remainingCapacity !== 1 ? 'es' : ''}</label>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {assigningBoxIds.size} of {readyBoxes.length} selected · {remainingCapacity} spot{remainingCapacity !== 1 ? 's' : ''} left
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        <BookOpen className="inline h-3 w-3 mr-0.5" />{b.books.length} books
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                      <div className="flex-1 overflow-y-auto flex flex-col gap-2 mb-4">
+                        {readyBoxes.map((b, idx) => {
+                          const disabled = !assigningBoxIds.has(b.id) && atCapacity && idx >= remainingCapacity
+                          return (
+                            <div
+                              key={b.id}
+                              onClick={() => {
+                                if (disabled) return
+                                setAssigningBoxIds(prev => {
+                                  const next = new Set(prev)
+                                  if (next.has(b.id)) next.delete(b.id)
+                                  else if (next.size < remainingCapacity) next.add(b.id)
+                                  return next
+                                })
+                              }}
+                              className={cn(
+                                "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                                assigningBoxIds.has(b.id)
+                                  ? "border-primary bg-primary/10 cursor-pointer"
+                                  : disabled
+                                    ? "border-border bg-muted/30 opacity-50 cursor-not-allowed"
+                                    : "border-border hover:bg-muted/60 cursor-pointer"
+                              )}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={assigningBoxIds.has(b.id)}
+                                disabled={disabled}
+                                onChange={() => {
+                                  if (disabled) return
+                                  setAssigningBoxIds(prev => {
+                                    const next = new Set(prev)
+                                    if (next.has(b.id)) next.delete(b.id)
+                                    else if (next.size < remainingCapacity) next.add(b.id)
+                                    return next
+                                  })
+                                }}
+                                onClick={e => e.stopPropagation()}
+                                className="h-4 w-4 shrink-0"
+                              />
+                              <Package className="h-4 w-4 text-primary shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-mono text-sm font-semibold text-foreground">{b.box_number}</p>
+                                {b.lot_number && <p className="text-xs text-muted-foreground">Lot {b.lot_number}</p>}
+                              </div>
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                <BookOpen className="inline h-3 w-3 mr-0.5" />{b.books.length} books
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </>
+                  )
+                })()}
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setAssignSlot(null)} disabled={assignLoading}>Cancel</Button>
-                  <Button onClick={handleAssign} disabled={!assigningBoxId || assignLoading}>
+                  <Button onClick={handleAssign} disabled={assigningBoxIds.size === 0 || assignLoading}>
                     {assignLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Confirm Assignment
+                    Assign {assigningBoxIds.size} Box{assigningBoxIds.size !== 1 ? 'es' : ''}
                   </Button>
                 </div>
               </>
@@ -1110,38 +1229,6 @@ export default function WarehouseLocatorPage() {
                 onClick={() => pendingRemove === 'rack' ? handleRemoveRack(true) : handleRemoveLevel(true)}
               >
                 {removingRack || removingLevel ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                Yes, Remove
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Confirm Remove Box Modal ──────────────────────────────────── */}
-      {confirmRemoveBox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmRemoveBox(null)}>
-          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-start gap-3 mb-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                <Trash2 className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-1">Remove Box {confirmRemoveBox.box_number}?</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  This will remove the box from Section {activeSection}, Rack {detailSlot?.rack_id.includes('-') ? detailSlot.rack_id.split('-')[1] : detailSlot?.rack_id}, Level {detailSlot?.level}.
-                  {confirmRemoveBox.lot_number && ` Lot ${confirmRemoveBox.lot_number} will no longer be assigned to this slot.`}
-                  This cannot be undone.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setConfirmRemoveBox(null)} disabled={removingId === confirmRemoveBox.assignment_id}>Cancel</Button>
-              <Button
-                variant="destructive"
-                disabled={removingId === confirmRemoveBox.assignment_id}
-                onClick={() => handleRemove(confirmRemoveBox.assignment_id)}
-              >
-                {removingId === confirmRemoveBox.assignment_id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                 Yes, Remove
               </Button>
             </div>
