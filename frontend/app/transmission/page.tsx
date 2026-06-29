@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { DashboardNavbar } from '@/components/top-bar'
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
 import { Button } from "@/components/ui/button"
@@ -166,6 +167,7 @@ export default function TransmissionMonitorPage() {
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Header */}

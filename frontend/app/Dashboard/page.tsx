@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { DashboardNavbar } from "@/components/top-bar"
 import { StatsBar } from "@/components/stats-bar"
 import { ActivePipeline } from "@/components/active-pipeline"
 import { TransmissionQueue } from "@/components/transmission-queue"
@@ -225,6 +226,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <DashboardMain>
+        <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}
