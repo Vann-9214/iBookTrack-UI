@@ -83,7 +83,8 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
     const fetchBoxes = async () => {
       setLoadingBoxes(true)
       try {
-        const res = await authFetch(`${API_URL}/api/boxes?current_stage=${selectedStage}`)
+        const storageFilter = selectedStage === 'storage' ? '&exclude_assigned_storage=true' : ''
+        const res = await authFetch(`${API_URL}/api/boxes?current_stage=${selectedStage}${storageFilter}`)
         const data = await res.json()
         setBoxes(data.boxes || [])
         pagination.goToPage(1)

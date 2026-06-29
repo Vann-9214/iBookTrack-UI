@@ -2,7 +2,18 @@
 
 import { useState } from "react"
 import { cn } from "@/lib/utils"
-import { Activity, AlertTriangle, FileOutput, HeartPulse, Loader2, X } from "lucide-react"
+import {
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  BookOpen,
+  ChevronRight,
+  FileOutput,
+  HeartPulse,
+  Loader2,
+  Package,
+  X,
+} from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -17,6 +28,16 @@ interface QCFlag {
   flagged_at: string
 }
 
+interface LiveLot {
+  id: string
+  lot_number: string
+  shipment_code: string | null
+  total_boxes: number
+  total_books: number
+  status: string
+  completion_progress: number
+}
+
 interface StatsBarProps {
   stats?: any
 }
@@ -25,6 +46,27 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
   const [flagsOpen, setFlagsOpen] = useState(false)
   const [flags, setFlags] = useState<QCFlag[]>([])
   const [loadingFlags, setLoadingFlags] = useState(false)
+
+  const [liveLotsOpen, setLiveLotsOpen] = useState(false)
+  const [liveLots, setLiveLots] = useState<LiveLot[]>([])
+  const [loadingLiveLots, setLoadingLiveLots] = useState(false)
+  const [selectedLot, setSelectedLot] = useState<LiveLot | null>(null)
+
+  const openLiveLots = async () => {
+    setLiveLotsOpen(true)
+    setSelectedLot(null)
+    if (liveLots.length > 0) return
+    setLoadingLiveLots(true)
+    try {
+      const res = await fetch(`${API_URL}/api/dashboard/open-lots`)
+      const data = await res.json()
+      setLiveLots(data.lots || [])
+    } catch {
+      setLiveLots([])
+    } finally {
+      setLoadingLiveLots(false)
+    }
+  }
 
   const openFlags = async () => {
     setFlagsOpen(true)
@@ -66,7 +108,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
       border: "border-blue-300",
       valueColor: "text-blue-600",
       subtextColor: "text-blue-500",
-      onClick: undefined,
+      onClick: openLiveLots,
     },
     {
       title: "Non-Processable",
@@ -222,6 +264,188 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
                           {f.remarks && <span className="ml-2 text-xs text-gray-400">{f.remarks}</span>}
                         </td>
                         <td className="py-3 px-4 text-gray-500">{f.flagged_by_name || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Live Lots modal */}
+      {liveLotsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setLiveLotsOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 flex items-center justify-between bg-blue-50">
+              <div className="flex items-center gap-3">
+                {selectedLot ? (
+                  <button
+                    onClick={() => setSelectedLot(null)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-gray-600 hover:text-gray-900 transition-colors"
+                    aria-label="Back to lots list"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white">
+                    <Activity className="h-5 w-5" />
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-base font-bold text-gray-800">
+                    {selectedLot ? selectedLot.lot_number : 'Live Lots'}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    <span className="text-xs text-gray-500">
+                      {selectedLot ? 'Lot details' : `${activeLots.toLocaleString()} open lots`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setLiveLotsOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Content */}
+            {loadingLiveLots ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                <span className="text-sm text-gray-400">Loading open lots...</span>
+              </div>
+            ) : selectedLot ? (
+              /* Detail view */
+              <div className="p-6 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
+                      <Package className="h-4 w-4" />
+                      LOT / Shipment Number
+                    </div>
+                    <p className="text-lg font-bold text-gray-800">
+                      {selectedLot.lot_number}
+                    </p>
+                    {selectedLot.shipment_code && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Shipment: {selectedLot.shipment_code}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
+                      <BookOpen className="h-4 w-4" />
+                      Total Books
+                    </div>
+                    <p className="text-lg font-bold text-gray-800">
+                      {selectedLot.total_books.toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
+                      <Package className="h-4 w-4" />
+                      Total Boxes
+                    </div>
+                    <p className="text-lg font-bold text-gray-800">
+                      {selectedLot.total_boxes.toLocaleString()}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
+                      <Activity className="h-4 w-4" />
+                      Current Processing Status
+                    </div>
+                    <p className="text-lg font-bold text-gray-800">
+                      {selectedLot.status}
+                    </p>
+                  </div>
+
+                  <div className="sm:col-span-2 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide">
+                        <Activity className="h-4 w-4" />
+                        Overall Completion Progress
+                      </div>
+                      <span className="text-sm font-bold text-blue-600">
+                        {selectedLot.completion_progress}%
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full rounded-full bg-blue-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-500 transition-all"
+                        style={{ width: `${selectedLot.completion_progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : liveLots.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-2">
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                  <Package className="h-6 w-6" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">No open lots currently</span>
+              </div>
+            ) : (
+              /* List view */
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot Number</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Shipment</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Boxes</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Books</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Progress</th>
+                      <th className="w-10" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {liveLots.map((lot) => (
+                      <tr
+                        key={lot.id}
+                        onClick={() => setSelectedLot(lot)}
+                        className="hover:bg-blue-50/50 transition-colors cursor-pointer"
+                      >
+                        <td className="py-3 px-4 font-semibold text-gray-800">{lot.lot_number}</td>
+                        <td className="py-3 px-4 text-gray-500">{lot.shipment_code || '—'}</td>
+                        <td className="py-3 px-4 text-right text-gray-700">{lot.total_boxes.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right text-gray-700">{lot.total_books.toLocaleString()}</td>
+                        <td className="py-3 px-4">
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+                            {lot.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-1.5 w-16 rounded-full bg-blue-100 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-blue-500"
+                                style={{ width: `${lot.completion_progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium text-gray-600">{lot.completion_progress}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
