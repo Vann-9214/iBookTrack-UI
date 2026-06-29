@@ -6,18 +6,11 @@ import { usePagination } from '@/hooks/usePagination'
 import { Pagination } from '@/components/pagination'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, History, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2 } from 'lucide-react'
+import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2 } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
-interface LogEntry {
-  id: string
-  isbn: string
-  title: string
-  language: string
-  scannedAt: string
-  printed: boolean
-}
+
 
 interface BookInBox {
   id: string
@@ -59,7 +52,7 @@ const LOT_OPTIONS = Array.from({ length: 100 }, (_, i) => `Lot ${i + 1}`)
 const LOT_ALIASES = Array.from({ length: 100 }, (_, i) => [`Lot ${i + 1}`, `Lot-${i + 1}`, `LOT ${i + 1}`, `LOT-${i + 1}`])
 
 export default function InventoryPage() {
-  const [activeTab, setActiveTab] = useState<'boxes' | 'history'>('boxes')
+
 
   // --- Boxes tab state ---
   const [boxes, setBoxes] = useState<Box[]>([])
@@ -150,14 +143,11 @@ export default function InventoryPage() {
     error: string | null
   }>(null)
 
-  // --- History tab state ---
-  const [logs, setLogs] = useState<LogEntry[]>([])
-  const [scanInput, setScanInput] = useState('')
-  const [loading, setLoading] = useState(false)
+
 
 
   useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter])
-  useEffect(() => { fetchScanHistory() }, [])
+
 
   const fetchBoxes = async () => {
     setLoadingBoxes(true)
@@ -306,54 +296,9 @@ export default function InventoryPage() {
     }
   }
 
-  const fetchScanHistory = async () => {
-    try {
-      const res = await authFetch(`${API_URL}/api/warehouse/scans/recent?limit=50`)
-      const data = await res.json()
-      if (data.success && data.scans) {
-        setLogs(data.scans.map((s: any) => ({
-          id: s.id,
-          isbn: s.isbn,
-          title: s.title || `ISBN: ${s.isbn}`,
-          language: s.language || '—',
-          scannedAt: new Date(s.scanned_at).toLocaleString(),
-          printed: false,
-        })))
-      }
-    } catch (e) {
-      console.error('Failed to fetch scan history:', e)
-    }
-  }
 
-  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter') return
-    const isbn = scanInput.trim()
-    if (!isbn) return
-    setLoading(true)
-    try {
-      const res = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
-      const data = await res.json()
-      if (data.success && data.data && !data.data.Message) {
-        const d = data.data
-        const newLog: LogEntry = {
-          id: Date.now().toString(),
-          isbn: d.ISBN || isbn,
-          title: d.Title || `ISBN: ${isbn}`,
-          language: d.LanguageofBook || '—',
-          scannedAt: new Date().toLocaleString(),
-          printed: false,
-        }
-        setLogs(prev => [newLog, ...prev])
-      } else {
-        alert('Book not found in iLMS system')
-      }
-    } catch (e) {
-      alert('Failed to fetch book details')
-    } finally {
-      setLoading(false)
-      setScanInput('')
-    }
-  }
+
+
 
   useEffect(() => {
     if (!printBox) return
@@ -544,21 +489,13 @@ export default function InventoryPage() {
           {/* Tabs */}
           <div className="flex gap-1 border-b border-border">
             <button
-              onClick={() => setActiveTab('boxes')}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'boxes' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary"
             >
               <Package className="h-4 w-4" /> Boxes
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'history' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-            >
-              <History className="h-4 w-4" /> Scan History
             </button>
           </div>
 
           {/* ── BOXES TAB ── */}
-          {activeTab === 'boxes' && (
             <div className="flex flex-col gap-4">
 
               {/* Box Barcode Scanner */}
@@ -815,65 +752,6 @@ export default function InventoryPage() {
                 />
               )}
             </div>
-          )}
-
-          {/* ── HISTORY TAB ── */}
-          {activeTab === 'history' && (
-            <div className="flex flex-col gap-4">
-              {/* Scanner Input */}
-              <div className="border-2 border-primary rounded-lg p-6">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2 mb-2">
-                  <Barcode className="h-5 w-5 text-primary" />
-                  Scan ISBN / Barcode
-                </label>
-                <input
-                  type="text"
-                  value={scanInput}
-                  onChange={e => setScanInput(e.target.value)}
-                  onKeyDown={handleScan}
-                  placeholder={loading ? 'Searching...' : 'Scan or type ISBN and press Enter...'}
-                  disabled={loading}
-                  className="w-full px-4 py-3 text-base border-2 border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary disabled:opacity-50"
-                  autoFocus
-                />
-                <p className="text-xs text-muted-foreground mt-2">Press Enter after scanning to look up in iLMS</p>
-              </div>
-
-              {/* Log Table */}
-              <div className="border border-border rounded-lg overflow-hidden bg-card">
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-foreground">Scan History</h2>
-                  <span className="text-xs text-muted-foreground">{logs.length} entries</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/50 border-b border-border">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">ISBN</th>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Title</th>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Language</th>
-                        <th className="px-4 py-3 text-left font-semibold text-foreground text-xs uppercase tracking-wide">Scanned At</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {logs.length > 0 ? logs.map(log => (
-                        <tr key={log.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 text-xs text-foreground">{log.isbn}</td>
-                          <td className="px-4 py-3 text-foreground max-w-xs truncate">{log.title}</td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs">{log.language}</td>
-                          <td className="px-4 py-3 text-muted-foreground text-xs">{log.scannedAt}</td>
-                        </tr>
-                      )) : (
-                        <tr>
-                          <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground text-sm">No scans yet</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
 
         </div>
       </main>
