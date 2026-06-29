@@ -478,6 +478,97 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
   }
 })
 
+// Get enriched transmission view for a box: all ISBNs with Simflex status + transmission date
+// GET /api/boxes/:id/transmission
+router.get('/:id/transmission', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const db = supabaseAdmin || supabase
+
+    // 1. Resolve box — accept UUID or box_number
+    let box = null
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (uuidRe.test(id)) {
+      const { data, error } = await db
+        .from('boxes')
+        .select('id, box_number, current_stage, lot:lots(lot_number)')
+        .eq('id', id)
+        .single()
+      if (error) throw error
+      box = data
+    } else {
+      const { data, error } = await db
+        .from('boxes')
+        .select('id, box_number, current_stage, lot:lots(lot_number)')
+        .ilike('box_number', id)
+        .maybeSingle()
+      if (error) throw error
+      box = data
+    }
+
+    if (!box) return res.status(404).json({ success: false, error: 'Box not found' })
+
+    // 2. Get all scans for this box
+    const { data: scans, error: scansError } = await db
+      .from('warehouse_book_scans')
+      .select('id, isbn, title, scan_status, rejection_reason, scanned_at')
+      .eq('assigned_box_id', box.id)
+      .order('scanned_at', { ascending: true })
+
+    if (scansError) throw scansError
+
+    const allScans = scans || []
+    const processableScans = allScans.filter(s => s.scan_status === 'processable')
+
+    // 3. Batch-fetch Simflex status for all processable ISBNs
+    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+    const uniqueIsbns = [...new Set(processableScans.map(s => s.isbn))]
+    let simflexMap = {}
+    if (uniqueIsbns.length > 0) {
+      const result = await getSimflexStatusForISBNs(uniqueIsbns)
+      if (result.success) {
+        for (const r of result.data) simflexMap[r.isbn] = r
+      }
+    }
+
+    // 4. Build enriched rows
+    const books = allScans.map(s => {
+      const sf = simflexMap[s.isbn] || {}
+      return {
+        scan_id: s.id,
+        isbn: s.isbn,
+        title: s.title || null,
+        scan_status: s.scan_status,
+        rejection_reason: s.rejection_reason || null,
+        scanned_at: s.scanned_at,
+        simflex_status: sf.latestStatus || null,
+        transmission_completed: sf.transmissionCompleted || false,
+        transmission_date: sf.transmissionCompleted ? (sf.latestUpdated || null) : null,
+        scan_user: sf.scanUser || null,
+      }
+    })
+
+    const transmitted = books.filter(b => b.transmission_completed).length
+    const wip = books.filter(b => b.scan_status === 'processable' && !b.transmission_completed).length
+    const non_processable = books.filter(b => b.scan_status === 'non_processable').length
+
+    res.json({
+      success: true,
+      box: {
+        id: box.id,
+        box_number: box.box_number,
+        current_stage: box.current_stage,
+        lot_number: box.lot?.lot_number || null,
+      },
+      summary: { total: allScans.length, transmitted, wip, non_processable },
+      books,
+    })
+  } catch (error) {
+    console.error('Box transmission view error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 // Check Simflex transmission status for all processable books in a box.
 // If all are Transmission_Archive COMPLETED, auto-advance box from scan → transmit.
 // Box must be in 'scan' stage. Manual advance is still available separately.
