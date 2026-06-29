@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLiveNotifications, type NotificationType } from "@/hooks/use-live-notifications"
+import { DashboardNavbar } from "@/components/top-bar"
 
 interface Notification {
   id: string
@@ -93,6 +94,7 @@ export default function NotificationsPage() {
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Page Header */}

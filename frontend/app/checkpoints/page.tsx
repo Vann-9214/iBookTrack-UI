@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { authFetch } from "@/lib/auth-api"
+import { DashboardNavbar } from "@/components/top-bar"
 import { toast } from "sonner"
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
@@ -297,6 +298,7 @@ export default function StationCheckpointsPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 

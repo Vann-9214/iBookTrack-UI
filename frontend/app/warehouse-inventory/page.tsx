@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { DashboardNavbar } from '@/components/top-bar'
 import { ScannerInput } from '@/components/scanner-input'
 import { BookInfoCard } from '@/components/book-info-card'
 import { useToast } from '@/hooks/use-toast'
@@ -297,6 +298,7 @@ export default function WarehouseInventoryPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Confirm Complete Session Modal */}

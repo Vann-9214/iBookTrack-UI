@@ -5,6 +5,7 @@ import { createPortal } from "react-dom"
 import { authFetch } from "@/lib/auth-api"
 import { toast } from "sonner"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { DashboardNavbar } from '@/components/top-bar'
 import { Button } from "@/components/ui/button"
 import { Layers, AlertTriangle, ChevronDown, ChevronRight, RefreshCw, Search, CheckCircle2 } from "lucide-react"
 
@@ -212,6 +213,7 @@ export default function BookInspectionPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 

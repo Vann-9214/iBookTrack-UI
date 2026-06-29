@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
+import { DashboardNavbar } from '@/components/top-bar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Barcode, CheckCircle2, AlertTriangle, Package } from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth-api'
@@ -246,6 +247,7 @@ export default function WarehousePage() {
     <div className="flex h-screen overflow-hidden bg-white">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Confirm Complete Session Modal */}
