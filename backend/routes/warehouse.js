@@ -617,4 +617,64 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
   }
 })
 
+// Tag an ISBN scan as 'reject' or 'non_processable' with mandatory remarks
+// POST /api/warehouse/scans/:scan_id/tag
+// Body: { status: 'reject' | 'non_processable', remarks: string }
+router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
+  try {
+    const { scan_id } = req.params
+    const { status, remarks } = req.body
+
+    if (!status || !['reject', 'non_processable'].includes(status)) {
+      return res.status(400).json({ error: "status must be 'reject' or 'non_processable'" })
+    }
+    if (!remarks || !remarks.trim()) {
+      return res.status(400).json({ error: 'remarks are required before tagging an ISBN' })
+    }
+
+    // Fetch the scan to verify it exists
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from('warehouse_book_scans')
+      .select('id, isbn, scan_status')
+      .eq('id', scan_id)
+      .single()
+
+    if (fetchError || !existing) {
+      return res.status(404).json({ error: 'Scan not found' })
+    }
+
+    const taggedBy = req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email
+
+    // Update scan_status and rejection_reason
+    const { data: updated, error: updateError } = await supabaseAdmin
+      .from('warehouse_book_scans')
+      .update({
+        scan_status: status,
+        rejection_reason: remarks.trim(),
+        notes: `Tagged as ${status} by ${taggedBy}`
+      })
+      .eq('id', scan_id)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+
+    // Also upsert into qc_flags for audit trail
+    await supabaseAdmin
+      .from('qc_flags')
+      .upsert({
+        scan_id,
+        issue: status,
+        remarks: remarks.trim(),
+        flagged_at: new Date().toISOString(),
+        flagged_by_name: taggedBy,
+      }, { onConflict: 'scan_id' })
+
+    res.json({ success: true, scan: updated, message: `ISBN ${existing.isbn} tagged as ${status}` })
+  } catch (error) {
+    console.error('Tag scan error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 export default router
