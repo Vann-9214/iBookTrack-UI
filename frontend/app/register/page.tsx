@@ -55,7 +55,6 @@ export default function RegisterPage() {
         endpoint: '/api/auth/register',
         payload: { name, email, password },
       })
-      console.log('Registration response:', data)
       toast.success('Registered successfully! Redirecting to login...')
       setTimeout(() => router.push('/login'), 1500)
     } catch (err: unknown) {

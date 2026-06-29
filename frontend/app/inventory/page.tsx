@@ -331,7 +331,7 @@ export default function InventoryPage() {
     if (!isbn) return
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+      const res = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await res.json()
       if (data.success && data.data && !data.data.Message) {
         const d = data.data

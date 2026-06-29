@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search, Loader2, CheckCircle, XCircle } from 'lucide-react'
 import bwipjs from 'bwip-js'
+import { authFetch } from '@/lib/auth-api'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -55,7 +56,7 @@ export function ILMSTestPanel() {
     setResult(null)
 
     try {
-      const response = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+      const response = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await response.json()
 
       if (response.ok && data.success) {

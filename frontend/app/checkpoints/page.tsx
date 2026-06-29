@@ -63,6 +63,7 @@ interface Transition {
 
 export default function StationCheckpointsPage() {
   const [boxes, setBoxes] = useState<BoxItem[]>([])
+  const [transmitBoxes, setTransmitBoxes] = useState<BoxItem[]>([])
   const [transitions, setTransitions] = useState<Transition[]>([])
   const [loading, setLoading] = useState(true)
   const [advancing, setAdvancing] = useState<string | null>(null)
@@ -95,15 +96,15 @@ export default function StationCheckpointsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [boxRes, transRes] = await Promise.all([
+      const [boxRes, transRes, simflexRes] = await Promise.all([
         authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true`),
         authFetch(`${API_URL}/api/boxes/pipeline-transitions?limit=50`),
+        authFetch(`${API_URL}/api/scanning/transmitting-boxes`).catch(() => null),
       ])
       const boxData = await boxRes.json()
       const transData = await transRes.json()
-      console.log('[Checkpoints] boxes response:', boxData)
-      console.log('[Checkpoints] transitions response:', transData)
-      
+      const simflexData = simflexRes?.ok ? await simflexRes.json() : null
+
       // Only update state if data actually changed
       if (boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
         setBoxes(boxData.boxes)
@@ -113,6 +114,20 @@ export default function StationCheckpointsPage() {
         setTransitions(transData.transitions)
         prevTransitionsRef.current = transData.transitions
       }
+
+      // Use live Simflex BoxNumber data for the Transmit stage
+      if (simflexData?.success && Array.isArray(simflexData.data)) {
+        const mappedTransmitBoxes: BoxItem[] = simflexData.data.map((b: any) => ({
+          id: b.BoxNumber,
+          box_number: b.BoxNumber,
+          current_stage: 'transmit' as Stage,
+          total_books: Number(b.TotalBooks) || 0,
+          received_at: null,
+          lot: null,
+        }))
+        setTransmitBoxes(mappedTransmitBoxes)
+      }
+
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
@@ -229,11 +244,17 @@ export default function StationCheckpointsPage() {
     if (e.key !== 'Enter') return
     const q = scanInput.trim().toLowerCase()
     if (!q) return
-    const match = boxes.find(b => b.box_number.toLowerCase() === q || b.box_number.toLowerCase().includes(q))
+    const allBoxes = [...boxes, ...transmitBoxes]
+    const match = allBoxes.find(b => b.box_number.toLowerCase() === q || b.box_number.toLowerCase().includes(q))
     if (match) {
       setHighlightBox(match.id)
       setTimeout(() => setHighlightBox(null), 4000)
       document.getElementById(`box-${match.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Simflex transmit boxes are not in Supabase, so skip loading contents
+      if (match.current_stage === 'transmit' && !match.lot) {
+        setScanInput('')
+        return
+      }
       // Also fetch and show contents
       setLoadingScannedBox(true)
       setScannedBox(null)
@@ -252,8 +273,9 @@ export default function StationCheckpointsPage() {
     setScanInput('')
   }
 
+  const nonTransmitBoxes = boxes.filter(b => b.current_stage !== 'transmit')
   const boxesByStage = STAGE_ORDER.reduce<Record<Stage, BoxItem[]>>((acc, stage) => {
-    acc[stage] = boxes.filter(b => b.current_stage === stage)
+    acc[stage] = stage === 'transmit' ? transmitBoxes : nonTransmitBoxes.filter(b => b.current_stage === stage)
     return acc
   }, {} as Record<Stage, BoxItem[]>)
 

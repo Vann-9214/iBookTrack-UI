@@ -5,7 +5,7 @@ import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { ScannerInput } from '@/components/scanner-input'
 import { BookInfoCard } from '@/components/book-info-card'
 import { useToast } from '@/hooks/use-toast'
-import { getValidAccessToken } from '@/lib/auth-api'
+import { getValidAccessToken, authFetch } from '@/lib/auth-api'
 import { AlertTriangle, CheckCircle2, Package, X } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
@@ -193,7 +193,7 @@ export default function WarehouseInventoryPage() {
     if (currentScan) await saveBook(currentScan, 'processable', null, null)
     setLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+      const response = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await response.json()
       if (data.success && data.data && !data.data.Message) {
         setCurrentScan({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, found: true })

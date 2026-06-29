@@ -1,3 +1,28 @@
+/**
+ * routes/warehouse.js
+ *
+ * Handles warehouse receiving operations — scanning books as they physically
+ * arrive, grouping them into boxes, and managing warehouse sessions.
+ *
+ * A "session" represents one operator at one receiving station scanning a
+ * batch of books. Each session is linked to a Lot and produces one or more Boxes.
+ *
+ * Endpoints:
+ *   POST  /api/warehouse/sessions/start              — Begin a new receiving session for a lot
+ *   POST  /api/warehouse/sessions/:session_id/scan   — Scan a book into the active session
+ *   POST  /api/warehouse/sessions/:session_id/complete — Close out a session
+ *   POST  /api/warehouse/boxes/:box_id/seal          — Mark a box as full (next scan creates a new box)
+ *   GET   /api/warehouse/sessions                    — List all sessions (filterable by status)
+ *   GET   /api/warehouse/sessions/:session_id        — Session details with all scanned books
+ *   GET   /api/warehouse/search/isbn/:isbn           — Find which box an ISBN is in
+ *   GET   /api/warehouse/rejected-books              — List non-processable (flagged) books
+ *   GET   /api/warehouse/scans/recent                — Most recent scan records (for inventory page)
+ *   POST  /api/warehouse/backfill-titles             — Backfill missing book titles from iLMS
+ *   PATCH /api/warehouse/scans/:scan_id/flag         — Re-flag an existing scan as non-processable
+ *
+ * All routes require authentication (requireAuth middleware).
+ */
+
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
@@ -364,8 +389,8 @@ router.get('/sessions', requireAuth, async (req, res) => {
   }
 })
 
-// Search book by ISBN to find which box it's in (PUBLIC - no auth required for Dashboard)
-router.get('/search/isbn/:isbn', async (req, res) => {
+// Search book by ISBN to find which box it's in
+router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
   try {
     const { isbn } = req.params
 
@@ -511,7 +536,7 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
 })
 
 // Get recent scans for inventory page
-router.get('/scans/recent', async (req, res) => {
+router.get('/scans/recent', requireAuth, async (req, res) => {
   try {
     const { limit = 50 } = req.query
 
