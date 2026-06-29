@@ -485,20 +485,10 @@ export default function InventoryPage() {
           {/* Header */}
           <header>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory</h1>
-            <p className="text-sm text-muted-foreground mt-1">Browse all boxes and scan history</p>
+            <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
           </header>
 
-          {/* Tabs */}
-          <div className="flex gap-1 border-b border-border">
-            <button
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 border-primary text-primary"
-            >
-              <Package className="h-4 w-4" /> Boxes
-            </button>
-          </div>
-
-          {/* ── BOXES TAB ── */}
-            <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
 
               {/* Box Barcode Scanner */}
               <div className="border-2 border-primary rounded-lg p-4 bg-primary/5">

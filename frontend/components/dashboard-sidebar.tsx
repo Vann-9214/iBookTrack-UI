@@ -25,7 +25,7 @@ export function DashboardSidebar() {
   const { colors } = useBrand()
 
   const isActive = (href: string) => pathname === href
-  const isWarehouseSection = pathname === '/warehouse-inventory' || pathname === '/inventory'
+  const isWarehouseSection = pathname === '/warehouse' || pathname === '/inventory'
 
   const navItemCls = (active: boolean) => cn(
     'group/item flex items-center gap-3 rounded-lg pl-6.5 pr-3 py-2.5 text-sm font-medium transition-colors w-full',
@@ -106,9 +106,9 @@ export function DashboardSidebar() {
           {warehouseOpen && (
             <div className="ml-4 mt-1 flex flex-col gap-1 border-l border-white/20 pl-3">
               <button
-                onClick={() => router.push('/warehouse-inventory')}
-                className={navItemCls(isActive('/warehouse-inventory'))}
-                aria-current={isActive('/warehouse-inventory') ? 'page' : undefined}
+                onClick={() => router.push('/warehouse')}
+                className={navItemCls(isActive('/warehouse'))}
+                aria-current={isActive('/warehouse') ? 'page' : undefined}
               >
                 <Warehouse className="h-4 w-4 shrink-0" />
                 <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse</span>
