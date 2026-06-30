@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Barcode, CheckCircle2, AlertTriangle, Package } from 'lucide-react'
+import { DashboardNavbar } from '@/components/top-bar'
+import { ScannerInput } from '@/components/scanner-input'
+import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken } from '@/lib/auth-api'
-import { ILMSTestPanel } from '@/components/ilms-test-panel'
+import { AlertTriangle, CheckCircle2, Package } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const FLAG_ISSUES = [
@@ -32,27 +33,23 @@ const FLAG_ISSUES = [
   { value: "torn-pages",           label: "Torn pages" },
 ]
 
-interface Book {
-  isbn: string
-  title?: string
-  found: boolean
-}
-
-interface ScanLog {
+interface ScannedBook {
   id: string
   isbn: string
-  title?: string
+  title: string
   scan_status: 'processable' | 'non_processable'
-  rejection_reason?: string
-  scanned_at: string
+  flag_issue?: string
+  flag_remarks?: string
+  timestamp: Date
 }
 
-interface Session {
+interface WarehouseSession {
   id: string
   status: string
   total_scanned: number
   total_processable: number
   total_non_processable: number
+  box_id?: string | null
 }
 
 interface Lot {
@@ -60,7 +57,7 @@ interface Lot {
   lot_number: string
 }
 
-interface BoxOption {
+interface Box {
   id: string
   box_number: string
   is_sealed?: boolean
@@ -69,22 +66,26 @@ interface BoxOption {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function WarehousePage() {
-  const [lotNumber, setLotNumber] = useState('')
+  const [activeLot, setActiveLot] = useState<string>('')
+  const [activeLotId, setActiveLotId] = useState<string>('')
   const [lots, setLots] = useState<Lot[]>([])
-  const [activeLotId, setActiveLotId] = useState('')
-  const [selectedBox, setSelectedBox] = useState('')
-  const [boxes, setBoxes] = useState<BoxOption[]>([])
+  const [selectedBox, setSelectedBox] = useState<string>('')
+  const [boxes, setBoxes] = useState<Box[]>([])
   const [boxesLoading, setBoxesLoading] = useState(false)
   const [sessionActive, setSessionActive] = useState(false)
-  const [currentSession, setCurrentSession] = useState<Session | null>(null)
-  const [scanInput, setScanInput] = useState('')
-  const [currentBook, setCurrentBook] = useState<Book | null>(null)
-  const [scanLogs, setScanLogs] = useState<ScanLog[]>([])
+  const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([])
+  const [currentScan, setCurrentScan] = useState<any>(null)
+  const [currentSession, setCurrentSession] = useState<WarehouseSession | null>(null)
   const [loading, setLoading] = useState(false)
-  // Flag selection for current book
+  const [currentBoxNumber, setCurrentBoxNumber] = useState('')
+  const [currentBoxBooks, setCurrentBoxBooks] = useState(0)
+  // Flag modal state
+  const [flagModalBook, setFlagModalBook] = useState<ScannedBook | null>(null)
   const [flagIssue, setFlagIssue] = useState('')
   const [flagRemarks, setFlagRemarks] = useState('')
+  const [flagSaving, setFlagSaving] = useState(false)
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false)
+  const { toast } = useToast()
 
   // Fetch available lots on mount
   useEffect(() => {
@@ -99,7 +100,7 @@ export default function WarehousePage() {
           setLots(data.lots)
         }
       } catch {
-        // silently fail — user can still type a lot number if needed
+        toast({ title: 'Error', description: 'Failed to load lots', variant: 'destructive' })
       }
     }
     fetchLots()
@@ -135,8 +136,8 @@ export default function WarehousePage() {
     setSelectedBox('')
   }, [activeLotId])
 
-  const startSession = async () => {
-    if (!lotNumber.trim()) { alert('Please select a Lot'); return }
+  const handleNewSession = async () => {
+    if (!activeLot) { alert('Please select a lot first'); return }
     setLoading(true)
     try {
       const token = await getValidAccessToken()
@@ -144,108 +145,159 @@ export default function WarehousePage() {
       const response = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: lotNumber.trim(), box_id: selectedBox || null })
+        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox || null })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to start session')
       setCurrentSession({ ...data.session, total_processable: 0, total_non_processable: 0 })
       setSessionActive(true)
-      setScanLogs([])
+      setScannedBooks([])
+      setCurrentScan(null)
+      if (selectedBox) {
+        const selected = boxes.find(b => b.id === selectedBox)
+        setCurrentBoxNumber(selected?.box_number || '')
+        setCurrentBoxBooks(0)
+      } else {
+        setCurrentBoxNumber('')
+        setCurrentBoxBooks(0)
+      }
+      toast({ title: 'Session Started', description: `Session started for ${data.lot_number}.` })
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to start session')
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to start session', variant: 'destructive' })
     } finally { setLoading(false) }
   }
 
-  const handleScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key !== 'Enter' || !scanInput.trim() || !currentSession) return
-    const isbn = scanInput.trim()
-    setLoading(true)
-    setScanInput('')
-    try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-      const bookResponse = await fetch(`${API_URL}/api/books/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ isbn })
-      })
-      const bookData = await bookResponse.json()
-      setCurrentBook({ isbn, title: bookData.book?.title, found: bookData.found })
-      setFlagIssue('')
-      setFlagRemarks('')
-    } catch {
-      alert('Failed to scan book')
-    } finally { setLoading(false) }
-  }
-
-  const processBook = async (scan_status: 'processable' | 'non_processable') => {
-    if (!currentBook || !currentSession) return
-    if (scan_status === 'non_processable' && !flagIssue) {
-      alert('Please select an issue before flagging as Non-Processable.')
-      return
-    }
-    setLoading(true)
-    try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-      const response = await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          isbn: currentBook.isbn,
-          title: currentBook.title,
-          scan_status,
-          rejection_reason: scan_status === 'non_processable' ? flagIssue : null,
-          notes: flagRemarks || null
-        })
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to process book')
-      setScanLogs(prev => [{ ...data.scanLog, scan_status }, ...prev])
-      setCurrentSession(prev => prev ? {
-        ...prev,
-        total_scanned: prev.total_scanned + 1,
-        total_processable: scan_status === 'processable' ? prev.total_processable + 1 : prev.total_processable,
-        total_non_processable: scan_status === 'non_processable' ? prev.total_non_processable + 1 : prev.total_non_processable,
-      } : null)
-      setCurrentBook(null)
-      setFlagIssue('')
-      setFlagRemarks('')
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to process book')
-    } finally { setLoading(false) }
-  }
-
-  const completeSession = async () => {
+  const handleCloseSession = async () => {
     if (!currentSession) return
     setConfirmCompleteOpen(true)
   }
 
-  const confirmComplete = async () => {
+  const confirmCloseSession = async () => {
     if (!currentSession) return
     setConfirmCompleteOpen(false)
     setLoading(true)
     try {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
-      const response = await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}/complete`, {
+      await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
       })
+      setSessionActive(false); setScannedBooks([]); setCurrentScan(null); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0)
+      toast({ title: 'Session Closed', description: 'Session closed successfully.' })
+    } catch { toast({ title: 'Error', description: 'Failed to complete session', variant: 'destructive' }) } finally { setLoading(false) }
+  }
+
+  const handleScan = async (isbn: string) => {
+    if (!currentSession) return
+    if (currentScan) await saveBook(currentScan, 'processable', null, null)
+    setLoading(true)
+    try {
+      const response = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to complete session')
-      setSessionActive(false); setCurrentSession(null); setScanLogs([]); setLotNumber(''); setActiveLotId(''); setSelectedBox('')
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Failed to complete session')
+      if (data.success && data.data && !data.data.Message) {
+        setCurrentScan({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, found: true })
+      } else {
+        setCurrentScan({ isbn, title: `ISBN: ${isbn}`, found: false })
+        toast({ title: 'Book Not Found', description: 'ISBN not found in iLMS.', variant: 'destructive' })
+      }
+    } catch {
+      setCurrentScan({ isbn, title: `ISBN: ${isbn}`, found: false })
+      toast({ title: 'API Error', description: 'Failed to fetch book details.', variant: 'destructive' })
     } finally { setLoading(false) }
+  }
+
+  const saveBook = async (bookData: any, scan_status: 'processable' | 'non_processable', flag_issue: string | null, flag_remarks: string | null) => {
+    if (!currentSession || !bookData) return
+    try {
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Authentication required.')
+      const response = await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ isbn: bookData.isbn, title: bookData.title, scan_status, rejection_reason: flag_issue || null, notes: flag_remarks || null })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Failed to process book')
+      if (data.currentBox) {
+        if (data.currentBox.box_number !== currentBoxNumber) {
+          setCurrentBoxNumber(data.currentBox.box_number)
+          setCurrentBoxBooks(1)
+        } else {
+          setCurrentBoxBooks(prev => prev + 1)
+        }
+      }
+      const newBook: ScannedBook = {
+        id: data.scanLog.id,
+        isbn: bookData.isbn,
+        title: bookData.title,
+        scan_status,
+        flag_issue: flag_issue || undefined,
+        flag_remarks: flag_remarks || undefined,
+        timestamp: new Date(data.scanLog.scanned_at)
+      }
+      setScannedBooks(prev => [newBook, ...prev])
+      setCurrentSession(prev => prev ? {
+        ...prev,
+        total_scanned: prev.total_scanned + 1,
+        total_processable: scan_status === 'processable' ? prev.total_processable + 1 : prev.total_processable,
+        total_non_processable: scan_status === 'non_processable' ? prev.total_non_processable + 1 : prev.total_non_processable,
+      } : null)
+      setCurrentScan(null)
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to save book', variant: 'destructive' })
+    }
+  }
+
+  const openFlagModal = (book: ScannedBook) => {
+    setFlagModalBook(book)
+    setFlagIssue(book.flag_issue || '')
+    setFlagRemarks(book.flag_remarks || '')
+  }
+
+  const saveFlagFromLog = async () => {
+    if (!flagModalBook || !flagIssue) { toast({ title: 'Select an issue first', variant: 'destructive' }); return }
+    setFlagSaving(true)
+    try {
+      // If flagging the current scan (no scan id yet), use saveBook directly
+      if (!flagModalBook.id) {
+        await saveBook({ isbn: flagModalBook.isbn, title: flagModalBook.title }, 'non_processable', flagIssue, flagRemarks)
+        setCurrentScan(null)
+        setFlagModalBook(null)
+        return
+      }
+      // Re-flagging an already-saved scan log entry — update via warehouse scan patch
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Authentication required.')
+      const res = await fetch(`${API_URL}/api/warehouse/scans/${flagModalBook.id}/flag`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ rejection_reason: flagIssue, notes: flagRemarks })
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+      setScannedBooks(prev => prev.map(b => b.id === flagModalBook.id
+        ? { ...b, scan_status: 'non_processable', flag_issue: flagIssue, flag_remarks: flagRemarks }
+        : b
+      ))
+      setCurrentSession(prev => prev ? {
+        ...prev,
+        total_non_processable: prev.total_non_processable + 1,
+        total_processable: Math.max(0, prev.total_processable - 1),
+      } : null)
+      setFlagModalBook(null)
+      toast({ title: 'Flagged as Non-Processable' })
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed', variant: 'destructive' })
+    } finally { setFlagSaving(false) }
   }
 
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
   return (
-    <div className="flex h-screen overflow-hidden bg-white">
+    <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Confirm Complete Session Modal */}
@@ -256,219 +308,203 @@ export default function WarehousePage() {
                 <p className="text-sm text-muted-foreground mb-5">This will close the current session. Scanned books will be saved.</p>
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setConfirmCompleteOpen(false)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
-                  <button onClick={confirmComplete} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium">Complete</button>
+                  <button onClick={confirmCloseSession} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium">Complete</button>
                 </div>
               </div>
             </div>
           )}
 
-          <header>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse Station</h1>
-            <p className="text-sm text-muted-foreground mt-1">Scan books into a single box per session. Flag Non-Processable books inline — no re-boxing.</p>
-          </header>
-
-          <ILMSTestPanel />
-
-          {!sessionActive ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" /> Start Receiving Session
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="inline-flex flex-wrap items-end gap-2">
+        {/* Flag Modal */}
+          {flagModalBook && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setFlagModalBook(null)}>
+              <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" /> Flag as Non-Processable
+                  </h3>
+                  <button onClick={() => setFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">{flagModalBook.isbn} — {flagModalBook.title}</p>
+                <div className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium">Lot</label>
-                    <Select value={lotNumber} onValueChange={(value) => {
-                      const lot = lots.find(l => l.lot_number === value)
-                      setLotNumber(value)
-                      setActiveLotId(lot?.id || '')
-                      setSelectedBox('')
-                    }}>
-                      <SelectTrigger className="mt-1 w-40 h-10">
-                        <SelectValue placeholder="Select a lot" />
-                      </SelectTrigger>
-                      <SelectContent>
-
-                        {lots.map(l => (
-                          <SelectItem key={l.id} value={l.lot_number}>{l.lot_number}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
+                    <select value={flagIssue} onChange={e => setFlagIssue(e.target.value)}
+                      className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
+                      <option value="">Select issue…</option>
+                      {FLAG_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+                    </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Box</label>
-                    <Select
-                      value={selectedBox}
-                      onValueChange={setSelectedBox}
-                      disabled={!activeLotId || boxesLoading || boxes.length === 0}
-                    >
-                      <SelectTrigger className="mt-1 w-48 h-10">
-                        <SelectValue placeholder={
-                          !activeLotId
-                            ? 'Select a lot first'
-                            : boxesLoading
-                              ? 'Loading boxes…'
-                              : boxes.length === 0
-                                ? 'No boxes available'
-                                : 'Select a box'
-                        } />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {boxes.map(b => (
-                          <SelectItem key={b.id} value={b.id}>
-                            {b.box_number}{b.is_sealed ? ' (sealed)' : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <label className="text-xs font-medium text-foreground mb-1 block">Remarks / Page No. (optional)</label>
+                    <input type="text" value={flagRemarks} onChange={e => setFlagRemarks(e.target.value)}
+                      placeholder="e.g. page 42"
+                      className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">All books scanned in this session go into one box. Flag Non-Processable ones inline.</p>
-                <button onClick={startSession} disabled={loading}
-                  className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50">
-                  {loading ? 'Starting...' : 'Start Session'}
-                </button>
-              </CardContent>
-            </Card>
+                <div className="flex gap-2 justify-end mt-4">
+                  <button onClick={() => setFlagModalBook(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
+                  <button onClick={saveFlagFromLog} disabled={!flagIssue || flagSaving}
+                    className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50">
+                    {flagSaving ? 'Saving…' : 'Confirm Flag'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Header */}
+          <header>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse & Inventory</h1>
+            <p className="text-sm text-muted-foreground mt-1">Scan books into a single box. Flag Non-Processable ones inline — no re-boxing needed.</p>
+          </header>
+
+          {/* Session Control */}
+          {!sessionActive ? (
+            <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-end justify-between gap-4">
+              <div className="inline-flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-1">Lot</label>
+                  <Select value={activeLot} onValueChange={(value) => {
+                    const lot = lots.find(l => l.lot_number === value)
+                    setActiveLot(value)
+                    setActiveLotId(lot?.id || '')
+                    setSelectedBox('')
+                  }}>
+                    <SelectTrigger className="w-40 h-9">
+                      <SelectValue placeholder="Select a lot" />
+                    </SelectTrigger>
+                    <SelectContent>
+
+                      {lots.map(l => (
+                        <SelectItem key={l.id} value={l.lot_number}>{l.lot_number}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-1">Box</label>
+                  <Select value={selectedBox} onValueChange={setSelectedBox} disabled={!activeLotId || boxesLoading || boxes.length === 0}>
+                    <SelectTrigger className="w-48 h-9">
+                      <SelectValue placeholder={!activeLotId ? 'Select a lot first' : boxesLoading ? 'Loading boxes…' : boxes.length === 0 ? 'No boxes available' : 'Select a box'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {boxes.map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.box_number}{b.is_sealed ? ' (sealed)' : ''}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <button onClick={handleNewSession} disabled={loading}
+                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50">
+                {loading ? 'Starting…' : 'Start Session'}
+              </button>
+            </div>
           ) : (
             <>
-              {/* Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-5">
-                    <div className="text-2xl font-bold">{currentSession?.total_scanned || 0}</div>
-                    <p className="text-xs text-muted-foreground">Total Scanned</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5">
-                    <div className="text-2xl font-bold text-green-600">{currentSession?.total_processable || 0}</div>
-                    <p className="text-xs text-muted-foreground">Processable</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5">
-                    <div className="text-2xl font-bold text-red-600">{currentSession?.total_non_processable || 0}</div>
-                    <p className="text-xs text-muted-foreground">Non-Processable</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-5">
-                    <button onClick={completeSession} disabled={loading}
-                      className="w-full py-2 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50">
-                      Complete Session
-                    </button>
-                  </CardContent>
-                </Card>
+              {/* Active session bar */}
+              <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-4">
+                <div className="flex items-center gap-4">
+                  <Package className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Active Lot</p>
+                    <p className="text-sm font-semibold text-foreground">{activeLot}</p>
+                  </div>
+                  {currentBoxNumber && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Current Box</p>
+                      <p className="text-sm font-semibold text-foreground">{currentBoxNumber} <span className="font-normal text-muted-foreground">({currentBoxBooks} books)</span></p>
+                    </div>
+                  )}
+                </div>
+                <button onClick={handleCloseSession} disabled={loading}
+                  className="px-4 py-1.5 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">
+                  Complete Session
+                </button>
               </div>
 
-              {/* Scanner */}
-              <Card className="border-2 border-blue-500">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Barcode className="h-5 w-5 text-blue-600" /> Scan ISBN / Barcode
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <input
-                    value={scanInput}
-                    onChange={e => setScanInput(e.target.value)}
-                    onKeyDown={handleScan}
-                    placeholder="Scan or enter ISBN and press Enter..."
-                    className="w-full h-12 text-lg rounded-md border border-input bg-background px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    autoFocus
-                    disabled={loading || !!currentBook}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Current Book */}
-              {currentBook && (
-                <Card className="border-2 border-orange-400">
-                  <CardHeader>
-                    <CardTitle>Book Details</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!currentBook.found && (
-                      <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                        <AlertTriangle className="h-4 w-4 shrink-0" /> Book not found in database — flagging allowed.
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-600 uppercase mb-1">ISBN</p>
-                      <p className="text-lg">{currentBook.isbn}</p>
-                    </div>
-                    {currentBook.title && (
-                      <div>
-                        <p className="text-xs font-semibold text-gray-600 uppercase mb-1">Title</p>
-                        <p className="text-base font-semibold">{currentBook.title}</p>
-                      </div>
-                    )}
-
-                    {/* Flag selection — shown always so staff can pre-select before deciding */}
-                    <div className="border-t pt-4 space-y-2">
-                      <p className="text-xs font-medium text-gray-700">If Non-Processable, select issue:</p>
-                      <select value={flagIssue} onChange={e => setFlagIssue(e.target.value)}
-                        className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none">
-                        <option value="">— No issue (Processable) —</option>
-                        {FLAG_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
-                      </select>
-                      {flagIssue && (
-                        <input type="text" value={flagRemarks} onChange={e => setFlagRemarks(e.target.value)}
-                          placeholder="Remarks / Page No. (optional)"
-                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none" />
-                      )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3 pt-2">
-                      <button onClick={() => processBook('processable')} disabled={loading}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50">
-                        <CheckCircle2 className="h-4 w-4" /> Processable
-                      </button>
-                      <button onClick={() => processBook('non_processable')} disabled={loading || !flagIssue}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50">
-                        <AlertTriangle className="h-4 w-4" /> Non-Processable
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* Stats */}
+              {currentSession && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-600 font-medium">Total Scanned</p>
+                    <p className="text-2xl font-bold text-blue-900">{currentSession.total_scanned}</p>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-xs text-green-600 font-medium">Processable</p>
+                    <p className="text-2xl font-bold text-green-900">{currentSession.total_processable}</p>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-xs text-red-600 font-medium">Non-Processable</p>
+                    <p className="text-2xl font-bold text-red-900">{currentSession.total_non_processable}</p>
+                  </div>
+                </div>
               )}
 
-              {/* Scan History */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Scan History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {scanLogs.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">No books scanned yet</p>
-                    ) : (
-                      scanLogs.map(log => (
-                        <div key={log.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm">{log.isbn}</p>
-                            <p className="text-xs text-muted-foreground truncate">{log.title || 'Unknown Title'}</p>
-                            {log.rejection_reason && (
-                              <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(log.rejection_reason)}</p>
-                            )}
-                          </div>
-                          <span className={`ml-3 shrink-0 px-2 py-0.5 rounded text-xs font-medium ${
-                            log.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                          }`}>
-                            {log.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-                          </span>
-                        </div>
-                      ))
-                    )}
+              {/* Scanner */}
+              <ScannerInput onScan={handleScan} />
+
+              {/* Current book preview */}
+              {currentScan && (
+                <div className="bg-card border-2 border-primary/40 rounded-xl p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Currently scanning</p>
+                    <p className="text-sm font-semibold text-foreground">{currentScan.isbn}</p>
+                    <p className="text-sm text-muted-foreground">{currentScan.title}</p>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => saveBook(currentScan, 'processable', null, null)}
+                      disabled={loading}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50">
+                      <CheckCircle2 className="h-4 w-4" /> Processable
+                    </button>
+                    <button
+                      onClick={() => { setFlagModalBook({ id: '', isbn: currentScan.isbn, title: currentScan.title, scan_status: 'non_processable', timestamp: new Date() }); setFlagIssue(''); setFlagRemarks('') }}
+                      disabled={loading}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50">
+                      <AlertTriangle className="h-4 w-4" /> Non-Processable
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Scan log */}
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Scan Log</h3>
+                {scannedBooks.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                    {scannedBooks.map(book => (
+                      <div key={book.id} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-foreground">{book.isbn}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
+                          {book.flag_issue && (
+                            <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 ml-3">
+                          {book.scan_status === 'processable' ? (
+                            <>
+                              <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Processable</span>
+                              <button onClick={() => openFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Flag</button>
+                            </>
+                          ) : (
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700">
+                              <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </>
           )}
+
         </div>
       </main>
     </div>

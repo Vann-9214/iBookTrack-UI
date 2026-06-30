@@ -76,31 +76,17 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
     { label: "Storage",      count: stats?.pipelineStages?.storage      || 0, unit: stats?.pipelineStages?.storage      === 1 ? "Box" : "Boxes", stage: "storage" },
   ]
 
-  // Fetch boxes for selected stage. For Transmit, use live Simflex BoxNumber data.
+  // Fetch boxes for selected stage
   useEffect(() => {
     if (!selectedStage) return
     
     const fetchBoxes = async () => {
       setLoadingBoxes(true)
       try {
-        if (selectedStage === 'transmit') {
-          const today = new Date().toISOString().split('T')[0]
-          const res = await authFetch(`${API_URL}/api/scanning/transmitting-ongoing?date=${today}`)
-          const data = await res.json()
-          const mappedBoxes: BoxItem[] = (data.data || []).map((b: any) => ({
-            id: b.BoxNumber,
-            box_number: b.BoxNumber,
-            current_stage: 'transmit',
-            total_books: Number(b.TotalBooks) || 0,
-            received_at: null,
-            lot: null,
-          }))
-          setBoxes(mappedBoxes)
-        } else {
-          const res = await authFetch(`${API_URL}/api/boxes?current_stage=${selectedStage}`)
-          const data = await res.json()
-          setBoxes(data.boxes || [])
-        }
+        const storageFilter = selectedStage === 'storage' ? '&exclude_assigned_storage=true' : ''
+        const res = await authFetch(`${API_URL}/api/boxes?current_stage=${selectedStage}${storageFilter}`)
+        const data = await res.json()
+        setBoxes(data.boxes || [])
         pagination.goToPage(1)
       } catch (error) {
         console.error('Failed to fetch boxes:', error)

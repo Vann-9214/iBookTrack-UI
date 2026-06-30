@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { DashboardNavbar } from '@/components/top-bar'
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { authFetch } from "@/lib/auth-api"
 import {
   FileUp,
   CheckCircle2,
@@ -21,11 +23,18 @@ import {
   Trophy,
   Download,
   Calendar as CalendarIcon,
+  Package,
+  Box,
+  Tag,
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
+  BookOpen,
 } from "lucide-react"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { authFetch } from "@/lib/auth-api"
+import { cn } from "@/lib/utils"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -47,10 +56,53 @@ function getStatusBadge(status: string) {
   )
 }
 
+function getSimflexBadge(status: string | null, completed: boolean) {
+  if (completed) return (
+    <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 gap-1 text-[10px]">
+      <CheckCircle2 className="h-3 w-3" /> Transmitted
+    </Badge>
+  )
+  if (!status) return (
+    <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-500 text-[10px]">
+      Pending
+    </Badge>
+  )
+  if (status.includes('Validate')) return (
+    <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-700 text-[10px]">Validation</Badge>
+  )
+  if (status.includes('Tif2PDF')) return (
+    <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-700 text-[10px]">PDF Conv.</Badge>
+  )
+  if (status.includes('Preval')) return (
+    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 text-[10px]">Pre-Validation</Badge>
+  )
+  if (status.includes('Scanning')) return (
+    <Badge variant="outline" className="border-cyan-300 bg-cyan-50 text-cyan-700 text-[10px]">Done Scan</Badge>
+  )
+  return (
+    <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-500 text-[10px]">{status}</Badge>
+  )
+}
+
+function getScanStatusBadge(scan_status: string) {
+  if (scan_status === 'processable') return (
+    <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700 text-[10px]">Processable</Badge>
+  )
+  if (scan_status === 'non_processable') return (
+    <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 text-[10px]">Non-Processable</Badge>
+  )
+  if (scan_status === 'reject') return (
+    <Badge variant="outline" className="border-orange-300 bg-orange-50 text-orange-700 text-[10px]">Rejected</Badge>
+  )
+  return (
+    <Badge variant="outline" className="border-gray-200 text-[10px]">{scan_status}</Badge>
+  )
+}
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
 export default function TransmissionMonitorPage() {
+  // --- Live feed state ---
   const [historySearch, setHistorySearch] = useState("")
   const [machineSearch, setMachineSearch] = useState("")
   const [loading, setLoading] = useState(true)
@@ -68,6 +120,39 @@ export default function TransmissionMonitorPage() {
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
 
+  // --- LOT visibility state ---
+  const [lotInput, setLotInput] = useState("")
+  const [lotLoading, setLotLoading] = useState(false)
+  const [lotSummary, setLotSummary] = useState<any>(null)
+  const [lotError, setLotError] = useState<string | null>(null)
+  const [lotIsbnSearch, setLotIsbnSearch] = useState("")
+  const [lotExpandedSections, setLotExpandedSections] = useState<Record<string, boolean>>({
+    transmitted: false, wip: true, non_processable: false,
+  })
+
+  // --- Box visibility state ---
+  const [boxInput, setBoxInput] = useState("")
+  const [boxLoading, setBoxLoading] = useState(false)
+  const [boxData, setBoxData] = useState<any>(null)
+  const [boxError, setBoxError] = useState<string | null>(null)
+  const [boxIsbnSearch, setBoxIsbnSearch] = useState("")
+
+  // --- ISBN tagging state ---
+  const [tagModalScan, setTagModalScan] = useState<any>(null)
+  const [tagStatus, setTagStatus] = useState<'reject' | 'non_processable'>('reject')
+  const [tagRemarks, setTagRemarks] = useState("")
+  const [tagging, setTagging] = useState(false)
+  const [tagError, setTagError] = useState<string | null>(null)
+
+  // Determine if user is a manager (stored in localStorage)
+  const [isManager, setIsManager] = useState(false)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const role = localStorage.getItem('user_role')
+      setIsManager(role === 'manager' || role === 'admin')
+    }
+  }, [])
+
   // Pagination for by machine table
   const filteredByMachine = byMachine.filter((m: any) =>
     !machineSearch ||
@@ -83,7 +168,7 @@ export default function TransmissionMonitorPage() {
     try {
       const f = from || fromDate
       const t = to || toDate
-      const res = await authFetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}`)
+      const res = await fetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}`)
       const data = await res.json()
       if (data.success) {
         setSummary(data.summary)
@@ -102,7 +187,7 @@ export default function TransmissionMonitorPage() {
   const fetchRanking = async () => {
     setRankingLoading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/scanning/ranking`)
+      const res = await fetch(`${API_URL}/api/scanning/ranking`)
       const data = await res.json()
       if (data.success) setRanking(data)
     } catch (e) {
@@ -115,7 +200,7 @@ export default function TransmissionMonitorPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await authFetch(`${API_URL}/api/scanning/export?date=${fromDate}`)
+      const res = await fetch(`${API_URL}/api/scanning/export?date=${fromDate}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -145,6 +230,69 @@ export default function TransmissionMonitorPage() {
     return () => clearInterval(interval)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // --- LOT transmission summary fetch ---
+  const fetchLotSummary = async () => {
+    const q = lotInput.trim()
+    if (!q) return
+    setLotLoading(true)
+    setLotError(null)
+    setLotSummary(null)
+    try {
+      const res = await authFetch(`${API_URL}/api/lots/${encodeURIComponent(q)}/transmission-summary`)
+      const data = await res.json()
+      if (!data.success) { setLotError(data.error || 'Failed to load LOT data'); return }
+      setLotSummary(data)
+    } catch (e: any) {
+      setLotError(e.message || 'Failed to load LOT data')
+    } finally {
+      setLotLoading(false)
+    }
+  }
+
+  // --- Box transmission fetch ---
+  const fetchBoxTransmission = async () => {
+    const q = boxInput.trim()
+    if (!q) return
+    setBoxLoading(true)
+    setBoxError(null)
+    setBoxData(null)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${encodeURIComponent(q)}/transmission`)
+      const data = await res.json()
+      if (!data.success) { setBoxError(data.error || 'Box not found'); return }
+      setBoxData(data)
+    } catch (e: any) {
+      setBoxError(e.message || 'Failed to load box data')
+    } finally {
+      setBoxLoading(false)
+    }
+  }
+
+  // --- ISBN tagging ---
+  const handleTagSubmit = async () => {
+    if (!tagModalScan) return
+    if (!tagRemarks.trim()) { setTagError('Remarks are required'); return }
+    setTagging(true)
+    setTagError(null)
+    try {
+      const res = await authFetch(`${API_URL}/api/warehouse/scans/${tagModalScan.scan_id}/tag`, {
+        method: 'POST',
+        body: JSON.stringify({ status: tagStatus, remarks: tagRemarks.trim() }),
+      })
+      const data = await res.json()
+      if (!data.success) { setTagError(data.error || 'Failed to tag ISBN'); return }
+      // Refresh box or lot data after tagging
+      if (boxData) fetchBoxTransmission()
+      if (lotSummary) fetchLotSummary()
+      setTagModalScan(null)
+      setTagRemarks("")
+    } catch (e: any) {
+      setTagError(e.message || 'Failed to tag ISBN')
+    } finally {
+      setTagging(false)
+    }
+  }
+
   const transmissionStage = stages.find(s => s.Stage === 'Transmission_Archive')
   const totalTransmitted = transmissionStage?.Completed || 0
   const ongoingTransmissions = transmissionStage?.Ongoing || 0
@@ -158,15 +306,35 @@ export default function TransmissionMonitorPage() {
     item.BoxNumber?.toLowerCase().includes(historySearch.toLowerCase())
   )
 
-  // Update pagination total when filters change
   const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 50 })
   const paginatedRecentScans = filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit)
+
+  // LOT isbn filtered list
+  const lotIsbns: any[] = lotSummary?.isbns || []
+  const filteredLotIsbns = lotIsbns.filter((r: any) =>
+    !lotIsbnSearch ||
+    r.isbn?.toLowerCase().includes(lotIsbnSearch.toLowerCase()) ||
+    r.title?.toLowerCase().includes(lotIsbnSearch.toLowerCase())
+  )
+  const lotIsbnPagination = usePagination({ totalItems: filteredLotIsbns.length, defaultPageSize: 50 })
+  const paginatedLotIsbns = filteredLotIsbns.slice(lotIsbnPagination.offset, lotIsbnPagination.offset + lotIsbnPagination.limit)
+
+  // Box isbn filtered list
+  const boxBooks: any[] = boxData?.books || []
+  const filteredBoxBooks = boxBooks.filter((b: any) =>
+    !boxIsbnSearch ||
+    b.isbn?.toLowerCase().includes(boxIsbnSearch.toLowerCase()) ||
+    b.title?.toLowerCase().includes(boxIsbnSearch.toLowerCase())
+  )
+  const boxBookPagination = usePagination({ totalItems: filteredBoxBooks.length, defaultPageSize: 50 })
+  const paginatedBoxBooks = filteredBoxBooks.slice(boxBookPagination.offset, boxBookPagination.offset + boxBookPagination.limit)
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
             {/* Header */}
@@ -184,21 +352,14 @@ export default function TransmissionMonitorPage() {
                   <span className="text-xs text-muted-foreground">From</span>
                   <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-8 w-36 justify-start text-left font-normal text-xs"
-                      >
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
                         <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                         {fromDate ? format(new Date(fromDate), 'MMM dd, yyyy') : 'Pick date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={fromDate ? new Date(fromDate) : undefined}
-                        onSelect={date => { setFromDate(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }}
-                        initialFocus
-                      />
+                      <Calendar mode="single" selected={fromDate ? new Date(fromDate) : undefined}
+                        onSelect={date => { setFromDate(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }} initialFocus />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -206,51 +367,38 @@ export default function TransmissionMonitorPage() {
                   <span className="text-xs text-muted-foreground">To</span>
                   <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-8 w-36 justify-start text-left font-normal text-xs"
-                      >
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
                         <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
                         {toDate ? format(new Date(toDate), 'MMM dd, yyyy') : 'Pick date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={toDate ? new Date(toDate) : undefined}
-                        onSelect={date => { setToDate(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }}
-                        initialFocus
-                      />
+                      <Calendar mode="single" selected={toDate ? new Date(toDate) : undefined}
+                        onSelect={date => { setToDate(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }} initialFocus />
                     </PopoverContent>
                   </Popover>
                 </div>
                 <Button size="sm" onClick={handleSearch} disabled={loading} className="h-8 gap-1.5">
-                  <Search className="h-3.5 w-3.5" />
-                  Search
+                  <Search className="h-3.5 w-3.5" /> Search
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
                   {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   Export
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
-                  <Trophy className="h-3.5 w-3.5" />
-                  Ranking
+                  <Trophy className="h-3.5 w-3.5" /> Ranking
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5">
-                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
                 </Button>
                 {lastUpdated && (
-                  <span className="text-xs text-muted-foreground">
-                    Updated {lastUpdated.toLocaleTimeString()}
-                  </span>
+                  <span className="text-xs text-muted-foreground">Updated {lastUpdated.toLocaleTimeString()}</span>
                 )}
               </div>
             </header>
 
             {/* Metric Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {/* Transmitted Today */}
               <div className="rounded-2xl border border-blue-300 bg-blue-100/60 hover:bg-blue-100 p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-sm">
@@ -260,14 +408,11 @@ export default function TransmissionMonitorPage() {
                     <span className="text-[11px] font-semibold text-blue-600">{ongoingTransmissions} in progress</span>
                   )}
                 </div>
-                <div className="text-3xl font-black text-blue-600 mb-0.5">
-                  {loading ? '…' : totalTransmitted.toLocaleString()}
-                </div>
+                <div className="text-3xl font-black text-blue-600 mb-0.5">{loading ? '…' : totalTransmitted.toLocaleString()}</div>
                 <div className="text-sm font-semibold text-gray-700 mb-0.5">Transmitted Today</div>
                 <div className="text-xs text-blue-500">books sent to archive</div>
               </div>
 
-              {/* Pass Rate */}
               <div className="rounded-2xl border border-green-300 bg-green-100/60 hover:bg-green-100 p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 text-white shadow-sm">
@@ -277,14 +422,11 @@ export default function TransmissionMonitorPage() {
                     <span className="text-[11px] font-semibold text-red-500">{failedTransmissions} failed</span>
                   )}
                 </div>
-                <div className="text-3xl font-black text-green-600 mb-0.5">
-                  {loading ? '…' : `${passRate}%`}
-                </div>
+                <div className="text-3xl font-black text-green-600 mb-0.5">{loading ? '…' : `${passRate}%`}</div>
                 <div className="text-sm font-semibold text-gray-700 mb-0.5">Pass Rate</div>
                 <div className="text-xs text-green-500">transmission success rate</div>
               </div>
 
-              {/* Total Books Today */}
               <div className="rounded-2xl border border-teal-300 bg-teal-100/60 hover:bg-teal-100 p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500 text-white shadow-sm">
@@ -292,9 +434,7 @@ export default function TransmissionMonitorPage() {
                   </div>
                   <span className="text-[11px] font-semibold text-gray-500">{summary?.Ongoing || 0} ongoing</span>
                 </div>
-                <div className="text-3xl font-black text-teal-600 mb-0.5">
-                  {loading ? '…' : (summary?.TotalScans || 0).toLocaleString()}
-                </div>
+                <div className="text-3xl font-black text-teal-600 mb-0.5">{loading ? '…' : (summary?.TotalScans || 0).toLocaleString()}</div>
                 <div className="text-sm font-semibold text-gray-700 mb-0.5">Total Books Today</div>
                 <div className="text-xs text-teal-500">all scans this session</div>
               </div>
@@ -325,8 +465,18 @@ export default function TransmissionMonitorPage() {
               <TabsList>
                 <TabsTrigger value="queue">Live Scan Feed</TabsTrigger>
                 <TabsTrigger value="machine">By Machine</TabsTrigger>
+                <TabsTrigger value="lot">
+                  <Package className="h-3.5 w-3.5 mr-1.5" />LOT Visibility
+                </TabsTrigger>
+                <TabsTrigger value="box">
+                  <Box className="h-3.5 w-3.5 mr-1.5" />Box Visibility
+                </TabsTrigger>
+                <TabsTrigger value="isbn">
+                  <Tag className="h-3.5 w-3.5 mr-1.5" />ISBN Management
+                </TabsTrigger>
               </TabsList>
 
+              {/* ── Live Scan Feed ── */}
               <TabsContent value="queue" className="mt-4">
                 <Card className="border-border bg-card overflow-hidden py-0 gap-0">
                   <div className="flex items-center justify-between px-5 py-4 bg-blue-50 border-b border-blue-100">
@@ -345,56 +495,48 @@ export default function TransmissionMonitorPage() {
                       </div>
                     </div>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          placeholder="Search ISBN or Box..."
-                          value={historySearch}
-                          onChange={(e) => setHistorySearch(e.target.value)}
-                          className="w-56 pl-9 h-8 text-sm"
-                        />
-                      </div>
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        placeholder="Search ISBN or box..."
+                        value={historySearch}
+                        onChange={(e) => setHistorySearch(e.target.value)}
+                        className="w-56 pl-9 h-8 text-sm"
+                      />
+                    </div>
                   </div>
                   <CardContent className="p-0">
                     <table className="w-full text-sm">
                       <thead className="bg-white">
                         <tr className="border-b border-gray-100">
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Scan Date</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Scan User</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Pages</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Status</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Stage</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Updated</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Date</th>
                         </tr>
                       </thead>
                       <tbody>
                         {loading ? (
-                          <tr><td colSpan={8} className="text-center py-12 text-muted-foreground">
-                            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                            Loading live data...
+                          <tr><td colSpan={7} className="text-center py-12">
+                            <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                           </td></tr>
-                        ) : paginatedRecentScans.length === 0 ? (
-                          <tr><td colSpan={8} className="text-center py-12 text-gray-400">No scans found</td></tr>
-                        ) : paginatedRecentScans.map((item: any, i: number) => {
-                          const statusWord = item.Status?.split(' ').pop() || 'ONGOING'
-                          return (
-                            <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                              <td className="text-xs text-gray-500 px-4 py-3">
-                                {item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}
-                              </td>
-                              <td className="text-xs font-semibold text-gray-800 px-4 py-3">{item.ScanUser || '—'}</td>
-                              <td className="text-xs text-gray-500 px-4 py-3">{item.BoxNumber || '—'}</td>
-                              <td className="text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
-                              <td className="text-xs text-right font-semibold text-gray-800 px-4 py-3">{item.PageCount ?? '—'}</td>
-                              <td className="px-4 py-3">{getStatusBadge(statusWord)}</td>
-                              <td className="text-xs text-gray-500 px-4 py-3">{item.MachineName || '—'}</td>
-                              <td className="text-xs text-gray-400 text-right px-4 py-3">
-                                {item.Updated ? new Date(item.Updated).toLocaleTimeString() : '—'}
-                              </td>
-                            </tr>
-                          )
-                        })}
+                        ) : filteredScans.length === 0 ? (
+                          <tr><td colSpan={7} className="text-center py-12 text-gray-400">No scans found</td></tr>
+                        ) : paginatedRecentScans.map((item: any, i: number) => (
+                          <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                            <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
+                            <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
+                            <td className="px-4 py-3">{getStatusBadge(item.Status || '')}</td>
+                            <td className="text-xs text-gray-500 px-4 py-3">{item.Status?.split(' ').slice(0, -1).join(' ') || '—'}</td>
+                            <td className="text-xs text-gray-500 px-4 py-3">{item.MachineName || '—'}</td>
+                            <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
+                            <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
+                              {item.ScanDate ? format(new Date(item.ScanDate), 'MMM d, HH:mm') : '—'}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                     {filteredScans.length > 0 && recentScansPagination.totalPages > 1 && (
@@ -412,6 +554,7 @@ export default function TransmissionMonitorPage() {
                 </Card>
               </TabsContent>
 
+              {/* ── By Machine ── */}
               <TabsContent value="machine" className="mt-4">
                 <Card className="border-border bg-card overflow-hidden py-0 gap-0">
                   <div className="flex items-center justify-between px-5 py-4 bg-teal-50 border-b border-teal-100">
@@ -452,8 +595,8 @@ export default function TransmissionMonitorPage() {
                       </thead>
                       <tbody>
                         {loading ? (
-                          <tr><td colSpan={5} className="text-center py-12 text-muted-foreground">
-                            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                          <tr><td colSpan={5} className="text-center py-12">
+                            <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                           </td></tr>
                         ) : filteredByMachine.length === 0 ? (
                           <tr><td colSpan={5} className="text-center py-12 text-gray-400">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</td></tr>
@@ -464,12 +607,8 @@ export default function TransmissionMonitorPage() {
                               <td className="font-semibold text-xs text-gray-800 px-4 py-3">{m.MachineName}</td>
                               <td className="text-xs text-gray-500 px-4 py-3">{m.MachineID}</td>
                               <td className="text-xs text-gray-700 px-4 py-3">{m.User}</td>
-                              <td className="px-4 py-3">
-                                <Progress value={(m.TotalScans / maxScans) * 100} className="h-2" />
-                              </td>
-                              <td className="text-xs font-bold text-right text-gray-800 px-4 py-3">
-                                {m.TotalScans.toLocaleString()}
-                              </td>
+                              <td className="px-4 py-3"><Progress value={(m.TotalScans / maxScans) * 100} className="h-2" /></td>
+                              <td className="text-xs font-bold text-right text-gray-800 px-4 py-3">{m.TotalScans.toLocaleString()}</td>
                             </tr>
                           )
                         })}
@@ -489,144 +628,525 @@ export default function TransmissionMonitorPage() {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              {/* ── LOT Visibility ── */}
+              <TabsContent value="lot" className="mt-4">
+                <div className="flex flex-col gap-4">
+                  {/* Search bar */}
+                  <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-indigo-50">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 text-white shrink-0">
+                        <Package className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-gray-800">LOT-Level Transmission</p>
+                        <p className="text-xs text-gray-500">Enter a LOT number to view Simflex status for all books in that LOT</p>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="e.g. Lot-101 or 101"
+                          value={lotInput}
+                          onChange={e => setLotInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') fetchLotSummary() }}
+                          className="max-w-xs text-sm"
+                        />
+                        <Button onClick={fetchLotSummary} disabled={lotLoading || !lotInput.trim()} className="gap-1.5">
+                          {lotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                          Search
+                        </Button>
+                      </div>
+                      {lotError && (
+                        <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                          <XCircle className="h-3.5 w-3.5" />{lotError}
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+
+                  {/* LOT summary results */}
+                  {lotSummary && (
+                    <>
+                      {/* Stats row */}
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                        {[
+                          { label: 'Total Books', value: lotSummary.total, color: 'gray' },
+                          { label: 'Processable', value: lotSummary.processable, color: 'blue' },
+                          { label: 'Transmitted', value: lotSummary.transmitted, color: 'emerald' },
+                          { label: 'WIP', value: (lotSummary.processable || 0) - (lotSummary.transmitted || 0), color: 'amber' },
+                          { label: 'Non-Processable', value: lotSummary.non_processable, color: 'red' },
+                          { label: 'Rejected', value: lotSummary.rejected, color: 'orange' },
+                        ].map(stat => (
+                          <div key={stat.label} className={`rounded-xl border p-3 bg-${stat.color}-50 border-${stat.color}-200`}>
+                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{stat.label}</p>
+                            <p className={`text-2xl font-black text-${stat.color}-600 mt-0.5`}>{stat.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* WIP stage breakdown */}
+                      {lotSummary.wip && (
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {[
+                            { label: 'Done Scan', value: lotSummary.wip.done_scan, color: 'cyan' },
+                            { label: 'Pre-Validation', value: lotSummary.wip.pre_validation, color: 'amber' },
+                            { label: 'PDF Conversion', value: lotSummary.wip.pdf_conversion, color: 'violet' },
+                            { label: 'Validation', value: lotSummary.wip.validation, color: 'blue' },
+                          ].map(s => (
+                            <div key={s.label} className={`rounded-xl border bg-${s.color}-50 border-${s.color}-200 p-3`}>
+                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{s.label}</p>
+                              <p className={`text-xl font-black text-${s.color}-600 mt-0.5`}>{s.value}</p>
+                              <p className="text-[10px] text-gray-400 mt-0.5">WIP</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Transmission progress bar */}
+                      {lotSummary.processable > 0 && (
+                        <div className="rounded-xl border border-border bg-card p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-semibold text-foreground">Transmission Progress</p>
+                            <p className="text-xs text-muted-foreground">
+                              {lotSummary.transmitted} / {lotSummary.processable} processable books
+                            </p>
+                          </div>
+                          <Progress value={(lotSummary.transmitted / lotSummary.processable) * 100} className="h-3" />
+                          <p className="text-xs text-muted-foreground mt-1.5">
+                            {((lotSummary.transmitted / lotSummary.processable) * 100).toFixed(1)}% complete
+                          </p>
+                        </div>
+                      )}
+
+                      {/* ISBN list */}
+                      <Card className="border-border bg-card overflow-hidden py-0 gap-0">
+                        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+                          <p className="text-sm font-semibold text-foreground">All ISBNs — {lotSummary.lot_number}</p>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Search ISBN or title..."
+                              value={lotIsbnSearch}
+                              onChange={e => setLotIsbnSearch(e.target.value)}
+                              className="w-56 pl-9 h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <CardContent className="p-0">
+                          <table className="w-full text-xs">
+                            <thead className="bg-muted/30 sticky top-0">
+                              <tr className="border-b border-border">
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">ISBN</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Title</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Scan Status</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Simflex Status</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Transmission Date</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedLotIsbns.length === 0 ? (
+                                <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">No ISBNs found</td></tr>
+                              ) : paginatedLotIsbns.map((r: any, i: number) => (
+                                <tr key={r.scan_id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                                  <td className="font-mono px-4 py-2.5 text-foreground">{r.isbn}</td>
+                                  <td className="px-4 py-2.5 text-muted-foreground truncate max-w-[180px]">{r.title || '—'}</td>
+                                  <td className="px-4 py-2.5">{getScanStatusBadge(r.scan_status)}</td>
+                                  <td className="px-4 py-2.5">{getSimflexBadge(r.simflex_status, r.transmission_completed)}</td>
+                                  <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
+                                    {r.transmission_date ? format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm') : '—'}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    {isManager && r.scan_status === 'processable' && (
+                                      <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-amber-600 hover:bg-amber-50"
+                                        onClick={() => { setTagModalScan(r); setTagStatus('reject'); setTagRemarks(''); setTagError(null) }}>
+                                        Tag
+                                      </Button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {filteredLotIsbns.length > 0 && lotIsbnPagination.totalPages > 1 && (
+                            <Pagination
+                              currentPage={lotIsbnPagination.currentPage}
+                              totalPages={lotIsbnPagination.totalPages}
+                              pageSize={lotIsbnPagination.pageSize}
+                              onPageChange={lotIsbnPagination.goToPage}
+                              onPageSizeChange={lotIsbnPagination.setPageSize}
+                              canPrevPage={lotIsbnPagination.canPrevPage}
+                              canNextPage={lotIsbnPagination.canNextPage}
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    </>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* ── Box Visibility ── */}
+              <TabsContent value="box" className="mt-4">
+                <div className="flex flex-col gap-4">
+                  <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-violet-50">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500 text-white shrink-0">
+                        <Box className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-gray-800">Box-Level Transmission</p>
+                        <p className="text-xs text-gray-500">Search a box number to view per-ISBN Simflex status and transmission dates</p>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter Box Number (e.g. Lot-101-PROCESSABLE-0001)"
+                          value={boxInput}
+                          onChange={e => setBoxInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') fetchBoxTransmission() }}
+                          className="max-w-sm text-sm"
+                        />
+                        <Button onClick={fetchBoxTransmission} disabled={boxLoading || !boxInput.trim()} className="gap-1.5">
+                          {boxLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                          Search
+                        </Button>
+                      </div>
+                      {boxError && (
+                        <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                          <XCircle className="h-3.5 w-3.5" />{boxError}
+                        </p>
+                      )}
+                    </div>
+                  </Card>
+
+                  {boxData && (
+                    <>
+                      {/* Box info + summary */}
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                        <div className="flex-1 rounded-xl border border-border bg-card p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 border border-violet-200">
+                              <Box className="h-5 w-5 text-violet-600" />
+                            </div>
+                            <div>
+                              <p className="text-base font-bold text-foreground">{boxData.box.box_number}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {boxData.box.lot_number} · <span className="capitalize">{boxData.box.current_stage}</span>
+                              </p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            {[
+                              { label: 'Total', value: boxData.summary.total, color: 'blue' },
+                              { label: 'Transmitted', value: boxData.summary.transmitted, color: 'emerald' },
+                              { label: 'WIP', value: boxData.summary.wip, color: 'amber' },
+                              { label: 'Non-Processable', value: boxData.summary.non_processable, color: 'red' },
+                            ].map(s => (
+                              <div key={s.label} className={`rounded-lg border bg-${s.color}-50 border-${s.color}-200 p-2.5`}>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{s.label}</p>
+                                <p className={`text-xl font-black text-${s.color}-600 mt-0.5`}>{s.value}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {boxData.summary.total > 0 && (
+                            <div className="mt-3">
+                              <Progress value={(boxData.summary.transmitted / (boxData.summary.total - boxData.summary.non_processable || 1)) * 100} className="h-2" />
+                              <p className="text-[10px] text-muted-foreground mt-1">
+                                {boxData.summary.transmitted} of {boxData.summary.total - boxData.summary.non_processable} processable books transmitted
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ISBN table */}
+                      <Card className="border-border bg-card overflow-hidden py-0 gap-0">
+                        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+                          <p className="text-sm font-semibold text-foreground">ISBNs in {boxData.box.box_number}</p>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Search ISBN or title..."
+                              value={boxIsbnSearch}
+                              onChange={e => setBoxIsbnSearch(e.target.value)}
+                              className="w-56 pl-9 h-8 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <CardContent className="p-0">
+                          <table className="w-full text-xs">
+                            <thead className="bg-muted/30 sticky top-0">
+                              <tr className="border-b border-border">
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">ISBN</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Title</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Scan Status</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Simflex Status</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Transmission Date</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Scan User</th>
+                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {paginatedBoxBooks.length === 0 ? (
+                                <tr><td colSpan={7} className="text-center py-10 text-muted-foreground">No books found</td></tr>
+                              ) : paginatedBoxBooks.map((b: any, i: number) => (
+                                <tr key={b.scan_id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                                  <td className="font-mono px-4 py-2.5 text-foreground">{b.isbn}</td>
+                                  <td className="px-4 py-2.5 text-muted-foreground truncate max-w-[180px]">{b.title || '—'}</td>
+                                  <td className="px-4 py-2.5">{getScanStatusBadge(b.scan_status)}</td>
+                                  <td className="px-4 py-2.5">{getSimflexBadge(b.simflex_status, b.transmission_completed)}</td>
+                                  <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
+                                    {b.transmission_date ? format(new Date(b.transmission_date), 'MMM d, yyyy HH:mm') : '—'}
+                                  </td>
+                                  <td className="px-4 py-2.5 text-muted-foreground">{b.scan_user || '—'}</td>
+                                  <td className="px-4 py-2.5">
+                                    {isManager && b.scan_status === 'processable' && (
+                                      <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-amber-600 hover:bg-amber-50"
+                                        onClick={() => { setTagModalScan(b); setTagStatus('reject'); setTagRemarks(''); setTagError(null) }}>
+                                        Tag
+                                      </Button>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          {filteredBoxBooks.length > 0 && boxBookPagination.totalPages > 1 && (
+                            <Pagination
+                              currentPage={boxBookPagination.currentPage}
+                              totalPages={boxBookPagination.totalPages}
+                              pageSize={boxBookPagination.pageSize}
+                              onPageChange={boxBookPagination.goToPage}
+                              onPageSizeChange={boxBookPagination.setPageSize}
+                              canPrevPage={boxBookPagination.canPrevPage}
+                              canNextPage={boxBookPagination.canNextPage}
+                            />
+                          )}
+                        </CardContent>
+                      </Card>
+                    </>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* ── ISBN Management ── */}
+              <TabsContent value="isbn" className="mt-4">
+                <Card className="border-border bg-card overflow-hidden py-0 gap-0">
+                  <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-amber-50">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shrink-0">
+                      <Tag className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">ISBN Status Management</p>
+                      <p className="text-xs text-gray-500">
+                        {isManager
+                          ? 'Tag individual ISBNs as Rejected or Non-Processable. Use Box Visibility or LOT Visibility tab to find and tag ISBNs.'
+                          : 'This feature is restricted to scanning team managers. Use the Box Visibility or LOT Visibility tab to search for ISBNs.'}
+                      </p>
+                    </div>
+                  </div>
+                  <CardContent className="p-6">
+                    {!isManager ? (
+                      <div className="flex flex-col items-center gap-3 py-12">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 border border-amber-200">
+                          <AlertTriangle className="h-7 w-7 text-amber-500" />
+                        </div>
+                        <p className="text-sm font-semibold text-foreground">Manager Access Required</p>
+                        <p className="text-xs text-muted-foreground text-center max-w-xs">
+                          Only authorized scanning team managers can tag ISBNs. Contact your administrator if you need this access.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                          <div className="flex items-start gap-3">
+                            <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                            <div>
+                              <p className="text-sm font-semibold text-blue-800">How to tag an ISBN</p>
+                              <ol className="mt-1 text-xs text-blue-700 space-y-0.5 list-decimal list-inside">
+                                <li>Go to the <strong>Box Visibility</strong> or <strong>LOT Visibility</strong> tab</li>
+                                <li>Search for the box or LOT containing the ISBN</li>
+                                <li>Click the <strong>Tag</strong> button next to the ISBN you want to update</li>
+                                <li>Select the new status (Reject or Non-Processable) and enter remarks</li>
+                              </ol>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-border bg-muted/30 p-4">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Status Definitions</p>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                              <Badge variant="outline" className="border-orange-300 bg-orange-50 text-orange-700 mb-2 text-[10px]">Rejected</Badge>
+                              <p className="text-xs text-gray-600">Book was scanned but physically rejected due to quality, damage, or other issues at the scanning stage.</p>
+                            </div>
+                            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                              <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 mb-2 text-[10px]">Non-Processable</Badge>
+                              <p className="text-xs text-gray-600">Book cannot be processed for digital archiving (e.g. duplicate, out-of-scope, or copyright restriction).</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
         </div>
       </main>
+
       {/* Ranking Modal */}
       {showRanking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowRanking(false)}>
-        <div className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ width: '90vw', maxWidth: 1100, height: '90vh' }} onClick={e => e.stopPropagation()}>
-          <div className="flex items-center justify-between px-6 py-5 bg-amber-50 border-b border-amber-100 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white">
-                <Trophy className="h-5 w-5" />
+          <div className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden" style={{ width: '90vw', maxWidth: 1100, height: '90vh' }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-5 bg-amber-50 border-b border-amber-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white">
+                  <Trophy className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-800">Performance Ranking</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-base font-bold text-gray-800">Performance Ranking</h3>
-                <p className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-              </div>
+              <button onClick={() => setShowRanking(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-amber-200 text-gray-600 hover:bg-amber-100 hover:text-gray-900 transition-all font-semibold text-sm">✕</button>
             </div>
-            <button onClick={() => setShowRanking(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-amber-200 text-gray-600 hover:bg-amber-100 hover:text-gray-900 transition-all font-semibold text-sm">✕</button>
-          </div>
-
-          <div className="flex-1 overflow-hidden flex flex-col p-6 gap-5">
-          {rankingLoading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : ranking ? (
-            <div className="flex flex-col gap-4 overflow-hidden">
-              {/* Summary Stats */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Books</p>
-                  <p className="text-3xl font-black text-blue-600 mt-1">{ranking.totalBooks.toLocaleString()}</p>
+            <div className="flex-1 overflow-hidden flex flex-col p-6 gap-5">
+              {rankingLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
-                <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Pages</p>
-                  <p className="text-3xl font-black text-purple-600 mt-1">{ranking.totalPages.toLocaleString()}</p>
-                </div>
-                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Highest Output</p>
-                  <p className="text-3xl font-black text-amber-500 mt-1">{ranking.highestOutput}</p>
-                </div>
-                <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Avg Output/User</p>
-                  <p className="text-3xl font-black text-green-600 mt-1">{ranking.avgOutput}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-6 overflow-hidden flex-1 min-h-0">
-                {/* Ranking Table */}
-                <div className="flex-1 rounded-xl border border-gray-200 overflow-y-auto min-w-0">
-                  <table className="w-full text-sm">
-                    <colgroup>
-                      <col className="w-[8%]" />
-                      <col className="w-[36%]" />
-                      <col className="w-[24%]" />
-                      <col className="w-[8%]" />
-                      <col className="w-[12%]" />
-                    </colgroup>
-                    <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
-                      <tr>
-                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Rank</th>
-                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
-                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Books</th>
-                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Pages</th>
-                        <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ranking.data.map((r: any) => {
-                        const pct = r.ScoreNum
-                        const barColor = pct >= 90 ? '#6366f1' : pct >= 75 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444'
-                        const medal = r.Rank === 1 ? '🥇' : r.Rank === 2 ? '🥈' : r.Rank === 3 ? '🥉' : null
-                        return (
-                          <tr key={r.Rank} className={`border-b border-gray-50 transition-colors ${r.Rank <= 3 ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-gray-50'}`}>
-                            <td className="px-4 py-3 align-middle">
-                              {medal ? (
-                                <span className="text-lg leading-none">{medal}</span>
-                              ) : (
-                                <span className="text-sm font-bold text-gray-400">{r.Rank}</span>
-                              )}
+              ) : ranking ? (
+                <div className="flex flex-col gap-4 overflow-hidden">
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Books</p>
+                      <p className="text-3xl font-black text-blue-600 mt-1">{ranking.totalBooks.toLocaleString()}</p>
+                    </div>
+                    <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Pages</p>
+                      <p className="text-3xl font-black text-green-600 mt-1">{ranking.totalPages.toLocaleString()}</p>
+                    </div>
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Highest Output</p>
+                      <p className="text-3xl font-black text-amber-600 mt-1">{ranking.highestOutput}</p>
+                    </div>
+                    <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Avg Output</p>
+                      <p className="text-3xl font-black text-teal-600 mt-1">{ranking.avgOutput}</p>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto rounded-2xl border border-gray-100 bg-white">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-gray-50">
+                        <tr className="border-b border-gray-100">
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3 text-left w-12">Rank</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3 text-left">Scan User</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3 text-left w-64">Performance</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3 text-right">Books</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3 text-right">Pages</th>
+                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-5 py-3 text-right">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ranking.data.map((r: any) => (
+                          <tr key={r.Rank} className={cn(
+                            "border-b border-gray-50 transition-colors",
+                            r.Rank === 1 ? "bg-amber-50 hover:bg-amber-100" : "hover:bg-gray-50"
+                          )}>
+                            <td className="px-5 py-3">
+                              <span className={cn("text-sm font-black",
+                                r.Rank === 1 ? "text-amber-500" : r.Rank === 2 ? "text-gray-400" : r.Rank === 3 ? "text-orange-400" : "text-gray-500"
+                              )}>{r.Rank === 1 ? '🥇' : r.Rank === 2 ? '🥈' : r.Rank === 3 ? '🥉' : `#${r.Rank}`}</span>
                             </td>
-                            <td className="px-4 py-3 text-sm font-semibold text-gray-800 align-middle truncate">{r.ScanUser}</td>
-                            <td className="px-4 py-3 text-sm text-right font-bold text-gray-800 align-middle">{Number(r.Books).toLocaleString()}</td>
-                            <td className="px-4 py-3 text-sm text-right text-gray-500 align-middle">{Number(r.Pages).toLocaleString()}</td>
-                            <td className="px-4 py-3 align-middle">
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                                  <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: barColor }} />
-                                </div>
-                                <span className="text-xs font-semibold w-9 text-right" style={{ color: barColor }}>{Math.round(pct)}%</span>
-                              </div>
+                            <td className="px-5 py-3">
+                              <span className="font-semibold text-gray-800 text-sm">{r.ScanUser}</span>
+                            </td>
+                            <td className="px-5 py-3">
+                              <Progress value={r.ScoreNum} className="h-2.5" />
+                            </td>
+                            <td className="px-5 py-3 text-right font-bold text-gray-800">{r.Books.toLocaleString()}</td>
+                            <td className="px-5 py-3 text-right text-gray-500">{r.Pages.toLocaleString()}</td>
+                            <td className="px-5 py-3 text-right">
+                              <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">{r.Score}</span>
                             </td>
                           </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-
-                {/* Score Distribution — pure CSS, no Recharts to avoid key collision bug */}
-                <div className="w-72 flex flex-col gap-3 overflow-y-auto shrink-0">
-                  <p className="text-sm font-semibold text-gray-700 shrink-0">Score Distribution</p>
-                  {(() => {
-                    const buckets = [
-                      { label: '100%',      min: 100, max: 100, color: '#6366f1' },
-                      { label: '96–99%',    min: 96,  max: 99,  color: '#10b981' },
-                      { label: '91–95%',    min: 91,  max: 95,  color: '#22c55e' },
-                      { label: '81–90%',    min: 81,  max: 90,  color: '#84cc16' },
-                      { label: '71–80%',    min: 71,  max: 80,  color: '#eab308' },
-                      { label: '61–70%',    min: 61,  max: 70,  color: '#f59e0b' },
-                      { label: '51–60%',    min: 51,  max: 60,  color: '#f97316' },
-                      { label: 'Below 50%', min: 0,   max: 50,  color: '#ef4444' },
-                    ]
-                    const maxUsers = Math.max(...buckets.map(b => ranking.data.filter((r: any) => r.ScoreNum >= b.min && r.ScoreNum <= b.max).length), 1)
-                    return buckets.map(b => {
-                      const count = ranking.data.filter((r: any) => r.ScoreNum >= b.min && r.ScoreNum <= b.max).length
-                      const widthPct = (count / maxUsers) * 100
-                      return (
-                        <div key={b.label} className="flex items-center gap-2">
-                          <span className="text-[11px] text-gray-500 w-16 shrink-0 text-right">{b.label}</span>
-                          <div className="flex-1 h-5 bg-gray-100 rounded-md overflow-hidden">
-                            <div
-                              className="h-full rounded-md transition-all"
-                              style={{ width: `${widthPct}%`, backgroundColor: b.color, minWidth: count > 0 ? '1.5rem' : 0 }}
-                            />
-                          </div>
-                          <span className="text-[11px] font-bold w-5 text-right" style={{ color: count > 0 ? b.color : '#9ca3af' }}>{count}</span>
-                        </div>
-                      )
-                    })
-                  })()}
-                </div>
-              </div>
+              ) : (
+                <div className="flex items-center justify-center py-16 text-gray-400">No ranking data available</div>
+              )}
             </div>
-          ) : null}
           </div>
         </div>
+      )}
+
+      {/* ISBN Tag Modal */}
+      {tagModalScan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setTagModalScan(null)}>
+          <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-semibold text-foreground">Tag ISBN</h3>
+              <button onClick={() => setTagModalScan(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+            </div>
+
+            <div className="mb-4 rounded-lg bg-muted/40 border border-border px-3 py-2.5">
+              <p className="text-xs font-semibold text-muted-foreground">ISBN</p>
+              <p className="text-sm font-mono font-bold text-foreground">{tagModalScan.isbn}</p>
+              {tagModalScan.title && <p className="text-xs text-muted-foreground mt-0.5">{tagModalScan.title}</p>}
+            </div>
+
+            <div className="mb-4">
+              <p className="text-xs font-semibold text-foreground mb-2">New Status</p>
+              <div className="flex gap-2">
+                {(['reject', 'non_processable'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setTagStatus(s)}
+                    className={cn(
+                      "flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
+                      tagStatus === s
+                        ? s === 'reject'
+                          ? 'border-orange-400 bg-orange-100 text-orange-700'
+                          : 'border-red-400 bg-red-100 text-red-700'
+                        : 'border-border bg-card text-muted-foreground hover:bg-muted/40'
+                    )}
+                  >
+                    {s === 'reject' ? 'Rejected' : 'Non-Processable'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs font-semibold text-foreground mb-1.5 block">
+                Remarks <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={tagRemarks}
+                onChange={e => setTagRemarks(e.target.value)}
+                placeholder="Enter reason for tagging this ISBN..."
+                rows={3}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+              {tagError && <p className="mt-1 text-xs text-red-600">{tagError}</p>}
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setTagModalScan(null)} disabled={tagging}>Cancel</Button>
+              <Button size="sm" onClick={handleTagSubmit} disabled={tagging || !tagRemarks.trim()}
+                className={tagStatus === 'reject' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}>
+                {tagging ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                Confirm Tag
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

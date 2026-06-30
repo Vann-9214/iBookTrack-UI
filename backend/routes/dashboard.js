@@ -164,6 +164,91 @@ router.get('/stats', requireAuth, async (req, res) => {
   }
 })
 
+// Get open lots with detailed stats
+router.get('/open-lots', async (req, res) => {
+  try {
+    const db = supabaseAdmin || supabase
+
+    // Fetch lots that are not yet fully stored (status != 'storage')
+    const { data: lots, error: lotsError } = await db
+      .from('lots')
+      .select(`
+        id,
+        lot_number,
+        status,
+        shipment:shipments(shipment_code)
+      `)
+      .neq('status', 'storage')
+      .order('created_at', { ascending: false })
+
+    if (lotsError) throw lotsError
+    if (!lots || lots.length === 0) {
+      return res.json({ success: true, lots: [] })
+    }
+
+    const lotIds = lots.map(l => l.id)
+
+    // Fetch boxes belonging to those lots
+    const { data: boxes, error: boxesError } = await db
+      .from('boxes')
+      .select('id, lot_id, total_books')
+      .in('lot_id', lotIds)
+
+    if (boxesError) throw boxesError
+
+    const boxIds = (boxes || []).map(b => b.id)
+
+    // Count transmitted books per box
+    const { data: transmittedBooks, error: transmittedError } = await db
+      .from('books')
+      .select('box_id')
+      .in('box_id', boxIds)
+      .eq('is_transmitted', true)
+
+    if (transmittedError) throw transmittedError
+
+    const transmittedByBox = {}
+    ;(transmittedBooks || []).forEach(b => {
+      transmittedByBox[b.box_id] = (transmittedByBox[b.box_id] || 0) + 1
+    })
+
+    // Aggregate by lot
+    const boxesByLot = {}
+    const totalBooksByLot = {}
+    const transmittedByLot = {}
+
+    ;(boxes || []).forEach(box => {
+      boxesByLot[box.lot_id] = (boxesByLot[box.lot_id] || 0) + 1
+      totalBooksByLot[box.lot_id] = (totalBooksByLot[box.lot_id] || 0) + (box.total_books || 0)
+      transmittedByLot[box.lot_id] = (transmittedByLot[box.lot_id] || 0) + (transmittedByBox[box.id] || 0)
+    })
+
+    const formattedLots = lots.map(lot => {
+      const totalBoxes = boxesByLot[lot.id] || 0
+      const totalBooks = totalBooksByLot[lot.id] || 0
+      const transmittedBooks = transmittedByLot[lot.id] || 0
+      const completionProgress = totalBooks > 0
+        ? Math.round((transmittedBooks / totalBooks) * 100)
+        : 0
+
+      return {
+        id: lot.id,
+        lot_number: lot.lot_number,
+        shipment_code: lot.shipment?.shipment_code || null,
+        total_boxes: totalBoxes,
+        total_books: totalBooks,
+        status: formatStageLabel(lot.status),
+        completion_progress: completionProgress,
+      }
+    })
+
+    res.json({ success: true, lots: formattedLots })
+  } catch (error) {
+    console.error('Get open lots error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Get QC flagged books list
 router.get('/qc-flags', requireAuth, async (req, res) => {
   try {
@@ -368,8 +453,7 @@ router.get('/pipeline-stats', async (req, res) => {
     const { lot_number } = req.query
     const db = supabaseAdmin || supabase
 
-    let query = db.from('boxes').select('current_stage')
-
+    let lotId = null
     if (lot_number) {
       const { data: lot } = await db
         .from('lots')
@@ -377,14 +461,24 @@ router.get('/pipeline-stats', async (req, res) => {
         .eq('lot_number', lot_number)
         .single()
 
-      if (lot) {
-        query = query.eq('lot_id', lot.id)
-      }
+      if (lot) lotId = lot.id
     }
 
-    const { data, error } = await query
+    let query = db.from('boxes').select('id, current_stage')
+    if (lotId) query = query.eq('lot_id', lotId)
 
-    if (error) throw error
+    const { data: boxes, error: boxesError } = await query
+    if (boxesError) throw boxesError
+
+    const boxIds = (boxes || []).map(b => b.id)
+
+    // Boxes already placed in a storage slot should not count toward the Storage stage
+    let assignedQuery = db.from('storage_assignments').select('box_id')
+    if (boxIds.length > 0) assignedQuery = assignedQuery.in('box_id', boxIds)
+    const { data: assignedBoxes, error: assignedError } = await assignedQuery
+    if (assignedError) throw assignedError
+
+    const assignedBoxIds = new Set((assignedBoxes || []).map(a => a.box_id))
 
     const stageCounts = {
       warehouse: 0,
@@ -396,10 +490,11 @@ router.get('/pipeline-stats', async (req, res) => {
       storage: 0
     }
 
-    data.forEach(box => {
-      if (stageCounts[box.current_stage] !== undefined) {
-        stageCounts[box.current_stage]++
-      }
+    ;(boxes || []).forEach(box => {
+      if (stageCounts[box.current_stage] === undefined) return
+      // Exclude boxes that reached storage but are already assigned to a location
+      if (box.current_stage === 'storage' && assignedBoxIds.has(box.id)) return
+      stageCounts[box.current_stage]++
     })
 
     res.json({ stageCounts })

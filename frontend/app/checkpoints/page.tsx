@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { authFetch } from "@/lib/auth-api"
+import { DashboardNavbar } from "@/components/top-bar"
 import { toast } from "sonner"
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
@@ -12,9 +13,11 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Scan, Package, Scissors, CheckCircle, Camera,
-  Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, Search, X, Calendar as CalendarIcon,
+  Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
+  Loader2, Zap,
 } from "lucide-react"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
@@ -26,12 +29,12 @@ const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'tr
 type Stage = typeof STAGE_ORDER[number]
 
 const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color: string }> = {
-  warehouse:   { label: 'Warehouse',   icon: Package,     color: 'bg-gray-100 text-gray-700 border-gray-300' },
-  inventory:   { label: 'Inventory',   icon: Warehouse,   color: 'bg-slate-100 text-slate-700 border-slate-300' },
+  warehouse:   { label: 'Warehouse',   icon: Package,     color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
+  inventory:   { label: 'Inventory',   icon: Warehouse,   color: 'bg-cyan-100 text-cyan-700 border-cyan-300' },
   cut:         { label: 'Cut',         icon: Scissors,    color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  endorsement: { label: 'Endorsement', icon: CheckCircle, color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+  endorsement: { label: 'Endorsement', icon: CheckCircle, color: 'bg-amber-100 text-amber-700 border-amber-300' },
   scan:        { label: 'Scan',        icon: Camera,      color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  transmit:    { label: 'Transmit',    icon: Radio,       color: 'bg-green-100 text-green-700 border-green-300' },
+  transmit:    { label: 'Transmit',    icon: Radio,       color: 'bg-violet-100 text-violet-700 border-violet-300' },
   storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
 }
 
@@ -63,7 +66,6 @@ interface Transition {
 
 export default function StationCheckpointsPage() {
   const [boxes, setBoxes] = useState<BoxItem[]>([])
-  const [transmitBoxes, setTransmitBoxes] = useState<BoxItem[]>([])
   const [transitions, setTransitions] = useState<Transition[]>([])
   const [loading, setLoading] = useState(true)
   const [advancing, setAdvancing] = useState<string | null>(null)
@@ -83,6 +85,24 @@ export default function StationCheckpointsPage() {
   const [loadingScannedBox, setLoadingScannedBox] = useState(false)
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null)
   const [stageModalSearch, setStageModalSearch] = useState('')
+  // Simflex status per ISBN for the open box details modal
+  const [boxDetailsSimflex, setBoxDetailsSimflex] = useState<Record<string, { latestStatus: string | null; transmissionCompleted: boolean }>>({})
+  const [loadingBoxDetailsSimflex, setLoadingBoxDetailsSimflex] = useState(false)
+  // Check Simflex in-progress / result
+  const [checkingSimflexBoxId, setCheckingSimflexBoxId] = useState<string | null>(null)
+  const [simflexCheckResult, setSimflexCheckResult] = useState<{ boxId: string; message: string; success: boolean; autoAdvanced?: boolean } | null>(null)
+  // Pipeline transition stage filter
+  const [transitionStageFilter, setTransitionStageFilter] = useState<Stage | ''>('')
+  // Manual advance Simflex validation error
+  const [advanceError, setAdvanceError] = useState<{ box: BoxItem; message: string; pending_isbns: string[] } | null>(null)
+  // Expanded box inside the stage detail modal (accordion)
+  const [expandedStageBoxId, setExpandedStageBoxId] = useState<string | null>(null)
+  const [stageBoxDetails, setStageBoxDetails] = useState<Record<string, {
+    books: ScannedBook[]
+    simflex: Record<string, { latestStatus: string | null; transmissionCompleted: boolean }>
+    loading: boolean
+    loadingSimflex: boolean
+  }>>({})
 
   // Use refs to track previous data and prevent unnecessary re-renders
   const prevBoxesRef = useRef<BoxItem[]>([])
@@ -96,15 +116,16 @@ export default function StationCheckpointsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [boxRes, transRes, simflexRes] = await Promise.all([
+      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50${transitionStageFilter ? `&stage=${transitionStageFilter}` : ''}`
+      const [boxRes, transRes] = await Promise.all([
         authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true`),
-        authFetch(`${API_URL}/api/boxes/pipeline-transitions?limit=50`),
-        authFetch(`${API_URL}/api/scanning/transmitting-boxes`).catch(() => null),
+        authFetch(transitionUrl),
       ])
       const boxData = await boxRes.json()
       const transData = await transRes.json()
-      const simflexData = simflexRes?.ok ? await simflexRes.json() : null
-
+      console.log('[Checkpoints] boxes response:', boxData)
+      console.log('[Checkpoints] transitions response:', transData)
+      
       // Only update state if data actually changed
       if (boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
         setBoxes(boxData.boxes)
@@ -114,27 +135,13 @@ export default function StationCheckpointsPage() {
         setTransitions(transData.transitions)
         prevTransitionsRef.current = transData.transitions
       }
-
-      // Use live Simflex BoxNumber data for the Transmit stage
-      if (simflexData?.success && Array.isArray(simflexData.data)) {
-        const mappedTransmitBoxes: BoxItem[] = simflexData.data.map((b: any) => ({
-          id: b.BoxNumber,
-          box_number: b.BoxNumber,
-          current_stage: 'transmit' as Stage,
-          total_books: Number(b.TotalBooks) || 0,
-          received_at: null,
-          lot: null,
-        }))
-        setTransmitBoxes(mappedTransmitBoxes)
-      }
-
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
       setLoading(false)
     }
-  }, [hasDataChanged])
+  }, [hasDataChanged, transitionStageFilter])
 
   useEffect(() => {
     fetchData()
@@ -167,7 +174,14 @@ export default function StationCheckpointsPage() {
         body: JSON.stringify({})
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to advance')
+      if (!res.ok) {
+        if (data.pending_isbns && Array.isArray(data.pending_isbns) && data.pending_isbns.length > 0) {
+          setAdvanceError({ box, message: data.error || 'Cannot advance box', pending_isbns: data.pending_isbns })
+        } else {
+          throw new Error(data.error || 'Failed to advance')
+        }
+        return
+      }
       // Show undo toast for 8 seconds
       setUndoEntry({ box, fromStage: data.from_stage, toStage: data.to_stage })
       if (undoTimer.current) clearTimeout(undoTimer.current)
@@ -210,8 +224,34 @@ export default function StationCheckpointsPage() {
         </Badge>
       )
     }
+    if (stage === 'scan') {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={checkingSimflexBoxId === box.id}
+          onClick={(e) => { e.stopPropagation(); handleCheckSimflexForBox(box) }}
+          className="h-7 gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 shrink-0"
+          title="Check Simflex status and auto-advance if complete"
+        >
+          {checkingSimflexBoxId === box.id ? '...' : 'Check'}
+          {checkingSimflexBoxId !== box.id && <Zap className="h-3 w-3" />}
+        </Button>
+      )
+    }
     if (stage === 'transmit') {
-      return <span className="text-[10px] text-muted-foreground italic px-1">Auto</span>
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={advancing === box.id}
+          onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
+          className="h-7 gap-1 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 shrink-0"
+        >
+          {advancing === box.id ? '...' : 'Send'}
+          {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
+        </Button>
+      )
     }
     if (stage === 'warehouse' || box.received_at) {
       return (
@@ -244,38 +284,121 @@ export default function StationCheckpointsPage() {
     if (e.key !== 'Enter') return
     const q = scanInput.trim().toLowerCase()
     if (!q) return
-    const allBoxes = [...boxes, ...transmitBoxes]
-    const match = allBoxes.find(b => b.box_number.toLowerCase() === q || b.box_number.toLowerCase().includes(q))
+    const match = boxes.find(b => b.box_number.toLowerCase() === q || b.box_number.toLowerCase().includes(q))
     if (match) {
       setHighlightBox(match.id)
       setTimeout(() => setHighlightBox(null), 4000)
       document.getElementById(`box-${match.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Simflex transmit boxes are not in Supabase, so skip loading contents
-      if (match.current_stage === 'transmit' && !match.lot) {
-        setScanInput('')
-        return
-      }
       // Also fetch and show contents
-      setLoadingScannedBox(true)
-      setScannedBox(null)
-      try {
-        const res = await authFetch(`${API_URL}/api/boxes/${match.id}`)
-        const data = await res.json()
-        setScannedBox({ box: match, books: data.box?.books || [] })
-      } catch {
-        toast.error('Failed to load box contents')
-      } finally {
-        setLoadingScannedBox(false)
-      }
+      await openBoxDetails(match)
     } else {
       toast.warning(`Box "${scanInput}" not found`)
     }
     setScanInput('')
   }
 
-  const nonTransmitBoxes = boxes.filter(b => b.current_stage !== 'transmit')
+  const openBoxDetails = async (box: BoxItem) => {
+    setLoadingScannedBox(true)
+    setScannedBox(null)
+    setBoxDetailsSimflex({})
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+      const data = await res.json()
+      const books: ScannedBook[] = data.box?.books || []
+      setScannedBox({ box, books })
+
+      // Fetch Simflex status when box is in scan or transmit stage
+      if ((box.current_stage === 'scan' || box.current_stage === 'transmit') && books.length > 0) {
+        setLoadingBoxDetailsSimflex(true)
+        const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
+        if (processableIsbns.length > 0) {
+          try {
+            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}`)
+            const simData = await simRes.json()
+            if (simData.success && simData.statuses) {
+              setBoxDetailsSimflex(simData.statuses)
+            }
+          } catch {
+            // Simflex status is optional; don't block the modal
+          }
+        }
+        setLoadingBoxDetailsSimflex(false)
+      }
+    } catch {
+      toast.error('Failed to load box contents')
+    } finally {
+      setLoadingScannedBox(false)
+    }
+  }
+
+  const handleCheckSimflexForBox = async (box: BoxItem) => {
+    setCheckingSimflexBoxId(box.id)
+    setSimflexCheckResult(null)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/check-simflex`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        setSimflexCheckResult({ boxId: box.id, message: data.error || 'Simflex check failed', success: false })
+        return
+      }
+      setSimflexCheckResult({
+        boxId: box.id,
+        message: data.message || 'Simflex check completed',
+        success: true,
+        autoAdvanced: data.autoAdvanced
+      })
+      if (data.autoAdvanced) {
+        await fetchData()
+      }
+    } catch (e) {
+      setSimflexCheckResult({ boxId: box.id, message: e instanceof Error ? e.message : 'Simflex check failed', success: false })
+    } finally {
+      setCheckingSimflexBoxId(null)
+    }
+  }
+
+  const toggleStageBoxDetails = async (box: BoxItem) => {
+    if (expandedStageBoxId === box.id) {
+      setExpandedStageBoxId(null)
+      return
+    }
+    setExpandedStageBoxId(box.id)
+    if (stageBoxDetails[box.id]) return
+
+    setStageBoxDetails(prev => ({ ...prev, [box.id]: { books: [], simflex: {}, loading: true, loadingSimflex: false } }))
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+      const data = await res.json()
+      const books: ScannedBook[] = data.box?.books || []
+      const details: any = { books, simflex: {}, loading: false, loadingSimflex: false }
+
+      if ((box.current_stage === 'scan' || box.current_stage === 'transmit') && books.length > 0) {
+        const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
+        if (processableIsbns.length > 0) {
+          details.loadingSimflex = true
+          setStageBoxDetails(prev => ({ ...prev, [box.id]: { ...details, loadingSimflex: true } }))
+          try {
+            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}`)
+            const simData = await simRes.json()
+            if (simData.success && simData.statuses) {
+              details.simflex = simData.statuses
+            }
+          } catch {
+            // Simflex status is optional
+          }
+          details.loadingSimflex = false
+        }
+      }
+
+      setStageBoxDetails(prev => ({ ...prev, [box.id]: details }))
+    } catch {
+      toast.error('Failed to load box contents')
+      setStageBoxDetails(prev => ({ ...prev, [box.id]: { books: [], simflex: {}, loading: false, loadingSimflex: false } }))
+    }
+  }
+
   const boxesByStage = STAGE_ORDER.reduce<Record<Stage, BoxItem[]>>((acc, stage) => {
-    acc[stage] = stage === 'transmit' ? transmitBoxes : nonTransmitBoxes.filter(b => b.current_stage === stage)
+    acc[stage] = boxes.filter(b => b.current_stage === stage)
     return acc
   }, {} as Record<Stage, BoxItem[]>)
 
@@ -319,13 +442,14 @@ export default function StationCheckpointsPage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
+        <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 
-            {/* Scanned Box Contents Modal */}
+            {/* Box Details Modal */}
             {(scannedBox || loadingScannedBox) && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setScannedBox(null)}>
-                <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-lg mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <h3 className="text-base font-semibold text-foreground">{scannedBox?.box.box_number}</h3>
@@ -335,6 +459,26 @@ export default function StationCheckpointsPage() {
                     </div>
                     <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
                   </div>
+
+                  {/* Check Simflex button for scan-stage boxes */}
+                  {scannedBox?.box.current_stage === 'scan' && (
+                    <div className="mb-3">
+                      <button
+                        onClick={() => handleCheckSimflexForBox(scannedBox.box)}
+                        disabled={checkingSimflexBoxId === scannedBox.box.id}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                      >
+                        {checkingSimflexBoxId === scannedBox.box.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                        {checkingSimflexBoxId === scannedBox.box.id ? 'Checking Simflex…' : 'Check Simflex'}
+                      </button>
+                      {simflexCheckResult?.boxId === scannedBox.box.id && (
+                        <div className={`mt-2 text-xs px-3 py-2 rounded-lg border ${simflexCheckResult.success ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                          {simflexCheckResult.message}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {loadingScannedBox ? (
                     <p className="text-sm text-muted-foreground py-6 text-center">Loading contents...</p>
                   ) : scannedBox && scannedBox.books.length === 0 ? (
@@ -347,26 +491,82 @@ export default function StationCheckpointsPage() {
                             <th className="pb-2 text-left font-medium w-6">#</th>
                             <th className="pb-2 text-left font-medium pr-3">ISBN</th>
                             <th className="pb-2 text-left font-medium pr-3">Title</th>
-                            <th className="pb-2 text-left font-medium">Status</th>
+                            <th className="pb-2 text-left font-medium pr-3">Status</th>
+                            <th className="pb-2 text-left font-medium pr-3">Stage</th>
+                            {(scannedBox?.box.current_stage === 'scan' || scannedBox?.box.current_stage === 'transmit') && (
+                              <th className="pb-2 text-left font-medium">Simflex</th>
+                            )}
                           </tr>
                         </thead>
                         <tbody>
-                          {scannedBox?.books.map((book, i) => (
-                            <tr key={book.id} className="border-b border-border/40 last:border-0">
-                              <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
-                              <td className="py-1.5 pr-3">{book.isbn}</td>
-                              <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || '—'}</td>
-                              <td className="py-1.5">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                  {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                          {scannedBox?.books.map((book, i) => {
+                            const simflex = book.isbn ? boxDetailsSimflex[book.isbn] : null
+                            return (
+                              <tr key={book.id} className="border-b border-border/40 last:border-0">
+                                <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
+                                <td className="py-1.5 pr-3">{book.isbn}</td>
+                                <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || '—'}</td>
+                                <td className="py-1.5 pr-3">
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                    {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
+                                  </span>
+                                </td>
+                                <td className="py-1.5 pr-3">
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
+                                    {scannedBox?.box.current_stage || '—'}
+                                  </span>
+                                </td>
+                                {(scannedBox?.box.current_stage === 'scan' || scannedBox?.box.current_stage === 'transmit') && (
+                                  <td className="py-1.5">
+                                    {book.scan_status !== 'processable' ? (
+                                      <span className="text-[10px] text-muted-foreground">—</span>
+                                    ) : loadingBoxDetailsSimflex ? (
+                                      <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                    ) : !simflex ? (
+                                      <span className="text-[10px] text-muted-foreground">Not found</span>
+                                    ) : simflex.transmissionCompleted ? (
+                                      <span className="flex items-center gap-1 text-[10px] font-medium text-green-700">
+                                        <CheckCircle className="h-3 w-3" /> Done
+                                      </span>
+                                    ) : simflex.latestStatus ? (
+                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 truncate max-w-[140px] block">
+                                        {simflex.latestStatus}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-muted-foreground">Not found</span>
+                                    )}
+                                  </td>
+                                )}
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Advance Validation Error Modal */}
+            {advanceError && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setAdvanceError(null)}>
+                <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <X className="h-4 w-4 text-destructive" /> Cannot Advance Box
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    <span className="font-semibold text-foreground">{advanceError.box.box_number}</span> cannot move to Transmission because not all processable ISBNs are verified in Simflex.
+                  </p>
+                  <div className="bg-muted/40 rounded-lg border border-border p-3 mb-4 max-h-48 overflow-y-auto">
+                    <p className="text-xs font-medium text-foreground mb-2">Pending ISBNs:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      {advanceError.pending_isbns.map(isbn => <li key={isbn}>{isbn}</li>)}
+                    </ul>
+                  </div>
+                  <div className="flex justify-end">
+                    <button onClick={() => setAdvanceError(null)} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium">OK</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -450,22 +650,122 @@ export default function StationCheckpointsPage() {
                           </div>
                         ) : (
                           <div className="flex flex-col gap-2">
-                            {filteredBoxes.map(box => (
-                              <div
-                                key={box.id}
-                                id={`box-${box.id}`}
-                                className={cn(
-                                  "flex items-center justify-between rounded-lg border px-3 py-2.5 transition-colors",
-                                  highlightBox === box.id ? 'border-primary bg-primary/10' : 'border-border bg-muted/40 hover:bg-muted/70'
-                                )}
-                              >
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-card-foreground">{box.box_number}</p>
-                                  <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · {box.total_books} books</p>
+                            {filteredBoxes.map(box => {
+                              const isExpanded = expandedStageBoxId === box.id
+                              const details = stageBoxDetails[box.id]
+                              return (
+                                <div
+                                  key={box.id}
+                                  id={`box-${box.id}`}
+                                  className={cn(
+                                    "rounded-lg border overflow-hidden transition-all bg-card hover:shadow-sm",
+                                    highlightBox === box.id ? 'border-primary' : 'border-border',
+                                    isExpanded && `border-l-4 ${borderClass}`
+                                  )}
+                                >
+                                  <div className="flex items-center justify-between px-3 py-2.5">
+                                    <button
+                                      onClick={() => toggleStageBoxDetails(box)}
+                                      className="min-w-0 flex items-center gap-2 text-left group"
+                                    >
+                                      {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                      <div>
+                                        <p className="text-sm font-medium text-card-foreground group-hover:text-primary transition-colors">{box.box_number}</p>
+                                        <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · {box.total_books} books</p>
+                                      </div>
+                                    </button>
+                                    <div onClick={e => e.stopPropagation()}>
+                                      {renderBoxAction(box)}
+                                    </div>
+                                  </div>
+
+                                  {isExpanded && (
+                                    <div className="border-t border-border bg-slate-50 px-3 py-3">
+                                      {details?.loading ? (
+                                        <p className="text-xs text-muted-foreground py-2">Loading contents...</p>
+                                      ) : !details || details.books.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground py-2">No scan records found for this box.</p>
+                                      ) : (
+                                        <div className="space-y-3">
+                                          {box.current_stage === 'scan' && (
+                                            <div>
+                                              <button
+                                                onClick={() => handleCheckSimflexForBox(box)}
+                                                disabled={checkingSimflexBoxId === box.id}
+                                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
+                                              >
+                                                {checkingSimflexBoxId === box.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                                                {checkingSimflexBoxId === box.id ? 'Checking Simflex…' : 'Check Simflex'}
+                                              </button>
+                                              {simflexCheckResult?.boxId === box.id && (
+                                                <div className={`mt-2 text-xs px-3 py-2 rounded-lg border ${simflexCheckResult.success ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                                                  {simflexCheckResult.message}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+                                          <div className="overflow-x-auto">
+                                            <table className="w-full text-xs">
+                                              <thead>
+                                                <tr className="text-muted-foreground border-b border-border">
+                                                  <th className="pb-2 text-left font-medium pr-3">ISBN</th>
+                                                  <th className="pb-2 text-left font-medium pr-3">Title</th>
+                                                  <th className="pb-2 text-left font-medium pr-3">Status</th>
+                                                  <th className="pb-2 text-left font-medium pr-3">Stage</th>
+                                                  {(box.current_stage === 'scan' || box.current_stage === 'transmit') && <th className="pb-2 text-left font-medium">Simflex</th>}
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {details.books.map((book) => {
+                                                  const simflex = book.isbn ? details.simflex[book.isbn] : null
+                                                  return (
+                                                    <tr key={book.id} className="border-b border-border/40 last:border-0">
+                                                      <td className="py-1.5 pr-3 text-foreground">{book.isbn}</td>
+                                                      <td className="py-1.5 pr-3 max-w-[160px] truncate text-foreground">{book.title || '—'}</td>
+                                                      <td className="py-1.5 pr-3">
+                                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                          {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
+                                                        </span>
+                                                      </td>
+                                                      <td className="py-1.5 pr-3">
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
+                                                          {box.current_stage || '—'}
+                                                        </span>
+                                                      </td>
+                                                      {(box.current_stage === 'scan' || box.current_stage === 'transmit') && (
+                                                        <td className="py-1.5">
+                                                          {book.scan_status !== 'processable' ? (
+                                                            <span className="text-[10px] text-muted-foreground">—</span>
+                                                          ) : details.loadingSimflex ? (
+                                                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                                          ) : !simflex ? (
+                                                            <span className="text-[10px] text-muted-foreground">Not found</span>
+                                                          ) : simflex.transmissionCompleted ? (
+                                                            <span className="flex items-center gap-1 text-[10px] font-medium text-green-700">
+                                                              <CheckCircle className="h-3 w-3" /> Done
+                                                            </span>
+                                                          ) : simflex.latestStatus ? (
+                                                            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 truncate max-w-[120px] block">
+                                                              {simflex.latestStatus}
+                                                            </span>
+                                                          ) : (
+                                                            <span className="text-[10px] text-muted-foreground">Not found</span>
+                                                          )}
+                                                        </td>
+                                                      )}
+                                                    </tr>
+                                                  )
+                                                })}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
-                                {renderBoxAction(box)}
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         )}
                       </div>
@@ -584,7 +884,10 @@ export default function StationCheckpointsPage() {
                       {previewBoxes.length > 0 ? (
                         <div className="space-y-1.5 mt-auto">
                           {previewBoxes.map(box => (
-                            <div key={box.id} className="flex items-center justify-between text-xs rounded-md border border-border bg-muted/40 px-2 py-1.5">
+                            <div
+                              key={box.id}
+                              className="flex items-center justify-between text-xs rounded-md border border-border bg-card px-2 py-1.5"
+                            >
                               <span className="text-card-foreground truncate pr-2">{box.box_number}</span>
                               <span className="text-muted-foreground truncate">{box.lot?.lot_number || '—'}</span>
                             </div>
@@ -637,6 +940,20 @@ export default function StationCheckpointsPage() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Stage</label>
+                  <Select value={transitionStageFilter || 'all'} onValueChange={v => setTransitionStageFilter(v === 'all' ? '' : v as Stage)}>
+                    <SelectTrigger className="h-9 w-[150px] text-sm">
+                      <SelectValue placeholder="All stages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All stages</SelectItem>
+                      {STAGE_ORDER.map(stage => (
+                        <SelectItem key={stage} value={stage}>{STAGE_META[stage].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">From</label>
                   <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
                     <PopoverTrigger asChild>
@@ -683,7 +1000,7 @@ export default function StationCheckpointsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { setTransitionSearch(''); setTransitionDateFrom(''); setTransitionDateTo('') }}
+                  onClick={() => { setTransitionSearch(''); setTransitionDateFrom(''); setTransitionDateTo(''); setTransitionStageFilter('') }}
                   className="h-9 px-3 text-xs"
                 >
                   <X className="h-3.5 w-3.5 mr-1.5" />
