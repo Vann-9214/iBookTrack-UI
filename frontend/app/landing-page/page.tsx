@@ -1,7 +1,7 @@
 'use client';
 import React from "react";
 import "./landing_page.css";
-import { AdvantageSection, CtaSection, FeaturesSection, FooterSection, HeaderSection, HeroSection, SmoothScrollProvider } from "./components";
+import { AdvantageSection, BlogSection, ContactSection, CtaSection, FeaturesSection, FooterSection, HeaderSection, HeroSection, SmoothScrollProvider } from "./components";
 
 export default function LandingPage() {
 	return (
@@ -11,6 +11,8 @@ export default function LandingPage() {
 					<HeroSection />
 					<FeaturesSection />
 					<AdvantageSection />
+					<BlogSection />
+					<ContactSection />
 					<CtaSection />
 				</main>
 				<FooterSection />
