@@ -122,6 +122,7 @@ export default function TransmissionMonitorPage() {
   const [toDate, setToDate] = useState(todayStr())
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
+  const [newProcessOnly, setNewProcessOnly] = useState(false)
 
   // --- LOT visibility state ---
   const [lotInput, setLotInput] = useState("")
@@ -171,7 +172,7 @@ export default function TransmissionMonitorPage() {
     try {
       const f = from || fromDate
       const t = to || toDate
-      const res = await authFetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}&location=${brand}`)
+      const res = await authFetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}&location=${brand}&newProcessOnly=${newProcessOnly}`)
       const data = await res.json()
       if (data.success) {
         setSummary(data.summary)
@@ -185,7 +186,7 @@ export default function TransmissionMonitorPage() {
     } finally {
       setLoading(false)
     }
-  }, [fromDate, toDate, brand])
+  }, [fromDate, toDate, brand, newProcessOnly])
 
   const fetchRanking = async () => {
     setRankingLoading(true)
@@ -381,6 +382,15 @@ export default function TransmissionMonitorPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={newProcessOnly}
+                    onChange={e => setNewProcessOnly(e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-gray-300 accent-primary cursor-pointer"
+                  />
+                  <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">New Process Only</span>
+                </label>
                 <Button size="sm" onClick={handleSearch} disabled={loading} className="h-8 gap-1.5">
                   <Search className="h-3.5 w-3.5" /> Search
                 </Button>
@@ -439,7 +449,7 @@ export default function TransmissionMonitorPage() {
                 </div>
                 <div className="text-3xl font-black text-teal-600 mb-0.5">{loading ? '…' : (summary?.TotalScans || 0).toLocaleString()}</div>
                 <div className="text-sm font-semibold text-gray-700 mb-0.5">Total Books Today</div>
-                <div className="text-xs text-teal-500">all scans this session</div>
+                <div className="text-xs text-teal-500">all successful scans this session</div>
               </div>
             </div>
 
@@ -447,27 +457,43 @@ export default function TransmissionMonitorPage() {
             {stages.length > 0 && (() => {
               const STAGE_ORDER = ['Scanning', 'Validate', 'Tif2PDF', 'Preval', 'Transmission_Archive', 'Jaguar Validate']
               const stageMap = Object.fromEntries(stages.map((s: any) => [s.Stage, s]))
-              // Known stages in fixed order first, then any unknown stages appended
               const ordered = [
                 ...STAGE_ORDER.filter(n => stageMap[n]).map(n => stageMap[n]),
                 ...stages.filter((s: any) => !STAGE_ORDER.includes(s.Stage)),
               ]
               return (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                  {ordered.map((s: any) => (
-                    <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200">
-                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide truncate">{s.Stage.replace(/_/g, ' ')}</p>
-                      <p className="text-2xl font-black text-gray-800 mt-1">{s.Total.toLocaleString()}</p>
-                      <div className="mt-2 space-y-1.5">
-                        <Progress value={s.Total > 0 ? (s.Completed / s.Total) * 100 : 0} className="h-1.5" />
-                        <div className="flex justify-between text-[10px] font-semibold">
-                          <span className="text-green-600">✓ {s.Completed}</span>
-                          <span className="text-blue-500">↻ {s.Ongoing}</span>
-                          {s.Failed > 0 && <span className="text-red-500">✗ {s.Failed}</span>}
+                  {ordered.map((s: any) => {
+                    const pct = s.Total > 0 ? (s.Completed / s.Total) * 100 : 0
+                    return (
+                      <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-3">
+                        {/* Stage name + total */}
+                        <div className="flex items-start justify-between gap-1">
+                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight">{s.Stage.replace(/_/g, ' ')}</p>
+                          <span className="text-xl font-black text-gray-800 leading-none shrink-0">{s.Total.toLocaleString()}</span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <Progress value={pct} className="h-1.5" />
+
+                        {/* Stat pills */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <div className="flex flex-col items-center rounded-lg bg-green-50 border border-green-100 px-1.5 py-1.5">
+                            <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide leading-none mb-0.5">Done</span>
+                            <span className="text-sm font-black text-green-700 leading-none">{s.Completed}</span>
+                          </div>
+                          <div className="flex flex-col items-center rounded-lg bg-blue-50 border border-blue-100 px-1.5 py-1.5">
+                            <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide leading-none mb-0.5">WIP</span>
+                            <span className="text-sm font-black text-blue-600 leading-none">{s.Ongoing}</span>
+                          </div>
+                          <div className="flex flex-col items-center rounded-lg bg-red-50 border border-red-100 px-1.5 py-1.5">
+                            <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wide leading-none mb-0.5">Fail</span>
+                            <span className="text-sm font-black text-red-600 leading-none">{s.Failed}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )
             })()}
@@ -512,7 +538,7 @@ export default function TransmissionMonitorPage() {
                         placeholder="Search ISBN or box..."
                         value={historySearch}
                         onChange={(e) => setHistorySearch(e.target.value)}
-                        className="w-56 pl-9 h-8 text-sm"
+                        className="w-56 pl-9 h-8 text-sm  bg-white"
                       />
                     </div>
                   </div>
@@ -545,7 +571,7 @@ export default function TransmissionMonitorPage() {
                             <td className="text-xs text-gray-500 px-4 py-3">{item.MachineName || '—'}</td>
                             <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
                             <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
-                              {item.ScanDate ? format(new Date(item.ScanDate), 'MMM d, HH:mm') : '—'}
+                              {item.Updated ? format(new Date(item.Updated), 'MMM d, HH:mm') : item.ScanDate ? format(new Date(item.ScanDate), 'MMM d') : '—'}
                             </td>
                           </tr>
                         ))}
@@ -590,7 +616,7 @@ export default function TransmissionMonitorPage() {
                         placeholder="Search machine or user..."
                         value={machineSearch}
                         onChange={(e) => setMachineSearch(e.target.value)}
-                        className="w-56 pl-9 h-8 text-sm"
+                        className="w-56 pl-9 h-8 text-sm bg-white"
                       />
                     </div>
                   </div>
@@ -741,7 +767,7 @@ export default function TransmissionMonitorPage() {
                               placeholder="Search ISBN or title..."
                               value={lotIsbnSearch}
                               onChange={e => setLotIsbnSearch(e.target.value)}
-                              className="w-56 pl-9 h-8 text-xs"
+                              className="w-56 pl-9 h-8 text-xs bg-white"
                             />
                           </div>
                         </div>
@@ -884,7 +910,7 @@ export default function TransmissionMonitorPage() {
                               placeholder="Search ISBN or title..."
                               value={boxIsbnSearch}
                               onChange={e => setBoxIsbnSearch(e.target.value)}
-                              className="w-56 pl-9 h-8 text-xs"
+                              className="w-56 pl-9 h-8 text-xs bg-white"
                             />
                           </div>
                         </div>

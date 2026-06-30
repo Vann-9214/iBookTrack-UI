@@ -102,16 +102,17 @@ router.get('/live', requireAuth, async (req, res) => {
     const fromDate = req.query.from || today
     const toDate = req.query.to || today
     const location = req.query.location || 'mustang' // 'mustang' | 'jaguar'
+    const newProcessOnly = req.query.newProcessOnly === 'true'
 
     const [summary, byMachine, byStage, data, allTime, dailyOutput, stageCounts, completedTransmissions] = await Promise.all([
-      simflexDb.getTodayScanningSummary(fromDate, toDate, location),
-      simflexDb.getScanningByMachine(fromDate, toDate, location),
-      simflexDb.getScanningByStage(fromDate, toDate, location),
-      simflexDb.getScanningData(fromDate, toDate, location),
+      simflexDb.getTodayScanningSummary(fromDate, toDate, location, newProcessOnly),
+      simflexDb.getScanningByMachine(fromDate, toDate, location, newProcessOnly),
+      simflexDb.getScanningByStage(fromDate, toDate, location, newProcessOnly),
+      simflexDb.getScanningData(fromDate, toDate, location, newProcessOnly),
       simflexDb.getTotalScansAllTime(),
       simflexDb.getDailyOutputCount(fromDate === toDate ? fromDate : undefined, location),
       pipelineCounts.getStageCounts(fromDate, toDate),
-      simflexDb.getCompletedTransmissionsCount(fromDate, toDate, location)
+      simflexDb.getCompletedTransmissionsCount(fromDate, toDate, location, newProcessOnly)
     ])
 
     // Use the same query as the raw-rows endpoint so the pipeline card
