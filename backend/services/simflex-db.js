@@ -166,6 +166,16 @@ function machineFilter(location = 'mustang') {
   return `ScanMachineName IN (${MUSTANG_SQL_LIST})`
 }
 
+// ── New-process-only filter ───────────────────────────────────────────────────
+/**
+ * Returns an optional SQL AND clause that restricts to non-rework books.
+ * When newProcessOnly is true, appends "AND IsRework = 0".
+ * @param {boolean} [newProcessOnly=false]
+ */
+function reworkFilter(newProcessOnly = false) {
+  return newProcessOnly ? ' AND IsRework = 0' : ''
+}
+
 // ── Exported query functions ──────────────────────────────────────────────────
 
 /**
@@ -209,14 +219,14 @@ export async function getDailyOutputCount(date, location = 'mustang') {
   }
 }
 
-export async function getTodayScanningSummary(startDate, endDate, location = 'mustang') {
+export async function getTodayScanningSummary(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
       ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${dateWhere} GROUP BY Status ORDER BY cnt DESC`,
+      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${dateWhere}${reworkFilter(newProcessOnly)} GROUP BY Status ORDER BY cnt DESC`,
       location
     )
     const data = Array.isArray(rows) ? rows : []
@@ -238,14 +248,14 @@ export async function getTodayScanningSummary(startDate, endDate, location = 'mu
  * @param {string} startDate
  * @param {string} endDate
  */
-export async function getScanningData(startDate, endDate, location = 'mustang') {
+export async function getScanningData(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const start = safeDate(startDate)
     const end   = safeDate(endDate)
     const rows = await query(
-      `SELECT TOP 100 ISBN, Status, ScanMachineName AS MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber
+      `SELECT TOP 100 ISBN, Status, ScanMachineName AS MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber, IsRework
        FROM zeusz_IsbnStatus
-       WHERE CAST(DateAdded AS DATE) BETWEEN '${start}' AND '${end}'
+       WHERE CAST(DateAdded AS DATE) BETWEEN '${start}' AND '${end}'${reworkFilter(newProcessOnly)}
        ORDER BY Updated DESC`,
       location
     )
@@ -264,7 +274,7 @@ export async function getScanningData(startDate, endDate, location = 'mustang') 
  * @param {string} [startDate]
  * @param {string} [endDate]
  */
-export async function getScanningByMachine(startDate, endDate, location = 'mustang') {
+export async function getScanningByMachine(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
       ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
@@ -273,7 +283,7 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
     const rows = await query(
       `SELECT ScanMachineName AS MachineName, ScanUser AS [User], COUNT(*) AS TotalScans
        FROM zeusz_IsbnStatus
-       WHERE ${dateWhere} AND Status NOT LIKE '%FAILED%'
+       WHERE ${dateWhere} AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
        GROUP BY ScanMachineName, ScanUser
        ORDER BY TotalScans DESC`,
       location
@@ -298,7 +308,7 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
  * @param {string} [startDate]
  * @param {string} [endDate]
  */
-export async function getScanningByStage(startDate, endDate, location = 'mustang') {
+export async function getScanningByStage(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
       ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
@@ -307,7 +317,7 @@ export async function getScanningByStage(startDate, endDate, location = 'mustang
     // Fetch all rows for the location and date range, then deduplicate by latest
     // status per ISBN in JavaScript (Simflex API does not support window functions).
     const rows = await query(
-      `SELECT TOP 10000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateWhere} ORDER BY Updated DESC`,
+      `SELECT TOP 10000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateWhere}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
       location
     )
     const data = Array.isArray(rows) ? rows : []
@@ -673,14 +683,14 @@ export async function getSimflexStatusForISBNs(isbns) {
  * @param {string} [endDate]
  * @param {'mustang'|'jaguar'} [location='mustang']
  */
-export async function getCompletedTransmissionsCount(startDate, endDate, location = 'mustang') {
+export async function getCompletedTransmissionsCount(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateFilter = startDate && endDate
       ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT TOP 5000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateFilter} ORDER BY Updated DESC`,
+      `SELECT TOP 5000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
       location
     )
     const data = Array.isArray(rows) ? rows : []
