@@ -9,9 +9,7 @@ import { PrimaryButton } from "./PrimaryButton";
 import { useSmoothScroll } from "./SmoothScrollProvider";
 
 const resolveActiveLabel = (pathname: string, hash: string) => {
-  if (pathname === "/landing-page/download") return "Download";
   if (pathname === "/login" || pathname === "/forgot-password") return "Login";
-  if (pathname === "/landing-page" && hash === "#download") return "Download";
   if (pathname === "/landing-page" && hash === "#about") return "About us";
   if (pathname === "/landing-page") return "Home";
   return "";
@@ -33,18 +31,15 @@ export const HeaderSection = () => {
     return () => window.removeEventListener("hashchange", updateActive);
   }, [pathname]);
 
-  // Track scroll position to update active label between Home / About us / Download
+  // Track scroll position to update active label between Home / About us
   useEffect(() => {
     if (!isOnLandingPage) return;
     const onScroll = () => {
       const aboutEl = document.getElementById("about");
-      const downloadEl = document.getElementById("download");
       if (!aboutEl) return;
       const sb = (window as any).__smoothScrollbar;
       const scrollTop = sb ? sb.scrollTop : window.scrollY;
-      if (downloadEl && scrollTop >= downloadEl.offsetTop - 120) {
-        setActiveLabel("Download");
-      } else if (scrollTop >= aboutEl.offsetTop - 120) {
+      if (scrollTop >= aboutEl.offsetTop - 120) {
         setActiveLabel("About us");
       } else {
         setActiveLabel("Home");

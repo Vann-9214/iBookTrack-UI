@@ -1,5 +1,7 @@
 export { AdvantageSection } from "./AdvantageSection";
+export { BlogSection } from "./BlogSection";
 export { BrandLogo } from "./BrandLogo";
+export { ContactSection } from "./ContactSection";
 export { CtaSection } from "./CtaSection";
 export { FeatureCard } from "./FeatureCard";
 export { FeaturesSection } from "./FeaturesSection";

@@ -1,11 +1,10 @@
 import React from "react";
-import Link from "next/link";
 import { PrimaryButton } from "./PrimaryButton";
 
 export const CtaSection = () => (
   <section className="cta" id="download">
     <div className="container">
-      <span className="section-eyebrow" style={{ color: "#93c5fd", justifyContent: "center" }}>
+      <span className="section-eyebrow cta-eyebrow">
         Get started today
       </span>
       <h2>
@@ -17,9 +16,6 @@ export const CtaSection = () => (
       </p>
       <div className="cta-actions">
         <PrimaryButton label="Create Free Account" href="/register" />
-        <Link href="/landing-page/download" className="cta-ghost-link">
-          Download the app <span aria-hidden>→</span>
-        </Link>
       </div>
     </div>
   </section>

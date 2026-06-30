@@ -7,6 +7,17 @@ export type NavLink = {
 export type LinkItem = {
   href: string;
   label: string;
+  /** For Company links: smooth-scroll target section id */
+  scrollTo?: string;
+};
+
+export type SupportItem = {
+  label: string;
+  /** Modal content to show when clicked */
+  content: {
+    heading: string;
+    body: string;
+  };
 };
 
 export type Feature = {
@@ -18,7 +29,6 @@ export type Feature = {
 export const NAV_LINKS: NavLink[] = [
   { href: "/landing-page", label: "Home" },
   { href: "/landing-page#about", label: "About us" },
-  { href: "/landing-page#download", label: "Download" },
   { href: "/login", label: "Login" },
 ];
 
@@ -44,17 +54,38 @@ export const FEATURE_CARDS: Feature[] = [
 ];
 
 export const COMPANY_LINKS: LinkItem[] = [
-  { href: "#", label: "About us" },
-  { href: "#", label: "Blog" },
-  { href: "#", label: "Contact us" },
-  { href: "#", label: "Pricing" },
-  { href: "#", label: "Testimonials" },
+  { href: "/landing-page", label: "About us", scrollTo: "about" },
+  { href: "/landing-page", label: "Blog", scrollTo: "blog" },
+  { href: "/landing-page", label: "Contact us", scrollTo: "contact" },
 ];
 
-export const SUPPORT_LINKS: LinkItem[] = [
-  { href: "#", label: "Help center" },
-  { href: "#", label: "Terms of service" },
-  { href: "#", label: "Legal" },
-  { href: "#", label: "Privacy policy" },
-  { href: "#", label: "Status" },
+export const SUPPORT_LINKS: SupportItem[] = [
+  {
+    label: "Help center",
+    content: {
+      heading: "Help Center",
+      body: "For assistance with iBookTrack, reach out to our support team at support@innodata.com or consult the in-app documentation found under Settings → Help. Our team is available Monday–Friday, 8 AM–6 PM PHT.",
+    },
+  },
+  {
+    label: "Terms of service",
+    content: {
+      heading: "Terms of Service",
+      body: "By using iBookTrack, you agree to use the platform solely for authorized warehouse management and digitization workflows within Innodata Knowledge Inc. Unauthorized access, data extraction, or misuse of client data is strictly prohibited and subject to disciplinary action.",
+    },
+  },
+  {
+    label: "Legal",
+    content: {
+      heading: "Legal",
+      body: "iBookTrack is a proprietary platform owned and operated by Innodata Knowledge Inc. All intellectual property, including workflows, data structures, and interfaces, are protected under applicable copyright and trade secret laws.",
+    },
+  },
+  {
+    label: "Privacy policy",
+    content: {
+      heading: "Privacy Policy",
+      body: "iBookTrack collects and processes operational data including user activity logs, scan records, and transmission reports. All data is stored securely within Innodata's internal infrastructure and is never shared with third parties. Access is restricted to authorized personnel only.",
+    },
+  },
 ];
