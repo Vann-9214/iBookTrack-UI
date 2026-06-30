@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { X, Loader2 } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
+import { usePagination } from "@/hooks/usePagination"
+import { Pagination } from "@/components/pagination"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -61,8 +63,9 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalRows, setModalRows] = useState<RawRow[]>([])
   const [modalLoading, setModalLoading] = useState(false)
-  const [scanBooksCount, setScanBooksCount] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [modalPage, setModalPage] = useState(1)
+  const MODAL_PAGE_SIZE = 50
 
   const pipelineSteps = [
     { label: "Warehouse",   count: stats?.pipelineStages?.warehouse   || 0, unit: stats?.pipelineStages?.warehouse   === 1 ? "Box"  : "Boxes", stage: "warehouse",   clickable: false },
@@ -78,19 +81,13 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
     setModalOpen(true)
     setModalLoading(true)
     setModalRows([])
-    setScanBooksCount(null)
+    setModalPage(1)
+    setStatusFilter('ALL')
     try {
-      const [rowsRes, liveRes] = await Promise.all([
-        authFetch(`${API_URL}/api/scanning/scan-rows`),
-        authFetch(`${API_URL}/api/scanning/live`),
-      ])
+      const rowsRes = await authFetch(`${API_URL}/api/scanning/scan-rows`)
       if (rowsRes.ok) {
         const json = await rowsRes.json()
         setModalRows(json.rows || [])
-      }
-      if (liveRes.ok) {
-        const live = await liveRes.json()
-        setScanBooksCount(live.scanBooks ?? null)
       }
     } catch (e) {
       console.error('Failed to load scan rows', e)
@@ -98,6 +95,11 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
       setModalLoading(false)
     }
   }
+
+  // Reset modal pagination when the status filter changes
+  useEffect(() => {
+    setModalPage(1)
+  }, [statusFilter])
 
   return (
     <>
@@ -208,6 +210,9 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
       {modalOpen && (() => {
         const statusOptions = ['ALL', ...Array.from(new Set(modalRows.map(r => r.Status).filter(Boolean))).sort()]
         const filtered = statusFilter === 'ALL' ? modalRows : modalRows.filter(r => r.Status === statusFilter)
+        const totalPages = Math.max(1, Math.ceil(filtered.length / MODAL_PAGE_SIZE))
+        const safePage = Math.min(modalPage, totalPages)
+        const paginated = filtered.slice((safePage - 1) * MODAL_PAGE_SIZE, safePage * MODAL_PAGE_SIZE)
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl flex flex-col max-h-[90vh]">
@@ -226,7 +231,7 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
               {/* Toolbar */}
               <div className="flex items-center gap-4 px-6 py-3 border-b bg-gray-50 shrink-0">
                 <span className="text-sm text-gray-500">Total rows: <span className="font-semibold text-gray-800">{modalRows.length}</span></span>
-                <span className="text-sm text-gray-500">Pipeline card: <span className="font-semibold text-orange-500">{scanBooksCount ?? '—'}</span></span>
+                <span className="text-sm text-gray-500">Pipeline card: <span className="font-semibold text-orange-500">{stats?.pipelineStages?.scan ?? '—'}</span></span>
                 <span className="text-sm text-gray-500">Showing: <span className="font-semibold text-gray-800">{filtered.length}</span></span>
                 <div className="ml-auto flex items-center gap-2">
                   <label className="text-xs text-gray-500">Filter by status</label>
@@ -266,9 +271,11 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((row, i) => (
+                      {paginated.map((row, i) => {
+                        const rowNumber = (safePage - 1) * MODAL_PAGE_SIZE + i + 1
+                        return (
                         <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
-                          <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                          <td className="px-3 py-1.5 text-gray-400">{rowNumber}</td>
                           <td className="px-3 py-1.5 font-mono text-gray-800">{row.ISBN || '—'}</td>
                           <td className="px-3 py-1.5 text-gray-600">{row.BoxNumber || '—'}</td>
                           <td className="px-3 py-1.5 text-gray-600">{row.ScanUser || '—'}</td>
@@ -288,11 +295,24 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
                           </td>
                           <td className="px-3 py-1.5 text-gray-500 whitespace-nowrap">{row.LastUpdated ? new Date(row.LastUpdated).toLocaleTimeString() : '—'}</td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 )}
               </div>
+              {!modalLoading && filtered.length > 0 && (
+                <Pagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  pageSize={MODAL_PAGE_SIZE}
+                  onPageChange={setModalPage}
+                  onPageSizeChange={() => {}}
+                  canPrevPage={safePage > 1}
+                  canNextPage={safePage < totalPages}
+                  pageSizeOptions={[50]}
+                />
+              )}
 
             </div>
           </div>
