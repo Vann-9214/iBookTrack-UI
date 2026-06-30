@@ -113,6 +113,10 @@ export default function TransmissionMonitorPage() {
   const [summary, setSummary] = useState<any>(null)
   const [stages, setStages] = useState<any[]>([])
   const [recentScans, setRecentScans] = useState<any[]>([])
+  const [allBooks, setAllBooks] = useState<any[]>([])
+  const [totalBooks, setTotalBooks] = useState(0)
+  const [wipCount, setWipCount] = useState(0)
+  const [tableView, setTableView] = useState<'books' | 'wip'>('books')
   const [byMachine, setByMachine] = useState<any[]>([])
   const [showRanking, setShowRanking] = useState(false)
   const [ranking, setRanking] = useState<any>(null)
@@ -178,6 +182,9 @@ export default function TransmissionMonitorPage() {
         setSummary(data.summary)
         setStages(data.byStage || [])
         setRecentScans(data.recentScans || [])
+        setAllBooks(data.allBooks || [])
+        setTotalBooks(data.totalBooks || 0)
+        setWipCount(data.wipCount || 0)
         setByMachine(data.byMachine || [])
         setLastUpdated(new Date())
       }
@@ -305,8 +312,14 @@ export default function TransmissionMonitorPage() {
     ? ((totalTransmitted / (totalTransmitted + failedTransmissions)) * 100).toFixed(1)
     : '100.0'
 
-  const filteredScans = recentScans.filter((item: any) =>
-    !historySearch || item.ISBN?.toLowerCase().includes(historySearch.toLowerCase()) ||
+  // Live scan feed table — use allBooks (deduped, IsRework=0) filtered by tableView toggle
+  const baseScans = tableView === 'wip'
+    ? allBooks.filter((b: any) => b.isWip)
+    : allBooks
+
+  const filteredScans = baseScans.filter((item: any) =>
+    !historySearch ||
+    item.ISBN?.toLowerCase().includes(historySearch.toLowerCase()) ||
     item.BoxNumber?.toLowerCase().includes(historySearch.toLowerCase())
   )
 
@@ -479,15 +492,15 @@ export default function TransmissionMonitorPage() {
                         {/* Stat pills */}
                         <div className="grid grid-cols-3 gap-1.5">
                           <div className="flex flex-col items-center rounded-lg bg-green-50 border border-green-100 px-1.5 py-1.5">
-                            <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide leading-none mb-0.5">Done</span>
+                            <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide leading-none mb-0.5">COMPLETED</span>
                             <span className="text-sm font-black text-green-700 leading-none">{s.Completed}</span>
                           </div>
                           <div className="flex flex-col items-center rounded-lg bg-blue-50 border border-blue-100 px-1.5 py-1.5">
-                            <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide leading-none mb-0.5">WIP</span>
+                            <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide leading-none mb-0.5">ONGOING</span>
                             <span className="text-sm font-black text-blue-600 leading-none">{s.Ongoing}</span>
                           </div>
                           <div className="flex flex-col items-center rounded-lg bg-red-50 border border-red-100 px-1.5 py-1.5">
-                            <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wide leading-none mb-0.5">Fail</span>
+                            <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wide leading-none mb-0.5">FAILED</span>
                             <span className="text-sm font-black text-red-600 leading-none">{s.Failed}</span>
                           </div>
                         </div>
@@ -500,19 +513,49 @@ export default function TransmissionMonitorPage() {
 
             {/* Tabs */}
             <Tabs defaultValue="queue" className="w-full">
-              <TabsList>
-                <TabsTrigger value="queue">Live Scan Feed</TabsTrigger>
-                <TabsTrigger value="machine">By Machine</TabsTrigger>
-                <TabsTrigger value="lot">
-                  <Package className="h-3.5 w-3.5 mr-1.5" />LOT Visibility
-                </TabsTrigger>
-                <TabsTrigger value="box">
-                  <Box className="h-3.5 w-3.5 mr-1.5" />Box Visibility
-                </TabsTrigger>
-                <TabsTrigger value="isbn">
-                  <Tag className="h-3.5 w-3.5 mr-1.5" />ISBN Management
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <TabsList>
+                  <TabsTrigger value="queue">Live Scan Feed</TabsTrigger>
+                  <TabsTrigger value="machine">By Machine</TabsTrigger>
+                  <TabsTrigger value="lot">
+                    <Package className="h-3.5 w-3.5 mr-1.5" />LOT Visibility
+                  </TabsTrigger>
+                  <TabsTrigger value="box">
+                    <Box className="h-3.5 w-3.5 mr-1.5" />Box Visibility
+                  </TabsTrigger>
+                  <TabsTrigger value="isbn">
+                    <Tag className="h-3.5 w-3.5 mr-1.5" />ISBN Management
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Books / WIP toggle */}
+                <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100 p-0.5">
+                  <button
+                    onClick={() => setTableView('books')}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
+                      tableView === 'books'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    )}
+                  >
+                    <span className={cn('h-1.5 w-1.5 rounded-full', tableView === 'books' ? 'bg-blue-500' : 'bg-gray-400')} />
+                    {loading ? '…' : totalBooks} Books
+                  </button>
+                  <button
+                    onClick={() => setTableView('wip')}
+                    className={cn(
+                      'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
+                      tableView === 'wip'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    )}
+                  >
+                    <span className={cn('h-1.5 w-1.5 rounded-full', tableView === 'wip' ? 'bg-red-500' : 'bg-gray-400')} />
+                    {loading ? '…' : wipCount} WIP
+                  </button>
+                </div>
+              </div>
 
               {/* ── Live Scan Feed ── */}
               <TabsContent value="queue" className="mt-4">
@@ -524,11 +567,13 @@ export default function TransmissionMonitorPage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-gray-800">
-                          {fromDate === toDate ? `Recent Scans — ${fromDate}` : `Recent Scans — ${fromDate} to ${toDate}`}
+                          {tableView === 'wip' ? 'Work In Progress' : 'All Books'} — {fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                          <span className="text-xs text-gray-500">Live scan feed</span>
+                          <span className={cn('h-1.5 w-1.5 rounded-full', tableView === 'wip' ? 'bg-red-500' : 'bg-blue-500')} />
+                          <span className="text-xs text-gray-500">
+                            {tableView === 'wip' ? `${filteredScans.length} books not yet transmitted` : `${filteredScans.length} books total`}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -562,19 +607,28 @@ export default function TransmissionMonitorPage() {
                           </td></tr>
                         ) : filteredScans.length === 0 ? (
                           <tr><td colSpan={7} className="text-center py-12 text-gray-400">No scans found</td></tr>
-                        ) : paginatedRecentScans.map((item: any, i: number) => (
-                          <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                            <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
-                            <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
-                            <td className="px-4 py-3">{getStatusBadge(item.Status || '')}</td>
-                            <td className="text-xs text-gray-500 px-4 py-3">{item.Status?.split(' ').slice(0, -1).join(' ') || '—'}</td>
-                            <td className="text-xs text-gray-500 px-4 py-3">{item.MachineName || '—'}</td>
-                            <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
-                            <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
-                              {item.Updated ? format(new Date(item.Updated), 'MMM d, HH:mm') : item.ScanDate ? format(new Date(item.ScanDate), 'MMM d') : '—'}
-                            </td>
-                          </tr>
-                        ))}
+                        ) : paginatedRecentScans.map((item: any, i: number) => {
+                          const isOngoing = item.Status?.includes('ONGOING')
+                          const isWip = item.isWip
+                          const rowCls = isOngoing
+                            ? tableView === 'wip'
+                              ? 'border-b border-red-100 bg-red-50/60 hover:bg-red-50'
+                              : 'border-b border-blue-100 bg-blue-50/50 hover:bg-blue-50'
+                            : 'border-b border-gray-50 hover:bg-gray-50'
+                          return (
+                            <tr key={i} className={`${rowCls} transition-colors`}>
+                              <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
+                              <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
+                              <td className="px-4 py-3">{getStatusBadge(item.Status || '')}</td>
+                              <td className="text-xs text-gray-500 px-4 py-3">{item.Status?.split(' ').slice(0, -1).join(' ') || '—'}</td>
+                              <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
+                              <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
+                              <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
+                                {item.Updated ? format(new Date(item.Updated), 'MMM d, HH:mm') : item.ScanDate ? format(new Date(item.ScanDate), 'MMM d') : '—'}
+                              </td>
+                            </tr>
+                          )
+                        })}
                       </tbody>
                     </table>
                     {filteredScans.length > 0 && recentScansPagination.totalPages > 1 && (

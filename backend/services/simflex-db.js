@@ -767,6 +767,63 @@ export async function getTransmitStageRows() {
   }
 }
 
+/**
+ * Return the full deduplicated list of ISBNs added today (or in a date range),
+ * enriched with their latest Simflex status.
+ * Used to power the Books / WIP toggle on the Transmission Monitor live feed.
+ *
+ * Each row: { ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate, isWip }
+ *
+ * @param {string} [startDate]
+ * @param {string} [endDate]
+ * @param {'mustang'|'jaguar'} [location='mustang']
+ * @param {boolean} [newProcessOnly=false] - when true, filters IsRework=0 (mirrors the checkbox)
+ */
+export async function getAllBooksToday(startDate, endDate, location = 'mustang', newProcessOnly = false) {
+  try {
+    const dateFilter = startDate && endDate
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+
+    const rows = await query(
+      `SELECT TOP 5000 ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate` +
+      ` FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
+      location
+    )
+    const data = Array.isArray(rows) ? rows : []
+
+    // Deduplicate: keep latest status per ISBN
+    const latestByIsbn = new Map()
+    for (const r of data) {
+      if (!r.ISBN) continue
+      const existing = latestByIsbn.get(r.ISBN)
+      if (!existing || new Date(r.Updated) > new Date(existing.Updated)) {
+        latestByIsbn.set(r.ISBN, r)
+      }
+    }
+
+    const books = [...latestByIsbn.values()].map(r => ({
+      ...r,
+      isWip: r.Status !== 'Transmission_Archive COMPLETED',
+    }))
+
+    // Sort: WIP first (ONGOING before COMPLETED non-TA), then transmitted
+    books.sort((a, b) => {
+      if (a.isWip && !b.isWip) return -1
+      if (!a.isWip && b.isWip) return 1
+      return new Date(b.Updated) - new Date(a.Updated)
+    })
+
+    const totalBooks = books.length
+    const wipCount   = books.filter(b => b.isWip).length
+
+    return { success: true, books, totalBooks, wipCount }
+  } catch (error) {
+    console.error('Error fetching all books today:', error)
+    return { success: false, books: [], totalBooks: 0, wipCount: 0, error: error.message }
+  }
+}
+
 export default {
   getDailyOutputCount,
   getTodayScanningSummary,
@@ -783,4 +840,5 @@ export default {
   getTransmitStageBoxes,
   getTransmitStageRows,
   getCompletedTransmissionsCount,
+  getAllBooksToday,
 }

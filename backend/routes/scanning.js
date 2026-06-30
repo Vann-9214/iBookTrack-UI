@@ -104,7 +104,7 @@ router.get('/live', requireAuth, async (req, res) => {
     const location = req.query.location || 'mustang' // 'mustang' | 'jaguar'
     const newProcessOnly = req.query.newProcessOnly === 'true'
 
-    const [summary, byMachine, byStage, data, allTime, dailyOutput, stageCounts, completedTransmissions] = await Promise.all([
+    const [summary, byMachine, byStage, data, allTime, dailyOutput, stageCounts, completedTransmissions, allBooks] = await Promise.all([
       simflexDb.getTodayScanningSummary(fromDate, toDate, location, newProcessOnly),
       simflexDb.getScanningByMachine(fromDate, toDate, location, newProcessOnly),
       simflexDb.getScanningByStage(fromDate, toDate, location, newProcessOnly),
@@ -112,7 +112,8 @@ router.get('/live', requireAuth, async (req, res) => {
       simflexDb.getTotalScansAllTime(),
       simflexDb.getDailyOutputCount(fromDate === toDate ? fromDate : undefined, location),
       pipelineCounts.getStageCounts(fromDate, toDate),
-      simflexDb.getCompletedTransmissionsCount(fromDate, toDate, location, newProcessOnly)
+      simflexDb.getCompletedTransmissionsCount(fromDate, toDate, location, newProcessOnly),
+      simflexDb.getAllBooksToday(fromDate, toDate, location, newProcessOnly)
     ])
 
     // Use the same query as the raw-rows endpoint so the pipeline card
@@ -139,6 +140,9 @@ router.get('/live', requireAuth, async (req, res) => {
       dailyOutput: dailyOutput.count || 0,
       scanBooks,
       transmitBooks,
+      allBooks: allBooks.books || [],
+      totalBooks: allBooks.totalBooks || 0,
+      wipCount: allBooks.wipCount || 0,
     })
   } catch (error) {
     console.error('Error in /live:', error)
