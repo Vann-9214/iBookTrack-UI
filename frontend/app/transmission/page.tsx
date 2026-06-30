@@ -619,7 +619,7 @@ export default function TransmissionMonitorPage() {
                             <tr key={i} className={`${rowCls} transition-colors`}>
                               <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
                               <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
-                              <td className="px-4 py-3">{getStatusBadge(item.Status || '')}</td>
+                              <td className="px-4 py-3">{getStatusBadge(item.Status?.split(' ').pop() || '')}</td>
                               <td className="text-xs text-gray-500 px-4 py-3">{item.Status?.split(' ').slice(0, -1).join(' ') || '—'}</td>
                               <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
                               <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
