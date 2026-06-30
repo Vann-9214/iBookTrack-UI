@@ -1,68 +1,87 @@
-import axios from 'axios'
+/**
+ * services/simflex-db.js
+ *
+ * Queries the Simflex WMS (Warehouse Management System) via its REST API.
+ * Simflex tracks the scanning pipeline status of every ISBN (Scanning,
+ * Preval, Tif2PDF, Validate, Transmission_Archive, etc.).
+ *
+ * All date parameters are sanitized through safeDate() before being
+ * embedded in SQL strings to prevent SQL injection.
+ *
+ * Required environment variables:
+ *   SIMFLEX_API_URL          — Full URL to the Simflex SOAP/REST endpoint
+ *   SIMFLEX_API_KEY          — API key issued by Simflex
+ *   SIMFLEX_MUSTANG_CONFIG   — Config identifier for Mustang (MDE)
+ *   SIMFLEX_JAGUAR_CONFIG    — Config identifier for Jaguar (US) — optional
+ */
 
-// Simflex WMS API Configuration — read from .env
-// Set SIMFLEX_API_URL, SIMFLEX_API_KEY, SIMFLEX_CONFIG in your .env file.
-// Defaults are kept for local-dev convenience but should be overridden in prod.
+import axios from 'axios'
+import dotenv from 'dotenv'
+dotenv.config({ path: new URL('../.env', import.meta.url) })
+
+// ── Configuration — read from .env ────────────────────────────────────────────
 const SIMFLEX_API_URL = process.env.SIMFLEX_API_URL || 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'
 const SIMFLEX_API_KEY = process.env.SIMFLEX_API_KEY || ''
-const SIMFLEX_CONFIG = process.env.SIMFLEX_CONFIG || ''
+const SIMFLEX_MUSTANG_CONFIG = process.env.SIMFLEX_MUSTANG_CONFIG || ''
+const SIMFLEX_JAGUAR_CONFIG  = process.env.SIMFLEX_JAGUAR_CONFIG  || ''
 
-if (!SIMFLEX_API_KEY || !SIMFLEX_CONFIG) {
-  console.warn('⚠️  SIMFLEX_API_KEY / SIMFLEX_CONFIG not set in .env — Simflex live data will fail.')
+// Default to Mustang. A future UI toggle can pass 'jaguar' to switch configs.
+function getSimflexConfig(location = 'mustang') {
+  const config = location === 'jaguar' ? SIMFLEX_JAGUAR_CONFIG : SIMFLEX_MUSTANG_CONFIG
+  return config || SIMFLEX_MUSTANG_CONFIG || SIMFLEX_JAGUAR_CONFIG
 }
 
+const SIMFLEX_CONFIG = getSimflexConfig()
+
+if (!SIMFLEX_API_KEY || !SIMFLEX_CONFIG) {
+  console.warn('⚠️  SIMFLEX_API_KEY / SIMFLEX_MUSTANG_CONFIG not set in .env — Simflex live data will fail.')
+}
+
+// ── Date sanitizer ────────────────────────────────────────────────────────────
+/**
+ * Converts any date-like value to a safe 'YYYY-MM-DD' string.
+ * Throws if the result is not a valid date, preventing any possibility
+ * of SQL injection via date parameters.
+ *
+ * @param {string|Date} value
+ * @returns {string} e.g. '2026-06-29'
+ */
+function safeDate(value) {
+  const iso = new Date(value).toISOString().split('T')[0]
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    throw new Error(`Invalid date value: ${value}`)
+  }
+  return iso
+}
+
+// ── Core query helper ─────────────────────────────────────────────────────────
+/**
+ * Sends a raw SQL script string to the Simflex API and returns the result rows.
+ * Simflex returns [[row, row, ...]] — we unwrap the outer array automatically.
+ *
+ * @param {string} script - SQL SELECT statement (no DDL/DML allowed by API)
+ * @returns {Array} rows
+ */
 async function query(script) {
   const response = await axios.get(SIMFLEX_API_URL, {
     params: { apiKey: SIMFLEX_API_KEY, config: SIMFLEX_CONFIG, script },
-    timeout: 15000
+    timeout: 15000 // 15 second timeout
   })
-  // Response is [[row, row, ...]] - unwrap first array
+  // Response is [[row, row, ...]] — unwrap first array
   const data = response.data
   if (data && Array.isArray(data) && Array.isArray(data[0])) return data[0]
   return data
 }
 
+// ── Machine ID map ────────────────────────────────────────────────────────────
 /**
- * Get today's scanning statistics from zeusz_IsbnStatus
+ * Maps scanner machine hostnames (as stored in Simflex) to their physical
+ * scanner machine IDs (barcoded on the hardware).
+ * Used to display human-readable machine IDs in reports.
  */
-export async function getTodayScanningSummary(startDate, endDate) {
-  try {
-    const where = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${startDate}' AND '${endDate}'`
-      : `ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))`
-    const rows = await query(`SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`)
-    const data = Array.isArray(rows) ? rows : []
-    const total = data.reduce((s, r) => s + r.cnt, 0)
-    const completed = data.filter(r => r.Status && r.Status.includes('COMPLETED')).reduce((s, r) => s + r.cnt, 0)
-    const failed = data.filter(r => r.Status && r.Status.includes('FAILED')).reduce((s, r) => s + r.cnt, 0)
-    const ongoing = data.filter(r => r.Status && r.Status.includes('ONGOING')).reduce((s, r) => s + r.cnt, 0)
-    return { success: true, data: { TotalScans: total, Completed: completed, Failed: failed, Ongoing: ongoing, byStatus: data } }
-  } catch (error) {
-    console.error('Error fetching scanning summary:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-/**
- * Get scanning data by date range
- */
-export async function getScanningData(startDate, endDate) {
-  try {
-    const start = new Date(startDate).toISOString().split('T')[0]
-    const end = new Date(endDate).toISOString().split('T')[0]
-    const rows = await query(`SELECT TOP 100 ISBN, Status, ScanMachineName AS MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber FROM zeusz_IsbnStatus WHERE CAST(ScanDate AS DATE) BETWEEN '${start}' AND '${end}' ORDER BY Updated DESC`)
-    return { success: true, data: rows }
-  } catch (error) {
-    console.error('Error fetching scanning data:', error)
-    return { success: false, error: error.message }
-  }
-}
-
-// DB stores MachineName (e.g. IKSCEWKS0013822) in ScanMachineName column
-// Map: MachineName → Scanner Machine ID
 const MACHINE_ID_MAP = {
-  'INNO_129367-2': 'A-1081125000079',
-  'INNO_129367-1': 'A-1081125000080',
+  'INNO_129367-2':   'A-1081125000079',
+  'INNO_129367-1':   'A-1081125000080',
   'IKSCEWKS0013885': 'CL8C100252',
   'IKSCEWKS0013874': 'CL8C100248',
   'IKSCEWKS0014879': 'CL8C100351',
@@ -102,18 +121,86 @@ const MACHINE_ID_MAP = {
   'IKSCEWKS0013762': 'JF402992',
 }
 
+// ── Exported query functions ──────────────────────────────────────────────────
+
 /**
- * Get scanning stats by machine
+ * Get today's scanning statistics (or a custom date range) from zeusz_IsbnStatus.
+ * Returns counts of total / completed / failed / ongoing by status.
+ *
+ * @param {string} [startDate] - ISO date string e.g. '2026-06-01'
+ * @param {string} [endDate]   - ISO date string e.g. '2026-06-29'
+ */
+export async function getTodayScanningSummary(startDate, endDate) {
+  try {
+    // Build WHERE clause — use safeDate() to sanitize user-supplied dates.
+    const where = startDate && endDate
+      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+
+    const rows = await query(
+      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`
+    )
+    const data = Array.isArray(rows) ? rows : []
+    const total     = data.reduce((s, r) => s + r.cnt, 0)
+    const completed = data.filter(r => r.Status?.includes('COMPLETED')).reduce((s, r) => s + r.cnt, 0)
+    const failed    = data.filter(r => r.Status?.includes('FAILED')).reduce((s, r) => s + r.cnt, 0)
+    const ongoing   = data.filter(r => r.Status?.includes('ONGOING')).reduce((s, r) => s + r.cnt, 0)
+    return { success: true, data: { TotalScans: total, Completed: completed, Failed: failed, Ongoing: ongoing, byStatus: data } }
+  } catch (error) {
+    console.error('Error fetching scanning summary:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Get individual scan records within a date range (up to 100 rows).
+ * Columns: ISBN, Status, MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber.
+ *
+ * @param {string} startDate
+ * @param {string} endDate
+ */
+export async function getScanningData(startDate, endDate) {
+  try {
+    // safeDate() both validates and normalises the input
+    const start = safeDate(startDate)
+    const end   = safeDate(endDate)
+    const rows = await query(
+      `SELECT TOP 100 ISBN, Status, ScanMachineName AS MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber
+       FROM zeusz_IsbnStatus
+       WHERE CAST(ScanDate AS DATE) BETWEEN '${start}' AND '${end}'
+       ORDER BY Updated DESC`
+    )
+    return { success: true, data: rows }
+  } catch (error) {
+    console.error('Error fetching scanning data:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Get scan counts grouped by scanning machine (hostname + user), optionally
+ * filtered to a date range.  Enriches results with physical scanner machine IDs
+ * from MACHINE_ID_MAP.
+ *
+ * @param {string} [startDate]
+ * @param {string} [endDate]
  */
 export async function getScanningByMachine(startDate, endDate) {
   try {
     const where = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${startDate}' AND '${endDate}'`
-      : `ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))`
-    const rows = await query(`SELECT ScanMachineName AS MachineName, ScanUser AS [User], COUNT(*) AS TotalScans FROM zeusz_IsbnStatus WHERE ${where} GROUP BY ScanMachineName, ScanUser ORDER BY TotalScans DESC`)
+      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+
+    const rows = await query(
+      `SELECT ScanMachineName AS MachineName, ScanUser AS [User], COUNT(*) AS TotalScans
+       FROM zeusz_IsbnStatus
+       WHERE ${where}
+       GROUP BY ScanMachineName, ScanUser
+       ORDER BY TotalScans DESC`
+    )
     const data = (Array.isArray(rows) ? rows : []).map(r => ({
       MachineName: r.MachineName,
-      MachineID: MACHINE_ID_MAP[r.MachineName] || r.MachineName,
+      MachineID: MACHINE_ID_MAP[r.MachineName] || r.MachineName, // fall back to hostname if not mapped
       User: r.User,
       TotalScans: r.TotalScans,
     }))
@@ -125,26 +212,35 @@ export async function getScanningByMachine(startDate, endDate) {
 }
 
 /**
- * Get scanning stats by stage (Scanning, Preval, Tif2PDF, Validate, Transmission_Archive)
+ * Get scan counts grouped by pipeline stage (Scanning, Preval, Tif2PDF,
+ * Validate, Transmission_Archive) with Completed/Ongoing/Failed sub-counts.
+ *
+ * @param {string} [startDate]
+ * @param {string} [endDate]
  */
 export async function getScanningByStage(startDate, endDate) {
   try {
     const where = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${startDate}' AND '${endDate}'`
-      : `ScanDate >= CAST(GETDATE() AS DATE) AND ScanDate < DATEADD(DAY, 1, CAST(GETDATE() AS DATE))`
-    const rows = await query(`SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`)
+      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+
+    const rows = await query(
+      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`
+    )
     const data = Array.isArray(rows) ? rows : []
-    // Parse "Stage STATUS" format into grouped stages
+
+    // Status format is "StageName KEYWORD" e.g. "Preval COMPLETED"
+    // Parse into a map keyed by stage name
     const stageMap = {}
     data.forEach(r => {
       const parts = r.Status ? r.Status.split(' ') : []
-      const statusWord = parts[parts.length - 1] // COMPLETED / ONGOING / FAILED
-      const stage = parts.slice(0, parts.length - 1).join(' ') // e.g. "Preval"
+      const statusWord = parts[parts.length - 1]              // COMPLETED / ONGOING / FAILED
+      const stage      = parts.slice(0, parts.length - 1).join(' ') // e.g. "Preval"
       if (!stageMap[stage]) stageMap[stage] = { Stage: stage, Total: 0, Completed: 0, Ongoing: 0, Failed: 0 }
       stageMap[stage].Total += r.cnt
       if (statusWord === 'COMPLETED') stageMap[stage].Completed += r.cnt
       else if (statusWord === 'ONGOING') stageMap[stage].Ongoing += r.cnt
-      else if (statusWord === 'FAILED') stageMap[stage].Failed += r.cnt
+      else if (statusWord === 'FAILED')  stageMap[stage].Failed  += r.cnt
     })
     return { success: true, data: Object.values(stageMap) }
   } catch (error) {
@@ -154,7 +250,8 @@ export async function getScanningByStage(startDate, endDate) {
 }
 
 /**
- * Get all-time total scan count from Simflex
+ * Get the all-time total scan count from Simflex.
+ * Used to display a "grand total scanned" figure on the dashboard.
  */
 export async function getTotalScansAllTime() {
   try {
@@ -168,25 +265,42 @@ export async function getTotalScansAllTime() {
 }
 
 /**
- * Get performance ranking by scan user for a given date
+ * Get a performance ranking of scan users for a given date.
+ * Each user is given a score (books / top-performer books × 100%).
+ * Returns overall totals as well as the per-user ranked list.
+ *
+ * @param {string} [date] - ISO date string; defaults to today
  */
 export async function getScanningRanking(date) {
   try {
-    const d = date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-    const rows = await query(`SELECT ScanUser, COUNT(*) AS Books, SUM(PageCount) AS Pages FROM zeusz_IsbnStatus WHERE CAST(ScanDate AS DATE) = '${d}' AND ScanUser IS NOT NULL GROUP BY ScanUser ORDER BY Books DESC`)
+    const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
+    const rows = await query(
+      `SELECT ScanUser, COUNT(*) AS Books, SUM(PageCount) AS Pages
+       FROM zeusz_IsbnStatus
+       WHERE CAST(ScanDate AS DATE) = '${d}' AND ScanUser IS NOT NULL
+       GROUP BY ScanUser
+       ORDER BY Books DESC`
+    )
     const data = Array.isArray(rows) ? rows : []
     const maxBooks = data[0]?.Books || 1
     const ranked = data.map((r, i) => ({
-      Rank: i + 1,
+      Rank:     i + 1,
       ScanUser: r.ScanUser,
-      Books: r.Books,
-      Pages: r.Pages || 0,
-      Score: maxBooks > 0 ? ((r.Books / maxBooks) * 100).toFixed(2) + '%' : '0%',
+      Books:    r.Books,
+      Pages:    r.Pages || 0,
+      Score:    maxBooks > 0 ? ((r.Books / maxBooks) * 100).toFixed(2) + '%' : '0%',
       ScoreNum: maxBooks > 0 ? (r.Books / maxBooks) * 100 : 0
     }))
     const totalBooks = data.reduce((s, r) => s + r.Books, 0)
     const totalPages = data.reduce((s, r) => s + (r.Pages || 0), 0)
-    return { success: true, data: ranked, totalBooks, totalPages, highestOutput: data[0]?.Books || 0, avgOutput: data.length > 0 ? Math.round(totalBooks / data.length) : 0 }
+    return {
+      success:       true,
+      data:          ranked,
+      totalBooks,
+      totalPages,
+      highestOutput: data[0]?.Books || 0,
+      avgOutput:     data.length > 0 ? Math.round(totalBooks / data.length) : 0
+    }
   } catch (error) {
     console.error('Error fetching ranking:', error)
     return { success: false, error: error.message }
@@ -194,12 +308,20 @@ export async function getScanningRanking(date) {
 }
 
 /**
- * Get full scan data for export (up to 5000 rows)
+ * Get full scan data for a given date, up to 5000 rows.
+ * Used for CSV export from the scanning page.
+ *
+ * @param {string} [date] - ISO date string; defaults to today
  */
 export async function getScanningExportData(date) {
   try {
-    const d = date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-    const rows = await query(`SELECT TOP 5000 ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, ScanMachineName AS Machine, Updated FROM zeusz_IsbnStatus WHERE CAST(ScanDate AS DATE) = '${d}' ORDER BY Updated DESC`)
+    const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
+    const rows = await query(
+      `SELECT TOP 5000 ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, ScanMachineName AS Machine, Updated
+       FROM zeusz_IsbnStatus
+       WHERE CAST(ScanDate AS DATE) = '${d}'
+       ORDER BY Updated DESC`
+    )
     return { success: true, data: Array.isArray(rows) ? rows : [] }
   } catch (error) {
     console.error('Error fetching export data:', error)
@@ -208,19 +330,90 @@ export async function getScanningExportData(date) {
 }
 
 /**
- * Get Simflex scan status for a list of ISBNs.
- * Returns per-ISBN latest status, specifically checking if
- * Transmission_Archive COMPLETED exists for each ISBN.
+ * Get box-level transmission status from Simflex for today (or a given date).
+ * Groups by BoxNumber and returns per-box counts: total books, completed,
+ * ongoing, failed, and the last updated timestamp.
+ *
+ * @param {string} [date] - ISO date string; defaults to today
+ */
+export async function getTransmittingBoxes(date) {
+  try {
+    const dateFilter = date ? `CAST(ScanDate AS DATE) = '${safeDate(date)}'` : `Status = 'Transmission_Archive COMPLETED'`
+    const rows = await query(
+      `SELECT BoxNumber,
+              COUNT(*) AS TotalBooks,
+              SUM(CASE WHEN Status = 'Transmission_Archive COMPLETED' THEN 1 ELSE 0 END) AS Completed,
+              SUM(CASE WHEN Status LIKE '%ONGOING%' THEN 1 ELSE 0 END) AS Ongoing,
+              SUM(CASE WHEN Status LIKE '%FAILED%' THEN 1 ELSE 0 END) AS Failed,
+              MAX(Updated) AS LastUpdated
+       FROM zeusz_IsbnStatus
+       WHERE BoxNumber IS NOT NULL AND BoxNumber <> '' AND ${dateFilter}
+       GROUP BY BoxNumber
+       HAVING SUM(CASE WHEN Status = 'Transmission_Archive COMPLETED' THEN 1 ELSE 0 END) > 0
+       ORDER BY MAX(Updated) DESC`
+    )
+    return { success: true, data: Array.isArray(rows) ? rows : [] }
+  } catch (error) {
+    console.error('Error fetching transmitting boxes:', error)
+    return { success: false, error: error.message, data: [] }
+  }
+}
+
+/**
+ * Get boxes currently transmitting (Transmission_Archive ONGOING) for today.
+ *
+ * @param {string} [date] - ISO date string; defaults to today
+ */
+export async function getOngoingTransmitBoxes(date) {
+  try {
+    const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
+    const rows = await query(
+      `SELECT BoxNumber,
+              COUNT(*) AS TotalBooks,
+              MAX(Updated) AS LastUpdated
+       FROM zeusz_IsbnStatus
+       WHERE BoxNumber IS NOT NULL AND BoxNumber <> ''
+         AND CAST(ScanDate AS DATE) = '${d}'
+         AND Status = 'Transmission_Archive ONGOING'
+       GROUP BY BoxNumber
+       ORDER BY MAX(Updated) DESC`
+    )
+    return { success: true, data: Array.isArray(rows) ? rows : [] }
+  } catch (error) {
+    console.error('Error fetching ongoing transmit boxes:', error)
+    return { success: false, error: error.message, data: [] }
+  }
+}
+
+/**
+ * Get the latest Simflex scan status for a list of ISBNs.
+ * Specifically detects whether each ISBN has reached
+ * "Transmission_Archive COMPLETED" — the final pipeline stage.
+ *
+ * ISBNs not found in Simflex are returned with transmissionCompleted: false.
+ *
+ * @param {string[]} isbns
+ * @returns {{ success: boolean, data: Array<{
+ *   isbn: string,
+ *   transmissionCompleted: boolean,
+ *   latestStatus: string|null,
+ *   latestUpdated: string|null,
+ *   boxNumber: string|null,
+ *   scanUser: string|null,
+ *   statuses: string[]
+ * }> }}
  */
 export async function getSimflexStatusForISBNs(isbns) {
   try {
     if (!isbns || isbns.length === 0) return { success: true, data: [] }
 
-    // Build safe IN list — ISBNs are numeric/alphanumeric, no SQL injection risk
-    // but we sanitize anyway by stripping non-word characters
-    const safelist = isbns.map(i => `'${String(i).replace(/[^a-zA-Z0-9\-]/g, '')}'`).join(',')
+    // Build a safe SQL IN list — strip any non-alphanumeric/hyphen characters
+    // from each ISBN to prevent injection via the isbn values themselves.
+    const safelist = isbns
+      .map(i => `'${String(i).replace(/[^a-zA-Z0-9\-]/g, '')}'`)
+      .join(',')
 
-    // Get all status rows for these ISBNs (all time, not just today)
+    // Fetch all status rows for these ISBNs across all time (not just today)
     const rows = await query(
       `SELECT ISBN, Status, ScanDate, Updated, PageCount, ScanUser, BoxNumber
        FROM zeusz_IsbnStatus
@@ -230,46 +423,52 @@ export async function getSimflexStatusForISBNs(isbns) {
 
     const data = Array.isArray(rows) ? rows : []
 
-    // Group by ISBN — we want to know if each ISBN has a Transmission_Archive COMPLETED row
+    // Group by ISBN to build a per-ISBN summary
     const byIsbn = {}
     data.forEach(r => {
       const isbn = r.ISBN
       if (!byIsbn[isbn]) {
         byIsbn[isbn] = {
           isbn,
-          statuses: [],
+          statuses:             [],
           transmissionCompleted: false,
-          latestStatus: null,
-          latestUpdated: null,
-          boxNumber: r.BoxNumber || null,
-          scanUser: r.ScanUser || null,
+          latestStatus:          null,
+          latestUpdated:         null,
+          boxNumber:             r.BoxNumber || null,
+          scanUser:              r.ScanUser  || null,
         }
       }
       byIsbn[isbn].statuses.push(r.Status)
-      // Check if this row is Transmission_Archive COMPLETED
-      if (r.Status && r.Status.toLowerCase().includes('transmission_archive') && r.Status.toUpperCase().includes('COMPLETED')) {
+
+      // Flag as transmission-complete if any row shows Transmission_Archive COMPLETED
+      if (
+        r.Status &&
+        r.Status.toLowerCase().includes('transmission_archive') &&
+        r.Status.toUpperCase().includes('COMPLETED')
+      ) {
         byIsbn[isbn].transmissionCompleted = true
       }
-      // Track latest overall status
+
+      // Keep track of the most recent status row
       if (!byIsbn[isbn].latestUpdated || new Date(r.Updated) > new Date(byIsbn[isbn].latestUpdated)) {
-        byIsbn[isbn].latestStatus = r.Status
+        byIsbn[isbn].latestStatus  = r.Status
         byIsbn[isbn].latestUpdated = r.Updated
-        byIsbn[isbn].boxNumber = r.BoxNumber || byIsbn[isbn].boxNumber
-        byIsbn[isbn].scanUser = r.ScanUser || byIsbn[isbn].scanUser
+        byIsbn[isbn].boxNumber     = r.BoxNumber || byIsbn[isbn].boxNumber
+        byIsbn[isbn].scanUser      = r.ScanUser  || byIsbn[isbn].scanUser
       }
     })
 
-    // For ISBNs not found in Simflex at all, mark explicitly
+    // Ensure every requested ISBN appears in the result (even if not in Simflex yet)
     isbns.forEach(isbn => {
       if (!byIsbn[isbn]) {
         byIsbn[isbn] = {
           isbn,
-          statuses: [],
+          statuses:             [],
           transmissionCompleted: false,
-          latestStatus: null,
-          latestUpdated: null,
-          boxNumber: null,
-          scanUser: null,
+          latestStatus:          null,
+          latestUpdated:         null,
+          boxNumber:             null,
+          scanUser:              null,
         }
       }
     })
@@ -290,4 +489,6 @@ export default {
   getScanningExportData,
   getTotalScansAllTime,
   getSimflexStatusForISBNs,
+  getTransmittingBoxes,
+  getOngoingTransmitBoxes,
 }

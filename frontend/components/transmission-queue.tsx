@@ -17,6 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { CheckCircle2, RotateCcw, RefreshCw } from "lucide-react"
+import { authFetch } from "@/lib/auth-api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -58,7 +59,7 @@ export function TransmissionQueue() {
 
   const fetchLive = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/scanning/live`)
+      const res = await authFetch(`${API_URL}/api/scanning/live`)
       const data = await res.json()
       if (data.success && data.recentScans) {
         setScans(data.recentScans.slice(0, 10))

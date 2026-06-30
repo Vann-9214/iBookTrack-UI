@@ -67,9 +67,9 @@ export default function DashboardPage() {
         : `${API_URL}/api/dashboard/pipeline-stats`
 
       const [statsRes, pipelineRes, simflexRes] = await Promise.all([
-        fetch(statsUrl),
-        fetch(pipelineUrl),
-        fetch(`${API_URL}/api/scanning/live`).catch(() => null)
+        authFetch(statsUrl),
+        authFetch(pipelineUrl),
+        authFetch(`${API_URL}/api/scanning/live`).catch(() => null)
       ])
       const statsData = await statsRes.json()
       const pipelineData = await pipelineRes.json()
@@ -82,13 +82,17 @@ export default function DashboardPage() {
         if (simflex.success) {
           if (simflex.byStage) {
             const transmitStage = simflex.byStage.find((s: any) => s.Stage === 'Transmission_Archive')
-            dailyTransmitted = transmitStage?.Completed || 0
+            dailyTransmitted = transmitStage?.Ongoing || 0
           }
           simflexAllTime = simflex.allTimeTotal || 0
         }
       }
 
       const stages = pipelineData.stageCounts || {}
+
+      // Keep the Supabase box count for the Transmit stage so the pipeline card
+      // remains clickable and shows the real boxes waiting at that station.
+      // dailyTransmitted (Simflex ongoing) is kept separately for stats widgets.
 
       if (statsData.success) {
         setDashboardStats({ ...statsData.stats, pipelineStages: stages, dailyTransmitted, totalBooks: simflexAllTime || statsData.stats.totalBooks })
@@ -122,7 +126,7 @@ export default function DashboardPage() {
           return
         }
         // Search by ISBN using exactly what was typed (already digits-only from onChange)
-        const response = await fetch(`${API_URL}/api/warehouse/search/isbn/${searchValue.trim()}`)
+        const response = await authFetch(`${API_URL}/api/warehouse/search/isbn/${searchValue.trim()}`)
         const data = await response.json()
         
         if (data.success && data.book) {
@@ -154,7 +158,7 @@ export default function DashboardPage() {
         if (isRange && rangeStart && rangeEnd) {
           setDisplayRange(`${rangeStart} – ${rangeEnd}`)
           setCurrentLot("")
-          const response = await fetch(`${API_URL}/api/dashboard/stats?lot_range_start=${encodeURIComponent(rangeStart)}&lot_range_end=${encodeURIComponent(rangeEnd)}`)
+          const response = await authFetch(`${API_URL}/api/dashboard/stats?lot_range_start=${encodeURIComponent(rangeStart)}&lot_range_end=${encodeURIComponent(rangeEnd)}`)
           const data = await response.json()
           if (data.success) {
             setSearchResult({ type: 'lot', data: data.stats, books: [] })

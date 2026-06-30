@@ -1,3 +1,18 @@
+/**
+ * routes/lots.js
+ *
+ * Manages Lots — named groupings of boxes that arrive together in a shipment.
+ * A Lot contains many Boxes; each Box contains many Books.
+ *
+ * Endpoints:
+ *   GET  /api/lots             — List all lots (filterable by status, shipment_id)
+ *   GET  /api/lots/:lot_number — Get a single lot with its shipment and all boxes
+ *   POST /api/lots             — Create a new lot
+ *   PUT  /api/lots/:id         — Update allowed fields on a lot (allowlisted)
+ *
+ * All routes require authentication (requireAuth middleware).
+ */
+
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
@@ -208,14 +223,21 @@ router.post('/', requireAuth, async (req, res) => {
   }
 })
 
-// Update lot
+// Update lot — only the explicitly listed fields can be changed via this route.
 router.put('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
-    const updateData = { ...req.body }
 
-    delete updateData.id
-    delete updateData.created_at
+    // Allowlist: only these fields may be updated through this generic endpoint.
+    const ALLOWED_FIELDS = ['lot_number', 'shipment_id', 'total_boxes', 'status', 'notes']
+    const updateData = {}
+    for (const field of ALLOWED_FIELDS) {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field]
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No valid fields provided for update.' })
+    }
 
     const { data, error } = await supabase
       .from('lots')

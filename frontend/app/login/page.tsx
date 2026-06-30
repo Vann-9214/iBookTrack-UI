@@ -57,7 +57,6 @@ export default function LoginPage() {
         endpoint: '/api/auth/login',
         payload: { email, password },
       })
-      console.log('Login response:', data)
       if (data.access_token && data.refresh_token && data.expires_at) {
         storeTokenData(data.access_token, data.refresh_token, data.expires_at)
       }

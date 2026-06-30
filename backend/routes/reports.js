@@ -1,5 +1,26 @@
+/**
+ * routes/reports.js
+ *
+ * Generates statistical reports from the imported_books_staging table
+ * (which holds the full historical scan/transmission records for all lots).
+ *
+ * Endpoints:
+ *   GET /api/reports/finished-lots        — Overview + per-lot breakdown for finished lots (Lot 1–51)
+ *   GET /api/reports/chart-data?type=...  — Chart datasets (lot-comparison, daily-trend, vendor-performance, etc.)
+ *   GET /api/reports/indic-books          — Statistics for INDIC books (~215k rows)
+ *   GET /api/reports/lot-details/:lotNum  — Detailed transmission breakdown for a single lot
+ *   GET /api/reports/daily-trend          — Daily transmission trend (last 30 days)
+ *   GET /api/reports/lot-status           — Real-time Open/In-Progress/Closed status for every lot
+ *
+ * All routes require authentication (requireAuth middleware).
+ *
+ * Heavy RPC calls use callRpcWithRetry() for automatic retry with exponential
+ * backoff on timeout errors (Supabase error code 57014).
+ */
+
 import express from 'express'
 import { supabaseAdmin } from '../config/supabase.js'
+import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
@@ -55,7 +76,7 @@ async function callRpcWithRetry(funcName, params = {}, maxRetries = 2) {
  * GET /api/reports/finished-lots
  * Get statistics for finished lots (Lot 1-51) from imported_books_staging
  */
-router.get('/finished-lots', async (req, res) => {
+router.get('/finished-lots', requireAuth, async (req, res) => {
   try {
     console.log('[Reports] fetching finished-lots...')
     
@@ -111,7 +132,7 @@ router.get('/finished-lots', async (req, res) => {
  * GET /api/reports/chart-data
  * Get chart data based on type parameter
  */
-router.get('/chart-data', async (req, res) => {
+router.get('/chart-data', requireAuth, async (req, res) => {
   try {
     const { type } = req.query
     let chartData = []
@@ -247,7 +268,7 @@ router.get('/chart-data', async (req, res) => {
  * GET /api/reports/indic-books
  * Get statistics for INDIC books (215k rows) - transmitted, lots, etc.
  */
-router.get('/indic-books', async (req, res) => {
+router.get('/indic-books', requireAuth, async (req, res) => {
   try {
     console.log('[Reports] fetching indic-books...')
     
@@ -310,7 +331,7 @@ router.get('/indic-books', async (req, res) => {
  * GET /api/reports/lot-details/:lotNumber
  * Get detailed statistics for a specific lot
  */
-router.get('/lot-details/:lotNumber', async (req, res) => {
+router.get('/lot-details/:lotNumber', requireAuth, async (req, res) => {
   try {
     const { lotNumber } = req.params
 
@@ -354,7 +375,7 @@ router.get('/lot-details/:lotNumber', async (req, res) => {
  * GET /api/reports/daily-trend
  * Get daily transmission trend (last 30 days)
  */
-router.get('/daily-trend', async (req, res) => {
+router.get('/daily-trend', requireAuth, async (req, res) => {
   try {
     const { data: books } = await supabaseAdmin
       .from('imported_books_staging')
@@ -405,7 +426,7 @@ router.get('/daily-trend', async (req, res) => {
  *   In-Progress — One or more boxes are actively moving through the pipeline
  *                (current_stage NOT 'storage').
  */
-router.get('/lot-status', async (req, res) => {
+router.get('/lot-status', requireAuth, async (req, res) => {
   try {
     const db = supabaseAdmin
 

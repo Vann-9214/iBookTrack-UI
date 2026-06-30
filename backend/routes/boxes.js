@@ -1,3 +1,25 @@
+/**
+ * routes/boxes.js
+ *
+ * Manages physical boxes that books are packed into as they move through
+ * the intake → scan → transmit → storage pipeline.
+ *
+ * Endpoints:
+ *   GET  /api/boxes                          — List all boxes (filterable by lot_id, stage, box_number)
+ *   GET  /api/boxes/pipeline-transitions     — Recent pipeline stage transition history (for Checkpoint Monitor)
+ *   GET  /api/boxes/stats/pipeline           — Count of boxes per stage (for pipeline visualization)
+ *   GET  /api/boxes/lot/:lot_number          — Get all boxes belonging to a specific lot
+ *   GET  /api/boxes/:id                      — Single box details including its scanned books and QC flags
+ *   POST /api/boxes                          — Create a new box
+ *   POST /api/boxes/:id/receive              — Mark a box as received at the current station
+ *   POST /api/boxes/:id/advance              — Advance a box to the next pipeline stage
+ *   POST /api/boxes/:id/rollback             — Roll a box back to a previous stage (undo)
+ *   POST /api/boxes/:id/check-simflex        — Manually trigger a Simflex status check for a box
+ *   PUT  /api/boxes/:id                      — Update box metadata (stage, counts)
+ *
+ * All routes require authentication (requireAuth middleware).
+ */
+
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
@@ -264,7 +286,7 @@ router.put('/:id', requireAuth, async (req, res) => {
 
 // Get boxes by lot number.
 // Accepts the lot number in any common format: "64", "Lot-64", "LOT-64", "Lot 64", etc.
-router.get('/lot/:lot_number', async (req, res) => {
+router.get('/lot/:lot_number', requireAuth, async (req, res) => {
   try {
     const { lot_number } = req.params
     const db = supabaseAdmin || supabase

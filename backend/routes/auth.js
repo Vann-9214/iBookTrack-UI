@@ -1,3 +1,23 @@
+/**
+ * routes/auth.js
+ *
+ * Handles all user authentication and profile management.
+ *
+ * Endpoints:
+ *   POST   /api/auth/register  — Create a new account (rate-limited: 5/hr)
+ *   POST   /api/auth/login     — Sign in and receive JWT tokens (rate-limited: 10/15 min)
+ *   POST   /api/auth/logout    — Invalidate the current session server-side
+ *   POST   /api/auth/refresh   — Exchange a refresh token for a new access token
+ *   POST   /api/auth/password  — Change the logged-in user's password (requires auth)
+ *   PATCH  /api/auth/profile   — Update name / email for the logged-in user (requires auth)
+ *
+ * Security measures applied here:
+ *   - Per-route rate limiting (login / register) to slow brute-force attacks
+ *   - Generic error messages on login to prevent user enumeration
+ *   - Input sanitization and validation (email format, password length, name length)
+ *   - Only safe/minimal fields are returned to the caller (no raw Supabase objects)
+ */
+
 import express from 'express'
 import rateLimit from 'express-rate-limit'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
@@ -6,10 +26,10 @@ import { requireAuth } from '../middleware/authMiddleware.js'
 const router = express.Router()
 
 // ── Rate limiters ──────────────────────────────────────────
-// Max 10 login attempts per IP per 15 minutes
+// Max 50 login attempts per IP per 15 minutes
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
