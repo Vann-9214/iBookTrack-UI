@@ -191,6 +191,21 @@ router.get('/scan-rows', requireAuth, async (req, res) => {
 })
 
 /**
+ * GET /api/scanning/transmit-rows
+ * Full Simflex rows for Transmission_Archive ONGOING today (for checkpoint modal).
+ * Returns ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated.
+ */
+router.get('/transmit-rows', requireAuth, async (req, res) => {
+  try {
+    const result = await simflexDb.getTransmitStageRows()
+    res.json({ success: true, rows: result.data || [], count: result.count })
+  } catch (error) {
+    console.error('Error in /transmit-rows:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
  * GET /api/scanning/transmitting-ongoing?date=2026-06-29
  * Get boxes currently transmitting (Transmission_Archive ONGOING) for today.
  */

@@ -69,23 +69,25 @@ export default function DashboardPage() {
       const [statsRes, pipelineRes, simflexRes] = await Promise.all([
         authFetch(statsUrl),
         authFetch(pipelineUrl),
-        authFetch(`${API_URL}/api/scanning/live`).catch((e) => { console.error('[Dashboard] /live failed:', e); return null })
+        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true`).catch((e) => { console.error('[Dashboard] /live failed:', e); return null })
       ])
       const statsData = await statsRes.json()
       const pipelineData = await pipelineRes.json()
 
-      // Get daily transmitted count + all-time total from Simflex
+      // Get daily transmitted count + all-time total from Simflex.
+      // Use the same scan-stage distinct-ISBN count as the modal row source so
+      // the dashboard Scan card matches the modal row count.
       let dailyTransmitted = 0
       let simflexAllTime = 0
       let scanBooks = 0
       let transmitBooks = 0
       if (simflexRes && simflexRes.ok) {
         const simflex = await simflexRes.json()
-        console.log('[Dashboard] /live scanBooks:', simflex.scanBooks, '| transmitBooks:', simflex.transmitBooks, '| success:', simflex.success)
+        scanBooks = simflex.scanBooks || 0
+        console.log('[Dashboard] /live scanBooks:', scanBooks, '| transmitBooks:', simflex.transmitBooks, '| success:', simflex.success)
         if (simflex.success) {
           dailyTransmitted = simflex.dailyOutput || 0
           simflexAllTime   = simflex.allTimeTotal || 0
-          scanBooks     = simflex.scanBooks     || 0
           transmitBooks = simflex.transmitBooks || 0
         }
       } else {
@@ -93,7 +95,7 @@ export default function DashboardPage() {
       }
 
       // Start with Supabase box counts for Warehouse→Storage stages,
-      // then override Scan and Transmit with exact Simflex book counts.
+      // then override the Scan and Transmit stages with exact Simflex book counts.
       const stages = {
         ...(pipelineData.stageCounts || {}),
         scan:     scanBooks,

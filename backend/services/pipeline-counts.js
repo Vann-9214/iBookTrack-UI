@@ -130,7 +130,8 @@ export async function getScanBooksCount(startDate, endDate) {
       `SELECT COUNT(DISTINCT LTRIM(RTRIM(ISBN))) AS cnt
        FROM zeusz_IsbnStatus
        WHERE ${dateFilter}
-         AND LTRIM(RTRIM(Status)) IN ${scanStatuses}`
+         AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
+         AND IsRework = 'False'`
     )
     const count = (Array.isArray(rows) ? rows : [])[0]?.cnt || 0
     return { success: true, count }
@@ -171,6 +172,7 @@ export async function getStageCounts(startDate, endDate) {
          FROM zeusz_IsbnStatus
          WHERE ${dateFilter}
            AND Status IS NOT NULL AND Status <> ''
+           AND IsRework = 'False'
        )
        SELECT StageName, Keyword, COUNT(DISTINCT ISBN) AS cnt
        FROM Parsed

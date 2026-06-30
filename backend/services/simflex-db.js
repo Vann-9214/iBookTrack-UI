@@ -489,9 +489,11 @@ export async function getOngoingTransmitBoxes(date) {
 }
 
 /**
- * Dashboard Scan stage (step 5) — counts boxes with ISBNs in any of the
+ * Dashboard Scan stage (step 5) — counts distinct ISBNs in any of the
  * pre-transmission statuses: Scanning, Validate, Tif2PDF, and Preval,
- * both ONGOING and COMPLETED.
+ * both ONGOING and COMPLETED. Filtered to "New Process Only" (IsRework = 'False')
+ * so the dashboard/Checkpoints Scan card matches the Simflex grid when the
+ * "New Process Only" checkbox is checked.
  *
  * @param {string} [startDate]
  * @param {string} [endDate]
@@ -508,21 +510,46 @@ export async function getScanStageBoxes(startDate, endDate) {
       ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
       : `CAST(ScanDate AS DATE) = '${today}'`
 
-    // Fetch all rows in scan-stage statuses — no correlated subquery,
-    // just a straight filter so nothing gets silently excluded.
+    // New-Process-Only filter: matches the Simflex grid when the checkbox is checked.
+    // IsRework = 'False' means the book is not a rework, i.e., a new process book.
+    const newProcessFilter = `AND IsRework = 'False'`
+
+    // Count distinct books (ISBNs) currently in the scan-stage WIP range.
+    const countRows = await query(
+      `SELECT COUNT(DISTINCT LTRIM(RTRIM(ISBN))) AS cnt
+       FROM zeusz_IsbnStatus
+       WHERE ${dateFilter}
+         AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
+         ${newProcessFilter}`
+    )
+    const count = (Array.isArray(countRows) ? countRows : [])[0]?.cnt || 0
+
+    // Detail rows for the modal — still filtered to New Process Only so the
+    // Simflex list matches the card count.  Keep only the latest row per ISBN
+    // so the modal row count matches the distinct-ISBN count.
     const rows = await query(
       `SELECT ISBN, BoxNumber, ScanUser, ScanMachineName AS MachineName,
               PageCount, ScanDate, Status, Updated AS LastUpdated
        FROM zeusz_IsbnStatus
        WHERE ${dateFilter}
-         AND Status IN ${scanStatuses}
+         AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
+         ${newProcessFilter}
        ORDER BY Updated DESC`
     )
-    console.log('[getScanStageBoxes] dateFilter:', dateFilter, '| rows returned:', Array.isArray(rows) ? rows.length : rows)
 
-    const data = Array.isArray(rows) ? rows : []
-    // count = number of rows returned = number of books shown in the modal
-    return { success: true, count: data.length, data }
+    const rawData = Array.isArray(rows) ? rows : []
+    const seen = new Set()
+    const data = []
+    for (const row of rawData) {
+      const isbn = String(row.ISBN || '').trim()
+      if (!isbn || seen.has(isbn)) continue
+      seen.add(isbn)
+      data.push(row)
+    }
+
+    console.log('[getScanStageBoxes] dateFilter:', dateFilter, '| newProcess=checked | count=', count, '| raw rows=', rawData.length, '| deduplicated=', data.length)
+
+    return { success: true, count, data }
   } catch (error) {
     console.error('Error fetching scan stage boxes:', error)
     return { success: false, error: error.message, count: 0, data: [] }
@@ -717,6 +744,29 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
   }
 }
 
+/**
+ * Full Simflex rows for Transmission_Archive ONGOING today (New Process Only).
+ * Returns ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated.
+ */
+export async function getTransmitStageRows() {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const rows = await query(
+      `SELECT ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated
+       FROM zeusz_IsbnStatus
+       WHERE CAST(ScanDate AS DATE) = '${today}'
+         AND LTRIM(RTRIM(Status)) = 'Transmission_Archive ONGOING'
+         AND IsRework = 'False'
+       ORDER BY Updated DESC`
+    )
+    const data = Array.isArray(rows) ? rows : []
+    return { success: true, count: data.length, data }
+  } catch (error) {
+    console.error('Error fetching transmit stage rows:', error)
+    return { success: false, error: error.message, count: 0, data: [] }
+  }
+}
+
 export default {
   getDailyOutputCount,
   getTodayScanningSummary,
@@ -731,5 +781,6 @@ export default {
   getOngoingTransmitBoxes,
   getScanStageBoxes,
   getTransmitStageBoxes,
+  getTransmitStageRows,
   getCompletedTransmissionsCount,
 }
