@@ -27,8 +27,8 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = path.dirname(__filename)
 
-// Load .env from the project root (two levels up from /backend/config/)
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+// Load .env from the backend directory (one level up from /backend/config/)
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
 
 const supabaseUrl        = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey    = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

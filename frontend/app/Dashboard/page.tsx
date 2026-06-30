@@ -90,9 +90,9 @@ export default function DashboardPage() {
 
       const stages = pipelineData.stageCounts || {}
 
-      // Use today's live Simflex transmission count for the Transmit stage.
-      // Do not fall back to the manual Supabase workflow count.
-      stages.transmit = dailyTransmitted
+      // Keep the Supabase box count for the Transmit stage so the pipeline card
+      // remains clickable and shows the real boxes waiting at that station.
+      // dailyTransmitted (Simflex ongoing) is kept separately for stats widgets.
 
       if (statsData.success) {
         setDashboardStats({ ...statsData.stats, pipelineStages: stages, dailyTransmitted, totalBooks: simflexAllTime || statsData.stats.totalBooks })

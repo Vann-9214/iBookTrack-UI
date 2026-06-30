@@ -26,10 +26,10 @@ import { requireAuth } from '../middleware/authMiddleware.js'
 const router = express.Router()
 
 // ── Rate limiters ──────────────────────────────────────────
-// Max 10 login attempts per IP per 15 minutes
+// Max 50 login attempts per IP per 15 minutes
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
