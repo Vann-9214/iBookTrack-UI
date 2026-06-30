@@ -100,18 +100,20 @@ router.get('/live', requireAuth, async (req, res) => {
     const today = new Date().toISOString().split('T')[0]
     const fromDate = req.query.from || today
     const toDate = req.query.to || today
+    const location = req.query.location || 'mustang' // 'mustang' | 'jaguar'
 
-    const [summary, byMachine, byStage, data, allTime] = await Promise.all([
-      simflexDb.getTodayScanningSummary(fromDate, toDate),
-      simflexDb.getScanningByMachine(fromDate, toDate),
-      simflexDb.getScanningByStage(fromDate, toDate),
-      simflexDb.getScanningData(fromDate, toDate),
-      simflexDb.getTotalScansAllTime()
+    const [summary, byMachine, byStage, data, allTime, completedTransmissions] = await Promise.all([
+      simflexDb.getTodayScanningSummary(fromDate, toDate, location),
+      simflexDb.getScanningByMachine(fromDate, toDate, location),
+      simflexDb.getScanningByStage(fromDate, toDate, location),
+      simflexDb.getScanningData(fromDate, toDate, location),
+      simflexDb.getTotalScansAllTime(),
+      simflexDb.getCompletedTransmissionsCount(fromDate, toDate, location)
     ])
 
     res.json({
       success: true,
-      summary: summary.data,
+      summary: { ...summary.data, completedTransmissions: completedTransmissions.count || 0 },
       byMachine: byMachine.data,
       byStage: byStage.data,
       recentScans: Array.isArray(data.data) ? data.data.slice(0, 200) : [],

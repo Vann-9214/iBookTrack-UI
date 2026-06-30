@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { authFetch } from "@/lib/auth-api"
+import { useBrand } from "@/hooks/use-brand"
 import {
   FileUp,
   CheckCircle2,
@@ -102,6 +103,8 @@ function getScanStatusBadge(scan_status: string) {
 const todayStr = () => new Date().toISOString().split('T')[0]
 
 export default function TransmissionMonitorPage() {
+  const { brand } = useBrand()
+
   // --- Live feed state ---
   const [historySearch, setHistorySearch] = useState("")
   const [machineSearch, setMachineSearch] = useState("")
@@ -168,7 +171,7 @@ export default function TransmissionMonitorPage() {
     try {
       const f = from || fromDate
       const t = to || toDate
-      const res = await authFetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}`)
+      const res = await authFetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}&location=${brand}`)
       const data = await res.json()
       if (data.success) {
         setSummary(data.summary)
@@ -182,7 +185,7 @@ export default function TransmissionMonitorPage() {
     } finally {
       setLoading(false)
     }
-  }, [fromDate, toDate])
+  }, [fromDate, toDate, brand])
 
   const fetchRanking = async () => {
     setRankingLoading(true)
@@ -228,7 +231,7 @@ export default function TransmissionMonitorPage() {
     fetchLiveData()
     const interval = setInterval(() => fetchLiveData(), 60000)
     return () => clearInterval(interval)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchLiveData])
 
   // --- LOT transmission summary fetch ---
   const fetchLotSummary = async () => {
@@ -440,25 +443,34 @@ export default function TransmissionMonitorPage() {
               </div>
             </div>
 
-            {/* Stage breakdown */}
-            {stages.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {stages.map((s: any) => (
-                  <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200">
-                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide truncate">{s.Stage.replace(/_/g, ' ')}</p>
-                    <p className="text-2xl font-black text-gray-800 mt-1">{s.Total.toLocaleString()}</p>
-                    <div className="mt-2 space-y-1.5">
-                      <Progress value={s.Total > 0 ? (s.Completed / s.Total) * 100 : 0} className="h-1.5" />
-                      <div className="flex justify-between text-[10px] font-semibold">
-                        <span className="text-green-600">✓ {s.Completed}</span>
-                        <span className="text-blue-500">↻ {s.Ongoing}</span>
-                        {s.Failed > 0 && <span className="text-red-500">✗ {s.Failed}</span>}
+            {/* Stage breakdown — fixed order matches legacy tool */}
+            {stages.length > 0 && (() => {
+              const STAGE_ORDER = ['Scanning', 'Validate', 'Tif2PDF', 'Preval', 'Transmission_Archive', 'Jaguar Validate']
+              const stageMap = Object.fromEntries(stages.map((s: any) => [s.Stage, s]))
+              // Known stages in fixed order first, then any unknown stages appended
+              const ordered = [
+                ...STAGE_ORDER.filter(n => stageMap[n]).map(n => stageMap[n]),
+                ...stages.filter((s: any) => !STAGE_ORDER.includes(s.Stage)),
+              ]
+              return (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                  {ordered.map((s: any) => (
+                    <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200">
+                      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide truncate">{s.Stage.replace(/_/g, ' ')}</p>
+                      <p className="text-2xl font-black text-gray-800 mt-1">{s.Total.toLocaleString()}</p>
+                      <div className="mt-2 space-y-1.5">
+                        <Progress value={s.Total > 0 ? (s.Completed / s.Total) * 100 : 0} className="h-1.5" />
+                        <div className="flex justify-between text-[10px] font-semibold">
+                          <span className="text-green-600">✓ {s.Completed}</span>
+                          <span className="text-blue-500">↻ {s.Ongoing}</span>
+                          {s.Failed > 0 && <span className="text-red-500">✗ {s.Failed}</span>}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )
+            })()}
 
             {/* Tabs */}
             <Tabs defaultValue="queue" className="w-full">
