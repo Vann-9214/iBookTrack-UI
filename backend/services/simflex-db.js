@@ -65,13 +65,15 @@ function safeDate(value) {
  * Sends a raw SQL script string to the Simflex API and returns the result rows.
  * Simflex returns [[row, row, ...]] — we unwrap the outer array automatically.
  *
- * @param {string} script - SQL SELECT statement (no DDL/DML allowed by API)
+ * @param {string} script    - SQL SELECT statement (no DDL/DML allowed by API)
+ * @param {string} [location] - 'mustang' (default) | 'jaguar' — selects the Simflex config
  * @returns {Array} rows
  */
-async function query(script, attempt = 1) {
+async function query(script, location = 'mustang', attempt = 1) {
+  const config = getSimflexConfig(location)
   try {
     const response = await axios.get(SIMFLEX_API_URL, {
-      params: { apiKey: SIMFLEX_API_KEY, config: SIMFLEX_CONFIG, script },
+      params: { apiKey: SIMFLEX_API_KEY, config, script },
       timeout: 20000,
       httpsAgent,
     })
@@ -85,7 +87,7 @@ async function query(script, attempt = 1) {
     const isNetworkError = err.code && ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EPIPE', 'ECONNREFUSED'].includes(err.code)
     if (isNetworkError && attempt === 1) {
       console.warn(`Simflex query network error (${err.code}), retrying once…`)
-      return query(script, 2)
+      return query(script, location, 2)
     }
     throw err
   }
@@ -139,6 +141,31 @@ const MACHINE_ID_MAP = {
   'IKSCEWKS0013762': 'JF402992',
 }
 
+// ── Location-based machine filters ───────────────────────────────────────────
+// Jaguar hostnames are those whose physical IDs start with JF4 (as per MACHINE_ID_MAP above).
+const JAGUAR_MACHINE_HOSTNAMES = Object.keys(MACHINE_ID_MAP).filter(
+  h => MACHINE_ID_MAP[h].startsWith('JF4')
+)
+// Mustang hostnames = everything in the map that is NOT Jaguar
+const MUSTANG_MACHINE_HOSTNAMES = Object.keys(MACHINE_ID_MAP).filter(
+  h => !MACHINE_ID_MAP[h].startsWith('JF4')
+)
+
+const JAGUAR_SQL_LIST  = JAGUAR_MACHINE_HOSTNAMES.map(m => `'${m}'`).join(',')
+const MUSTANG_SQL_LIST = MUSTANG_MACHINE_HOSTNAMES.map(m => `'${m}'`).join(',')
+
+/**
+ * Returns a SQL WHERE fragment that restricts rows to the given location's
+ * known scanner machines.  Unknown/unlisted machines are excluded from both
+ * locations so they don't inflate counts in either view.
+ *
+ * @param {'mustang'|'jaguar'} [location='mustang']
+ */
+function machineFilter(location = 'mustang') {
+  if (location === 'jaguar') return `ScanMachineName IN (${JAGUAR_SQL_LIST})`
+  return `ScanMachineName IN (${MUSTANG_SQL_LIST})`
+}
+
 // ── Exported query functions ──────────────────────────────────────────────────
 
 /**
@@ -154,8 +181,9 @@ const MACHINE_ID_MAP = {
  * This is the "books processed today" figure shown on the dashboard.
  *
  * @param {string} [date] - ISO date string; defaults to today
+ * @param {'mustang'|'jaguar'} [location='mustang']
  */
-export async function getDailyOutputCount(date) {
+export async function getDailyOutputCount(date, location = 'mustang') {
   try {
     const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
     // Count distinct ISBNs whose LATEST status is Transmission_Archive COMPLETED
@@ -170,7 +198,8 @@ export async function getDailyOutputCount(date) {
          GROUP BY ISBN
        ) latest ON t.ISBN = latest.ISBN AND t.Updated = latest.MaxUpdated
        WHERE t.Status = 'Transmission_Archive COMPLETED'
-         AND CAST(t.Updated AS DATE) = '${d}'`
+         AND CAST(t.Updated AS DATE) = '${d}'`,
+      location
     )
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count: data[0]?.cnt || 0 }
@@ -180,15 +209,15 @@ export async function getDailyOutputCount(date) {
   }
 }
 
-export async function getTodayScanningSummary(startDate, endDate) {
+export async function getTodayScanningSummary(startDate, endDate, location = 'mustang') {
   try {
-    // Build WHERE clause — use safeDate() to sanitize user-supplied dates.
-    const where = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+    const dateWhere = startDate && endDate
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`
+      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${dateWhere} GROUP BY Status ORDER BY cnt DESC`,
+      location
     )
     const data = Array.isArray(rows) ? rows : []
     const completed = data.filter(r => r.Status?.includes('COMPLETED')).reduce((s, r) => s + r.cnt, 0)
@@ -209,16 +238,16 @@ export async function getTodayScanningSummary(startDate, endDate) {
  * @param {string} startDate
  * @param {string} endDate
  */
-export async function getScanningData(startDate, endDate) {
+export async function getScanningData(startDate, endDate, location = 'mustang') {
   try {
-    // safeDate() both validates and normalises the input
     const start = safeDate(startDate)
     const end   = safeDate(endDate)
     const rows = await query(
       `SELECT TOP 100 ISBN, Status, ScanMachineName AS MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber
        FROM zeusz_IsbnStatus
-       WHERE CAST(ScanDate AS DATE) BETWEEN '${start}' AND '${end}'
-       ORDER BY Updated DESC`
+       WHERE CAST(DateAdded AS DATE) BETWEEN '${start}' AND '${end}'
+       ORDER BY Updated DESC`,
+      location
     )
     return { success: true, data: rows }
   } catch (error) {
@@ -235,22 +264,23 @@ export async function getScanningData(startDate, endDate) {
  * @param {string} [startDate]
  * @param {string} [endDate]
  */
-export async function getScanningByMachine(startDate, endDate) {
+export async function getScanningByMachine(startDate, endDate, location = 'mustang') {
   try {
-    const where = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+    const dateWhere = startDate && endDate
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
       `SELECT ScanMachineName AS MachineName, ScanUser AS [User], COUNT(*) AS TotalScans
        FROM zeusz_IsbnStatus
-       WHERE ${where} AND Status NOT LIKE '%FAILED%'
+       WHERE ${dateWhere} AND Status NOT LIKE '%FAILED%'
        GROUP BY ScanMachineName, ScanUser
-       ORDER BY TotalScans DESC`
+       ORDER BY TotalScans DESC`,
+      location
     )
     const data = (Array.isArray(rows) ? rows : []).map(r => ({
       MachineName: r.MachineName,
-      MachineID: MACHINE_ID_MAP[r.MachineName] || r.MachineName, // fall back to hostname if not mapped
+      MachineID: MACHINE_ID_MAP[r.MachineName] || r.MachineName,
       User: r.User,
       TotalScans: r.TotalScans,
     }))
@@ -268,29 +298,43 @@ export async function getScanningByMachine(startDate, endDate) {
  * @param {string} [startDate]
  * @param {string} [endDate]
  */
-export async function getScanningByStage(startDate, endDate) {
+export async function getScanningByStage(startDate, endDate, location = 'mustang') {
   try {
-    const where = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+    const dateWhere = startDate && endDate
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
+    // Fetch all rows for the location and date range, then deduplicate by latest
+    // status per ISBN in JavaScript (Simflex API does not support window functions).
     const rows = await query(
-      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${where} GROUP BY Status ORDER BY cnt DESC`
+      `SELECT TOP 10000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateWhere} ORDER BY Updated DESC`,
+      location
     )
     const data = Array.isArray(rows) ? rows : []
 
-    // Status format is "StageName KEYWORD" e.g. "Preval COMPLETED"
-    // Parse into a map keyed by stage name
+    // Keep only the most-recent row per ISBN
+    const latestByIsbn = new Map()
+    for (const r of data) {
+      const isbn = r.ISBN
+      if (!isbn) continue
+      const existing = latestByIsbn.get(isbn)
+      if (!existing || new Date(r.Updated) > new Date(existing.Updated)) {
+        latestByIsbn.set(isbn, r)
+      }
+    }
+
+    // Build stage breakdown — Status format: "StageName KEYWORD" e.g. "Preval COMPLETED"
     const stageMap = {}
-    data.forEach(r => {
+    for (const r of latestByIsbn.values()) {
       const parts = r.Status ? r.Status.split(' ') : []
-      const statusWord = parts[parts.length - 1]              // COMPLETED / ONGOING / FAILED
-      const stage      = parts.slice(0, parts.length - 1).join(' ') // e.g. "Preval"
+      const statusWord = parts[parts.length - 1]
+      const stage      = parts.slice(0, parts.length - 1).join(' ')
       if (!stageMap[stage]) stageMap[stage] = { Stage: stage, Total: 0, Completed: 0, Ongoing: 0, Failed: 0 }
-      if (statusWord === 'COMPLETED') { stageMap[stage].Completed += r.cnt; stageMap[stage].Total += r.cnt }
-      else if (statusWord === 'ONGOING')  { stageMap[stage].Ongoing  += r.cnt; stageMap[stage].Total += r.cnt }
-      else if (statusWord === 'FAILED')     stageMap[stage].Failed  += r.cnt  // tracked but excluded from Total
-    })
+      stageMap[stage].Total += 1
+      if (statusWord === 'COMPLETED') stageMap[stage].Completed += 1
+      else if (statusWord === 'ONGOING') stageMap[stage].Ongoing += 1
+      else if (statusWord === 'FAILED')  stageMap[stage].Failed  += 1
+    }
     return { success: true, data: Object.values(stageMap) }
   } catch (error) {
     console.error('Error fetching stage stats:', error)
@@ -616,6 +660,53 @@ export async function getSimflexStatusForISBNs(isbns) {
   }
 }
 
+/**
+ * Count books added in the requested date range (for the given location) whose
+ * latest Simflex status is Transmission_Archive COMPLETED.
+ *
+ * Matches the legacy tool logic:
+ *   - Date filter on DateAdded (the day the ISBN was registered in Simflex)
+ *   - Uses the correct Simflex config (database) per location — no machine hostname filter needed
+ *   - Deduplicates by latest-status-per-ISBN in JavaScript (Simflex API has no window functions)
+ *
+ * @param {string} [startDate]
+ * @param {string} [endDate]
+ * @param {'mustang'|'jaguar'} [location='mustang']
+ */
+export async function getCompletedTransmissionsCount(startDate, endDate, location = 'mustang') {
+  try {
+    const dateFilter = startDate && endDate
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+
+    const rows = await query(
+      `SELECT TOP 5000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateFilter} ORDER BY Updated DESC`,
+      location
+    )
+    const data = Array.isArray(rows) ? rows : []
+
+    // Resolve the latest status per ISBN so duplicate/historical rows are not double-counted
+    const latestByIsbn = new Map()
+    for (const r of data) {
+      const isbn = r.ISBN
+      if (!isbn) continue
+      const existing = latestByIsbn.get(isbn)
+      if (!existing || new Date(r.Updated) > new Date(existing.Updated)) {
+        latestByIsbn.set(isbn, r)
+      }
+    }
+
+    const completed = [...latestByIsbn.values()].filter(
+      r => r.Status === 'Transmission_Archive COMPLETED'
+    ).length
+
+    return { success: true, count: completed }
+  } catch (error) {
+    console.error('Error fetching completed transmissions count:', error)
+    return { success: false, count: 0, error: error.message }
+  }
+}
+
 export default {
   getDailyOutputCount,
   getTodayScanningSummary,
@@ -630,4 +721,5 @@ export default {
   getOngoingTransmitBoxes,
   getScanStageBoxes,
   getTransmitStageBoxes,
+  getCompletedTransmissionsCount,
 }
