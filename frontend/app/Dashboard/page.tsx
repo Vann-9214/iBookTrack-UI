@@ -75,16 +75,16 @@ export default function DashboardPage() {
       const pipelineData = await pipelineRes.json()
 
       // Get daily transmitted count + all-time total from Simflex.
-      // Use the same scan-stage distinct-ISBN count as the modal row source so
-      // the dashboard Scan card matches the modal row count.
+      // Use the same scan-pipeline WIP total as the Transmission Monitor so the
+      // dashboard Scan card matches the "checked new process only" figure.
       let dailyTransmitted = 0
       let simflexAllTime = 0
-      let scanBooks = 0
+      let scanWipCount = 0
       let transmitBooks = 0
       if (simflexRes && simflexRes.ok) {
         const simflex = await simflexRes.json()
-        scanBooks = simflex.scanBooks || 0
-        console.log('[Dashboard] /live scanBooks:', scanBooks, '| transmitBooks:', simflex.transmitBooks, '| success:', simflex.success)
+        scanWipCount = simflex.scanWipCount || 0
+        console.log('[Dashboard] /live scanWipCount:', scanWipCount, '| transmitBooks:', simflex.transmitBooks, '| success:', simflex.success)
         if (simflex.success) {
           dailyTransmitted = simflex.dailyOutput || 0
           simflexAllTime   = simflex.allTimeTotal || 0
@@ -98,7 +98,7 @@ export default function DashboardPage() {
       // then override the Scan and Transmit stages with exact Simflex book counts.
       const stages = {
         ...(pipelineData.stageCounts || {}),
-        scan:     scanBooks,
+        scan:     scanWipCount,
         transmit: transmitBooks,
       }
 

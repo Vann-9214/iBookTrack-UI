@@ -126,6 +126,12 @@ router.get('/live', requireAuth, async (req, res) => {
     console.log('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
     const scanBooks = scanStageResult.count || 0
 
+    // Scan-pipeline WIP total — matches the Transmission Monitor "New Process Only" figure.
+    const SCAN_STAGES = ['Scanning', 'Validate', 'Tif2PDF', 'Preval']
+    const scanWipCount = byStage.data?.reduce((sum, s) => {
+      return SCAN_STAGES.includes(s.Stage) ? sum + (s.Total || 0) : sum
+    }, 0) || 0
+
     // Distinct ISBNs currently transmitting — ONGOING only, not COMPLETED.
     const transmitStage = (stageCounts.stages || []).find(s => s.stage === 'Transmission_Archive')
     const transmitBooks = transmitStage ? transmitStage.Ongoing : 0
@@ -139,6 +145,7 @@ router.get('/live', requireAuth, async (req, res) => {
       allTimeTotal: allTime.total || 0,
       dailyOutput: dailyOutput.count || 0,
       scanBooks,
+      scanWipCount,
       transmitBooks,
       allBooks: allBooks.books || [],
       totalBooks: allBooks.totalBooks || 0,

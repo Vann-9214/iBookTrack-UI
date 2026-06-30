@@ -745,29 +745,6 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
 }
 
 /**
- * Full Simflex rows for Transmission_Archive ONGOING today (New Process Only).
- * Returns ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated.
- */
-export async function getTransmitStageRows() {
-  try {
-    const today = new Date().toISOString().split('T')[0]
-    const rows = await query(
-      `SELECT ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated
-       FROM zeusz_IsbnStatus
-       WHERE CAST(ScanDate AS DATE) = '${today}'
-         AND LTRIM(RTRIM(Status)) = 'Transmission_Archive ONGOING'
-         AND IsRework = 'False'
-       ORDER BY Updated DESC`
-    )
-    const data = Array.isArray(rows) ? rows : []
-    return { success: true, count: data.length, data }
-  } catch (error) {
-    console.error('Error fetching transmit stage rows:', error)
-    return { success: false, error: error.message, count: 0, data: [] }
-  }
-}
-
-/**
  * Return the full deduplicated list of ISBNs added today (or in a date range),
  * enriched with their latest Simflex status.
  * Used to power the Books / WIP toggle on the Transmission Monitor live feed.
@@ -821,6 +798,29 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
   } catch (error) {
     console.error('Error fetching all books today:', error)
     return { success: false, books: [], totalBooks: 0, wipCount: 0, error: error.message }
+  }
+}
+
+/**
+ * Full Simflex rows for Transmission_Archive ONGOING today (New Process Only).
+ * Returns ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated.
+ */
+export async function getTransmitStageRows() {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const rows = await query(
+      `SELECT ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated
+       FROM zeusz_IsbnStatus
+       WHERE CAST(ScanDate AS DATE) = '${today}'
+         AND LTRIM(RTRIM(Status)) = 'Transmission_Archive ONGOING'
+         AND IsRework = 'False'
+       ORDER BY Updated DESC`
+    )
+    const data = Array.isArray(rows) ? rows : []
+    return { success: true, count: data.length, data }
+  } catch (error) {
+    console.error('Error fetching transmit stage rows:', error)
+    return { success: false, error: error.message, count: 0, data: [] }
   }
 }
 

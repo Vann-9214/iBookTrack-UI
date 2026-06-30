@@ -155,7 +155,7 @@ export default function StationCheckpointsPage() {
       if (liveRes && liveRes.ok) {
         const liveData = await liveRes.json()
         if (liveData.success) {
-          setScanBooks(liveData.scanBooks ?? null)
+          setScanBooks(liveData.scanWipCount ?? null)
           setTransmitBooks(liveData.transmitBooks ?? null)
         }
       }
