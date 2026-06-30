@@ -19,6 +19,7 @@
 
 import express from 'express'
 import simflexDb from '../services/simflex-db.js'
+import pipelineCounts from '../services/pipeline-counts.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
@@ -101,13 +102,29 @@ router.get('/live', requireAuth, async (req, res) => {
     const fromDate = req.query.from || today
     const toDate = req.query.to || today
 
-    const [summary, byMachine, byStage, data, allTime] = await Promise.all([
+    const [summary, byMachine, byStage, data, allTime, dailyOutput, stageCounts] = await Promise.all([
       simflexDb.getTodayScanningSummary(fromDate, toDate),
       simflexDb.getScanningByMachine(fromDate, toDate),
       simflexDb.getScanningByStage(fromDate, toDate),
       simflexDb.getScanningData(fromDate, toDate),
-      simflexDb.getTotalScansAllTime()
+      simflexDb.getTotalScansAllTime(),
+      simflexDb.getDailyOutputCount(fromDate === toDate ? fromDate : undefined),
+      pipelineCounts.getStageCounts(fromDate, toDate),
     ])
+
+    // Use the same query as the raw-rows endpoint so the pipeline card
+    // count always matches exactly what appears in the modal row list.
+    // Only filter by date when the caller explicitly passes a range; otherwise
+    // return the full scan-stage dataset so the dashboard matches the modal.
+    const scanStageResult = req.query.from && req.query.to
+      ? await simflexDb.getScanStageBoxes(fromDate, toDate)
+      : await simflexDb.getScanStageBoxes()
+    console.log('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
+    const scanBooks = scanStageResult.count || 0
+
+    // Distinct ISBNs currently transmitting — ONGOING only, not COMPLETED.
+    const transmitStage = (stageCounts.stages || []).find(s => s.stage === 'Transmission_Archive')
+    const transmitBooks = transmitStage ? transmitStage.Ongoing : 0
 
     res.json({
       success: true,
@@ -115,7 +132,10 @@ router.get('/live', requireAuth, async (req, res) => {
       byMachine: byMachine.data,
       byStage: byStage.data,
       recentScans: Array.isArray(data.data) ? data.data.slice(0, 200) : [],
-      allTimeTotal: allTime.total || 0
+      allTimeTotal: allTime.total || 0,
+      dailyOutput: dailyOutput.count || 0,
+      scanBooks,
+      transmitBooks,
     })
   } catch (error) {
     console.error('Error in /live:', error)
@@ -133,6 +153,36 @@ router.get('/transmitting-boxes', requireAuth, async (req, res) => {
     res.json(result)
   } catch (error) {
     console.error('Error in /transmitting-boxes:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * GET /api/scanning/stage-counts?from=2026-06-30&to=2026-06-30
+ * Per-stage ISBN counts for today (or a custom date range).
+ * Returns Completed / Ongoing / Failed / Total for each of the 5 pipeline stages.
+ */
+router.get('/stage-counts', requireAuth, async (req, res) => {
+  try {
+    const { from, to } = req.query
+    const result = await pipelineCounts.getStageCounts(from, to)
+    res.json(result)
+  } catch (error) {
+    console.error('Error in /stage-counts:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * GET /api/scanning/scan-rows
+ * Raw rows for all scan-stage statuses today (for debug modal).
+ */
+router.get('/scan-rows', requireAuth, async (req, res) => {
+  try {
+    const result = await simflexDb.getScanStageBoxes()
+    res.json({ success: true, rows: result.data || [], count: result.count })
+  } catch (error) {
+    console.error('Error in /scan-rows:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

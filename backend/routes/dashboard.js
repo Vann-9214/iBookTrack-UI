@@ -14,6 +14,7 @@
 
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
+import simflexDb from '../services/simflex-db.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
@@ -447,6 +448,37 @@ router.get('/unaccounted-books', async (req, res) => {
   }
 })
 
+// Get active Simflex boxes for a dashboard pipeline stage (Mustang by default)
+// scan  → ISBNs in Scanning/Validate/Tif2PDF/Preval (ONGOING + COMPLETED)
+// transmit → ISBNs in Transmission_Archive ONGOING
+router.get('/simflex-active', requireAuth, async (req, res) => {
+  try {
+    const { stage } = req.query
+    if (!stage || !['scan', 'transmit'].includes(stage)) {
+      return res.status(400).json({ success: false, error: 'stage must be scan or transmit' })
+    }
+
+    const result = stage === 'scan'
+      ? await simflexDb.getScanStageBoxes(req.query.from, req.query.to)
+      : await simflexDb.getTransmitStageBoxes(req.query.from, req.query.to)
+
+    if (!result.success) return res.status(502).json(result)
+
+    res.json({
+      success: true,
+      count: result.count,
+      boxes: result.data.map(r => ({
+        isbn: r.ISBN,
+        status: r.Status,
+        lastUpdated: r.LastUpdated,
+      })),
+    })
+  } catch (error) {
+    console.error('Get Simflex active boxes error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Get pipeline stage counts
 router.get('/pipeline-stats', async (req, res) => {
   try {
@@ -496,6 +528,20 @@ router.get('/pipeline-stats', async (req, res) => {
       if (box.current_stage === 'storage' && assignedBoxIds.has(box.id)) return
       stageCounts[box.current_stage]++
     })
+
+    // Scan and Transmit stages are driven by live Simflex status (default Mustang), not Supabase.
+    try {
+      const [scanResult, transmitResult] = await Promise.all([
+        simflexDb.getScanStageBoxes(),
+        simflexDb.getTransmitStageBoxes(),
+      ])
+      stageCounts.scan = scanResult.success ? scanResult.count : 0
+      stageCounts.transmit = transmitResult.success ? transmitResult.count : 0
+    } catch (simflexError) {
+      console.warn('Simflex stage count failed:', simflexError.message)
+      stageCounts.scan = 0
+      stageCounts.transmit = 0
+    }
 
     res.json({ stageCounts })
   } catch (error) {

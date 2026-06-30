@@ -69,7 +69,7 @@ export default function DashboardPage() {
       const [statsRes, pipelineRes, simflexRes] = await Promise.all([
         authFetch(statsUrl),
         authFetch(pipelineUrl),
-        authFetch(`${API_URL}/api/scanning/live`).catch(() => null)
+        authFetch(`${API_URL}/api/scanning/live`).catch((e) => { console.error('[Dashboard] /live failed:', e); return null })
       ])
       const statsData = await statsRes.json()
       const pipelineData = await pipelineRes.json()
@@ -77,18 +77,28 @@ export default function DashboardPage() {
       // Get daily transmitted count + all-time total from Simflex
       let dailyTransmitted = 0
       let simflexAllTime = 0
+      let scanBooks = 0
+      let transmitBooks = 0
       if (simflexRes && simflexRes.ok) {
         const simflex = await simflexRes.json()
+        console.log('[Dashboard] /live scanBooks:', simflex.scanBooks, '| transmitBooks:', simflex.transmitBooks, '| success:', simflex.success)
         if (simflex.success) {
-          if (simflex.byStage) {
-            const transmitStage = simflex.byStage.find((s: any) => s.Stage === 'Transmission_Archive')
-            dailyTransmitted = transmitStage?.Ongoing || 0
-          }
-          simflexAllTime = simflex.allTimeTotal || 0
+          dailyTransmitted = simflex.dailyOutput || 0
+          simflexAllTime   = simflex.allTimeTotal || 0
+          scanBooks     = simflex.scanBooks     || 0
+          transmitBooks = simflex.transmitBooks || 0
         }
+      } else {
+        console.warn('[Dashboard] simflexRes not ok:', simflexRes?.status)
       }
 
-      const stages = pipelineData.stageCounts || {}
+      // Start with Supabase box counts for Warehouse→Storage stages,
+      // then override Scan and Transmit with exact Simflex book counts.
+      const stages = {
+        ...(pipelineData.stageCounts || {}),
+        scan:     scanBooks,
+        transmit: transmitBooks,
+      }
 
       // Keep the Supabase box count for the Transmit stage so the pipeline card
       // remains clickable and shows the real boxes waiting at that station.

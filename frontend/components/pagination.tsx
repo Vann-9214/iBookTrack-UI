@@ -86,10 +86,12 @@ export function Pagination({
                 </>
               )}
 
-              {Array.from(
-                { length: Math.min(5, totalPages) },
-                (_, i) => Math.max(1, currentPage - 2 + i)
-              ).map((page) => (
+              {[...new Set(
+                Array.from(
+                  { length: Math.min(5, totalPages) },
+                  (_, i) => Math.min(Math.max(1, currentPage - 2 + i), totalPages)
+                )
+              )].map((page) => (
                 <button
                   key={page}
                   onClick={() => onPageChange(page)}
