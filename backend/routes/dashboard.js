@@ -1,3 +1,17 @@
+/**
+ * routes/dashboard.js
+ *
+ * Provides aggregated statistics and live notifications for the main dashboard.
+ *
+ * Endpoints:
+ *   GET /api/dashboard/stats         — Summary counts: boxes, books, transmitted, QC flags, active lots
+ *                                      Supports optional filtering by lot_number or lot range
+ *   GET /api/dashboard/qc-flags      — List of all open QC flags (books flagged for issues)
+ *   GET /api/dashboard/notifications — Live feed of recent transmission, pipeline, scan, and unaccounted events
+ *
+ * All routes require authentication (requireAuth middleware).
+ */
+
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
@@ -55,7 +69,7 @@ function buildNotification(payload) {
 }
 
 // Get dashboard stats
-router.get('/stats', async (req, res) => {
+router.get('/stats', requireAuth, async (req, res) => {
   try {
     const { lot_number, lot_range_start, lot_range_end } = req.query
     const db = supabaseAdmin || supabase

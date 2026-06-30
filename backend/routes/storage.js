@@ -1,8 +1,33 @@
+/**
+ * routes/storage.js
+ *
+ * Manages the physical storage locator system — racks, levels, and
+ * box-to-slot assignments inside the storage room.
+ *
+ * The storage room is organized into sections → racks (A/B/C/D) → levels (1–4).
+ * Each rack/level slot has a capacity (default 38 boxes).
+ *
+ * Endpoints:
+ *   GET    /api/storage/locations              — All rack/level slots with assigned boxes and their ISBNs
+ *   POST   /api/storage/locations/provision    — Bulk-create all 16 slots for a storage section
+ *   PATCH  /api/storage/locations/:id          — Update the capacity of a slot
+ *   DELETE /api/storage/locations/:id          — Delete a slot (cascades to assignments)
+ *   GET    /api/storage/ready-boxes            — Boxes in 'storage' stage not yet assigned to a slot
+ *   POST   /api/storage/assign                 — Assign a single box to a slot
+ *   POST   /api/storage/assign/batch           — Bulk-assign multiple boxes to a slot
+ *   DELETE /api/storage/assignment/:id         — Remove a box from its slot
+ *   DELETE /api/storage/assignments/batch      — Bulk-remove multiple boxes from their slots
+ *   GET    /api/storage/search                 — Find a box's location by ISBN or box number
+ *
+ * All routes require authentication (requireAuth middleware).
+ */
+
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
+// Always prefer the admin client (bypasses RLS) for storage operations
 const db = () => supabaseAdmin || supabase
 
 // ─── GET /api/storage/locations ──────────────────────────────────────────────

@@ -1,3 +1,26 @@
+/**
+ * routes/books.js
+ *
+ * Manages the books (ISBNs) tracked inside iBookTrack.
+ *
+ * Endpoints:
+ *   GET    /api/books                   — List all books (filterable by box_id, isbn, status)
+ *   GET    /api/books/isbn/:isbn        — Look up a single book by ISBN
+ *   GET    /api/books/identify/:isbn    — Identify which project (Mustang/Jaguar) an ISBN belongs to via dual iLMS query
+ *   GET    /api/books/ilms/search/:isbn — Search the iLMS catalog for a book by ISBN
+ *   GET    /api/books/flags             — Get existing QC flags for a set of scan IDs
+ *   POST   /api/books                   — Manually create a new book record
+ *   POST   /api/books/scan              — Scan a book (for Inventory Gate; logs to scan_history)
+ *   POST   /api/books/:id/transmit      — Mark a book as transmitted to the client
+ *   POST   /api/books/:id/unaccounted   — Flag a book as unaccounted and log it
+ *   POST   /api/books/scan/:id/print    — Mark a book's slip as printed
+ *   POST   /api/books/:id/flag         — Add a QC flag to a scanned book
+ *   PUT    /api/books/:id              — Update allowed fields on a book (allowlisted)
+ *   DELETE /api/books/:id/flag         — Remove a QC flag from a book
+ *
+ * All routes require authentication (requireAuth middleware).
+ */
+
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
@@ -122,15 +145,27 @@ router.post('/', requireAuth, async (req, res) => {
   }
 })
 
-// Update book
+// Update book — only the explicitly listed fields can be changed via this route.
+// This prevents callers from overwriting controlled fields like is_transmitted or status.
 router.put('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
-    const updateData = { ...req.body }
 
-    // Remove fields that shouldn't be updated directly
-    delete updateData.id
-    delete updateData.created_at
+    // Allowlist: only these fields may be updated through this generic endpoint.
+    // Status / transmission fields must be changed through their dedicated routes.
+    const ALLOWED_FIELDS = [
+      'title', 'description', 'project_name', 'book_type', 'publisher',
+      'language', 'page_count', 'condition', 'date_purchased', 'date_catalogued',
+      'box_id', 'barcode', 'notes'
+    ]
+    const updateData = {}
+    for (const field of ALLOWED_FIELDS) {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field]
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No valid fields provided for update.' })
+    }
 
     const { data, error } = await supabase
       .from('books')
@@ -300,7 +335,7 @@ router.get('/identify/:isbn', requireAuth, async (req, res) => {
 })
 
 // Test iLMS API - Search book by ISBN from client's system
-router.get('/ilms/search/:isbn', async (req, res) => {
+router.get('/ilms/search/:isbn', requireAuth, async (req, res) => {
   try {
     const { isbn } = req.params
 

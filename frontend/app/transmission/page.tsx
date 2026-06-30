@@ -168,7 +168,7 @@ export default function TransmissionMonitorPage() {
     try {
       const f = from || fromDate
       const t = to || toDate
-      const res = await fetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}`)
+      const res = await authFetch(`${API_URL}/api/scanning/live?from=${f}&to=${t}`)
       const data = await res.json()
       if (data.success) {
         setSummary(data.summary)
@@ -187,7 +187,7 @@ export default function TransmissionMonitorPage() {
   const fetchRanking = async () => {
     setRankingLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/scanning/ranking`)
+      const res = await authFetch(`${API_URL}/api/scanning/ranking`)
       const data = await res.json()
       if (data.success) setRanking(data)
     } catch (e) {
@@ -200,7 +200,7 @@ export default function TransmissionMonitorPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await fetch(`${API_URL}/api/scanning/export?date=${fromDate}`)
+      const res = await authFetch(`${API_URL}/api/scanning/export?date=${fromDate}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

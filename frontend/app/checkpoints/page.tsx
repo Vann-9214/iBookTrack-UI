@@ -123,8 +123,6 @@ export default function StationCheckpointsPage() {
       ])
       const boxData = await boxRes.json()
       const transData = await transRes.json()
-      console.log('[Checkpoints] boxes response:', boxData)
-      console.log('[Checkpoints] transitions response:', transData)
       
       // Only update state if data actually changed
       if (boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
