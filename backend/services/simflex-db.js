@@ -405,8 +405,9 @@ export async function getTotalScansAllTime() {
  * Returns overall totals as well as the per-user ranked list.
  *
  * @param {string} [date] - ISO date string; defaults to today
+ * @param {'mustang'|'jaguar'} [location='mustang']
  */
-export async function getScanningRanking(date) {
+export async function getScanningRanking(date, location = 'mustang') {
   try {
     const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
     const rows = await query(
@@ -414,7 +415,8 @@ export async function getScanningRanking(date) {
        FROM zeusz_IsbnStatus
        WHERE CAST(ScanDate AS DATE) = '${d}' AND ScanUser IS NOT NULL AND Status NOT LIKE '%FAILED%'
        GROUP BY ScanUser
-       ORDER BY Books DESC`
+       ORDER BY Books DESC`,
+      location
     )
     const data = Array.isArray(rows) ? rows : []
     const maxBooks = data[0]?.Books || 1
@@ -447,15 +449,17 @@ export async function getScanningRanking(date) {
  * Used for CSV export from the scanning page.
  *
  * @param {string} [date] - ISO date string; defaults to today
+ * @param {'mustang'|'jaguar'} [location='mustang']
  */
-export async function getScanningExportData(date) {
+export async function getScanningExportData(date, location = 'mustang') {
   try {
     const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
     const rows = await query(
       `SELECT TOP 5000 ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, ScanMachineName AS Machine, Updated
        FROM zeusz_IsbnStatus
        WHERE CAST(ScanDate AS DATE) = '${d}'
-       ORDER BY Updated DESC`
+       ORDER BY Updated DESC`,
+      location
     )
     return { success: true, data: Array.isArray(rows) ? rows : [] }
   } catch (error) {
@@ -473,8 +477,9 @@ export async function getScanningExportData(date) {
  *
  * @param {string} [startDate]
  * @param {string} [endDate]
+ * @param {'mustang'|'jaguar'} [location='mustang']
  */
-export async function getScanStageBoxes(startDate, endDate) {
+export async function getScanStageBoxes(startDate, endDate, location = 'mustang') {
   try {
     const scanStatuses = `('Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Jaguar Validate ONGOING', 'Jaguar Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED')`
     // Note: both Validate and Jaguar Validate are included; they are normalized
@@ -498,7 +503,8 @@ export async function getScanStageBoxes(startDate, endDate) {
        FROM zeusz_IsbnStatus
        WHERE ${dateFilter}
          AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
-         ${newProcessFilter}`
+         ${newProcessFilter}`,
+      location
     )
     const count = (Array.isArray(countRows) ? countRows : [])[0]?.cnt || 0
 
@@ -512,7 +518,8 @@ export async function getScanStageBoxes(startDate, endDate) {
        WHERE ${dateFilter}
          AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
          ${newProcessFilter}
-       ORDER BY Updated DESC`
+       ORDER BY Updated DESC`,
+      location
     )
 
     const rawData = (Array.isArray(rows) ? rows : [])
@@ -590,6 +597,7 @@ export async function getTransmitStageBoxes(startDate, endDate) {
  * ISBNs not found in Simflex are returned with transmissionCompleted: false.
  *
  * @param {string[]} isbns
+ * @param {'mustang'|'jaguar'} [location='mustang']
  * @returns {{ success: boolean, data: Array<{
  *   isbn: string,
  *   transmissionCompleted: boolean,
@@ -600,7 +608,7 @@ export async function getTransmitStageBoxes(startDate, endDate) {
  *   statuses: string[]
  * }> }}
  */
-export async function getSimflexStatusForISBNs(isbns) {
+export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
   try {
     if (!isbns || isbns.length === 0) return { success: true, data: [] }
 
@@ -615,7 +623,8 @@ export async function getSimflexStatusForISBNs(isbns) {
       `SELECT ISBN, Status, ScanDate, Updated, PageCount, ScanUser, BoxNumber
        FROM zeusz_IsbnStatus
        WHERE ISBN IN (${safelist})
-       ORDER BY Updated DESC`
+       ORDER BY Updated DESC`,
+      location
     )
 
     const data = Array.isArray(rows) ? rows : []
@@ -787,8 +796,10 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
 /**
  * Full Simflex rows for Transmission_Archive ONGOING today (New Process Only).
  * Returns ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated.
+ *
+ * @param {'mustang'|'jaguar'} [location='mustang']
  */
-export async function getTransmitStageRows() {
+export async function getTransmitStageRows(location = 'mustang') {
   try {
     const today = new Date().toISOString().split('T')[0]
     const rows = await query(
@@ -797,7 +808,8 @@ export async function getTransmitStageRows() {
        WHERE CAST(ScanDate AS DATE) = '${today}'
          AND LTRIM(RTRIM(Status)) = 'Transmission_Archive ONGOING'
          AND IsRework = 'False'
-       ORDER BY Updated DESC`
+       ORDER BY Updated DESC`,
+      location
     )
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count: data.length, data }

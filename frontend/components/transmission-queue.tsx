@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table"
 import { CheckCircle2, RotateCcw, RefreshCw } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
+import { useBrand } from "@/hooks/use-brand"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -53,13 +54,14 @@ function formatTime(val: string) {
 }
 
 export function TransmissionQueue() {
+  const { brand } = useBrand()
   const [scans, setScans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<string>('')
 
   const fetchLive = async () => {
     try {
-      const res = await authFetch(`${API_URL}/api/scanning/live`)
+      const res = await authFetch(`${API_URL}/api/scanning/live?location=${brand}`)
       const data = await res.json()
       if (data.success && data.recentScans) {
         setScans(data.recentScans.slice(0, 10))
@@ -76,7 +78,7 @@ export function TransmissionQueue() {
     fetchLive()
     const interval = setInterval(fetchLive, 8000)
     return () => clearInterval(interval)
-  }, [])
+  }, [brand])
 
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
