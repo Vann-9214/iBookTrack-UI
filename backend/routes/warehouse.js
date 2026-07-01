@@ -32,7 +32,7 @@ const router = express.Router()
 // Start a new warehouse receiving session
 router.post('/sessions/start', requireAuth, async (req, res) => {
   try {
-    const { lot_number, box_id } = req.body
+    const { lot_number, box_id, box_number: requestedBoxNumber } = req.body
 
     if (!lot_number) {
       return res.status(400).json({ error: 'lot_number is required' })
@@ -72,6 +72,39 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       if (selectedBox && selectedBox.lot_id === lot.id) {
         assignedBoxId = selectedBox.id
       }
+    }
+
+    // If no existing box found but a box_number was provided, create the box with the requested name
+    if (!assignedBoxId && requestedBoxNumber) {
+      // Use the box_number from the dropdown selection as the box name
+      const boxName = `Box ${requestedBoxNumber}`
+      const { data: newBox, error: boxCreateError } = await supabaseAdmin
+        .from('boxes')
+        .insert({
+          box_number: boxName,
+          lot_id: lot.id,
+          box_type: 'processable',
+          current_stage: 'warehouse',
+          total_books_expected: 0,
+          is_sealed: false
+        })
+        .select()
+        .single()
+
+      if (boxCreateError) throw boxCreateError
+      assignedBoxId = newBox.id
+
+      // Increment total_boxes in lots table
+      const { data: currentLot } = await supabaseAdmin
+        .from('lots')
+        .select('total_boxes')
+        .eq('id', lot.id)
+        .single()
+      
+      await supabaseAdmin
+        .from('lots')
+        .update({ total_boxes: (currentLot?.total_boxes || 0) + 1 })
+        .eq('id', lot.id)
     }
 
     // Create warehouse session — use selected box if provided, otherwise create on first scan
@@ -173,7 +206,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
           lot_id: lotId,
           box_type: boxType,
           current_stage: 'warehouse',
-          total_books: 0,
+          total_books_expected: 0,
           is_sealed: false
         })
         .select()
@@ -255,18 +288,18 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     // warehouse_book_scans is the source of truth — no books table writes needed
 
-    // Update box counts (use admin to bypass RLS)
+    // Update box counts (use admin to bypass RLS) — increment books_received
     if (assignedBoxId) {
       const { data: boxData } = await supabaseAdmin
         .from('boxes')
-        .select('total_books')
+        .select('books_received')
         .eq('id', assignedBoxId)
         .single()
       
       if (boxData) {
         await supabaseAdmin
           .from('boxes')
-          .update({ total_books: (boxData.total_books || 0) + 1 })
+          .update({ books_received: (boxData.books_received || 0) + 1 })
           .eq('id', assignedBoxId)
       }
     }
@@ -275,7 +308,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
       scanLog,
       currentBox: currentBox ? {
         box_number: currentBox.box_number,
-        total_books: (currentBox.total_books || 0) + 1,
+        books_received: (currentBox.books_received || 0) + 1,
         is_sealed: currentBox.is_sealed
       } : null
     })
@@ -289,6 +322,24 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
   try {
     const { session_id } = req.params
+    const { total_books_expected, issues } = req.body
+
+    // Get session to find the associated box
+    const { data: session, error: sessionFetchError } = await supabaseAdmin
+      .from('warehouse_sessions')
+      .select('*')
+      .eq('id', session_id)
+      .single()
+
+    if (sessionFetchError) throw sessionFetchError
+
+    // Update total_books_expected on the associated box
+    if (session.box_id && total_books_expected) {
+      await supabaseAdmin
+        .from('boxes')
+        .update({ total_books_expected: parseInt(total_books_expected) })
+        .eq('id', session.box_id)
+    }
 
     const { data, error } = await supabaseAdmin
       .from('warehouse_sessions')

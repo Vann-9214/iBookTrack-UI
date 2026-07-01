@@ -45,7 +45,7 @@ Shipment (SHIP-2025-001)
 
 **boxes**
 - Unique boxes within lots
-- Fields: box_number, lot_id, total_books, books_received, books_transmitted, current_stage
+- Fields: box_number, lot_id, total_books_expected, books_received, books_transmitted, current_stage
 
 **books**
 - Individual book records

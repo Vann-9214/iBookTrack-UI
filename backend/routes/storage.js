@@ -43,7 +43,7 @@ router.get('/locations', requireAuth, async (req, res) => {
           assigned_at,
           assigned_by_name,
           box:boxes(
-            id, box_number, total_books, lot_id,
+            id, box_number, total_books_expected, lot_id,
             lot:lots(lot_number),
             scans:warehouse_book_scans(isbn, title, scan_status)
           )
@@ -68,7 +68,7 @@ router.get('/locations', requireAuth, async (req, res) => {
         box_id: a.box?.id,
         box_number: a.box?.box_number,
         lot_number: a.box?.lot?.lot_number || null,
-        total_books: a.box?.total_books || 0,
+        total_books: a.box?.total_books_expected || 0,
         books: (a.box?.scans || [])
           .filter(s => s.scan_status === 'processable')
           .map(s => ({ isbn: s.isbn, title: s.title || `ISBN: ${s.isbn}` })),
@@ -215,7 +215,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
     let query = db()
       .from('boxes')
       .select(`
-        id, box_number, total_books, lot_id,
+        id, box_number, total_books_expected, lot_id,
         lot:lots(lot_number),
         scans:warehouse_book_scans(isbn, title, scan_status)
       `)
@@ -233,7 +233,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
       id: b.id,
       box_number: b.box_number,
       lot_number: b.lot?.lot_number || null,
-      total_books: b.total_books || 0,
+      total_books: b.total_books_expected || 0,
       books: (b.scans || [])
         .filter(s => s.scan_status === 'processable')
         .map(s => ({ isbn: s.isbn, title: s.title || `ISBN: ${s.isbn}` })),

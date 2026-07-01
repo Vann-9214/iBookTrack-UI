@@ -27,7 +27,7 @@ interface Box {
   id: string
   box_number: string
   lot_id: string
-  total_books: number
+  total_books_expected: number
   books_received: number
   books_transmitted: number
   current_stage: string
@@ -517,7 +517,7 @@ export default function InventoryPage() {
               <div style={{ borderRight: '1px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid #111', background: 'transparent', display: 'inline-block' }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books || '—'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books_expected || '—'}</div>
             </div>
             {/* Rows 2-5 – empty circle, no book count (filled manually) */}
             {printProcessRows.slice(1).map((label) => (
@@ -645,7 +645,7 @@ export default function InventoryPage() {
                         const first = rawScans[0]
                         if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
                       }
-                      return box.total_books || 0
+                      return box.total_books_expected || 0
                     })()
                     return (
                       <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
@@ -717,7 +717,7 @@ export default function InventoryPage() {
                         <SelectContent>
                           {inventoryBoxes.map(b => (
                             <SelectItem key={b.id} value={b.id}>
-                              {b.box_number} — {b.lot?.lot_number || '—'} ({b.total_books} books)
+                              {b.box_number} — {b.lot?.lot_number || '—'} ({b.total_books_expected} books)
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -837,7 +837,7 @@ export default function InventoryPage() {
                         const first = rawScans[0]
                         if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
                       }
-                      return box.total_books || 0
+                      return box.total_books_expected || 0
                     })()
                     return (
                       <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
@@ -989,7 +989,7 @@ export default function InventoryPage() {
               <div>
                 <h3 className="text-base font-semibold text-foreground">{scannedBoxModal?.box.box_number}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {scannedBoxModal?.box.lot?.lot_number} · <span className="capitalize">{scannedBoxModal?.box.current_stage}</span> · {scannedBoxModal?.box.total_books} books
+                  {scannedBoxModal?.box.lot?.lot_number} · <span className="capitalize">{scannedBoxModal?.box.current_stage}</span> · {scannedBoxModal?.box.total_books_expected} books
                 </p>
               </div>
               <button onClick={() => setScannedBoxModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>

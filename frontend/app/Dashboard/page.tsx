@@ -536,7 +536,7 @@ export default function DashboardPage() {
               <div>
                 <h3 className="text-base font-semibold text-foreground">{boxScanModal?.box.box_number}</h3>
                 <p className="text-xs text-muted-foreground">
-                  {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books} books
+                  {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books_expected} books
                 </p>
               </div>
               <button onClick={() => setBoxScanModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
