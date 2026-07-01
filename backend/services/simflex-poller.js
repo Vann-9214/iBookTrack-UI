@@ -27,6 +27,12 @@ const db = () => supabaseAdmin || supabase
 // How often the poller runs (every 3 minutes)
 const POLL_INTERVAL_MS = 3 * 60 * 1000
 
+// Prevent a slow poll cycle from stacking up multiple overlapping runs.
+let isPolling = false
+
+// Abort a single cycle if it takes longer than 5 minutes so it can't hang forever.
+const POLL_CYCLE_TIMEOUT_MS = 5 * 60 * 1000
+
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 /**
@@ -134,6 +140,16 @@ async function checkAndAdvanceBox(box) {
  * the Simflex API with too many concurrent requests.
  */
 async function runPoll() {
+  if (isPolling) {
+    console.log('[Simflex Poller] Previous cycle still running, skipping this tick')
+    return
+  }
+  isPolling = true
+  const cycleTimer = setTimeout(() => {
+    console.error('[Simflex Poller] Cycle timed out after 5 minutes; forcing release')
+    isPolling = false
+  }, POLL_CYCLE_TIMEOUT_MS)
+
   try {
     const { data: boxes, error } = await db()
       .from('boxes')
@@ -150,6 +166,9 @@ async function runPoll() {
     }
   } catch (err) {
     console.error('[Simflex Poller] Unexpected error:', err.message)
+  } finally {
+    clearTimeout(cycleTimer)
+    isPolling = false
   }
 }
 
@@ -159,12 +178,27 @@ async function runPoll() {
  * Start the Simflex poller.
  * Called once from server.js on startup.
  * Runs an initial poll after a 15-second delay (to let the server fully start),
- * then repeats every POLL_INTERVAL_MS milliseconds.
+ * then repeats every POLL_INTERVAL_MS milliseconds using a recursive setTimeout
+ * so overlapping cycles never stack up.
  */
 export function startSimflexPoller() {
   console.log(`[Simflex Poller] Started — polling every ${POLL_INTERVAL_MS / 60000} minutes`)
   // Short delay before first run so the server is fully ready
-  setTimeout(runPoll, 15000)
-  // Then poll on a fixed interval
-  setInterval(runPoll, POLL_INTERVAL_MS)
+  setTimeout(() => schedulePoll(true), 15000)
+}
+
+function schedulePoll(runImmediately = false) {
+  if (runImmediately) {
+    runPollWithCatch()
+  }
+  setTimeout(() => {
+    runPollWithCatch()
+    schedulePoll(false)
+  }, POLL_INTERVAL_MS)
+}
+
+function runPollWithCatch() {
+  runPoll().catch((err) => {
+    console.error('[Simflex Poller] Unhandled runPoll error:', err)
+  })
 }

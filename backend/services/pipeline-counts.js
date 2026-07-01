@@ -41,7 +41,12 @@ const SIMFLEX_API_URL    = process.env.SIMFLEX_API_URL    || 'https://simflex.in
 const SIMFLEX_API_KEY    = process.env.SIMFLEX_API_KEY    || ''
 const SIMFLEX_CONFIG     = process.env.SIMFLEX_MUSTANG_CONFIG || process.env.SIMFLEX_JAGUAR_CONFIG || ''
 
-const httpsAgent = new https.Agent({ keepAlive: true, keepAliveMsecs: 30000 })
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000,
+  maxSockets: 20,
+  maxFreeSockets: 10,
+})
 
 // ── Date sanitizer ────────────────────────────────────────────────────────────
 function safeDate(value) {
