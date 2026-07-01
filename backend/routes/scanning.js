@@ -5,11 +5,8 @@
  * All data is read-only — this route never writes to Simflex.
  *
  * Endpoints:
- *   GET /api/scanning/summary          — Today's totals: scanned / completed / failed / ongoing
- *   GET /api/scanning/data             — Individual scan records for a date range (max 100 rows)
- *   GET /api/scanning/by-machine       — Scan counts grouped by scanner machine
- *   GET /api/scanning/by-stage         — Scan counts grouped by pipeline stage (Preval, Validate, etc.)
  *   GET /api/scanning/live             — Combined live snapshot: summary + by-machine + by-stage + recent scans
+ *   GET /api/scanning/scan-rows        — Raw rows for all scan-stage statuses today (debug modal)
  *   GET /api/scanning/ranking          — Scan-user performance ranking for a given date
  *   GET /api/scanning/export           — CSV download of scan data for a date (up to 5000 rows)
  *   GET /api/scanning/simflex-status   — Per-ISBN latest status from Simflex (used by pipeline pages)
@@ -23,74 +20,6 @@ import pipelineCounts from '../services/pipeline-counts.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
-
-/**
- * GET /api/scanning/summary
- * Get today's scanning summary (total, completed, failed, ongoing)
- */
-router.get('/summary', requireAuth, async (req, res) => {
-  try {
-    const result = await simflexDb.getTodayScanningSummary()
-    res.json(result)
-  } catch (error) {
-    console.error('Error in /summary:', error)
-    res.status(500).json({ success: false, error: error.message })
-  }
-})
-
-/**
- * GET /api/scanning/data?startDate=2024-04-01&endDate=2024-04-10
- * Get scanning data by date range
- */
-router.get('/data', requireAuth, async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query
-    
-    if (!startDate || !endDate) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'startDate and endDate are required' 
-      })
-    }
-    
-    const result = await simflexDb.getScanningData(
-      new Date(startDate),
-      new Date(endDate)
-    )
-    res.json(result)
-  } catch (error) {
-    console.error('Error in /data:', error)
-    res.status(500).json({ success: false, error: error.message })
-  }
-})
-
-/**
- * GET /api/scanning/by-machine
- * Get scanning stats grouped by machine/printer
- */
-router.get('/by-machine', requireAuth, async (req, res) => {
-  try {
-    const result = await simflexDb.getScanningByMachine()
-    res.json(result)
-  } catch (error) {
-    console.error('Error in /by-machine:', error)
-    res.status(500).json({ success: false, error: error.message })
-  }
-})
-
-/**
- * GET /api/scanning/by-stage
- * Get scanning stats grouped by stage (Scanning, Validate, PDF Conversion, etc.)
- */
-router.get('/by-stage', requireAuth, async (req, res) => {
-  try {
-    const result = await simflexDb.getScanningByStage()
-    res.json(result)
-  } catch (error) {
-    console.error('Error in /by-stage:', error)
-    res.status(500).json({ success: false, error: error.message })
-  }
-})
 
 /**
  * GET /api/scanning/live
@@ -158,36 +87,6 @@ router.get('/live', requireAuth, async (req, res) => {
 })
 
 /**
- * GET /api/scanning/transmitting-boxes?date=2026-06-29
- * Get box-level transmission status from Simflex for today.
- */
-router.get('/transmitting-boxes', requireAuth, async (req, res) => {
-  try {
-    const result = await simflexDb.getTransmittingBoxes(req.query.date)
-    res.json(result)
-  } catch (error) {
-    console.error('Error in /transmitting-boxes:', error)
-    res.status(500).json({ success: false, error: error.message })
-  }
-})
-
-/**
- * GET /api/scanning/stage-counts?from=2026-06-30&to=2026-06-30
- * Per-stage ISBN counts for today (or a custom date range).
- * Returns Completed / Ongoing / Failed / Total for each of the 5 pipeline stages.
- */
-router.get('/stage-counts', requireAuth, async (req, res) => {
-  try {
-    const { from, to } = req.query
-    const result = await pipelineCounts.getStageCounts(from, to)
-    res.json(result)
-  } catch (error) {
-    console.error('Error in /stage-counts:', error)
-    res.status(500).json({ success: false, error: error.message })
-  }
-})
-
-/**
  * GET /api/scanning/scan-rows
  * Raw rows for all scan-stage statuses today (for debug modal).
  */
@@ -212,20 +111,6 @@ router.get('/transmit-rows', requireAuth, async (req, res) => {
     res.json({ success: true, rows: result.data || [], count: result.count })
   } catch (error) {
     console.error('Error in /transmit-rows:', error)
-    res.status(500).json({ success: false, error: error.message })
-  }
-})
-
-/**
- * GET /api/scanning/transmitting-ongoing?date=2026-06-29
- * Get boxes currently transmitting (Transmission_Archive ONGOING) for today.
- */
-router.get('/transmitting-ongoing', requireAuth, async (req, res) => {
-  try {
-    const result = await simflexDb.getOngoingTransmitBoxes(req.query.date)
-    res.json(result)
-  } catch (error) {
-    console.error('Error in /transmitting-ongoing:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

@@ -433,62 +433,6 @@ export async function getScanningExportData(date) {
 }
 
 /**
- * Get box-level transmission status from Simflex for today (or a given date).
- * Groups by BoxNumber and returns per-box counts: total books, completed,
- * ongoing, failed, and the last updated timestamp.
- *
- * @param {string} [date] - ISO date string; defaults to today
- */
-export async function getTransmittingBoxes(date) {
-  try {
-    const dateFilter = date ? `CAST(ScanDate AS DATE) = '${safeDate(date)}'` : `Status = 'Transmission_Archive COMPLETED'`
-    const rows = await query(
-      `SELECT BoxNumber,
-              COUNT(*) AS TotalBooks,
-              SUM(CASE WHEN Status = 'Transmission_Archive COMPLETED' THEN 1 ELSE 0 END) AS Completed,
-              SUM(CASE WHEN Status LIKE '%ONGOING%' THEN 1 ELSE 0 END) AS Ongoing,
-              SUM(CASE WHEN Status LIKE '%FAILED%' THEN 1 ELSE 0 END) AS Failed,
-              MAX(Updated) AS LastUpdated
-       FROM zeusz_IsbnStatus
-       WHERE BoxNumber IS NOT NULL AND BoxNumber <> '' AND ${dateFilter}
-       GROUP BY BoxNumber
-       HAVING SUM(CASE WHEN Status = 'Transmission_Archive COMPLETED' THEN 1 ELSE 0 END) > 0
-       ORDER BY MAX(Updated) DESC`
-    )
-    return { success: true, data: Array.isArray(rows) ? rows : [] }
-  } catch (error) {
-    console.error('Error fetching transmitting boxes:', error)
-    return { success: false, error: error.message, data: [] }
-  }
-}
-
-/**
- * Get boxes currently transmitting (Transmission_Archive ONGOING) for today.
- *
- * @param {string} [date] - ISO date string; defaults to today
- */
-export async function getOngoingTransmitBoxes(date) {
-  try {
-    const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
-    const rows = await query(
-      `SELECT BoxNumber,
-              COUNT(*) AS TotalBooks,
-              MAX(Updated) AS LastUpdated
-       FROM zeusz_IsbnStatus
-       WHERE BoxNumber IS NOT NULL AND BoxNumber <> ''
-         AND CAST(ScanDate AS DATE) = '${d}'
-         AND Status = 'Transmission_Archive ONGOING'
-       GROUP BY BoxNumber
-       ORDER BY MAX(Updated) DESC`
-    )
-    return { success: true, data: Array.isArray(rows) ? rows : [] }
-  } catch (error) {
-    console.error('Error fetching ongoing transmit boxes:', error)
-    return { success: false, error: error.message, data: [] }
-  }
-}
-
-/**
  * Dashboard Scan stage (step 5) — counts distinct ISBNs in any of the
  * pre-transmission statuses: Scanning, Validate, Tif2PDF, and Preval,
  * both ONGOING and COMPLETED. Filtered to "New Process Only" (IsRework = 'False')
@@ -834,8 +778,6 @@ export default {
   getScanningExportData,
   getTotalScansAllTime,
   getSimflexStatusForISBNs,
-  getTransmittingBoxes,
-  getOngoingTransmitBoxes,
   getScanStageBoxes,
   getTransmitStageBoxes,
   getTransmitStageRows,

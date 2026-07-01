@@ -6,7 +6,6 @@
  * Endpoints:
  *   POST   /api/auth/register  — Create a new account (rate-limited: 5/hr)
  *   POST   /api/auth/login     — Sign in and receive JWT tokens (rate-limited: 10/15 min)
- *   POST   /api/auth/logout    — Invalidate the current session server-side
  *   POST   /api/auth/refresh   — Exchange a refresh token for a new access token
  *   POST   /api/auth/password  — Change the logged-in user's password (requires auth)
  *   PATCH  /api/auth/profile   — Update name / email for the logged-in user (requires auth)
@@ -145,19 +144,6 @@ router.post('/login', loginLimiter, async (req, res) => {
     refresh_token: data.session?.refresh_token,
     expires_at:    data.session?.expires_at,
   })
-})
-
-// ── POST /api/auth/logout ──────────────────────────────────
-router.post('/logout', async (req, res) => {
-  const authHeader = req.headers.authorization
-  if (authHeader?.startsWith('Bearer ') && supabaseAdmin) {
-    const token = authHeader.split(' ')[1]
-    const { data } = await supabaseAdmin.auth.getUser(token)
-    if (data?.user) {
-      await supabaseAdmin.auth.admin.signOut(data.user.id)
-    }
-  }
-  return res.json({ message: 'Logged out successfully.' })
 })
 
 // ── POST /api/auth/refresh ─────────────────────────────────

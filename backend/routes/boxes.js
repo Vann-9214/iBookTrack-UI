@@ -7,15 +7,13 @@
  * Endpoints:
  *   GET  /api/boxes                          — List all boxes (filterable by lot_id, stage, box_number)
  *   GET  /api/boxes/pipeline-transitions     — Recent pipeline stage transition history (for Checkpoint Monitor)
- *   GET  /api/boxes/stats/pipeline           — Count of boxes per stage (for pipeline visualization)
  *   GET  /api/boxes/lot/:lot_number          — Get all boxes belonging to a specific lot
  *   GET  /api/boxes/:id                      — Single box details including its scanned books and QC flags
- *   POST /api/boxes                          — Create a new box
  *   POST /api/boxes/:id/receive              — Mark a box as received at the current station
  *   POST /api/boxes/:id/advance              — Advance a box to the next pipeline stage
  *   POST /api/boxes/:id/rollback             — Roll a box back to a previous stage (undo)
  *   POST /api/boxes/:id/check-simflex        — Manually trigger a Simflex status check for a box
- *   PUT  /api/boxes/:id                      — Update box metadata (stage, counts)
+ *   DELETE /api/boxes/:id                    — Delete a box and its related records
  *
  * All routes require authentication (requireAuth middleware).
  */
@@ -101,54 +99,6 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   }
 })
 
-// Get pipeline stage counts (for Active Pipeline visualization)
-router.get('/stats/pipeline', requireAuth, async (req, res) => {
-  try {
-    const { lot_number } = req.query
-
-    let query = supabase
-      .from('boxes')
-      .select('current_stage')
-
-    if (lot_number) {
-      const { data: lot } = await supabase
-        .from('lots')
-        .select('id')
-        .eq('lot_number', lot_number)
-        .single()
-
-      if (lot) {
-        query = query.eq('lot_id', lot.id)
-      }
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-
-    const stageCounts = {
-      warehouse: 0,
-      inventory: 0,
-      cut: 0,
-      endorsement: 0,
-      scan: 0,
-      transmit: 0,
-      storage: 0
-    }
-
-    data.forEach(box => {
-      if (stageCounts[box.current_stage] !== undefined) {
-        stageCounts[box.current_stage]++
-      }
-    })
-
-    res.json({ stageCounts })
-  } catch (error) {
-    console.error('Get pipeline stats error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
 // Get single box by ID with all scanned books
 router.get('/:id', requireAuth, async (req, res) => {
   try {
@@ -204,82 +154,6 @@ router.get('/:id', requireAuth, async (req, res) => {
     res.json({ box: { ...box, books, flag_count: totalFlagCount } })
   } catch (error) {
     console.error('Get box error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Create new box
-router.post('/', requireAuth, async (req, res) => {
-  try {
-    const { box_number, lot_id, total_books, current_stage } = req.body
-
-    if (!box_number || !lot_id) {
-      return res.status(400).json({ error: 'box_number and lot_id are required' })
-    }
-
-    const { data, error } = await supabase
-      .from('boxes')
-      .insert({
-        box_number,
-        lot_id,
-        total_books: total_books || 0,
-        current_stage: current_stage || 'intake',
-        books_received: 0,
-        books_transmitted: 0
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    res.status(201).json({ box: data })
-  } catch (error) {
-    console.error('Create box error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Update box (e.g., move to next stage, update counts)
-router.put('/:id', requireAuth, async (req, res) => {
-  try {
-    const { id } = req.params
-    const { current_stage, books_received, books_transmitted, total_books } = req.body
-
-    const updateData = {}
-    if (current_stage) updateData.current_stage = current_stage
-    if (books_received !== undefined) updateData.books_received = books_received
-    if (books_transmitted !== undefined) updateData.books_transmitted = books_transmitted
-    if (total_books !== undefined) updateData.total_books = total_books
-
-    const { data, error } = await supabase
-      .from('boxes')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    // If stage changed, log pipeline event
-    if (current_stage) {
-      const { data: box } = await supabase
-        .from('boxes')
-        .select('lot_id')
-        .eq('id', id)
-        .single()
-
-      await supabase.from('pipeline_events').insert({
-        box_id: id,
-        lot_id: box.lot_id,
-        to_stage: current_stage,
-        moved_by: req.user.id,
-        moved_by_name: req.user.name || req.user.email
-      })
-    }
-
-    res.json({ box: data })
-  } catch (error) {
-    console.error('Update box error:', error)
     res.status(500).json({ error: error.message })
   }
 })

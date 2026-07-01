@@ -407,78 +407,6 @@ router.get('/notifications', requireAuth, async (req, res) => {
   }
 })
 
-// Get transmission queue
-router.get('/transmission-queue', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('transmission_queue')
-      .select(`
-        *,
-        lot:lots(lot_number),
-        box:boxes(box_number)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(10)
-
-    if (error) throw error
-
-    res.json({ queue: data })
-  } catch (error) {
-    console.error('Get transmission queue error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Get unaccounted books
-router.get('/unaccounted-books', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('unaccounted_books')
-      .select('*')
-      .eq('resolved', false)
-      .order('created_at', { ascending: false })
-      .limit(10)
-
-    if (error) throw error
-
-    res.json({ unaccountedBooks: data })
-  } catch (error) {
-    console.error('Get unaccounted books error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Get active Simflex boxes for a dashboard pipeline stage (Mustang by default)
-// scan  → ISBNs in Scanning/Validate/Tif2PDF/Preval (ONGOING + COMPLETED)
-// transmit → ISBNs in Transmission_Archive ONGOING
-router.get('/simflex-active', requireAuth, async (req, res) => {
-  try {
-    const { stage } = req.query
-    if (!stage || !['scan', 'transmit'].includes(stage)) {
-      return res.status(400).json({ success: false, error: 'stage must be scan or transmit' })
-    }
-
-    const result = stage === 'scan'
-      ? await simflexDb.getScanStageBoxes(req.query.from, req.query.to)
-      : await simflexDb.getTransmitStageBoxes(req.query.from, req.query.to)
-
-    if (!result.success) return res.status(502).json(result)
-
-    res.json({
-      success: true,
-      count: result.count,
-      boxes: result.data.map(r => ({
-        isbn: r.ISBN,
-        status: r.Status,
-        lastUpdated: r.LastUpdated,
-      })),
-    })
-  } catch (error) {
-    console.error('Get Simflex active boxes error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
 // Get pipeline stage counts
 router.get('/pipeline-stats', async (req, res) => {
   try {
@@ -546,26 +474,6 @@ router.get('/pipeline-stats', async (req, res) => {
     res.json({ stageCounts })
   } catch (error) {
     console.error('Get pipeline stats error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Get scan history
-router.get('/scan-history', requireAuth, async (req, res) => {
-  try {
-    const { limit = 20 } = req.query
-
-    const { data, error } = await supabase
-      .from('scan_history')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(parseInt(limit))
-
-    if (error) throw error
-
-    res.json({ scanHistory: data })
-  } catch (error) {
-    console.error('Get scan history error:', error)
     res.status(500).json({ error: error.message })
   }
 })
