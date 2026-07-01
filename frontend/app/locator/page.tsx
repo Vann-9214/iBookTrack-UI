@@ -1083,7 +1083,8 @@ export default function WarehouseLocatorPage() {
                 {(() => {
                   const remainingCapacity = assignSlot ? Math.max(0, assignSlot.capacity - assignSlot.used) : 0
                   const selectableIds = readyBoxes.slice(0, remainingCapacity).map(b => b.id)
-                  const allSelectableSelected = selectableIds.length > 0 && selectableIds.every(id => assigningBoxIds.has(id))
+                  const maxSelectable = Math.min(remainingCapacity, readyBoxes.length)
+                  const allSelectableSelected = maxSelectable > 0 && assigningBoxIds.size >= maxSelectable
                   const atCapacity = assigningBoxIds.size >= remainingCapacity
                   return (
                     <>
@@ -1109,8 +1110,8 @@ export default function WarehouseLocatorPage() {
                         </span>
                       </div>
                       <div className="flex-1 overflow-y-auto flex flex-col gap-2 mb-4">
-                        {readyBoxes.map((b, idx) => {
-                          const disabled = !assigningBoxIds.has(b.id) && atCapacity && idx >= remainingCapacity
+                        {readyBoxes.map((b) => {
+                          const disabled = !assigningBoxIds.has(b.id) && atCapacity
                           return (
                             <div
                               key={b.id}
