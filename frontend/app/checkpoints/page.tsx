@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { authFetch } from "@/lib/auth-api"
+import { useBrand } from "@/hooks/use-brand"
 import { DashboardNavbar } from "@/components/top-bar"
 import { toast } from "sonner"
 import { usePagination } from "@/hooks/usePagination"
@@ -65,6 +66,7 @@ interface Transition {
 }
 
 export default function StationCheckpointsPage() {
+  const { brand } = useBrand()
   const [boxes, setBoxes] = useState<BoxItem[]>([])
   const [transitions, setTransitions] = useState<Transition[]>([])
   const [loading, setLoading] = useState(true)
@@ -134,7 +136,7 @@ export default function StationCheckpointsPage() {
       const [boxRes, transRes, liveRes] = await Promise.all([
         authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true`),
         authFetch(transitionUrl),
-        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true`).catch(() => null),
+        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${brand}`).catch(() => null),
       ])
       const boxData = await boxRes.json()
       const transData = await transRes.json()
@@ -166,7 +168,7 @@ export default function StationCheckpointsPage() {
     } finally {
       setLoading(false)
     }
-  }, [hasDataChanged, transitionStageFilter])
+  }, [hasDataChanged, transitionStageFilter, brand])
 
   useEffect(() => {
     fetchData()
@@ -193,8 +195,8 @@ export default function StationCheckpointsPage() {
     setUpdatedSort('none')
     setSimflexPage(1)
     const endpoint = selectedStage === 'scan'
-      ? `${API_URL}/api/scanning/scan-rows`
-      : `${API_URL}/api/scanning/transmit-rows`
+      ? `${API_URL}/api/scanning/scan-rows?location=${brand}`
+      : `${API_URL}/api/scanning/transmit-rows?location=${brand}`
     authFetch(endpoint)
       .then(r => r.json())
       .then(d => { if (d.success) setSimflexRows(d.rows || []) })
@@ -371,7 +373,7 @@ export default function StationCheckpointsPage() {
         const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
         if (processableIsbns.length > 0) {
           try {
-            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}`)
+            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}&location=${brand}`)
             const simData = await simRes.json()
             if (simData.success && simData.statuses) {
               setBoxDetailsSimflex(simData.statuses)
@@ -436,7 +438,7 @@ export default function StationCheckpointsPage() {
           details.loadingSimflex = true
           setStageBoxDetails(prev => ({ ...prev, [box.id]: { ...details, loadingSimflex: true } }))
           try {
-            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}`)
+            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}&location=${brand}`)
             const simData = await simRes.json()
             if (simData.success && simData.statuses) {
               details.simflex = simData.statuses

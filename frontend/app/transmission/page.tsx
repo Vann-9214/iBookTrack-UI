@@ -219,7 +219,7 @@ export default function TransmissionMonitorPage() {
   const fetchRanking = async () => {
     setRankingLoading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/scanning/ranking`)
+      const res = await authFetch(`${API_URL}/api/scanning/ranking?location=${brand}`)
       const data = await res.json()
       if (data.success) setRanking(data)
     } catch (e) {
@@ -232,12 +232,12 @@ export default function TransmissionMonitorPage() {
   const handleExport = async () => {
     setExporting(true)
     try {
-      const res = await authFetch(`${API_URL}/api/scanning/export?date=${fromDate}`)
+      const res = await authFetch(`${API_URL}/api/scanning/export?date=${fromDate}&location=${brand}`)
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `scanning-${new Date().toISOString().split('T')[0]}.csv`
+      a.download = `scanning-${brand}-${new Date().toISOString().split('T')[0]}.csv`
       a.click()
       URL.revokeObjectURL(url)
     } catch (e) {

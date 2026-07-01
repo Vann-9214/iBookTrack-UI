@@ -40,7 +40,7 @@ router.get('/live', requireAuth, async (req, res) => {
       simflexDb.getScanningData(fromDate, toDate, location, newProcessOnly),
       simflexDb.getTotalScansAllTime(),
       simflexDb.getDailyOutputCount(fromDate === toDate ? fromDate : undefined, location),
-      pipelineCounts.getStageCounts(fromDate, toDate),
+      pipelineCounts.getStageCounts(fromDate, toDate, location),
       simflexDb.getCompletedTransmissionsCount(fromDate, toDate, location, newProcessOnly),
       simflexDb.getAllBooksToday(fromDate, toDate, location, newProcessOnly)
     ])
@@ -50,8 +50,8 @@ router.get('/live', requireAuth, async (req, res) => {
     // Only filter by date when the caller explicitly passes a range; otherwise
     // return the full scan-stage dataset so the dashboard matches the modal.
     const scanStageResult = req.query.from && req.query.to
-      ? await simflexDb.getScanStageBoxes(fromDate, toDate)
-      : await simflexDb.getScanStageBoxes()
+      ? await simflexDb.getScanStageBoxes(fromDate, toDate, location)
+      : await simflexDb.getScanStageBoxes(undefined, undefined, location)
     console.log('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
     const scanBooks = scanStageResult.count || 0
 
@@ -92,7 +92,8 @@ router.get('/live', requireAuth, async (req, res) => {
  */
 router.get('/scan-rows', requireAuth, async (req, res) => {
   try {
-    const result = await simflexDb.getScanStageBoxes()
+    const location = req.query.location || 'mustang'
+    const result = await simflexDb.getScanStageBoxes(undefined, undefined, location)
     res.json({ success: true, rows: result.data || [], count: result.count })
   } catch (error) {
     console.error('Error in /scan-rows:', error)
@@ -107,7 +108,8 @@ router.get('/scan-rows', requireAuth, async (req, res) => {
  */
 router.get('/transmit-rows', requireAuth, async (req, res) => {
   try {
-    const result = await simflexDb.getTransmitStageRows()
+    const location = req.query.location || 'mustang'
+    const result = await simflexDb.getTransmitStageRows(location)
     res.json({ success: true, rows: result.data || [], count: result.count })
   } catch (error) {
     console.error('Error in /transmit-rows:', error)
@@ -121,7 +123,8 @@ router.get('/transmit-rows', requireAuth, async (req, res) => {
  */
 router.get('/ranking', requireAuth, async (req, res) => {
   try {
-    const result = await simflexDb.getScanningRanking(req.query.date)
+    const location = req.query.location || 'mustang'
+    const result = await simflexDb.getScanningRanking(req.query.date, location)
     res.json(result)
   } catch (error) {
     res.status(500).json({ success: false, error: error.message })
@@ -134,7 +137,8 @@ router.get('/ranking', requireAuth, async (req, res) => {
  */
 router.get('/export', requireAuth, async (req, res) => {
   try {
-    const result = await simflexDb.getScanningExportData(req.query.date)
+    const location = req.query.location || 'mustang'
+    const result = await simflexDb.getScanningExportData(req.query.date, location)
     if (!result.success) return res.status(500).json(result)
     const rows = result.data
     const headers = ['ScanDate', 'ScanUser', 'BoxNumber', 'ISBN', 'PageCount', 'Status', 'Machine', 'Updated']
@@ -147,7 +151,7 @@ router.get('/export', requireAuth, async (req, res) => {
     ].join('\r\n')
     const date = req.query.date || new Date().toISOString().split('T')[0]
     res.setHeader('Content-Type', 'text/csv')
-    res.setHeader('Content-Disposition', `attachment; filename="scanning-${date}.csv"`)
+    res.setHeader('Content-Disposition', `attachment; filename="scanning-${date}-${location}.csv"`)
     res.send(csv)
   } catch (error) {
     res.status(500).json({ success: false, error: error.message })
@@ -159,13 +163,14 @@ router.get('/export', requireAuth, async (req, res) => {
 router.get('/simflex-status', requireAuth, async (req, res) => {
   try {
     const { isbns } = req.query
+    const location = req.query.location || 'mustang'
     if (!isbns) return res.status(400).json({ success: false, error: 'isbns query param required' })
 
     const isbnList = String(isbns).split(',').map(s => s.trim()).filter(Boolean)
     if (isbnList.length === 0) return res.json({ success: true, statuses: {} })
 
     const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
-    const result = await getSimflexStatusForISBNs(isbnList)
+    const result = await getSimflexStatusForISBNs(isbnList, location)
 
     if (!result.success) {
       return res.status(502).json({ success: false, error: result.error || 'Simflex unavailable' })

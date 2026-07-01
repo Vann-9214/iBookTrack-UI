@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { authFetch } from '@/lib/auth-api'
+import { useBrand } from '@/hooks/use-brand'
 import { usePagination } from '@/hooks/usePagination'
 import { Pagination } from '@/components/pagination'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
@@ -53,7 +54,7 @@ const LOT_OPTIONS = Array.from({ length: 100 }, (_, i) => `Lot ${i + 1}`)
 const LOT_ALIASES = Array.from({ length: 100 }, (_, i) => [`Lot ${i + 1}`, `Lot-${i + 1}`, `LOT ${i + 1}`, `LOT-${i + 1}`])
 
 export default function InventoryPage() {
-
+  const { brand } = useBrand()
 
   // --- Boxes tab state ---
   const [boxes, setBoxes] = useState<Box[]>([])
@@ -93,7 +94,7 @@ export default function InventoryPage() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
       const isbns = processable.map(b => b.isbn).join(',')
-      const res = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${isbns}`)
+      const res = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${isbns}&location=${brand}`)
       const data = await res.json()
       if (data.success && data.statuses) {
         setSimflexBookStatus(prev => ({ ...prev, [box.id]: data.statuses }))

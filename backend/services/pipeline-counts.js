@@ -37,9 +37,14 @@ import dotenv from 'dotenv'
 dotenv.config({ path: new URL('../.env', import.meta.url) })
 
 // ── Simflex connection ────────────────────────────────────────────────────────
-const SIMFLEX_API_URL    = process.env.SIMFLEX_API_URL    || 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'
-const SIMFLEX_API_KEY    = process.env.SIMFLEX_API_KEY    || ''
-const SIMFLEX_CONFIG     = process.env.SIMFLEX_MUSTANG_CONFIG || process.env.SIMFLEX_JAGUAR_CONFIG || ''
+const SIMFLEX_API_URL        = process.env.SIMFLEX_API_URL        || 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'
+const SIMFLEX_API_KEY        = process.env.SIMFLEX_API_KEY        || ''
+const SIMFLEX_MUSTANG_CONFIG = process.env.SIMFLEX_MUSTANG_CONFIG || ''
+const SIMFLEX_JAGUAR_CONFIG  = process.env.SIMFLEX_JAGUAR_CONFIG  || ''
+
+function getSimflexConfig(location = 'mustang') {
+  return location === 'jaguar' ? SIMFLEX_JAGUAR_CONFIG : SIMFLEX_MUSTANG_CONFIG
+}
 
 const httpsAgent = new https.Agent({
   keepAlive: true,
@@ -56,10 +61,10 @@ function safeDate(value) {
 }
 
 // ── Core query ────────────────────────────────────────────────────────────────
-async function query(script, attempt = 1) {
+async function query(script, location = 'mustang', attempt = 1) {
   try {
     const response = await axios.get(SIMFLEX_API_URL, {
-      params: { apiKey: SIMFLEX_API_KEY, config: SIMFLEX_CONFIG, script },
+      params: { apiKey: SIMFLEX_API_KEY, config: getSimflexConfig(location), script },
       timeout: 20000,
       httpsAgent,
     })
@@ -70,7 +75,7 @@ async function query(script, attempt = 1) {
     const isNetworkError = err.code && ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EPIPE', 'ECONNREFUSED'].includes(err.code)
     if (isNetworkError && attempt === 1) {
       console.warn(`[pipeline-counts] Network error (${err.code}), retrying…`)
-      return query(script, 2)
+      return query(script, location, 2)
     }
     throw err
   }
@@ -102,6 +107,7 @@ const STAGE_DEFINITIONS = [
  *
  * @param {string} [startDate]  ISO date e.g. '2026-06-30'
  * @param {string} [endDate]    ISO date e.g. '2026-06-30'
+ * @param {'mustang'|'jaguar'} [location='mustang']
  * @returns {Promise<{
  *   success: boolean,
  *   stages: Array<{
@@ -110,7 +116,7 @@ const STAGE_DEFINITIONS = [
  *   }>
  * }>}
  */
-export async function getStageCounts(startDate, endDate) {
+export async function getStageCounts(startDate, endDate, location = 'mustang') {
   try {
     const dateFilter = startDate && endDate
       ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
@@ -147,7 +153,8 @@ export async function getStageCounts(startDate, endDate) {
        FROM Parsed
        WHERE StageName <> '' AND Keyword IS NOT NULL
        GROUP BY StageName, Keyword
-       ORDER BY StageName, Keyword`
+       ORDER BY StageName, Keyword`,
+      location
     )
 
     const data = Array.isArray(rows) ? rows : []

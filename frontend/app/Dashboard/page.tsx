@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { Search, Book, Package, Barcode, X } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
+import { useBrand } from "@/hooks/use-brand"
 import { authFetch } from "@/lib/auth-api"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -25,6 +26,7 @@ interface SearchResult {
 }
 
 export default function DashboardPage() {
+  const { brand } = useBrand()
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchType, setSearchType] = useState<"isbn" | "lot">("lot")
   const [searchValue, setSearchValue] = useState("")
@@ -52,10 +54,10 @@ export default function DashboardPage() {
   const [boxScanModal, setBoxScanModal] = useState<{ box: any; books: any[] } | null>(null)
   const [loadingBoxScan, setLoadingBoxScan] = useState(false)
 
-  // Fetch dashboard stats on mount
+  // Fetch dashboard stats on mount and when the brand changes
   useEffect(() => {
     fetchDashboardStats()
-  }, [])
+  }, [brand])
 
   const fetchDashboardStats = async (lotNumber?: string) => {
     try {
@@ -69,7 +71,7 @@ export default function DashboardPage() {
       const [statsRes, pipelineRes, simflexRes] = await Promise.all([
         authFetch(statsUrl),
         authFetch(pipelineUrl),
-        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true`).catch((e) => { console.error('[Dashboard] /live failed:', e); return null })
+        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${brand}`).catch((e) => { console.error('[Dashboard] /live failed:', e); return null })
       ])
       const statsData = await statsRes.json()
       const pipelineData = await pipelineRes.json()

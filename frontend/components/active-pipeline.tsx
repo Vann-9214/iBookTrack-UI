@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { X, Loader2 } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
+import { useBrand } from "@/hooks/use-brand"
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
 
@@ -60,6 +61,7 @@ interface RawRow {
 }
 
 export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) {
+  const { brand } = useBrand()
   const [modalOpen, setModalOpen] = useState(false)
   const [modalRows, setModalRows] = useState<RawRow[]>([])
   const [modalLoading, setModalLoading] = useState(false)
@@ -84,7 +86,7 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
     setModalPage(1)
     setStatusFilter('ALL')
     try {
-      const rowsRes = await authFetch(`${API_URL}/api/scanning/scan-rows`)
+      const rowsRes = await authFetch(`${API_URL}/api/scanning/scan-rows?location=${brand}`)
       if (rowsRes.ok) {
         const json = await rowsRes.json()
         setModalRows(json.rows || [])
