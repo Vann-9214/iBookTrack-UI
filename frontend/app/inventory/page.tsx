@@ -8,7 +8,7 @@ import { Pagination } from '@/components/pagination'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2 } from 'lucide-react'
+import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
@@ -267,6 +267,93 @@ export default function InventoryPage() {
 
   const [movingToStorage, setMovingToStorage] = useState<string | null>(null)
 
+  // ── Tab navigation ──────────────────────────────────────────────────────────
+  const [inventoryTab, setInventoryTab] = useState<'incoming' | 'verification' | 'outgoing'>('incoming')
+
+  // ── Verified box IDs (session-complete → outgoing) ─────────────────────────
+  // Boxes move here after a verification session is completed (still inventory stage in DB).
+  const [verifiedBoxIds, setVerifiedBoxIds] = useState<Set<string>>(new Set())
+
+  // ── Incoming: Receive box (warehouse → inventory) ──────────────────────────
+  const [receivingBox, setReceivingBox] = useState<string | null>(null)
+
+  const handleReceiveBox = async (box: Box) => {
+    setReceivingBox(box.id)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/advance`, {
+        method: 'POST',
+        body: JSON.stringify({ notes: 'Received at Inventory' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to receive box')
+      fetchBoxes()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to receive box')
+    } finally {
+      setReceivingBox(null)
+    }
+  }
+
+  // ── Book Verification: session state ───────────────────────────────────────
+  const [verifSessionActive, setVerifSessionActive] = useState(false)
+  const [verifSelectedBoxId, setVerifSelectedBoxId] = useState('')
+  const [verifBox, setVerifBox] = useState<Box | null>(null)
+  const [verifBooks, setVerifBooks] = useState<BookInBox[]>([])
+  const [loadingVerifBooks, setLoadingVerifBooks] = useState(false)
+  const [verifConfirmComplete, setVerifConfirmComplete] = useState(false)
+
+  const handleStartVerifSession = async () => {
+    if (!verifSelectedBoxId) return
+    const box = inventoryBoxes.find(b => b.id === verifSelectedBoxId)
+    if (!box) return
+    setLoadingVerifBooks(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+      const data = await res.json()
+      setVerifBox(box)
+      setVerifBooks(data.box?.books || [])
+      setVerifSessionActive(true)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to load box books')
+    } finally {
+      setLoadingVerifBooks(false)
+    }
+  }
+
+  const handleCompleteVerifSession = () => {
+    if (!verifBox) return
+    setVerifiedBoxIds(prev => new Set([...prev, verifBox.id]))
+    setVerifSessionActive(false)
+    setVerifBox(null)
+    setVerifBooks([])
+    setVerifSelectedBoxId('')
+    setVerifConfirmComplete(false)
+    // Switch to outgoing tab so they see the result immediately
+    setInventoryTab('outgoing')
+  }
+
+  // ── Outgoing: Send to Cut (inventory → cut) ────────────────────────────────
+  const [sendingToCut, setSendingToCut] = useState<string | null>(null)
+
+  const handleSendToCut = async (box: Box) => {
+    setSendingToCut(box.id)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/advance`, {
+        method: 'POST',
+        body: JSON.stringify({ notes: 'Sent to Cut from Inventory Outgoing' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send to cut')
+      // Remove from verified set once sent
+      setVerifiedBoxIds(prev => { const next = new Set(prev); next.delete(box.id); return next })
+      fetchBoxes()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to send to cut')
+    } finally {
+      setSendingToCut(null)
+    }
+  }
+
   const handleMoveToStorage = async (box: Box) => {
     setMovingToStorage(box.id)
     try {
@@ -330,7 +417,8 @@ export default function InventoryPage() {
     return () => clearTimeout(timer)
   }, [printBox])
 
-  const filteredBoxes = boxes.filter(b => {
+  // Base search filter (used for All Boxes tab only)
+  const searchFilter = (b: Box) => {
     if (!boxSearch) return true
     const q = boxSearch.toLowerCase()
     return (
@@ -338,9 +426,21 @@ export default function InventoryPage() {
       b.lot?.lot_number?.toLowerCase().includes(q) ||
       b.current_stage?.toLowerCase().includes(q)
     )
-  })
+  }
 
-  // Add pagination for boxes
+  // All-boxes tab (existing behaviour, respects lot/stage filters)
+  const filteredBoxes = boxes.filter(searchFilter)
+
+  // Incoming Boxes — warehouse stage
+  const incomingBoxes = boxes.filter(b => b.current_stage === 'warehouse')
+
+  // Book Verification — inventory stage, not yet verified
+  const inventoryBoxes = boxes.filter(b => b.current_stage === 'inventory' && !verifiedBoxIds.has(b.id))
+
+  // Outgoing Boxes — inventory stage + verified this session
+  const outgoingBoxes = boxes.filter(b => b.current_stage === 'inventory' && verifiedBoxIds.has(b.id))
+
+  // Pagination only used by All Boxes tab
   const pagination = usePagination({ totalItems: filteredBoxes.length, defaultPageSize: 50 })
   const paginatedBoxes = filteredBoxes.slice(pagination.offset, pagination.offset + pagination.limit)
 
@@ -489,95 +589,56 @@ export default function InventoryPage() {
             <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
           </header>
 
-          <div className="flex flex-col gap-4">
-
-              {/* Box Barcode Scanner */}
-              <div className="border-2 border-primary rounded-lg p-4 bg-primary/5">
-                <label className="text-xs font-semibold text-primary uppercase tracking-wide flex items-center gap-2 mb-2">
-                  <Barcode className="h-4 w-4" /> Scan Box Barcode
-                </label>
-                <input
-                  type="text"
-                  value={boxScanInput}
-                  onChange={e => { setBoxScanInput(e.target.value); setBoxScanNotFound(false) }}
-                  onKeyDown={handleBoxScan}
-                  placeholder="Scan or type box number and press Enter..."
-                  className="w-full px-4 py-3 text-base border-2 border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                  autoFocus
-                />
-                {boxScanNotFound && (
-                  <p className="text-xs text-destructive mt-2">Box not found. Check the box number and try again.</p>
+          {/* ── Tab Navigation ── */}
+          <div className="flex items-center gap-1 p-1 bg-muted rounded-xl w-fit">
+            {(
+              [
+                { key: 'incoming',     label: 'Incoming Boxes',    icon: Inbox,         count: incomingBoxes.length,  activeColor: 'bg-cyan-100 text-cyan-700' },
+                { key: 'verification', label: 'Book Verification', icon: ClipboardCheck, count: inventoryBoxes.length, activeColor: 'bg-amber-100 text-amber-700' },
+                { key: 'outgoing',     label: 'Outgoing Boxes',    icon: Send,          count: outgoingBoxes.length,  activeColor: 'bg-emerald-100 text-emerald-700' },
+              ] as const
+            ).map(({ key, label, icon: Icon, count, activeColor }) => (
+              <button
+                key={key}
+                onClick={() => setInventoryTab(key)}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  inventoryTab === key
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+                {count > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${inventoryTab === key ? activeColor : 'bg-muted-foreground/20 text-muted-foreground'}`}>
+                    {count}
+                  </span>
                 )}
-                {boxScanResult && (
-                  <div className="mt-2 flex items-center gap-2 text-xs text-green-700">
-                    <Package className="h-3.5 w-3.5" />
-                    <span className="font-semibold">{boxScanResult.box_number}</span>
-                    <span className="text-muted-foreground">— {boxScanResult.lot?.lot_number} · {boxScanResult.current_stage} · {boxScanResult.total_books} books</span>
-                    <button onClick={() => { setBoxScanResult(null); setBoxScanInput(''); setBoxSearch('') }} className="ml-auto text-muted-foreground hover:text-foreground">✕ Clear</button>
-                  </div>
-                )}
-              </div>
+              </button>
+            ))}
+          </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap gap-3">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search box number, lot..."
-                    value={boxSearch}
-                    onChange={e => setBoxSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <Select value={lotFilter || 'all'} onValueChange={v => setLotFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Lots" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Lots</SelectItem>
-                    {(() => {
-                      const fromBoxes = Array.from(new Set(boxes.map(b => b.lot?.lot_number).filter(Boolean))).sort()
-                      const opts = fromBoxes.length > 0 ? fromBoxes : LOT_OPTIONS
-                      return opts.map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)
-                    })()}
-                  </SelectContent>
-                </Select>
-                <Select value={stageFilter || 'all'} onValueChange={v => setStageFilter(v === 'all' ? '' : v)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="All Stages" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Stages</SelectItem>
-                    {[
-                      ['warehouse','Warehouse'],
-                      ['inventory','Inventory'],
-                      ['cut','Cut'],
-                      ['qc','QC'],
-                      ['scan','Scan'],
-                      ['qa','QA'],
-                      ['transmit','Transmit'],
-                      ['storage','Storage'],
-                    ].map(([val, label]) => (
-                      <SelectItem key={val} value={val}>{label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Count */}
-              <p className="text-xs text-muted-foreground">{filteredBoxes.length} box{filteredBoxes.length !== 1 ? 'es' : ''} found</p>
-
-              {/* Box List */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* TAB: INCOMING BOXES                                              */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {inventoryTab === 'incoming' && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                {loadingBoxes ? 'Loading…' : `${incomingBoxes.length} box${incomingBoxes.length !== 1 ? 'es' : ''} waiting to be received`}
+              </p>
               {loadingBoxes ? (
-                <div className="py-12 text-center text-muted-foreground text-sm">Loading boxes...</div>
-              ) : paginatedBoxes.length === 0 ? (
-                <div className="py-12 text-center text-muted-foreground text-sm">No boxes found</div>
+                <div className="py-12 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading boxes…
+                </div>
+              ) : incomingBoxes.length === 0 ? (
+                <div className="py-20 flex flex-col items-center gap-3 text-center">
+                  <div className="bg-cyan-50 rounded-full p-5"><Inbox className="h-8 w-8 text-cyan-400" /></div>
+                  <p className="text-sm font-semibold text-foreground">No incoming boxes</p>
+                  <p className="text-xs text-muted-foreground max-w-xs">Boxes sent by the warehouse will appear here, ready for you to receive.</p>
+                </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  {paginatedBoxes.map(box => {
-                    const isOpen = expandedBox === box.id
-                    const books = boxBooks[box.id]
+                  {incomingBoxes.map(box => {
                     const rawScans = box.scans as any[]
                     const bookCount = (() => {
                       if (Array.isArray(rawScans) && rawScans.length > 0) {
@@ -586,165 +647,230 @@ export default function InventoryPage() {
                       }
                       return box.total_books || 0
                     })()
-
                     return (
-                      <div key={box.id} className="border border-border rounded-lg overflow-hidden bg-card">
-                        {/* Box Header Row */}
-                        <div className="flex items-center">
-                          <button
-                            onClick={() => toggleBox(box.id)}
-                            className="flex-1 flex items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
-                          >
-                            {isOpen ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
-                            <Package className="h-4 w-4 shrink-0 text-primary" />
-                            <span className="font-semibold text-sm text-foreground flex-1">{box.box_number}</span>
-                            <span className="text-xs text-muted-foreground mr-2">{box.lot?.lot_number || '—'}</span>
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STAGE_COLORS[box.current_stage] || 'bg-muted text-muted-foreground'}`}>
-                              {box.current_stage}
-                            </span>
-                            <span className="text-xs text-muted-foreground ml-3 shrink-0">
-                              <BookOpen className="inline h-3 w-3 mr-1" />{bookCount} books
-                            </span>
-                          </button>
-                          {box.current_stage === 'scan' && (
-                            <button
-                              onClick={() => handleCheckSimflex(box)}
-                              disabled={simflexModal?.box.id === box.id && simflexModal.loading}
-                              className="px-3 py-3 text-muted-foreground hover:text-amber-600 hover:bg-amber-50 transition-colors shrink-0 border-l border-border"
-                              title="Check Simflex transmission status"
-                            >
-                              {simflexModal?.box.id === box.id && simflexModal.loading
-                                ? <Loader2 className="h-4 w-4 animate-spin" />
-                                : <Zap className="h-4 w-4" />}
-                            </button>
-                          )}
-                          {box.current_stage === 'transmit' && (
-                            <button
-                              onClick={() => handleMoveToStorage(box)}
-                              disabled={movingToStorage === box.id}
-                              className="px-3 py-3 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors shrink-0 border-l border-border"
-                              title="Move to Storage"
-                            >
-                              {movingToStorage === box.id
-                                ? <Loader2 className="h-4 w-4 animate-spin" />
-                                : '→ Storage'}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => { handlePrintLabel(box).then(() => setTimeout(() => window.print(), 600)) }}
-                            disabled={loadingPrint === box.id}
-                            className="px-3 py-3 text-muted-foreground hover:text-primary hover:bg-muted/40 transition-colors shrink-0 border-l border-border"
-                            title="Print box label"
-                          >
-                            {loadingPrint === box.id
-                              ? <span className="text-[10px]">...</span>
-                              : <Printer className="h-4 w-4" />}
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm({ id: box.id, box_number: box.box_number })}
-                            className="px-3 py-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0 border-l border-border"
-                            title="Delete box"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                      <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
+                        {/* Icon */}
+                        <div className="bg-cyan-50 rounded-lg p-2 shrink-0">
+                          <Package className="h-5 w-5 text-cyan-600" />
                         </div>
-
-                        {/* Expanded Books */}
-                        {isOpen && (
-                          <div className="border-t border-border bg-muted/20 px-4 py-3">
-                            {/* Simflex status fetch button for scan/transmit boxes */}
-                            {(box.current_stage === 'scan' || box.current_stage === 'transmit') && books && books.length > 0 && (
-                              <div className="flex items-center gap-2 mb-3">
-                                <button
-                                  onClick={() => fetchSimflexBookStatus(box, books)}
-                                  disabled={loadingSimflexStatus === box.id}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
-                                >
-                                  {loadingSimflexStatus === box.id
-                                    ? <Loader2 className="h-3 w-3 animate-spin" />
-                                    : <Zap className="h-3 w-3" />}
-                                  {loadingSimflexStatus === box.id ? 'Checking Simflex…' : 'Check Simflex Status'}
-                                </button>
-                                {simflexBookStatus[box.id] && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {Object.values(simflexBookStatus[box.id]).filter(s => s === 'COMPLETED').length}
-                                    /{books.filter(b => b.scan_status === 'processable').length} transmitted
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {loadingBooks === box.id ? (
-                              <p className="text-xs text-muted-foreground py-2">Loading books...</p>
-                            ) : books && books.length > 0 ? (
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-xs">
-                                  <thead>
-                                    <tr className="text-muted-foreground border-b border-border">
-                                      <th className="pb-2 text-left font-medium pr-4">ISBN</th>
-                                      <th className="pb-2 text-left font-medium pr-4">Title</th>
-                                      <th className="pb-2 text-left font-medium pr-4">Warehouse</th>
-                                      {simflexBookStatus[box.id] && <th className="pb-2 text-left font-medium pr-4">Simflex</th>}
-                                      <th className="pb-2 text-left font-medium">Scanned At</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {books.map((book, i) => {
-                                      const sfStatus = simflexBookStatus[box.id]?.[book.isbn]
-                                      return (
-                                        <tr key={book.id || i} className="border-b border-border/50 last:border-0">
-                                          <td className="py-1.5 pr-4 text-foreground">{book.isbn}</td>
-                                          <td className="py-1.5 pr-4 text-foreground max-w-[200px] truncate">{book.title || '—'}</td>
-                                          <td className="py-1.5 pr-4">
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                              {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status || '—'}
-                                            </span>
-                                          </td>
-                                          {simflexBookStatus[box.id] && (
-                                            <td className="py-1.5 pr-4">
-                                              {book.scan_status !== 'processable' ? (
-                                                <span className="text-[10px] text-muted-foreground">—</span>
-                                              ) : sfStatus === 'COMPLETED' ? (
-                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-700">✓ Done</span>
-                                              ) : sfStatus ? (
-                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 truncate max-w-[120px] block">{sfStatus}</span>
-                                              ) : (
-                                                <span className="text-[10px] text-muted-foreground">Not found</span>
-                                              )}
-                                            </td>
-                                          )}
-                                          <td className="py-1.5 text-xs text-muted-foreground">
-                                            {book.scanned_at ? new Date(book.scanned_at).toLocaleString() : '—'}
-                                          </td>
-                                        </tr>
-                                      )
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            ) : (
-                              <p className="text-xs text-muted-foreground py-2">No books logged in this box yet.</p>
-                            )}
-                          </div>
-                        )}
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
+                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books</p>
+                        </div>
+                        {/* Created date */}
+                        <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                          {box.created_at ? new Date(box.created_at).toLocaleDateString() : ''}
+                        </span>
+                        {/* Received button */}
+                        <button
+                          onClick={() => handleReceiveBox(box)}
+                          disabled={receivingBox === box.id}
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-cyan-600 text-white hover:bg-cyan-700 disabled:opacity-60 transition-colors shrink-0"
+                        >
+                          {receivingBox === box.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <CheckCircle2 className="h-4 w-4" />}
+                          {receivingBox === box.id ? 'Receiving…' : 'Received'}
+                        </button>
                       </div>
                     )
                   })}
                 </div>
               )}
+            </div>
+          )}
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <Pagination
-                  currentPage={pagination.currentPage}
-                  totalPages={pagination.totalPages}
-                  pageSize={pagination.pageSize}
-                  onPageChange={pagination.goToPage}
-                  onPageSizeChange={pagination.setPageSize}
-                  canPrevPage={pagination.canPrevPage}
-                  canNextPage={pagination.canNextPage}
-                />
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* TAB: BOOK VERIFICATION                                           */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {inventoryTab === 'verification' && (
+            <div className="flex flex-col gap-4">
+
+              {/* Confirm complete modal */}
+              {verifConfirmComplete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setVerifConfirmComplete(false)}>
+                  <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-base font-semibold text-foreground mb-2">Complete Verification?</h3>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      This will close the verification session for <span className="font-semibold">{verifBox?.box_number}</span>. The box will move to <span className="font-semibold">Outgoing Boxes</span> ready to be sent to Cut.
+                    </p>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => setVerifConfirmComplete(false)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
+                      <button onClick={handleCompleteVerifSession} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium">Complete</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!verifSessionActive ? (
+                /* ── Session start panel ── */
+                <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-end justify-between gap-4">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium text-foreground">Select a box to verify</p>
+                    <p className="text-xs text-muted-foreground">Choose an inventory-stage box, review its books, then complete the session.</p>
+                    <div className="mt-3">
+                      <Select value={verifSelectedBoxId} onValueChange={setVerifSelectedBoxId}>
+                        <SelectTrigger className="w-72 h-9">
+                          <SelectValue placeholder={inventoryBoxes.length === 0 ? 'No boxes available' : 'Select a box…'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {inventoryBoxes.map(b => (
+                            <SelectItem key={b.id} value={b.id}>
+                              {b.box_number} — {b.lot?.lot_number || '—'} ({b.total_books} books)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleStartVerifSession}
+                    disabled={!verifSelectedBoxId || loadingVerifBooks}
+                    className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {loadingVerifBooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                    {loadingVerifBooks ? 'Loading…' : 'Start Session'}
+                  </button>
+                </div>
+              ) : verifBox && (
+                <>
+                  {/* ── Active session bar ── */}
+                  <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-amber-50 rounded-lg p-2">
+                        <Package className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Verifying box</p>
+                        <p className="text-sm font-semibold text-foreground">{verifBox.box_number}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Lot</p>
+                        <p className="text-sm font-semibold text-foreground">{verifBox.lot?.lot_number || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Books</p>
+                        <p className="text-sm font-semibold text-foreground">{verifBooks.length}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setVerifConfirmComplete(true)}
+                      className="px-4 py-1.5 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+                    >
+                      Complete Session
+                    </button>
+                  </div>
+
+                  {/* ── Book count stats ── */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                      <p className="text-xs text-blue-600 font-medium">Total Books</p>
+                      <p className="text-2xl font-bold text-blue-900">{verifBooks.length}</p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-xs text-green-600 font-medium">Processable</p>
+                      <p className="text-2xl font-bold text-green-900">{verifBooks.filter(b => b.scan_status === 'processable').length}</p>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <p className="text-xs text-red-600 font-medium">Non-Processable</p>
+                      <p className="text-2xl font-bold text-red-900">{verifBooks.filter(b => b.scan_status === 'non_processable').length}</p>
+                    </div>
+                  </div>
+
+                  {/* ── Book list ── */}
+                  <div className="bg-card border border-border rounded-xl p-5">
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Book List</h3>
+                    {verifBooks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-6 text-center">No books found in this box.</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-[480px] overflow-y-auto">
+                        {verifBooks.map((book, i) => (
+                          <div key={book.id || i} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-foreground">{book.isbn}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{book.title || '—'}</p>
+                            </div>
+                            <span className={`ml-3 shrink-0 px-2 py-0.5 rounded text-[11px] font-medium ${
+                              book.scan_status === 'processable' ? 'bg-green-100 text-green-700' :
+                              book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                              {book.scan_status === 'processable' ? 'Processable' :
+                               book.scan_status === 'non_processable' ? 'Non-Processable' :
+                               book.scan_status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
+          )}
+
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* TAB: OUTGOING BOXES                                              */}
+          {/* ══════════════════════════════════════════════════════════════════ */}
+          {inventoryTab === 'outgoing' && (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                {loadingBoxes ? 'Loading…' : `${outgoingBoxes.length} box${outgoingBoxes.length !== 1 ? 'es' : ''} ready to send to Cut`}
+              </p>
+              {loadingBoxes ? (
+                <div className="py-12 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                </div>
+              ) : outgoingBoxes.length === 0 ? (
+                <div className="py-20 flex flex-col items-center gap-3 text-center">
+                  <div className="bg-emerald-50 rounded-full p-5"><Send className="h-8 w-8 text-emerald-400" /></div>
+                  <p className="text-sm font-semibold text-foreground">No outgoing boxes yet</p>
+                  <p className="text-xs text-muted-foreground max-w-xs">Complete a verification session in the Book Verification tab to add boxes here.</p>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {outgoingBoxes.map(box => {
+                    const rawScans = box.scans as any[]
+                    const bookCount = (() => {
+                      if (Array.isArray(rawScans) && rawScans.length > 0) {
+                        const first = rawScans[0]
+                        if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
+                      }
+                      return box.total_books || 0
+                    })()
+                    return (
+                      <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
+                        {/* Icon */}
+                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
+                          <Package className="h-5 w-5 text-emerald-600" />
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Verified</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books</p>
+                        </div>
+                        {/* Send to Cut button */}
+                        <button
+                          onClick={() => handleSendToCut(box)}
+                          disabled={sendingToCut === box.id}
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60 transition-colors shrink-0"
+                        >
+                          {sendingToCut === box.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Send className="h-4 w-4" />}
+                          {sendingToCut === box.id ? 'Sending…' : 'Send to Cut'}
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </main>
