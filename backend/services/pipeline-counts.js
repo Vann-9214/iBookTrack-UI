@@ -105,42 +105,6 @@ const STAGE_DEFINITIONS = [
  *   }>
  * }>}
  */
-/**
- * Count total rows in scan-stage statuses today:
- * Scanning ONGOING/COMPLETED, Validate ONGOING/COMPLETED,
- * Tif2PDF ONGOING/COMPLETED, Preval ONGOING/COMPLETED.
- *
- * @param {string} [startDate]
- * @param {string} [endDate]
- * @returns {Promise<{ success: boolean, count: number }>}
- */
-export async function getScanBooksCount(startDate, endDate) {
-  try {
-    const today = new Date().toISOString().split('T')[0]
-    const dateFilter = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(ScanDate AS DATE) = '${today}'`
-
-    const scanStatuses = `('Scanning ONGOING','Scanning COMPLETED','Validate ONGOING','Validate COMPLETED','Tif2PDF ONGOING','Tif2PDF COMPLETED','Preval ONGOING','Preval COMPLETED')`
-
-    // LTRIM/RTRIM both ISBN and Status before matching — stray whitespace on
-    // either column makes COUNT(DISTINCT ISBN) see the same book as multiple
-    // distinct values, or silently drops valid rows from the IN() filter.
-    const rows = await query(
-      `SELECT COUNT(DISTINCT LTRIM(RTRIM(ISBN))) AS cnt
-       FROM zeusz_IsbnStatus
-       WHERE ${dateFilter}
-         AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
-         AND IsRework = 'False'`
-    )
-    const count = (Array.isArray(rows) ? rows : [])[0]?.cnt || 0
-    return { success: true, count }
-  } catch (error) {
-    console.error('[pipeline-counts] getScanBooksCount error:', error.message)
-    return { success: false, count: 0 }
-  }
-}
-
 export async function getStageCounts(startDate, endDate) {
   try {
     const dateFilter = startDate && endDate
@@ -221,4 +185,4 @@ export async function getStageCounts(startDate, endDate) {
   }
 }
 
-export default { getStageCounts, getScanBooksCount, STAGE_DEFINITIONS }
+export default { getStageCounts, STAGE_DEFINITIONS }

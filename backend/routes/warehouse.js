@@ -24,7 +24,7 @@
  */
 
 import express from 'express'
-import { supabase, supabaseAdmin } from '../config/supabase.js'
+import { supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
@@ -285,59 +285,6 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
   }
 })
 
-// Get session details with all scans
-router.get('/sessions/:session_id', requireAuth, async (req, res) => {
-  try {
-    const { session_id } = req.params
-
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('warehouse_sessions')
-      .select(`
-        *,
-        box:boxes(box_number, lot:lots(lot_number)),
-        scans:warehouse_book_scans(*)
-      `)
-      .eq('id', session_id)
-      .single()
-
-    if (sessionError) throw sessionError
-    if (!session) return res.status(404).json({ error: 'Session not found' })
-
-    res.json({ session })
-  } catch (error) {
-    console.error('Get session error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Manually seal a box (mark as full)
-router.post('/boxes/:box_id/seal', requireAuth, async (req, res) => {
-  try {
-    const { box_id } = req.params
-
-    const { data, error } = await supabaseAdmin
-      .from('boxes')
-      .update({
-        is_sealed: true,
-        sealed_at: new Date().toISOString(),
-        sealed_by: req.user.id
-      })
-      .eq('id', box_id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    res.json({ 
-      box: data,
-      message: `Box ${data.box_number} sealed successfully. Next scan will create a new box.`
-    })
-  } catch (error) {
-    console.error('Seal box error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
 // Complete a warehouse session
 router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
   try {
@@ -531,86 +478,6 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
     res.json({ success: true, rejectedBooks })
   } catch (error) {
     console.error('Error fetching non-processable books:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Get recent scans for inventory page
-router.get('/scans/recent', requireAuth, async (req, res) => {
-  try {
-    const { limit = 50 } = req.query
-
-    const { data: scans, error } = await supabaseAdmin
-      .from('warehouse_book_scans')
-      .select(`
-        id,
-        isbn,
-        title,
-        scan_status,
-        scanned_at,
-        warehouse_sessions(lot_id, lots(lot_number))
-      `)
-      .order('scanned_at', { ascending: false })
-      .limit(parseInt(limit))
-
-    if (error) throw error
-
-    // Format the response
-    const formattedScans = scans.map(scan => ({
-      id: scan.id,
-      isbn: scan.isbn,
-      title: scan.title || `ISBN: ${scan.isbn}`,
-      scanned_at: scan.scanned_at,
-      scan_status: scan.scan_status,
-      lot_number: scan.warehouse_sessions?.lots?.lot_number || 'N/A'
-    }))
-
-    res.json({ success: true, scans: formattedScans })
-  } catch (error) {
-    console.error('Error fetching recent scans:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Backfill missing titles in warehouse_book_scans from iLMS
-router.post('/backfill-titles', requireAuth, async (req, res) => {
-  try {
-    const { ilmsApi } = await import('../services/ilms-api.js')
-
-    // Get all scans with no title
-    const { data: scans, error } = await supabaseAdmin
-      .from('warehouse_book_scans')
-      .select('id, isbn')
-      .is('title', null)
-
-    if (error) throw error
-    if (!scans || scans.length === 0) {
-      return res.json({ success: true, updated: 0, message: 'No scans missing titles' })
-    }
-
-    let updated = 0
-    let failed = 0
-
-    for (const scan of scans) {
-      try {
-        const result = await ilmsApi.searchBookByISBN(scan.isbn)
-        if (result.success && result.data && !result.data.Message && result.data.Title) {
-          await supabaseAdmin
-            .from('warehouse_book_scans')
-            .update({ title: result.data.Title })
-            .eq('id', scan.id)
-          updated++
-        } else {
-          failed++
-        }
-      } catch (_) {
-        failed++
-      }
-    }
-
-    res.json({ success: true, total: scans.length, updated, failed })
-  } catch (error) {
-    console.error('Backfill titles error:', error)
     res.status(500).json({ error: error.message })
   }
 })
