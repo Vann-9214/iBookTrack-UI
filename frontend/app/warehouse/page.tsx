@@ -101,7 +101,7 @@ export default function WarehousePage() {
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false)
   const [confirmResetOpen, setConfirmResetOpen] = useState(false)
   // Complete session modal state
-  const [totalBooksReceived, setTotalBooksReceived] = useState('')
+  const [totalBooksExpected, setTotalBooksExpected] = useState('')
   const [issueIsbn, setIssueIsbn] = useState('')
   const [issueType, setIssueType] = useState<'missing' | 'extra'>('missing')
   const [issues, setIssues] = useState<Array<{ isbn: string; type: 'missing' | 'extra'; title?: string; author?: string }>>([])
@@ -153,7 +153,7 @@ export default function WarehousePage() {
       return
     }
     // Reset modal state
-    setTotalBooksReceived('')
+    setTotalBooksExpected('')
     setIssueIsbn('')
     setIssueType('missing')
     setIssues([])
@@ -162,8 +162,8 @@ export default function WarehousePage() {
 
   const confirmCloseSession = async () => {
     if (!currentSession) return
-    if (!totalBooksReceived.trim()) {
-      toast({ title: 'Required Field', description: 'Please enter the total books received.', variant: 'destructive' })
+    if (!totalBooksExpected.trim()) {
+      toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
       return
     }
     setConfirmCompleteOpen(false)
@@ -188,12 +188,12 @@ export default function WarehousePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          total_books_received: parseInt(totalBooksReceived),
+          total_books_expected: parseInt(totalBooksExpected),
           issues: issues
         })
       })
       setSessionActive(false); setScannedBooks([]); setBookCounter(0); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0)
-      setTotalBooksReceived('')
+      setTotalBooksExpected('')
       setIssueIsbn('')
       setIssues([])
       toast({ title: 'Session Closed', description: 'Session closed successfully.' })
@@ -364,14 +364,14 @@ export default function WarehousePage() {
               <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                 <h3 className="text-base font-semibold text-foreground mb-4">Complete Session</h3>
                 
-                {/* Total Books Received */}
+                {/* Total Books Expected */}
                 <div className="mb-4">
-                  <label className="text-sm font-medium text-foreground mb-1 block">Total Books Received *</label>
+                  <label className="text-sm font-medium text-foreground mb-1 block">Total Books Expected *</label>
                   <input
                     type="number"
-                    value={totalBooksReceived}
-                    onChange={(e) => setTotalBooksReceived(e.target.value)}
-                    placeholder="Enter total count"
+                    value={totalBooksExpected}
+                    onChange={(e) => setTotalBooksExpected(e.target.value)}
+                    placeholder="Enter expected total count"
                     className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
@@ -454,7 +454,10 @@ export default function WarehousePage() {
                 {/* Summary */}
                 <div className="mb-4 p-3 bg-muted/50 rounded-lg">
                   <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Scanned:</span> {currentSession?.total_scanned || 0} books
+                    <span className="font-medium">Expected:</span> {totalBooksExpected || 0} books
+                    <span className="ml-3">
+                      <span className="font-medium">Scanned:</span> {currentSession?.total_scanned || 0} books
+                    </span>
                     {issues.length > 0 && (
                       <span className="ml-3">
                         <span className="font-medium">Issues:</span> {issues.length} ({issues.filter(i => i.type === 'missing').length} missing, {issues.filter(i => i.type === 'extra').length} extra)
@@ -470,7 +473,7 @@ export default function WarehousePage() {
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => {
                     setConfirmCompleteOpen(false)
-                    setTotalBooksReceived('')
+                    setTotalBooksExpected('')
                     setIssueIsbn('')
                     setIssues([])
                   }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
