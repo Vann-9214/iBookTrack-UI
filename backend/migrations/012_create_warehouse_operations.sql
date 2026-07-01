@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS public.warehouse_book_scans (
   
   -- Scan result
   scan_status     TEXT        NOT NULL
-                              CHECK (scan_status IN ('accepted', 'rejected', 'mismatch', 'damaged', 'missing_info')),
+                              CHECK (scan_status IN ('processable', 'non_processable')),
   rejection_reason TEXT,      -- Reason if rejected/mismatch/damaged
   notes           TEXT,
   
@@ -81,8 +81,8 @@ BEGIN
   UPDATE public.warehouse_sessions
   SET 
     total_scanned = total_scanned + 1,
-    total_accepted = CASE WHEN NEW.scan_status = 'accepted' THEN total_accepted + 1 ELSE total_accepted END,
-    total_rejected = CASE WHEN NEW.scan_status != 'accepted' THEN total_rejected + 1 ELSE total_rejected END
+    total_accepted = CASE WHEN NEW.scan_status = 'processable' THEN total_accepted + 1 ELSE total_accepted END,
+    total_rejected = CASE WHEN NEW.scan_status = 'non_processable' THEN total_rejected + 1 ELSE total_rejected END
   WHERE id = NEW.session_id;
   
   RETURN NEW;
