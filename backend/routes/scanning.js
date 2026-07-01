@@ -56,7 +56,7 @@ router.get('/live', requireAuth, async (req, res) => {
     const scanBooks = scanStageResult.count || 0
 
     // Scan-pipeline WIP total — matches the Transmission Monitor "New Process Only" figure.
-    const SCAN_STAGES = ['Scanning', 'Validate', 'Tif2PDF', 'Preval']
+    const SCAN_STAGES = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval']
     const scanWipCount = byStage.data?.reduce((sum, s) => {
       return SCAN_STAGES.includes(s.Stage) ? sum + (s.Total || 0) : sum
     }, 0) || 0
