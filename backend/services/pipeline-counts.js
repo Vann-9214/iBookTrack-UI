@@ -79,7 +79,7 @@ async function query(script, attempt = 1) {
 const STAGE_DEFINITIONS = [
   // Scan pipeline sub-stages
   { stage: 'Scanning',             label: 'Scanning'       },
-  { stage: 'Validate',             label: 'Validate'       },
+  { stage: 'Jaguar Validate',      label: 'Jaguar Validate'  },
   { stage: 'Tif2PDF',              label: 'PDF Conversion' },
   { stage: 'Preval',               label: 'Preval'         },
   // Transmit stage

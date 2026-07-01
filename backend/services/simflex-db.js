@@ -60,6 +60,26 @@ function safeDate(value) {
   return iso
 }
 
+// ── Status normalization ─────────────────────────────────────────────────────
+/**
+ * Normalize Simflex status strings so the Transmission Monitor matches the
+ * legacy tool. Jaguar-specific statuses are folded into the standard stage.
+ * QA rows are excluded from the monitored workflow.
+ */
+function normalizeStatus(status) {
+  if (!status) return status
+  // The workflow uses Jaguar Validate; fold plain "Validate" into it
+  if (status === 'Validate') return 'Jaguar Validate'
+  if (status.startsWith('Validate ')) return status.replace('Validate ', 'Jaguar Validate ')
+  return status
+}
+
+function isMonitoredStatus(status) {
+  if (!status) return true
+  // QA is not part of the legacy transmission workflow
+  return !status.startsWith('QA ') && status !== 'QA'
+}
+
 // ── Core query helper ─────────────────────────────────────────────────────────
 /**
  * Sends a raw SQL script string to the Simflex API and returns the result rows.
@@ -229,7 +249,9 @@ export async function getTodayScanningSummary(startDate, endDate, location = 'mu
       `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${dateWhere}${reworkFilter(newProcessOnly)} GROUP BY Status ORDER BY cnt DESC`,
       location
     )
-    const data = Array.isArray(rows) ? rows : []
+    const data = (Array.isArray(rows) ? rows : [])
+      .map(r => ({ ...r, Status: normalizeStatus(r.Status) }))
+      .filter(r => isMonitoredStatus(r.Status))
     const completed = data.filter(r => r.Status?.includes('COMPLETED')).reduce((s, r) => s + r.cnt, 0)
     const failed    = data.filter(r => r.Status?.includes('FAILED')).reduce((s, r) => s + r.cnt, 0)
     const ongoing   = data.filter(r => r.Status?.includes('ONGOING')).reduce((s, r) => s + r.cnt, 0)
@@ -259,7 +281,10 @@ export async function getScanningData(startDate, endDate, location = 'mustang', 
        ORDER BY Updated DESC`,
       location
     )
-    return { success: true, data: rows }
+    const data = (Array.isArray(rows) ? rows : [])
+      .map(r => ({ ...r, Status: normalizeStatus(r.Status) }))
+      .filter(r => isMonitoredStatus(r.Status))
+    return { success: true, data }
   } catch (error) {
     console.error('Error fetching scanning data:', error)
     return { success: false, error: error.message }
@@ -336,7 +361,9 @@ export async function getScanningByStage(startDate, endDate, location = 'mustang
     // Build stage breakdown — Status format: "StageName KEYWORD" e.g. "Preval COMPLETED"
     const stageMap = {}
     for (const r of latestByIsbn.values()) {
-      const parts = r.Status ? r.Status.split(' ') : []
+      const status = normalizeStatus(r.Status)
+      if (!isMonitoredStatus(status)) continue
+      const parts = status ? status.split(' ') : []
       const statusWord = parts[parts.length - 1]
       const stage      = parts.slice(0, parts.length - 1).join(' ')
       if (!stageMap[stage]) stageMap[stage] = { Stage: stage, Total: 0, Completed: 0, Ongoing: 0, Failed: 0 }
@@ -444,7 +471,9 @@ export async function getScanningExportData(date) {
  */
 export async function getScanStageBoxes(startDate, endDate) {
   try {
-    const scanStatuses = `('Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED')`
+    const scanStatuses = `('Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Jaguar Validate ONGOING', 'Jaguar Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED')`
+    // Note: both Validate and Jaguar Validate are included; they are normalized
+    // to Jaguar Validate after the query so the count matches the legacy tool.
 
     // Default to today's scan-stage rows using an explicit ISO date.
     // Simflex's API does not evaluate GETDATE() correctly when the SQL is
@@ -481,7 +510,9 @@ export async function getScanStageBoxes(startDate, endDate) {
        ORDER BY Updated DESC`
     )
 
-    const rawData = Array.isArray(rows) ? rows : []
+    const rawData = (Array.isArray(rows) ? rows : [])
+      .map(r => ({ ...r, Status: normalizeStatus(r.Status) }))
+      .filter(r => isMonitoredStatus(r.Status))
     const seen = new Set()
     const data = []
     for (const row of rawData) {
@@ -588,6 +619,7 @@ export async function getSimflexStatusForISBNs(isbns) {
     const byIsbn = {}
     data.forEach(r => {
       const isbn = r.ISBN
+      const status = normalizeStatus(r.Status)
       if (!byIsbn[isbn]) {
         byIsbn[isbn] = {
           isbn,
@@ -599,20 +631,20 @@ export async function getSimflexStatusForISBNs(isbns) {
           scanUser:              r.ScanUser  || null,
         }
       }
-      byIsbn[isbn].statuses.push(r.Status)
+      byIsbn[isbn].statuses.push(status)
 
       // Flag as transmission-complete if any row shows Transmission_Archive COMPLETED
       if (
-        r.Status &&
-        r.Status.toLowerCase().includes('transmission_archive') &&
-        r.Status.toUpperCase().includes('COMPLETED')
+        status &&
+        status.toLowerCase().includes('transmission_archive') &&
+        status.toUpperCase().includes('COMPLETED')
       ) {
         byIsbn[isbn].transmissionCompleted = true
       }
 
       // Keep track of the most recent status row
       if (!byIsbn[isbn].latestUpdated || new Date(r.Updated) > new Date(byIsbn[isbn].latestUpdated)) {
-        byIsbn[isbn].latestStatus  = r.Status
+        byIsbn[isbn].latestStatus  = status
         byIsbn[isbn].latestUpdated = r.Updated
         byIsbn[isbn].boxNumber     = r.BoxNumber || byIsbn[isbn].boxNumber
         byIsbn[isbn].scanUser      = r.ScanUser  || byIsbn[isbn].scanUser
@@ -711,7 +743,9 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
       ` FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
       location
     )
-    const data = Array.isArray(rows) ? rows : []
+    const data = (Array.isArray(rows) ? rows : [])
+      .map(r => ({ ...r, Status: normalizeStatus(r.Status) }))
+      .filter(r => isMonitoredStatus(r.Status))
 
     // Deduplicate: keep latest status per ISBN
     const latestByIsbn = new Map()
