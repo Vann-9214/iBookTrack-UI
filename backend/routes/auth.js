@@ -8,6 +8,7 @@
  *   POST   /api/auth/login     — Sign in and receive JWT tokens (rate-limited: 10/15 min)
  *   POST   /api/auth/refresh   — Exchange a refresh token for a new access token
  *   POST   /api/auth/password  — Change the logged-in user's password (requires auth)
+ *   GET    /api/auth/profile   — Fetch the logged-in user's profile (requires auth)
  *   PATCH  /api/auth/profile   — Update name / email for the logged-in user (requires auth)
  *
  * Security measures applied here:
@@ -226,6 +227,25 @@ router.post('/password', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Password update error:', error)
     return res.status(500).json({ error: error.message })
+  }
+})
+
+// ── GET /api/auth/profile ─────────────────────────────────
+router.get('/profile', requireAuth, async (req, res) => {
+  try {
+    const profile = await fetchProfileByUserId(req.user.id)
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' })
+    }
+
+    return res.json({
+      name: profile.name,
+      email: profile.email,
+    })
+  } catch (error) {
+    console.error('Profile fetch error:', error)
+    return res.status(500).json({ error: 'Failed to fetch profile' })
   }
 })
 

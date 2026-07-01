@@ -18,6 +18,12 @@ export function ScannerInput({ onScan }: ScannerInputProps) {
     }
   }
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only allow numbers
+    const value = e.target.value.replace(/[^0-9]/g, '')
+    setScanInput(value)
+  }
+
   return (
     <div className="w-full">
       <label className="text-sm font-medium text-muted-foreground mb-3 block">
@@ -31,7 +37,7 @@ export function ScannerInput({ onScan }: ScannerInputProps) {
           type="text"
           placeholder="Scan barcode or ISBN here..."
           value={scanInput}
-          onChange={(e) => setScanInput(e.target.value)}
+          onChange={handleChange}
           onKeyPress={handleKeyPress}
           className="pl-14 py-6 text-lg border-2 border-primary/50 focus:border-primary bg-card"
           autoFocus

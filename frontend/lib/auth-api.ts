@@ -178,3 +178,23 @@ export async function authRequest({ endpoint, payload }: AuthRequestOptions): Pr
 
   return responseBody as AuthSuccess
 }
+
+// Fetch user profile
+export async function fetchUserProfile(): Promise<{ name: string; email: string } | null> {
+  const token = await getValidAccessToken()
+  if (!token) return null
+
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/auth/profile`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    if (!response.ok) return null
+
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('Failed to fetch user profile:', error)
+    return null
+  }
+}
