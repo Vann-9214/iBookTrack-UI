@@ -21,9 +21,14 @@ import dotenv from 'dotenv'
 dotenv.config({ path: new URL('../.env', import.meta.url) })
 
 // Keep-alive agent so the TCP connection is reused across requests.
-// This prevents the "can't fetch after idle" issue where Node drops
-// a stale socket and the next request silently fails or times out.
-const httpsAgent = new https.Agent({ keepAlive: true, keepAliveMsecs: 30000 })
+// Cap the number of concurrent and idle sockets to avoid exhausting the
+// process file-descriptor / memory budget when the frontend polls heavily.
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  keepAliveMsecs: 30000,
+  maxSockets: 20,
+  maxFreeSockets: 10,
+})
 
 // ── Configuration — read from .env ────────────────────────────────────────────
 const SIMFLEX_API_URL = process.env.SIMFLEX_API_URL || 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'

@@ -38,6 +38,21 @@ import { startSimflexPoller } from './services/simflex-poller.js'
 const app  = express()
 const PORT = process.env.PORT || 5000
 
+// ── Global process error handlers ─────────────────────────────────────────────
+// Log fatal errors before the process exits. In Node.js 24 unhandled rejections
+// throw by default and crash the process; capturing them here helps identify the
+// route/poller that caused the backend to stop, so we can fix the root cause.
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled promise rejection:', reason)
+  // Allow the process to continue briefly so the log is flushed, then exit.
+  setTimeout(() => process.exit(1), 250)
+})
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // Build the list of explicitly allowed origins from env vars.
 // FRONTEND_URL  → single origin (e.g. the production URL)
@@ -123,10 +138,16 @@ app.use('/api/storage',   storageRoutes)
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 // ── Start server ──────────────────────────────────────────────────────────────
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`\n🚀 Backend running at http://localhost:${PORT}`)
   // Verify Supabase connection on startup
   await testConnection()
   // Start the background job that auto-advances boxes through the Simflex pipeline
   startSimflexPoller()
 })
+
+// Drop idle HTTP connections after 2 minutes so the process can't accumulate
+// hanging sockets if a frontend tab keeps a connection open.
+server.timeout = 120 * 1000
+server.keepAliveTimeout = 65 * 1000
+server.headersTimeout = 70 * 1000
