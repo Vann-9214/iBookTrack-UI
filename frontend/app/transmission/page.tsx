@@ -39,22 +39,42 @@ import { cn } from "@/lib/utils"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-function getStatusBadge(status: string) {
-  if (status === 'COMPLETED') return (
+function formatPipelineStage(stage: string) {
+  if (!stage) return '—'
+  if (stage === 'Tif2PDF') return 'PDF Conversion'
+  if (stage === 'Validate') return 'Jaguar Validate'
+  return stage.replace(/_/g, ' ')
+}
+
+function parseStatus(status: string) {
+  const parts = status?.split(' ') || []
+  const state = parts.pop()?.toUpperCase() || ''
+  const stage = parts.join(' ')
+  return { stage, state }
+}
+
+function getPipelineStatusBadge(status: string) {
+  const parts = status?.split(' ') || []
+  const state = parts.pop() || 'ONGOING'
+  const stage = parts.join(' ')
+  const formattedStage = formatPipelineStage(stage)
+  const stateUpper = state.toUpperCase()
+
+  if (stateUpper === 'COMPLETED') return (
     <Badge variant="outline" className="border-success/30 bg-success/10 text-success gap-1 text-[10px]">
-      <CheckCircle2 className="h-3 w-3" /> Completed
+      <CheckCircle2 className="h-3 w-3" /> {formattedStage} COMPLETED
     </Badge>
   )
-  if (status === 'FAILED') return (
+  if (stateUpper === 'FAILED') return (
     <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive gap-1 text-[10px]">
-      <XCircle className="h-3 w-3" /> Failed
+      <XCircle className="h-3 w-3" /> {formattedStage} FAILED
     </Badge>
   )
   return (
     <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary gap-1 text-[10px]">
-      <Loader2 className="h-3 w-3 animate-spin" /> Ongoing
+      <Loader2 className="h-3 w-3 animate-spin" /> {formattedStage} ONGOING
     </Badge>
-  )
+  ) 
 }
 
 function getSimflexBadge(status: string | null, completed: boolean) {
@@ -69,10 +89,10 @@ function getSimflexBadge(status: string | null, completed: boolean) {
     </Badge>
   )
   if (status.includes('Validate')) return (
-    <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-700 text-[10px]">Validation</Badge>
+    <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-700 text-[10px]">Jaguar Validate</Badge>
   )
   if (status.includes('Tif2PDF')) return (
-    <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-700 text-[10px]">PDF Conv.</Badge>
+    <Badge variant="outline" className="border-violet-300 bg-violet-50 text-violet-700 text-[10px]">PDFConversion</Badge>
   )
   if (status.includes('Preval')) return (
     <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 text-[10px]">Pre-Validation</Badge>
@@ -117,6 +137,7 @@ export default function TransmissionMonitorPage() {
   const [totalBooks, setTotalBooks] = useState(0)
   const [wipCount, setWipCount] = useState(0)
   const [tableView, setTableView] = useState<'books' | 'wip'>('books')
+  const [stageFilter, setStageFilter] = useState<{ stage: string, category: 'COMPLETED' | 'ONGOING' | 'FAILED' } | null>(null)
   const [byMachine, setByMachine] = useState<any[]>([])
   const [showRanking, setShowRanking] = useState(false)
   const [ranking, setRanking] = useState<any>(null)
@@ -317,14 +338,23 @@ export default function TransmissionMonitorPage() {
     ? allBooks.filter((b: any) => b.isWip)
     : allBooks
 
-  const filteredScans = baseScans.filter((item: any) =>
-    !historySearch ||
-    item.ISBN?.toLowerCase().includes(historySearch.toLowerCase()) ||
-    item.BoxNumber?.toLowerCase().includes(historySearch.toLowerCase())
-  )
+  const filteredScans = baseScans.filter((item: any) => {
+    const matchesSearch = !historySearch ||
+      item.ISBN?.toLowerCase().includes(historySearch.toLowerCase()) ||
+      item.BoxNumber?.toLowerCase().includes(historySearch.toLowerCase())
+    if (!matchesSearch) return false
+    if (!stageFilter) return true
+    const { stage, state } = parseStatus(item.Status || '')
+    return stage === stageFilter.stage && state === stageFilter.category
+  })
 
   const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 50 })
   const paginatedRecentScans = filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit)
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    recentScansPagination.goToPage(1)
+  }, [stageFilter, historySearch, recentScansPagination.goToPage])
 
   // LOT isbn filtered list
   const lotIsbns: any[] = lotSummary?.isbns || []
@@ -467,12 +497,12 @@ export default function TransmissionMonitorPage() {
             </div>
 
             {/* Stage breakdown — fixed order matches legacy tool */}
-            {stages.length > 0 && (() => {
-              const STAGE_ORDER = ['Scanning', 'Validate', 'Tif2PDF', 'Preval', 'Transmission_Archive', 'Jaguar Validate']
+            {(() => {
+              const STAGE_ORDER = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval', 'Transmission_Archive']
               const stageMap = Object.fromEntries(stages.map((s: any) => [s.Stage, s]))
               const ordered = [
-                ...STAGE_ORDER.filter(n => stageMap[n]).map(n => stageMap[n]),
-                ...stages.filter((s: any) => !STAGE_ORDER.includes(s.Stage)),
+                ...STAGE_ORDER.map(n => stageMap[n] || { Stage: n, Total: 0, Completed: 0, Ongoing: 0, Failed: 0 }),
+                ...stages.filter((s: any) => !STAGE_ORDER.includes(s.Stage) && s.Stage !== 'QA' && s.Stage !== 'Validate'),
               ]
               return (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -482,7 +512,7 @@ export default function TransmissionMonitorPage() {
                       <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-3">
                         {/* Stage name + total */}
                         <div className="flex items-start justify-between gap-1">
-                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight">{s.Stage.replace(/_/g, ' ')}</p>
+                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight">{formatPipelineStage(s.Stage)}</p>
                           <span className="text-xl font-black text-gray-800 leading-none shrink-0">{s.Total.toLocaleString()}</span>
                         </div>
 
@@ -491,18 +521,27 @@ export default function TransmissionMonitorPage() {
 
                         {/* Stat pills */}
                         <div className="grid grid-cols-3 gap-1.5">
-                          <div className="flex flex-col items-center rounded-lg bg-green-50 border border-green-100 px-1.5 py-1.5">
-                            <span className="text-[10px] font-semibold text-green-500 uppercase tracking-wide leading-none mb-0.5">COMPLETED</span>
-                            <span className="text-sm font-black text-green-700 leading-none">{s.Completed}</span>
-                          </div>
-                          <div className="flex flex-col items-center rounded-lg bg-blue-50 border border-blue-100 px-1.5 py-1.5">
-                            <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide leading-none mb-0.5">ONGOING</span>
-                            <span className="text-sm font-black text-blue-600 leading-none">{s.Ongoing}</span>
-                          </div>
-                          <div className="flex flex-col items-center rounded-lg bg-red-50 border border-red-100 px-1.5 py-1.5">
-                            <span className="text-[10px] font-semibold text-red-400 uppercase tracking-wide leading-none mb-0.5">FAILED</span>
-                            <span className="text-sm font-black text-red-600 leading-none">{s.Failed}</span>
-                          </div>
+                          {[
+                            { key: 'COMPLETED', label: 'COMPLETED', count: s.Completed, bg: 'bg-green-50', border: 'border-green-100', hover: 'hover:bg-green-100', ring: 'ring-green-400', text: 'text-green-500', num: 'text-green-700' },
+                            { key: 'ONGOING', label: 'ONGOING', count: s.Ongoing, bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:bg-blue-100', ring: 'ring-blue-400', text: 'text-blue-400', num: 'text-blue-600' },
+                            { key: 'FAILED', label: 'FAILED', count: s.Failed, bg: 'bg-red-50', border: 'border-red-100', hover: 'hover:bg-red-100', ring: 'ring-red-400', text: 'text-red-400', num: 'text-red-600' },
+                          ].map((p) => {
+                            const isActive = stageFilter?.stage === s.Stage && stageFilter?.category === p.key
+                            return (
+                              <button
+                                key={p.key}
+                                onClick={() => setStageFilter(isActive ? null : { stage: s.Stage, category: p.key as any })}
+                                className={cn(
+                                  'flex flex-col items-center rounded-lg border px-1.5 py-1.5 transition-colors focus:outline-none',
+                                  p.bg, p.border, p.hover,
+                                  isActive && `ring-2 ${p.ring} bg-opacity-100`
+                                )}
+                              >
+                                <span className={cn('text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5', p.text)}>{p.label}</span>
+                                <span className={cn('text-sm font-black leading-none', p.num)}>{p.count}</span>
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     )
@@ -577,14 +616,31 @@ export default function TransmissionMonitorPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Search ISBN or box..."
-                        value={historySearch}
-                        onChange={(e) => setHistorySearch(e.target.value)}
-                        className="w-56 pl-9 h-8 text-sm  bg-white"
-                      />
+                    <div className="flex items-center gap-2">
+                      {stageFilter && (
+                        <button
+                          onClick={() => setStageFilter(null)}
+                          className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                        >
+                          <span className={cn(
+                            'h-1.5 w-1.5 rounded-full',
+                            stageFilter.category === 'COMPLETED' && 'bg-green-500',
+                            stageFilter.category === 'ONGOING' && 'bg-blue-500',
+                            stageFilter.category === 'FAILED' && 'bg-red-500'
+                          )} />
+                          {formatPipelineStage(stageFilter.stage)} {stageFilter.category.toLowerCase()}
+                          <XCircle className="h-3.5 w-3.5 text-gray-400" />
+                        </button>
+                      )}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Search ISBN or box..."
+                          value={historySearch}
+                          onChange={(e) => setHistorySearch(e.target.value)}
+                          className="w-56 pl-9 h-8 text-sm  bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
                   <CardContent className="p-0">
@@ -594,7 +650,6 @@ export default function TransmissionMonitorPage() {
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Status</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Stage</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
                           <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Date</th>
@@ -602,11 +657,11 @@ export default function TransmissionMonitorPage() {
                       </thead>
                       <tbody>
                         {loading ? (
-                          <tr><td colSpan={7} className="text-center py-12">
+                          <tr><td colSpan={6} className="text-center py-12">
                             <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                           </td></tr>
                         ) : filteredScans.length === 0 ? (
-                          <tr><td colSpan={7} className="text-center py-12 text-gray-400">No scans found</td></tr>
+                          <tr><td colSpan={6} className="text-center py-12 text-gray-400">No scans found</td></tr>
                         ) : paginatedRecentScans.map((item: any, i: number) => {
                           const isOngoing = item.Status?.includes('ONGOING')
                           const isWip = item.isWip
@@ -619,8 +674,7 @@ export default function TransmissionMonitorPage() {
                             <tr key={i} className={`${rowCls} transition-colors`}>
                               <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
                               <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
-                              <td className="px-4 py-3">{getStatusBadge(item.Status?.split(' ').pop() || '')}</td>
-                              <td className="text-xs text-gray-500 px-4 py-3">{item.Status?.split(' ').slice(0, -1).join(' ') || '—'}</td>
+                              <td className="px-4 py-3">{getPipelineStatusBadge(item.Status || '')}</td>
                               <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
                               <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
                               <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
@@ -983,7 +1037,7 @@ export default function TransmissionMonitorPage() {
                             </thead>
                             <tbody>
                               {paginatedBoxBooks.length === 0 ? (
-                                <tr><td colSpan={7} className="text-center py-10 text-muted-foreground">No books found</td></tr>
+                                <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">No books found</td></tr>
                               ) : paginatedBoxBooks.map((b: any, i: number) => (
                                 <tr key={b.scan_id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                                   <td className="font-mono px-4 py-2.5 text-foreground">{b.isbn}</td>
