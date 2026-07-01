@@ -192,7 +192,7 @@ router.get('/open-lots', async (req, res) => {
     // Fetch boxes belonging to those lots
     const { data: boxes, error: boxesError } = await db
       .from('boxes')
-      .select('id, lot_id, total_books')
+      .select('id, lot_id, total_books_expected')
       .in('lot_id', lotIds)
 
     if (boxesError) throw boxesError
@@ -220,7 +220,7 @@ router.get('/open-lots', async (req, res) => {
 
     ;(boxes || []).forEach(box => {
       boxesByLot[box.lot_id] = (boxesByLot[box.lot_id] || 0) + 1
-      totalBooksByLot[box.lot_id] = (totalBooksByLot[box.lot_id] || 0) + (box.total_books || 0)
+      totalBooksByLot[box.lot_id] = (totalBooksByLot[box.lot_id] || 0) + (box.total_books_expected || 0)
       transmittedByLot[box.lot_id] = (transmittedByLot[box.lot_id] || 0) + (transmittedByBox[box.id] || 0)
     })
 

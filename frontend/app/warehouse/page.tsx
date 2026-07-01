@@ -6,7 +6,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
-import { AlertTriangle, Package } from 'lucide-react'
+import { AlertTriangle, Package, Trash2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const FLAG_ISSUES = [
@@ -129,7 +129,7 @@ export default function WarehousePage() {
       const response = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox })
+        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '' })
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Failed to start session')
@@ -347,6 +347,21 @@ export default function WarehousePage() {
     } catch (e) {
       toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed', variant: 'destructive' })
     } finally { setFlagSaving(false) }
+  }
+
+  const handleRemoveBook = (bookId: string) => {
+    const book = scannedBooks.find(b => b.id === bookId)
+    if (!book) return
+    setScannedBooks(prev => prev.filter(b => b.id !== bookId))
+    setCurrentBoxBooks(prev => Math.max(0, prev - 1))
+    setBookCounter(prev => Math.max(0, prev - 1))
+    setCurrentSession(prev => prev ? {
+      ...prev,
+      total_scanned: Math.max(0, prev.total_scanned - 1),
+      total_processable: book.scan_status === 'processable' ? Math.max(0, prev.total_processable - 1) : prev.total_processable,
+      total_non_processable: book.scan_status === 'non_processable' ? Math.max(0, prev.total_non_processable - 1) : prev.total_non_processable,
+    } : null)
+    toast({ title: 'Book Removed', description: `${book.isbn} removed from scan log.` })
   }
 
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
@@ -643,9 +658,10 @@ export default function WarehousePage() {
                     {/* Header row */}
                     <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
                       <div className="col-span-2">ISBN</div>
-                      <div className="col-span-4">Book Title</div>
+                      <div className="col-span-3">Book Title</div>
                       <div className="col-span-3">Book Author</div>
                       <div className="col-span-3 text-right">Status</div>
+                      <div className="col-span-1 text-right">Action</div>
                     </div>
                     {/* Scan log entries */}
                     <div className="space-y-1.5 max-h-96 overflow-y-auto">
@@ -654,7 +670,7 @@ export default function WarehousePage() {
                           <div className="col-span-2">
                             <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                           </div>
-                          <div className="col-span-4">
+                          <div className="col-span-3">
                             <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
                             {book.flag_issue && (
                               <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
@@ -674,6 +690,11 @@ export default function WarehousePage() {
                                 <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
                               </span>
                             )}
+                          </div>
+                          <div className="col-span-1 flex items-center justify-end">
+                            <button onClick={() => handleRemoveBook(book.id)} className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors" title="Remove from scan log">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
                       ))}
