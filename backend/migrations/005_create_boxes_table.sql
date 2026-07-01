@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.boxes (
   books_received  INTEGER     NOT NULL DEFAULT 0,
   books_transmitted INTEGER   NOT NULL DEFAULT 0,
   current_stage   TEXT        NOT NULL DEFAULT 'intake'
-                              CHECK (current_stage IN ('intake', 'cut', 'inspection', 'scan', 'validation', 'qa', 'transmit', 'storage')),
+                              CHECK (current_stage IN ('warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage', 'intake')),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

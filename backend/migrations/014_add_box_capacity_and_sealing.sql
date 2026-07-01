@@ -9,8 +9,9 @@ ALTER TABLE public.boxes
   ADD COLUMN IF NOT EXISTS is_sealed BOOLEAN DEFAULT false,
   ADD COLUMN IF NOT EXISTS sealed_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS sealed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS received_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS box_type TEXT DEFAULT 'mixed' 
-    CHECK (box_type IN ('receiving', 'accepted', 'rejected', 'mixed'));
+    CHECK (box_type IN ('processable', 'receiving', 'general', 'accepted', 'rejected'));
 
 -- Add index for sealed boxes
 CREATE INDEX IF NOT EXISTS idx_boxes_is_sealed ON public.boxes(is_sealed);
