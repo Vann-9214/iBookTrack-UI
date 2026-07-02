@@ -1409,7 +1409,7 @@ export default function InventoryPage() {
                         <button
                           onClick={() => handleSendToCut(box)}
                           disabled={sendingToCut === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-60 transition-colors shrink-0"
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
                         >
                           {sendingToCut === box.id
                             ? <Loader2 className="h-4 w-4 animate-spin" />
