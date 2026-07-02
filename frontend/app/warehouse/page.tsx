@@ -1,13 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
-import { AlertTriangle, Package, Trash2 } from 'lucide-react'
+import { AlertTriangle, Package, Trash2, Check, ChevronsUpDown } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 const FLAG_ISSUES = [
   { value: "bleed-through",        label: "Bleed-through on page" },
@@ -36,7 +40,7 @@ const FLAG_ISSUES = [
 // Static lots for demo purposes (will be replaced with API calls later)
 const STATIC_LOTS = Array.from({ length: 100 }, (_, i) => ({
   id: `lot-${i + 1}`,
-  lot_number: `Lot ${i + 1}`
+  lot_number: `${i + 1}`
 }))
 
 // Static boxes for demo purposes (will be replaced with API calls later)
@@ -106,7 +110,52 @@ export default function WarehousePage() {
   const [issueType, setIssueType] = useState<'missing' | 'extra'>('missing')
   const [issues, setIssues] = useState<Array<{ isbn: string; type: 'missing' | 'extra'; title?: string; author?: string }>>([])
   const [fetchingIssueBook, setFetchingIssueBook] = useState(false)
+  const [conflictModalState, setConflictModalState] = useState<{
+    open: boolean,
+    type: 'zero_books' | 'has_books' | null,
+    message: string,
+    boxInfo?: any
+  }>({ open: false, type: null, message: '' })
+  
+  // Combobox states
+  const [lotOpen, setLotOpen] = useState(false)
+  const [boxOpen, setBoxOpen] = useState(false)
+
   const { toast } = useToast()
+
+  const currentSessionRef = useRef<WarehouseSession | null>(null)
+  const sessionActiveRef = useRef(false)
+
+  useEffect(() => {
+    currentSessionRef.current = currentSession
+    sessionActiveRef.current = sessionActive
+  }, [currentSession, sessionActive])
+
+  // Handle page refresh/exit and component unmount
+  useEffect(() => {
+    const cleanupSession = () => {
+      if (sessionActiveRef.current && currentSessionRef.current && currentSessionRef.current.id !== 'pending') {
+        const token = localStorage.getItem('access_token')
+        if (token) {
+          // Use keepalive: true to ensure the request is completed even if the page unloads
+          fetch(`${API_URL}/api/warehouse/sessions/${currentSessionRef.current.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` },
+            keepalive: true
+          }).catch(console.error)
+        }
+      }
+    }
+
+    // Runs when the user closes the tab or refreshes the page
+    window.addEventListener('beforeunload', cleanupSession)
+    
+    return () => {
+      window.removeEventListener('beforeunload', cleanupSession)
+      // Runs when the user navigates away to another page within the app
+      cleanupSession()
+    }
+  }, [])
 
   // Fetch user profile on mount
   useEffect(() => {
@@ -119,7 +168,7 @@ export default function WarehousePage() {
     loadUserProfile()
   }, [])
 
-  const handleNewSession = async () => {
+  const handleNewSession = async (force: boolean = false) => {
     if (!activeLot) { alert('Please select a lot first'); return }
     if (!selectedBox) { alert('Please select a box first'); return }
     
@@ -131,9 +180,20 @@ export default function WarehousePage() {
       const startRes = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '' })
+        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '', force })
       })
       const startData = await startRes.json()
+      
+      if (startRes.status === 409) {
+        if (startData.error === 'BoxExistsWithZeroBooks') {
+           setConflictModalState({ open: true, type: 'zero_books', message: startData.message, boxInfo: startData.box })
+           return
+        } else if (startData.error === 'BoxExistsWithBooks') {
+           setConflictModalState({ open: true, type: 'has_books', message: startData.message, boxInfo: startData.box })
+           return
+        }
+      }
+
       if (!startRes.ok) throw new Error(startData.error || 'Failed to create session on backend')
 
       setCurrentSession({ 
@@ -473,7 +533,7 @@ export default function WarehousePage() {
                       disabled={!issueIsbn.trim() || fetchingIssueBook}
                       className="px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50"
                     >
-                      {fetchingIssueBook ? 'Adding…' : 'Add'}
+                      {fetchingIssueBook ? 'Addingâ€¦' : 'Add'}
                     </button>
                   </div>
 
@@ -548,7 +608,7 @@ export default function WarehousePage() {
                     setIssues([])
                   }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
                   <button onClick={confirmCloseSession} disabled={loading} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50">
-                    {loading ? 'Completing…' : 'Confirm Complete'}
+                    {loading ? 'Completingâ€¦' : 'Confirm Complete'}
                   </button>
                 </div>
               </div>
@@ -569,6 +629,29 @@ export default function WarehousePage() {
             </div>
           )}
 
+          {/* Conflict Modal */}
+          {conflictModalState.open && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConflictModalState({ open: false, type: null, message: '' })}>
+              <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+                <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
+                  <AlertTriangle className={`h-4 w-4 ${conflictModalState.type === 'has_books' ? 'text-destructive' : 'text-amber-500'}`} /> 
+                  {conflictModalState.type === 'has_books' ? 'Cannot Start Session' : 'Box Already Exists'}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-5">{conflictModalState.message}</p>
+                <div className="flex gap-2 justify-end">
+                  {conflictModalState.type === 'zero_books' ? (
+                    <>
+                      <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                      <button onClick={() => { setConflictModalState({ open: false, type: null, message: '' }); handleNewSession(true) }} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors">Retry Again</button>
+                    </>
+                  ) : (
+                    <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors">Close</button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
         {/* Flag Modal */}
           {flagModalBook && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setFlagModalBook(null)}>
@@ -577,15 +660,15 @@ export default function WarehousePage() {
                   <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-destructive" /> Flag as Non-Processable
                   </h3>
-                  <button onClick={() => setFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+                  <button onClick={() => setFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">âœ•</button>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">{flagModalBook.isbn} — {flagModalBook.title} — {flagModalBook.author}</p>
+                <p className="text-xs text-muted-foreground mb-3">{flagModalBook.isbn} â€” {flagModalBook.title} â€” {flagModalBook.author}</p>
                 <div className="space-y-3">
                   <div>
                     <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
                     <select value={flagIssue} onChange={e => setFlagIssue(e.target.value)}
                       className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
-                      <option value="">Select issue…</option>
+                      <option value="">Select issueâ€¦</option>
                       {FLAG_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
                     </select>
                   </div>
@@ -600,7 +683,7 @@ export default function WarehousePage() {
                   <button onClick={() => setFlagModalBook(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
                   <button onClick={saveFlagFromLog} disabled={!flagIssue || flagSaving}
                     className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50">
-                    {flagSaving ? 'Saving…' : 'Confirm Flag'}
+                    {flagSaving ? 'Savingâ€¦' : 'Confirm Flag'}
                   </button>
                 </div>
               </div>
@@ -609,45 +692,92 @@ export default function WarehousePage() {
 
           {/* Header */}
           <header>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse & Inventory</h1>
-            <p className="text-sm text-muted-foreground mt-1">Scan books into a single box. Flag Non-Processable ones inline — no re-boxing needed.</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse &amp; Inventory</h1>
+            <p className="text-sm text-muted-foreground mt-1">Scan books into a single box. Flag Non-Processable ones inline &mdash; no re-boxing needed.</p>
           </header>
 
           {/* Session Control */}
           {!sessionActive ? (
-            <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-end justify-between gap-4">
-              <div className="inline-flex flex-wrap items-end gap-2">
+            <div className="bg-card border border-border shadow-sm rounded-xl p-8 w-full">
+              <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div>
-                  <label className="text-sm font-medium text-foreground block mb-1">Lot</label>
-                  <Select value={activeLot} onValueChange={setActiveLot}>
-                    <SelectTrigger className="w-40 h-9">
-                      <SelectValue placeholder="Select a lot" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {lots.map(l => (
-                        <SelectItem key={l.id} value={l.lot_number}>{l.lot_number}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <h2 className="text-lg font-semibold text-foreground">Start New Session</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Select a lot and box to begin receiving books.</p>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground block mb-1">Box</label>
-                  <Select value={selectedBox} onValueChange={setSelectedBox} disabled={!activeLot}>
-                    <SelectTrigger className="w-48 h-9">
-                      <SelectValue placeholder={!activeLot ? 'Select a lot first' : 'Select a box'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {boxes.map(b => (
-                        <SelectItem key={b.id} value={b.id}>{b.box_number}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex gap-2">
+                  {activeLot && <span className="bg-primary/10 text-primary px-3 py-1 rounded-md text-sm font-medium">#{activeLot}</span>}
+                  {selectedBox && <span className="bg-primary/10 text-primary px-3 py-1 rounded-md text-sm font-medium">{boxes.find(b => b.id === selectedBox)?.box_number}</span>}
                 </div>
               </div>
-              <button onClick={handleNewSession} disabled={loading || !activeLot || !selectedBox}
-                className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                {loading ? 'Starting…' : 'Start Session'}
-              </button>
+              <div className="flex flex-col sm:flex-row items-end gap-6">
+                <div className="flex-1 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-foreground">Lot</label>
+                      <Popover open={lotOpen} onOpenChange={setLotOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" role="combobox" aria-expanded={lotOpen} className="w-full justify-between font-normal">
+                            {activeLot ? lots.find(l => l.lot_number === activeLot)?.lot_number : 'Search lot...'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[280px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search..." />
+                            <CommandList>
+                              <CommandEmpty>No lot found.</CommandEmpty>
+                              <CommandGroup>
+                                {lots.map(l => (
+                                  <CommandItem key={l.id} value={l.lot_number} onSelect={v => { setActiveLot(v === activeLot ? '' : v); setLotOpen(false) }} className="flex justify-between items-center w-full">
+                                    <span>{l.lot_number}</span>
+                                    <Check className={cn('h-4 w-4', activeLot === l.lot_number ? 'opacity-100' : 'opacity-0')} />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-foreground">Box Number</label>
+                      <Popover open={boxOpen} onOpenChange={setBoxOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" role="combobox" aria-expanded={boxOpen} disabled={!activeLot} className="w-full justify-between font-normal">
+                            {selectedBox ? boxes.find(b => b.id === selectedBox)?.box_number : 'Search box...'}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[280px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Search box..." />
+                            <CommandList>
+                              <CommandEmpty>No box found.</CommandEmpty>
+                              <CommandGroup>
+                                {boxes.map(b => (
+                                  <CommandItem key={b.id} value={b.box_number} onSelect={() => { setSelectedBox(b.id === selectedBox ? '' : b.id); setBoxOpen(false) }} className="flex justify-between items-center w-full">
+                                    <span>{b.box_number}</span>
+                                    <Check className={cn('h-4 w-4', selectedBox === b.id ? 'opacity-100' : 'opacity-0')} />
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => handleNewSession(false)}
+                  disabled={loading || !activeLot || !selectedBox}
+                  className="h-10 px-8 w-full sm:w-auto"
+                >
+                  {loading ? 'Starting...' : 'Start Session'}
+                </Button>
+              </div>
             </div>
           ) : (
             <>
@@ -728,7 +858,7 @@ export default function WarehousePage() {
                           <div className="col-span-3">
                             <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
                             {book.flag_issue && (
-                              <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
+                              <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` â€” ${book.flag_remarks}` : ''}</p>
                             )}
                           </div>
                           <div className="col-span-3">
@@ -765,3 +895,4 @@ export default function WarehousePage() {
     </div>
   )
 }
+

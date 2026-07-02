@@ -74,37 +74,65 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       }
     }
 
-    // If no existing box found but a box_number was provided, create the box with the requested name
+    // If no existing box found but a box_number was provided, verify or create
     if (!assignedBoxId && requestedBoxNumber) {
-      // Use the box_number from the dropdown selection as the box name
       const boxName = requestedBoxNumber
-      const { data: newBox, error: boxCreateError } = await supabaseAdmin
+
+      // Check if box already exists
+      const { data: existingBox } = await supabaseAdmin
         .from('boxes')
-        .insert({
-          box_number: boxName,
-          lot_id: lot.id,
-          box_type: 'processable',
-          current_stage: 'warehouse',
-          total_books_expected: 0,
-          is_sealed: false
-        })
-        .select()
-        .single()
+        .select('id, total_books_expected, current_stage')
+        .eq('lot_id', lot.id)
+        .eq('box_number', boxName)
+        .maybeSingle()
 
-      if (boxCreateError) throw boxCreateError
-      assignedBoxId = newBox.id
+      if (existingBox) {
+        if (!req.body.force) {
+          if (existingBox.total_books_expected === 0) {
+            return res.status(409).json({ 
+              error: 'BoxExistsWithZeroBooks', 
+              message: `Box ${boxName} in Lot ${lot.lot_number} already exists but has 0 books. Do you want to proceed?`,
+              box: existingBox
+            })
+          } else {
+            return res.status(409).json({ 
+              error: 'BoxExistsWithBooks', 
+              message: `Box ${boxName} in Lot ${lot.lot_number} already exists and contains ${existingBox.total_books_expected} books. You cannot start a new session for this box.`,
+              box: existingBox
+            })
+          }
+        }
+        assignedBoxId = existingBox.id
+      } else {
+        // Create new box
+        const { data: newBox, error: boxCreateError } = await supabaseAdmin
+          .from('boxes')
+          .insert({
+            box_number: boxName,
+            lot_id: lot.id,
+            box_type: 'processable',
+            current_stage: 'warehouse',
+            total_books_expected: 0,
+            is_sealed: false
+          })
+          .select()
+          .single()
 
-      // Increment total_boxes in lots table
-      const { data: currentLot } = await supabaseAdmin
-        .from('lots')
-        .select('total_boxes')
-        .eq('id', lot.id)
-        .single()
-      
-      await supabaseAdmin
-        .from('lots')
-        .update({ total_boxes: (currentLot?.total_boxes || 0) + 1 })
-        .eq('id', lot.id)
+        if (boxCreateError) throw boxCreateError
+        assignedBoxId = newBox.id
+
+        // Increment total_boxes in lots table
+        const { data: currentLot } = await supabaseAdmin
+          .from('lots')
+          .select('total_boxes')
+          .eq('id', lot.id)
+          .single()
+        
+        await supabaseAdmin
+          .from('lots')
+          .update({ total_boxes: (currentLot?.total_boxes || 0) + 1 })
+          .eq('id', lot.id)
+      }
     }
 
     // Create warehouse session — use selected box if provided, otherwise create on first scan

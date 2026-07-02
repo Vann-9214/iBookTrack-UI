@@ -37,7 +37,8 @@ router.get('/', requireAuth, async (req, res) => {
         lot:lots(lot_number, shipment_id, status),
         books:books(
           scans:book_scans(count)
-        )
+        ),
+        book_sessions:book_sessions(received_by_name)
       `)
       .order('created_at', { ascending: false })
 
