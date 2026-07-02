@@ -508,7 +508,7 @@ export default function WarehousePage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar />
+        <DashboardNavbar disableBrandToggle={sessionActive} />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Confirm Complete Session Modal */}
