@@ -121,17 +121,6 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
         if (boxCreateError) throw boxCreateError
         assignedBoxId = newBox.id
 
-        // Increment total_boxes in lots table
-        const { data: currentLot } = await supabaseAdmin
-          .from('lots')
-          .select('total_boxes')
-          .eq('id', lot.id)
-          .single()
-        
-        await supabaseAdmin
-          .from('lots')
-          .update({ total_boxes: (currentLot?.total_boxes || 0) + 1 })
-          .eq('id', lot.id)
       }
     }
 
@@ -413,7 +402,7 @@ router.delete('/sessions/:session_id', requireAuth, async (req, res) => {
 
     const { data: session } = await supabaseAdmin
       .from('book_sessions')
-      .select('box_id')
+      .select('box_id, lot_id')
       .eq('id', session_id)
       .single()
 
@@ -424,6 +413,7 @@ router.delete('/sessions/:session_id', requireAuth, async (req, res) => {
       // Attempt to delete the box if it has no other dependencies
       if (session.box_id) {
         await supabaseAdmin.from('boxes').delete().eq('id', session.box_id)
+
       }
     }
 
