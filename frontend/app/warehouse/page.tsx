@@ -381,7 +381,11 @@ export default function WarehousePage() {
                 
                 {/* Total Books Expected */}
                 <div className="mb-4">
-                  <label className="text-sm font-medium text-foreground mb-1 block">Total Books Expected *</label>
+                  <div className="flex items-center gap-1 mb-1">
+                    <label className="text-sm font-medium text-foreground">Total Books Expected</label>
+                    <label className="text-sm font-medium text-red-500">*</label>
+                  </div>
+                  
                   <input
                     type="number"
                     value={totalBooksExpected}
@@ -397,14 +401,15 @@ export default function WarehousePage() {
                   
                   {/* Issue Input */}
                   <div className="flex gap-2 mb-3">
-                    <select
-                      value={issueType}
-                      onChange={(e) => setIssueType(e.target.value as 'missing' | 'extra')}
-                      className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <option value="missing">Missing</option>
-                      <option value="extra">Extra</option>
-                    </select>
+                    <Select value={issueType} onValueChange={(v) => setIssueType(v as 'missing' | 'extra')}>
+                      <SelectTrigger className="w-28 h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="missing">Missing</SelectItem>
+                        <SelectItem value="extra">Extra</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <input
                       type="text"
                       value={issueIsbn}

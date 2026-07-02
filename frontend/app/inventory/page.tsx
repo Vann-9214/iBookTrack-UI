@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { authFetch } from '@/lib/auth-api'
+import { authFetch, fetchUserProfile } from '@/lib/auth-api'
 import { useBrand } from '@/hooks/use-brand'
 import { usePagination } from '@/hooks/usePagination'
 import { Pagination } from '@/components/pagination'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ScannerInput } from '@/components/scanner-input'
+import { useToast } from '@/hooks/use-toast'
 import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
@@ -37,6 +39,26 @@ interface Box {
   scans: { count: number }[]
 }
 
+interface VerifScannedBook {
+  id: string
+  isbn: string
+  title: string
+  author: string
+  scan_status: 'processable' | 'non_processable'
+  flag_issue?: string
+  flag_remarks?: string
+  timestamp: Date
+}
+
+interface VerifSession {
+  id: string
+  status: string
+  total_scanned: number
+  total_processable: number
+  total_non_processable: number
+  box_id?: string | null
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 const STAGE_COLORS: Record<string, string> = {
@@ -53,8 +75,33 @@ const STAGE_COLORS: Record<string, string> = {
 const LOT_OPTIONS = Array.from({ length: 100 }, (_, i) => `Lot ${i + 1}`)
 const LOT_ALIASES = Array.from({ length: 100 }, (_, i) => [`Lot ${i + 1}`, `Lot-${i + 1}`, `LOT ${i + 1}`, `LOT-${i + 1}`])
 
+const FLAG_ISSUES = [
+  { value: "bleed-through",        label: "Bleed-through on page" },
+  { value: "brittle",              label: "Brittle on page" },
+  { value: "cannot-detach-sticky", label: "Cannot be detached or sticky pages" },
+  { value: "cd-only",              label: "CD only, no text content" },
+  { value: "map-spanning",         label: "Contains a map spanning the entire book" },
+  { value: "split-pages",          label: "Contains split pages" },
+  { value: "cutoff-text",          label: "Cutoff text on page" },
+  { value: "illegible-text",       label: "Illegible text" },
+  { value: "inverted-contrast",    label: "Inverted contrast: White on black background" },
+  { value: "missing-pages",        label: "Missing page/s" },
+  { value: "no-content",           label: "No content or body text" },
+  { value: "obscured-highlight",   label: "Obscured text due to highlight marker" },
+  { value: "obscured-watermark",   label: "Obscured text due to watermarks" },
+  { value: "oversized",            label: "Oversized and cannot fit in the scanner" },
+  { value: "pen-marks",            label: "Pen marks on page" },
+  { value: "pop-up-book",          label: "Pop-up book" },
+  { value: "postcard-only",        label: "Postcard only" },
+  { value: "stained-dirty",        label: "Stained or dirty page" },
+  { value: "stamp-mark",           label: "Stamp mark on page" },
+  { value: "thick-cardboard",      label: "Thick or cardboard pages" },
+  { value: "torn-pages",           label: "Torn pages" },
+]
+
 export default function InventoryPage() {
   const { brand } = useBrand()
+  const { toast } = useToast()
 
   // --- Boxes tab state ---
   const [boxes, setBoxes] = useState<Box[]>([])
@@ -149,6 +196,16 @@ export default function InventoryPage() {
 
 
   useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter])
+
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      const profile = await fetchUserProfile()
+      if (profile && profile.name) {
+        setVerifUserName(profile.name)
+      }
+    }
+    loadUserProfile()
+  }, [])
 
 
   const fetchBoxes = async () => {
@@ -297,10 +354,27 @@ export default function InventoryPage() {
   // ── Book Verification: session state ───────────────────────────────────────
   const [verifSessionActive, setVerifSessionActive] = useState(false)
   const [verifSelectedBoxId, setVerifSelectedBoxId] = useState('')
+  const [verifUserName, setVerifUserName] = useState('')
   const [verifBox, setVerifBox] = useState<Box | null>(null)
   const [verifBooks, setVerifBooks] = useState<BookInBox[]>([])
   const [loadingVerifBooks, setLoadingVerifBooks] = useState(false)
   const [verifConfirmComplete, setVerifConfirmComplete] = useState(false)
+  // Warehouse-style verification session state
+  const [verifCurrentSession, setVerifCurrentSession] = useState<VerifSession | null>(null)
+  const [verifScannedBooks, setVerifScannedBooks] = useState<VerifScannedBook[]>([])
+  const [verifBookCounter, setVerifBookCounter] = useState(0)
+  const [verifCurrentBoxBooks, setVerifCurrentBoxBooks] = useState(0)
+  const [verifTotalBooksExpected, setVerifTotalBooksExpected] = useState('')
+  const [verifIssueIsbn, setVerifIssueIsbn] = useState('')
+  const [verifIssueType, setVerifIssueType] = useState<'missing' | 'extra'>('missing')
+  const [verifIssues, setVerifIssues] = useState<Array<{ isbn: string; type: 'missing' | 'extra'; title?: string; author?: string }>>([])
+  const [verifFetchingIssueBook, setVerifFetchingIssueBook] = useState(false)
+  const [verifFlagModalBook, setVerifFlagModalBook] = useState<VerifScannedBook | null>(null)
+  const [verifFlagIssue, setVerifFlagIssue] = useState('')
+  const [verifFlagRemarks, setVerifFlagRemarks] = useState('')
+  const [verifFlagSaving, setVerifFlagSaving] = useState(false)
+
+  const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
   const handleStartVerifSession = async () => {
     if (!verifSelectedBoxId) return
@@ -308,28 +382,262 @@ export default function InventoryPage() {
     if (!box) return
     setLoadingVerifBooks(true)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+      // Start a warehouse-style session for the existing inventory box
+      const res = await authFetch(`${API_URL}/api/warehouse/sessions/start`, {
+        method: 'POST',
+        body: JSON.stringify({
+          lot_number: box.lot?.lot_number || '',
+          box_id: box.id,
+          box_number: box.box_number
+        })
+      })
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to start verification session')
+
+      const boxRes = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+      const boxData = await boxRes.json()
+
+      setVerifCurrentSession({ ...data.session, total_processable: 0, total_non_processable: 0 })
       setVerifBox(box)
-      setVerifBooks(data.box?.books || [])
+      setVerifBooks(boxData.box?.books || [])
+      setVerifScannedBooks([])
+      setVerifBookCounter(0)
+      setVerifCurrentBoxBooks(0)
+      setVerifTotalBooksExpected('')
+      setVerifIssueIsbn('')
+      setVerifIssues([])
       setVerifSessionActive(true)
+      toast({ title: 'Verification Session Started', description: `Session started for ${box.box_number}.` })
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Failed to load box books')
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to start verification session', variant: 'destructive' })
     } finally {
       setLoadingVerifBooks(false)
     }
   }
 
-  const handleCompleteVerifSession = () => {
-    if (!verifBox) return
-    setVerifiedBoxIds(prev => new Set([...prev, verifBox.id]))
+  const handleVerifScan = async (isbn: string) => {
+    if (!verifCurrentSession) return
+    setLoadingVerifBooks(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+      const data = await res.json()
+      if (data.success && data.data && !data.data.Message) {
+        saveVerifBookToLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || `Author ${verifBookCounter + 1}` }, 'processable', null, null)
+      } else {
+        saveVerifBookToLocal({ isbn, title: `Book ${verifBookCounter + 1}`, author: `Author ${verifBookCounter + 1}` }, 'processable', null, null)
+        toast({ title: 'Book Not Found', description: 'ISBN not found in iLMS. Added to verification log anyway.', variant: 'destructive' })
+      }
+    } catch {
+      saveVerifBookToLocal({ isbn, title: `Book ${verifBookCounter + 1}`, author: `Author ${verifBookCounter + 1}` }, 'processable', null, null)
+      toast({ title: 'API Error', description: 'Failed to fetch book details. Added to verification log anyway.', variant: 'destructive' })
+    } finally {
+      setLoadingVerifBooks(false)
+    }
+  }
+
+  const saveVerifBookToLocal = (bookData: any, scan_status: 'processable' | 'non_processable', flag_issue: string | null, flag_remarks: string | null) => {
+    if (!verifCurrentSession || !bookData) return
+    setVerifCurrentBoxBooks(prev => prev + 1)
+    setVerifBookCounter(prev => prev + 1)
+    const newBook: VerifScannedBook = {
+      id: `local-${Date.now()}`,
+      isbn: bookData.isbn,
+      title: bookData.title,
+      author: bookData.author,
+      scan_status,
+      flag_issue: flag_issue || undefined,
+      flag_remarks: flag_remarks || undefined,
+      timestamp: new Date()
+    }
+    setVerifScannedBooks(prev => [newBook, ...prev])
+    setVerifCurrentSession(prev => prev ? {
+      ...prev,
+      total_scanned: prev.total_scanned + 1,
+      total_processable: scan_status === 'processable' ? prev.total_processable + 1 : prev.total_processable,
+      total_non_processable: scan_status === 'non_processable' ? prev.total_non_processable + 1 : prev.total_non_processable,
+    } : null)
+  }
+
+  const saveVerifBookToDB = async (bookData: any, scan_status: 'processable' | 'non_processable', flag_issue: string | null, flag_remarks: string | null) => {
+    if (!verifCurrentSession || !bookData) return
+    try {
+      const res = await authFetch(`${API_URL}/api/warehouse/sessions/${verifCurrentSession.id}/scan`, {
+        method: 'POST',
+        body: JSON.stringify({
+          isbn: bookData.isbn,
+          title: bookData.title,
+          author: bookData.author,
+          scan_status,
+          rejection_reason: flag_issue || null,
+          notes: flag_remarks || null
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to process book')
+      return data.scanLog.id
+    } catch (error) {
+      console.error('Error saving verification book to DB:', error)
+      throw error
+    }
+  }
+
+  const handleRemoveVerifBook = (bookId: string) => {
+    const book = verifScannedBooks.find(b => b.id === bookId)
+    if (!book) return
+    setVerifScannedBooks(prev => prev.filter(b => b.id !== bookId))
+    setVerifCurrentBoxBooks(prev => Math.max(0, prev - 1))
+    setVerifBookCounter(prev => Math.max(0, prev - 1))
+    setVerifCurrentSession(prev => prev ? {
+      ...prev,
+      total_scanned: Math.max(0, prev.total_scanned - 1),
+      total_processable: book.scan_status === 'processable' ? Math.max(0, prev.total_processable - 1) : prev.total_processable,
+      total_non_processable: book.scan_status === 'non_processable' ? Math.max(0, prev.total_non_processable - 1) : prev.total_non_processable,
+    } : null)
+    toast({ title: 'Book Removed', description: `${book.isbn} removed from verification log.` })
+  }
+
+  const openVerifFlagModal = (book: VerifScannedBook) => {
+    setVerifFlagModalBook(book)
+    setVerifFlagIssue(book.flag_issue || '')
+    setVerifFlagRemarks(book.flag_remarks || '')
+  }
+
+  const saveVerifFlagFromLog = async () => {
+    if (!verifFlagModalBook || !verifFlagIssue) { toast({ title: 'Select an issue first', variant: 'destructive' }); return }
+    setVerifFlagSaving(true)
+    try {
+      setVerifScannedBooks(prev => prev.map(b => b.id === verifFlagModalBook.id
+        ? { ...b, scan_status: 'non_processable', flag_issue: verifFlagIssue, flag_remarks: verifFlagRemarks }
+        : b
+      ))
+      setVerifCurrentSession(prev => prev ? {
+        ...prev,
+        total_non_processable: prev.total_non_processable + 1,
+        total_processable: Math.max(0, prev.total_processable - 1),
+      } : null)
+      setVerifFlagModalBook(null)
+      toast({ title: 'Flagged as Non-Processable' })
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed', variant: 'destructive' })
+    } finally { setVerifFlagSaving(false) }
+  }
+
+  const handleVerifAddIssue = async () => {
+    if (!verifIssueIsbn.trim()) return
+    setVerifFetchingIssueBook(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/books/ilms/search/${verifIssueIsbn}`)
+      const data = await res.json()
+      const issueData = {
+        isbn: verifIssueIsbn,
+        type: verifIssueType,
+        title: data.success && data.data && !data.data.Message ? data.data.Title : `Book ${verifBookCounter + 1}`,
+        author: data.success && data.data && !data.data.Message ? data.data.Author : `Author ${verifBookCounter + 1}`
+      }
+      setVerifIssues(prev => [...prev, issueData])
+      setVerifIssueIsbn('')
+    } catch {
+      const issueData = {
+        isbn: verifIssueIsbn,
+        type: verifIssueType,
+        title: `Book ${verifBookCounter + 1}`,
+        author: `Author ${verifBookCounter + 1}`
+      }
+      setVerifIssues(prev => [...prev, issueData])
+      setVerifIssueIsbn('')
+    } finally {
+      setVerifFetchingIssueBook(false)
+    }
+  }
+
+  const handleVerifRemoveIssue = (isbn: string) => {
+    setVerifIssues(prev => prev.filter(issue => issue.isbn !== isbn))
+  }
+
+  const handleVerifIssueKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && verifIssueIsbn.trim()) {
+      handleVerifAddIssue()
+    }
+  }
+
+  const handleResetVerifSession = () => {
+    if (!verifCurrentSession) return
     setVerifSessionActive(false)
     setVerifBox(null)
     setVerifBooks([])
     setVerifSelectedBoxId('')
+    setVerifCurrentSession(null)
+    setVerifScannedBooks([])
+    setVerifBookCounter(0)
+    setVerifCurrentBoxBooks(0)
+    setVerifTotalBooksExpected('')
+    setVerifIssueIsbn('')
+    setVerifIssues([])
     setVerifConfirmComplete(false)
-    // Switch to outgoing tab so they see the result immediately
-    setInventoryTab('outgoing')
+    toast({ title: 'Verification Session Reset', description: 'Session has been reset. Scanned data was not saved.' })
+  }
+
+  const handleOpenVerifComplete = () => {
+    if (!verifCurrentSession) return
+    if (verifScannedBooks.length === 0) {
+      toast({ title: 'Cannot Complete Session', description: 'Please scan at least one book before completing the session.', variant: 'destructive' })
+      return
+    }
+    setVerifTotalBooksExpected('')
+    setVerifIssueIsbn('')
+    setVerifIssueType('missing')
+    setVerifIssues([])
+    setVerifConfirmComplete(true)
+  }
+
+  const handleCompleteVerifSession = async () => {
+    if (!verifCurrentSession || !verifBox) return
+    if (!verifTotalBooksExpected.trim()) {
+      toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
+      return
+    }
+    setLoadingVerifBooks(true)
+    try {
+      // Save all scanned books to DB first
+      for (const book of verifScannedBooks) {
+        try {
+          await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
+        } catch (error) {
+          toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' })
+          throw error
+        }
+      }
+
+      // Then complete the warehouse session
+      await authFetch(`${API_URL}/api/warehouse/sessions/${verifCurrentSession.id}/complete`, {
+        method: 'POST',
+        body: JSON.stringify({
+          total_books_expected: parseInt(verifTotalBooksExpected),
+          issues: verifIssues
+        })
+      })
+
+      setVerifiedBoxIds(prev => new Set([...prev, verifBox.id]))
+      setVerifSessionActive(false)
+      setVerifBox(null)
+      setVerifBooks([])
+      setVerifSelectedBoxId('')
+      setVerifCurrentSession(null)
+      setVerifScannedBooks([])
+      setVerifBookCounter(0)
+      setVerifCurrentBoxBooks(0)
+      setVerifTotalBooksExpected('')
+      setVerifIssueIsbn('')
+      setVerifIssues([])
+      setVerifConfirmComplete(false)
+      // Switch to outgoing tab so they see the result immediately
+      setInventoryTab('outgoing')
+      toast({ title: 'Verification Session Closed', description: 'Verification completed successfully.' })
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to complete verification session', variant: 'destructive' })
+    } finally {
+      setLoadingVerifBooks(false)
+    }
   }
 
   // ── Outgoing: Send to Cut (inventory → cut) ────────────────────────────────
@@ -690,14 +998,140 @@ export default function InventoryPage() {
               {/* Confirm complete modal */}
               {verifConfirmComplete && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setVerifConfirmComplete(false)}>
-                  <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-                    <h3 className="text-base font-semibold text-foreground mb-2">Complete Verification?</h3>
-                    <p className="text-sm text-muted-foreground mb-5">
-                      This will close the verification session for <span className="font-semibold">{verifBox?.box_number}</span>. The box will move to <span className="font-semibold">Outgoing Boxes</span> ready to be sent to Cut.
-                    </p>
+                  <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                    <h3 className="text-base font-semibold text-foreground mb-4">Complete Verification</h3>
+
+                    {/* Total Books Expected */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-1 mb-1">
+                        <label className="text-sm font-medium text-foreground">Total Books Expected</label>
+                        <label className="text-sm font-medium text-red-500">*</label>
+                      </div>
+                      
+                      <input
+                        type="number"
+                        value={verifTotalBooksExpected}
+                        onChange={(e) => setVerifTotalBooksExpected(e.target.value)}
+                        placeholder="Enter expected total count"
+                        className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+
+                    {/* Issue Tracking */}
+                    <div className="mb-4">
+                      <label className="text-sm font-medium text-foreground mb-2 block">Discrepancies (Missing/Extra Books)</label>
+                      <div className="flex gap-2 mb-3">
+                        <Select value={verifIssueType} onValueChange={(v) => setVerifIssueType(v as 'missing' | 'extra')}>
+                          <SelectTrigger className="w-28 h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="missing">Missing</SelectItem>
+                            <SelectItem value="extra">Extra</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <input
+                          type="text"
+                          value={verifIssueIsbn}  
+                          onChange={(e) => setVerifIssueIsbn(e.target.value)}
+                          onKeyDown={handleVerifIssueKeyPress}
+                          placeholder="Scan or Input ISBN (numbers only) - book details will auto-fetch"
+                          className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                        <button
+                          onClick={handleVerifAddIssue}
+                          disabled={!verifIssueIsbn.trim() || verifFetchingIssueBook}
+                          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50"
+                        >
+                          {verifFetchingIssueBook ? 'Adding…' : 'Add'}
+                        </button>
+                      </div>
+
+                      {verifIssues.length > 0 && (
+                        <div className="space-y-1.5 mb-3">
+                          {verifIssues.map((issue, idx) => (
+                            <div key={`${issue.isbn}-${idx}`} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {issue.type === 'missing' ? 'Missing' : 'Extra'}
+                                </span>
+                                <span className="text-xs font-medium text-foreground">{issue.isbn}</span>
+                                <span className="text-[11px] text-muted-foreground">{issue.title}</span>
+                              </div>
+                              <button onClick={() => handleVerifRemoveIssue(issue.isbn)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Remove</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Summary */}
+                    <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium">Expected:</span> {verifTotalBooksExpected || 0} books
+                        <span className="ml-3">
+                          <span className="font-medium">Scanned:</span> {verifCurrentSession?.total_scanned || 0} books
+                        </span>
+                        {verifIssues.length > 0 && (
+                          <span className="ml-3">
+                            <span className="font-medium">Issues:</span> {verifIssues.length} ({verifIssues.filter(i => i.type === 'missing').length} missing, {verifIssues.filter(i => i.type === 'extra').length} extra)
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        * All scanned books will be saved to database when you confirm completion
+                      </p>
+                    </div>
+
+                    {/* Actions */}
                     <div className="flex gap-2 justify-end">
-                      <button onClick={() => setVerifConfirmComplete(false)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
-                      <button onClick={handleCompleteVerifSession} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium">Complete</button>
+                      <button onClick={() => {
+                        setVerifConfirmComplete(false)
+                        setVerifTotalBooksExpected('')
+                        setVerifIssueIsbn('')
+                        setVerifIssues([])
+                      }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
+                      <button onClick={handleCompleteVerifSession} disabled={loadingVerifBooks} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50">
+                        {loadingVerifBooks ? 'Completing…' : 'Confirm Complete'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Flag Modal */}
+              {verifFlagModalBook && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setVerifFlagModalBook(null)}>
+                  <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive" /> Flag as Non-Processable
+                      </h3>
+                      <button onClick={() => setVerifFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">✕</button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} — {verifFlagModalBook.title} — {verifFlagModalBook.author}</p>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
+                        <select value={verifFlagIssue} onChange={e => setVerifFlagIssue(e.target.value)}
+                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
+                          <option value="">Select issue…</option>
+                          {FLAG_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-foreground mb-1 block">Remarks / Page No. (optional)</label>
+                        <input type="text" value={verifFlagRemarks} onChange={e => setVerifFlagRemarks(e.target.value)}
+                          placeholder="e.g. page 42"
+                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end mt-4">
+                      <button onClick={() => setVerifFlagModalBook(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
+                      <button onClick={saveVerifFlagFromLog} disabled={!verifFlagIssue || verifFlagSaving}
+                        className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50">
+                        {verifFlagSaving ? 'Saving…' : 'Confirm Flag'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -708,7 +1142,7 @@ export default function InventoryPage() {
                 <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-end justify-between gap-4">
                   <div className="flex flex-col gap-1">
                     <p className="text-sm font-medium text-foreground">Select a box to verify</p>
-                    <p className="text-xs text-muted-foreground">Choose an inventory-stage box, review its books, then complete the session.</p>
+                    <p className="text-xs text-muted-foreground">Choose an inventory-stage box, scan its books, flag non-processable ones, then complete the session.</p>
                     <div className="mt-3">
                       <Select value={verifSelectedBoxId} onValueChange={setVerifSelectedBoxId}>
                         <SelectTrigger className="w-72 h-9">
@@ -738,71 +1172,105 @@ export default function InventoryPage() {
                   {/* ── Active session bar ── */}
                   <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-4">
                     <div className="flex items-center gap-4">
-                      <div className="bg-amber-50 rounded-lg p-2">
-                        <Package className="h-5 w-5 text-amber-600" />
-                      </div>
+                      <Package className="h-5 w-5 text-primary" />
                       <div>
-                        <p className="text-xs text-muted-foreground">Verifying box</p>
-                        <p className="text-sm font-semibold text-foreground">{verifBox.box_number}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Lot</p>
+                        <p className="text-xs text-muted-foreground">Active Lot</p>
                         <p className="text-sm font-semibold text-foreground">{verifBox.lot?.lot_number || '—'}</p>
                       </div>
+                      {verifBox.box_number && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Current Box</p>
+                          <p className="text-sm font-semibold text-foreground">{verifBox.box_number} ({verifCurrentBoxBooks} books)</p>
+                        </div>
+                      )}
                       <div>
-                        <p className="text-xs text-muted-foreground">Books</p>
-                        <p className="text-sm font-semibold text-foreground">{verifBooks.length}</p>
+                        <p className="text-xs text-muted-foreground">User</p>
+                        <p className="text-sm font-semibold text-foreground">{verifUserName || 'Unknown User'}</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setVerifConfirmComplete(true)}
-                      className="px-4 py-1.5 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
-                    >
-                      Complete Session
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={handleResetVerifSession}
+                        className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors">
+                        Reset Session
+                      </button>
+                      <button onClick={handleOpenVerifComplete} disabled={loadingVerifBooks || verifScannedBooks.length === 0}
+                        className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        Complete Session
+                      </button>
+                    </div>
                   </div>
 
                   {/* ── Book count stats ── */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs text-blue-600 font-medium">Total Books</p>
-                      <p className="text-2xl font-bold text-blue-900">{verifBooks.length}</p>
+                      <p className="text-xs text-blue-600 font-medium">Total Scanned</p>
+                      <p className="text-2xl font-bold text-blue-900">{verifCurrentSession?.total_scanned || 0}</p>
                     </div>
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                       <p className="text-xs text-green-600 font-medium">Processable</p>
-                      <p className="text-2xl font-bold text-green-900">{verifBooks.filter(b => b.scan_status === 'processable').length}</p>
+                      <p className="text-2xl font-bold text-green-900">{verifCurrentSession?.total_processable || 0}</p>
                     </div>
                     <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                       <p className="text-xs text-red-600 font-medium">Non-Processable</p>
-                      <p className="text-2xl font-bold text-red-900">{verifBooks.filter(b => b.scan_status === 'non_processable').length}</p>
+                      <p className="text-2xl font-bold text-red-900">{verifCurrentSession?.total_non_processable || 0}</p>
                     </div>
                   </div>
 
-                  {/* ── Book list ── */}
+                  {/* ── Scanner ── */}
+                  <ScannerInput onScan={handleVerifScan} />
+
+                  {/* ── Scan log ── */}
                   <div className="bg-card border border-border rounded-xl p-5">
-                    <h3 className="text-sm font-semibold text-foreground mb-3">Book List</h3>
-                    {verifBooks.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-6 text-center">No books found in this box.</p>
+                    <h3 className="text-sm font-semibold text-foreground mb-3">Scan Log</h3>
+                    {verifScannedBooks.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
                     ) : (
-                      <div className="space-y-1.5 max-h-[480px] overflow-y-auto">
-                        {verifBooks.map((book, i) => (
-                          <div key={book.id || i} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors">
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-medium text-foreground">{book.isbn}</p>
-                              <p className="text-[11px] text-muted-foreground truncate">{book.title || '—'}</p>
+                      <>
+                        {/* Header row */}
+                        <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
+                          <div className="col-span-2">ISBN</div>
+                          <div className="col-span-3">Book Title</div>
+                          <div className="col-span-3">Book Author</div>
+                          <div className="col-span-3 text-right">Status</div>
+                          <div className="col-span-1 text-right">Action</div>
+                        </div>
+                        {/* Scan log entries */}
+                        <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                          {verifScannedBooks.map(book => (
+                            <div key={book.id} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
+                              <div className="col-span-2">
+                                <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                              </div>
+                              <div className="col-span-3">
+                                <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
+                                {book.flag_issue && (
+                                  <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
+                                )}
+                              </div>
+                              <div className="col-span-3">
+                                <p className="text-[11px] text-muted-foreground truncate">{book.author}</p>
+                              </div>
+                              <div className="col-span-3 flex items-center justify-end gap-2">
+                                {book.scan_status === 'processable' ? (
+                                  <>
+                                    <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Processable</span>
+                                    <button onClick={() => openVerifFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Flag</button>
+                                  </>
+                                ) : (
+                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700">
+                                    <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
+                                  </span>
+                                )}
+                              </div>
+                              <div className="col-span-1 flex items-center justify-end">
+                                <button onClick={() => handleRemoveVerifBook(book.id)} className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors" title="Remove from verification log">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             </div>
-                            <span className={`ml-3 shrink-0 px-2 py-0.5 rounded text-[11px] font-medium ${
-                              book.scan_status === 'processable' ? 'bg-green-100 text-green-700' :
-                              book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' :
-                              'bg-gray-100 text-gray-600'
-                            }`}>
-                              {book.scan_status === 'processable' ? 'Processable' :
-                               book.scan_status === 'non_processable' ? 'Non-Processable' :
-                               book.scan_status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
                 </>
