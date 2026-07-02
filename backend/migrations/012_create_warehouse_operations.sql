@@ -34,7 +34,6 @@ CREATE TABLE IF NOT EXISTS public.warehouse_book_scans (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id      UUID        NOT NULL REFERENCES public.warehouse_sessions(id) ON DELETE CASCADE,
   book_id         UUID        REFERENCES public.books(id) ON DELETE SET NULL,
-  isbn            TEXT        NOT NULL,
   
   -- Scan result
   scan_status     TEXT        NOT NULL
@@ -43,12 +42,10 @@ CREATE TABLE IF NOT EXISTS public.warehouse_book_scans (
   notes           TEXT,
   
   -- Book details snapshot at time of scan
-  title           TEXT,
   book_type       TEXT,
   condition       TEXT,
   
-  -- Assignment to segregated box
-  assigned_box_id UUID        REFERENCES public.boxes(id) ON DELETE SET NULL,
+  -- Assignment to segregated box (Removed: assigned_box_id)
   
   scanned_by      UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
   scanned_by_name TEXT,
@@ -69,9 +66,7 @@ CREATE INDEX IF NOT EXISTS idx_warehouse_sessions_started_at ON public.warehouse
 
 CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_session_id ON public.warehouse_book_scans(session_id);
 CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_book_id ON public.warehouse_book_scans(book_id);
-CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_isbn ON public.warehouse_book_scans(isbn);
 CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_scan_status ON public.warehouse_book_scans(scan_status);
-CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_assigned_box_id ON public.warehouse_book_scans(assigned_box_id);
 CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_scanned_at ON public.warehouse_book_scans(scanned_at DESC);
 
 -- Function to update session counts when book is scanned

@@ -35,7 +35,9 @@ router.get('/', requireAuth, async (req, res) => {
       .select(`
         *,
         lot:lots(lot_number, shipment_id, status),
-        scans:warehouse_book_scans(count)
+        books:books(
+          scans:warehouse_book_scans(count)
+        )
       `)
       .order('created_at', { ascending: false })
 
@@ -46,7 +48,15 @@ router.get('/', requireAuth, async (req, res) => {
     const { data, error } = await query
     if (error) throw error
 
-    let boxes = data
+    let boxes = (data || []).map(b => {
+      // Calculate total scans from books
+      const totalScans = (b.books || []).reduce((sum, bk) => sum + (bk.scans?.[0]?.count || 0), 0)
+      const { books, ...rest } = b
+      return {
+        ...rest,
+        scans: [{ count: totalScans }]
+      }
+    })
 
     // Exclude storage-stage boxes that are already placed in a storage slot
     if (exclude_assigned_storage === 'true') {
@@ -120,8 +130,8 @@ router.get('/:id', requireAuth, async (req, res) => {
     // Pull scanned books from warehouse_book_scans for this box
     const { data: scans } = await db
       .from('warehouse_book_scans')
-      .select('id, isbn, title, scan_status, scanned_at, rejection_reason')
-      .eq('assigned_box_id', id)
+      .select('id, scan_status, scanned_at, rejection_reason, books!inner(isbn, title, box_id)')
+      .eq('books.box_id', id)
       .order('scanned_at', { ascending: true })
 
     // Pull existing flags for all scans in this box
@@ -147,7 +157,7 @@ router.get('/:id', requireAuth, async (req, res) => {
           source: 'scan_status',
         }
       }
-      return { ...s, flag }
+      return { ...s, isbn: s.books?.isbn, title: s.books?.title, flag }
     })
 
     const totalFlagCount = books.filter(b => b.flag !== null).length
@@ -274,11 +284,11 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
 
       const { data: scans } = await db
         .from('warehouse_book_scans')
-        .select('isbn')
-        .eq('assigned_box_id', id)
+        .select('books!inner(isbn, box_id)')
+        .eq('books.box_id', id)
         .eq('scan_status', 'processable')
 
-      const isbns = [...new Set((scans || []).map(s => s.isbn))]
+      const isbns = [...new Set((scans || []).map(s => s.books?.isbn))]
 
       if (isbns.length > 0) {
         const simflexResult = await getSimflexStatusForISBNs(isbns)
@@ -407,8 +417,8 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
     // 2. Get all scans for this box
     const { data: scans, error: scansError } = await db
       .from('warehouse_book_scans')
-      .select('id, isbn, title, scan_status, rejection_reason, scanned_at')
-      .eq('assigned_box_id', box.id)
+      .select('id, scan_status, rejection_reason, scanned_at, books!inner(isbn, title, box_id)')
+      .eq('books.box_id', box.id)
       .order('scanned_at', { ascending: true })
 
     if (scansError) throw scansError
@@ -418,7 +428,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
 
     // 3. Batch-fetch Simflex status for all processable ISBNs
     const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
-    const uniqueIsbns = [...new Set(processableScans.map(s => s.isbn))]
+    const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))]
     let simflexMap = {}
     if (uniqueIsbns.length > 0) {
       const result = await getSimflexStatusForISBNs(uniqueIsbns)
@@ -428,12 +438,13 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
     }
 
     // 4. Build enriched rows
-    const books = allScans.map(s => {
-      const sf = simflexMap[s.isbn] || {}
+    const booksList = allScans.map(s => {
+      const isbn = s.books?.isbn;
+      const sf = simflexMap[isbn] || {}
       return {
         scan_id: s.id,
-        isbn: s.isbn,
-        title: s.title || null,
+        isbn: isbn,
+        title: s.books?.title || null,
         scan_status: s.scan_status,
         rejection_reason: s.rejection_reason || null,
         scanned_at: s.scanned_at,
@@ -444,9 +455,9 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
       }
     })
 
-    const transmitted = books.filter(b => b.transmission_completed).length
-    const wip = books.filter(b => b.scan_status === 'processable' && !b.transmission_completed).length
-    const non_processable = books.filter(b => b.scan_status === 'non_processable').length
+    const transmitted = booksList.filter(b => b.transmission_completed).length
+    const wip = booksList.filter(b => b.scan_status === 'processable' && !b.transmission_completed).length
+    const non_processable = booksList.filter(b => b.scan_status === 'non_processable').length
 
     res.json({
       success: true,
@@ -457,7 +468,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
         lot_number: box.lot?.lot_number || null,
       },
       summary: { total: allScans.length, transmitted, wip, non_processable },
-      books,
+      books: booksList,
     })
   } catch (error) {
     console.error('Box transmission view error:', error)
@@ -493,8 +504,8 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
     // 2. Get all processable ISBNs in this box from warehouse_book_scans
     const { data: scans, error: scansError } = await db
       .from('warehouse_book_scans')
-      .select('isbn, title, scan_status')
-      .eq('assigned_box_id', id)
+      .select('scan_status, books!inner(isbn, title, box_id)')
+      .eq('books.box_id', id)
       .eq('scan_status', 'processable')
 
     if (scansError) throw scansError
@@ -510,7 +521,7 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
       })
     }
 
-    const isbns = [...new Set(scans.map(s => s.isbn))]
+    const isbns = [...new Set(scans.map(s => s.books?.isbn))]
 
     // 3. Query Simflex for all ISBNs
     const simflexResult = await getSimflexStatusForISBNs(isbns)
@@ -593,7 +604,11 @@ router.delete('/:id', requireAuth, async (req, res) => {
     }
 
     // Delete dependents first (FK order)
-    await db.from('warehouse_book_scans').delete().eq('assigned_box_id', id)
+    const { data: booksToDelete } = await db.from('books').select('id').eq('box_id', id)
+    if (booksToDelete && booksToDelete.length > 0) {
+      await db.from('warehouse_book_scans').delete().in('book_id', booksToDelete.map(b => b.id))
+      await db.from('books').delete().in('id', booksToDelete.map(b => b.id))
+    }
     await db.from('storage_assignments').delete().eq('box_id', id)
     await db.from('pipeline_events').delete().eq('box_id', id)
 

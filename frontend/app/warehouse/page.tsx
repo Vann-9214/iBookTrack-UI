@@ -122,28 +122,21 @@ export default function WarehousePage() {
   const handleNewSession = async () => {
     if (!activeLot) { alert('Please select a lot first'); return }
     if (!selectedBox) { alert('Please select a box first'); return }
-    setLoading(true)
-    try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-      const response = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '' })
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to start session')
-      setCurrentSession({ ...data.session, total_processable: 0, total_non_processable: 0 })
-      setSessionActive(true)
-      setScannedBooks([])
-      setBookCounter(0)
-      const selected = boxes.find(b => b.id === selectedBox)
-      setCurrentBoxNumber(selected?.box_number || '')
-      setCurrentBoxBooks(0)
-      toast({ title: 'Session Started', description: `Session started for ${data.lot_number}.` })
-    } catch (error) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to start session', variant: 'destructive' })
-    } finally { setLoading(false) }
+    
+    // Set up local state without writing to database yet
+    setCurrentSession({ 
+      id: 'pending',
+      total_scanned: 0,
+      total_processable: 0, 
+      total_non_processable: 0 
+    })
+    setSessionActive(true)
+    setScannedBooks([])
+    setBookCounter(0)
+    const selected = boxes.find(b => b.id === selectedBox)
+    setCurrentBoxNumber(selected?.box_number || '')
+    setCurrentBoxBooks(0)
+    toast({ title: 'Session Started', description: `Session started for ${activeLot}. Data will be saved upon completion.` })
   }
 
   const handleCloseSession = async () => {
@@ -166,25 +159,56 @@ export default function WarehousePage() {
       toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
       return
     }
+
+    const expected = parseInt(totalBooksExpected)
+    if (isNaN(expected)) {
+      toast({ title: 'Invalid Input', description: 'Total books expected must be a valid number.', variant: 'destructive' })
+      return
+    }
+
+    const missingCount = issues.filter(i => i.type === 'missing').length
+    const extraCount = issues.filter(i => i.type === 'extra').length
+    const calculatedExpected = scannedBooks.length + missingCount - extraCount
+
+    if (expected !== calculatedExpected) {
+      toast({ 
+        title: 'Mismatch Detected', 
+        description: `Total expected books (${expected}) does not match scanned books (${scannedBooks.length}) with missing (${missingCount}) and extra (${extraCount}).`, 
+        variant: 'destructive' 
+      })
+      return
+    }
+
     setConfirmCompleteOpen(false)
     setLoading(true)
     try {
-      // Save all scanned books to database first
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Authentication required.')
+
+      // 1. Create the session in the database
+      const startRes = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '' })
+      })
+      const startData = await startRes.json()
+      if (!startRes.ok) throw new Error(startData.error || 'Failed to create session on backend')
+      const realSessionId = startData.session.id
+
+      // 2. Save all scanned books to database
       const savedBookIds: string[] = []
       for (const book of scannedBooks) {
         try {
-          const dbId = await saveBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
+          const dbId = await saveBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null, realSessionId)
           savedBookIds.push(dbId)
         } catch (error) {
-          toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' })
+          toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not fully completed.`, variant: 'destructive' })
           throw error
         }
       }
 
-      // Then complete the session
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-      await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}/complete`, {
+      // 3. Complete the session
+      await fetch(`${API_URL}/api/warehouse/sessions/${realSessionId}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -303,12 +327,12 @@ export default function WarehousePage() {
     } : null)
   }
 
-  const saveBookToDB = async (bookData: any, scan_status: 'processable' | 'non_processable', flag_issue: string | null, flag_remarks: string | null) => {
-    if (!currentSession || !bookData) return
+  const saveBookToDB = async (bookData: any, scan_status: 'processable' | 'non_processable', flag_issue: string | null, flag_remarks: string | null, sessionId: string) => {
+    if (!bookData) return
     try {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
-      const response = await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}/scan`, {
+      const response = await fetch(`${API_URL}/api/warehouse/sessions/${sessionId}/scan`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ isbn: bookData.isbn, title: bookData.title, author: bookData.author, scan_status, rejection_reason: flag_issue || null, notes: flag_remarks || null })

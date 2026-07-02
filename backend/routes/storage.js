@@ -45,7 +45,10 @@ router.get('/locations', requireAuth, async (req, res) => {
           box:boxes(
             id, box_number, total_books_expected, lot_id,
             lot:lots(lot_number),
-            scans:warehouse_book_scans(isbn, title, scan_status)
+            books:books(
+              isbn, title,
+              scans:warehouse_book_scans(scan_status)
+            )
           )
         )
       `)
@@ -69,9 +72,11 @@ router.get('/locations', requireAuth, async (req, res) => {
         box_number: a.box?.box_number,
         lot_number: a.box?.lot?.lot_number || null,
         total_books: a.box?.total_books_expected || 0,
-        books: (a.box?.scans || [])
-          .filter(s => s.scan_status === 'processable')
-          .map(s => ({ isbn: s.isbn, title: s.title || `ISBN: ${s.isbn}` })),
+        books: (a.box?.books || [])
+          .flatMap(b => {
+            const processable = (b.scans || []).some(s => s.scan_status === 'processable')
+            return processable ? [{ isbn: b.isbn, title: b.title || `ISBN: ${b.isbn}` }] : []
+          }),
       })),
     }))
 
@@ -217,7 +222,10 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
       .select(`
         id, box_number, total_books_expected, lot_id,
         lot:lots(lot_number),
-        scans:warehouse_book_scans(isbn, title, scan_status)
+        books:books(
+          isbn, title,
+          scans:warehouse_book_scans(scan_status)
+        )
       `)
       .eq('current_stage', 'storage')
       .order('created_at', { ascending: false })
@@ -234,9 +242,11 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
       box_number: b.box_number,
       lot_number: b.lot?.lot_number || null,
       total_books: b.total_books_expected || 0,
-      books: (b.scans || [])
-        .filter(s => s.scan_status === 'processable')
-        .map(s => ({ isbn: s.isbn, title: s.title || `ISBN: ${s.isbn}` })),
+      books: (b.books || [])
+        .flatMap(bk => {
+          const processable = (bk.scans || []).some(s => s.scan_status === 'processable')
+          return processable ? [{ isbn: bk.isbn, title: bk.title || `ISBN: ${bk.isbn}` }] : []
+        }),
     }))
 
     res.json({ success: true, boxes: normalized })
@@ -355,16 +365,16 @@ router.get('/search', requireAuth, async (req, res) => {
       .ilike('box_number', `%${query}%`)
       .limit(10)
 
-    // Try matching by ISBN in warehouse_book_scans
+    // Try matching by ISBN in warehouse_book_scans (join with books table)
     const { data: scansByIsbn } = await db()
       .from('warehouse_book_scans')
-      .select('assigned_box_id, isbn, title')
-      .ilike('isbn', `%${query}%`)
+      .select('book:books!inner(box_id, isbn, title)')
+      .ilike('book.isbn', `%${query}%`)
       .limit(10)
 
     const boxIds = new Set([
       ...(boxByNumber || []).map(b => b.id),
-      ...(scansByIsbn || []).map(s => s.assigned_box_id).filter(Boolean),
+      ...(scansByIsbn || []).map(s => s.book?.box_id).filter(Boolean),
     ])
 
     if (boxIds.size === 0) {

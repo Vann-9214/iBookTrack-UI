@@ -86,8 +86,8 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
 
     const { data: scans, error: scansError } = await db
       .from('warehouse_book_scans')
-      .select('id, isbn, title, scan_status, rejection_reason, scanned_at, assigned_box_id')
-      .in('assigned_box_id', boxIds)
+      .select('id, scan_status, rejection_reason, scanned_at, books!inner(isbn, title, box_id)')
+      .in('books.box_id', boxIds)
       .order('scanned_at', { ascending: false })
 
     if (scansError) throw scansError
@@ -98,7 +98,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
 
     // 3. Fetch Simflex status for all unique processable ISBNs
     const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
-    const uniqueIsbns = [...new Set(processableScans.map(s => s.isbn))]
+    const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))]
 
     let simflexMap = {}
     if (uniqueIsbns.length > 0) {
@@ -112,17 +112,18 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
 
     // 4. Build per-ISBN rows
     const isbnRows = processableScans.map(s => {
-      const sf = simflexMap[s.isbn] || {}
+      const isbn = s.books?.isbn
+      const sf = simflexMap[isbn] || {}
       const latestStatus = sf.latestStatus || null
       const transmissionCompleted = sf.transmissionCompleted || false
       const transmissionDate = transmissionCompleted ? (sf.latestUpdated || null) : null
       return {
         scan_id: s.id,
-        isbn: s.isbn,
-        title: s.title || null,
+        isbn: isbn,
+        title: s.books?.title || null,
         scan_status: s.scan_status,
         scanned_at: s.scanned_at,
-        assigned_box_id: s.assigned_box_id,
+        assigned_box_id: s.books?.box_id,
         simflex_status: latestStatus,
         transmission_completed: transmissionCompleted,
         transmission_date: transmissionDate,

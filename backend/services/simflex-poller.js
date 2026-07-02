@@ -72,15 +72,15 @@ async function checkAndAdvanceBox(box) {
     // Get all processable ISBNs assigned to this box
     const { data: scans, error: scansError } = await db()
       .from('warehouse_book_scans')
-      .select('isbn')
-      .eq('assigned_box_id', box.id)
+      .select('scan_status, books!inner(isbn, box_id)')
+      .eq('books.box_id', box.id)
       .eq('scan_status', 'processable')
 
     // Skip boxes with no processable books
     if (scansError || !scans || scans.length === 0) return
 
     // Deduplicate ISBNs (a book may have been scanned more than once)
-    const isbns = [...new Set(scans.map(s => s.isbn))]
+    const isbns = [...new Set(scans.map(s => s.books?.isbn))]
 
     // Query Simflex for the latest status of each ISBN
     const simflexResult = await getSimflexStatusForISBNs(isbns)

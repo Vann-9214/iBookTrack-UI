@@ -64,7 +64,7 @@ router.post('/:id/flag', requireAuth, async (req, res) => {
     // Look up the scan record (source of truth for scanned books)
     const { data: scan, error: scanError } = await db
       .from('warehouse_book_scans')
-      .select('id, isbn, title, assigned_box_id')
+      .select('id, books(isbn, title, box_id)')
       .eq('id', id)
       .single()
 
@@ -75,9 +75,9 @@ router.post('/:id/flag', requireAuth, async (req, res) => {
       .from('qc_flags')
       .upsert({
         scan_id: id,
-        isbn: scan.isbn,
-        title: scan.title,
-        box_id: scan.assigned_box_id || box_id || null,
+        isbn: scan.books?.isbn,
+        title: scan.books?.title,
+        box_id: scan.books?.box_id || box_id || null,
         issue,
         remarks: remarks || null,
         flagged_by: req.user.id,
