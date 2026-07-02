@@ -513,8 +513,8 @@ export default function BookInspectionPage() {
                           <Package className="h-5 w-5 text-orange-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
-                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{box.total_books_expected || 0} books</p>
+                          <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
                           {box.received_at ? new Date(box.received_at).toLocaleDateString() : ''}
@@ -699,8 +699,8 @@ export default function BookInspectionPage() {
                                   <Package className="h-5 w-5 text-amber-600" />
                                 </div>
                                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleInspRow(box.id)}>
-                                  <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
-                                  <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{box.total_books_expected || 0} books</p>
+                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
                                 <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
                                   {box.received_at ? new Date(box.received_at).toLocaleDateString() : ''}
@@ -874,12 +874,12 @@ export default function BookInspectionPage() {
                         <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
                           <Package className="h-5 w-5 text-emerald-600" />
                         </div>
-                        <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
+                            <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
                           </div>
-                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{box.total_books_expected || 0} books</p>
+                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         <button
                           onClick={() => handleSendToScan(box)}

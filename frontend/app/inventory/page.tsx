@@ -1030,8 +1030,8 @@ export default function InventoryPage() {
                         </div>
                         {/* Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
-                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books</p>
+                          <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         {/* Created date */}
                         <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
@@ -1245,8 +1245,8 @@ export default function InventoryPage() {
                               </div>
                               {/* Info — clickable to expand */}
                               <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
-                                <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
-                                <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books</p>
+                                <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
                               {/* Date */}
                               <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
@@ -1545,10 +1545,10 @@ export default function InventoryPage() {
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
+                            <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Verified</span>
                           </div>
-                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books</p>
+                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         {/* Send button */}
                         <button
