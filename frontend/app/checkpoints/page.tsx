@@ -43,7 +43,7 @@ interface BoxItem {
   id: string
   box_number: string
   current_stage: Stage
-  total_books: number
+  total_books_expected: number
   received_at: string | null
   lot: { lot_number: string } | null
 }
@@ -514,7 +514,7 @@ export default function StationCheckpointsPage() {
                     <div>
                       <h3 className="text-base font-semibold text-foreground">{scannedBox?.box.box_number}</h3>
                       <p className="text-xs text-muted-foreground">
-                        {scannedBox?.box.lot?.lot_number} · <span className="capitalize">{scannedBox?.box.current_stage}</span> · {scannedBox?.box.total_books} books
+                        {scannedBox?.box.lot?.lot_number} · <span className="capitalize">{scannedBox?.box.current_stage}</span> · {scannedBox?.box.total_books_expected} books
                       </p>
                     </div>
                     <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
@@ -930,7 +930,7 @@ export default function StationCheckpointsPage() {
                                         {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
                                         <div>
                                           <p className="text-sm font-medium text-card-foreground group-hover:text-primary transition-colors">{box.box_number}</p>
-                                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · {box.total_books} books</p>
+                                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · {box.total_books_expected} books</p>
                                         </div>
                                       </button>
                                       <div onClick={e => e.stopPropagation()}>

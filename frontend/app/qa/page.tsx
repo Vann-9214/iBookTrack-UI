@@ -47,7 +47,7 @@ interface BookEntry {
 interface BoxEntry {
   id: string
   box_number: string
-  total_books: number
+  total_books_expected: number
   received_at: string | null
   lot: { lot_number: string } | null
   books?: BookEntry[]
@@ -265,7 +265,7 @@ export default function BookInspectionPage() {
                 {filteredLots.map(lot => {
                   const isLotOpen = expandedLot === lot.lotNumber
                   const allBooks = lot.boxes.flatMap(b => b.books || [])
-                  const totalBooks = lot.boxes.reduce((s, b) => s + (b.total_books || 0), 0)
+                  const totalBooks = lot.boxes.reduce((s, b) => s + (b.total_books_expected || 0), 0)
                   const flaggedCount = allBooks.filter(b => bookIssues[b.id]?.saved).length
 
                   return (
