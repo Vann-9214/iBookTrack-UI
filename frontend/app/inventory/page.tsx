@@ -441,14 +441,9 @@ export default function InventoryPage() {
     if (!box) return
     setLoadingVerifBooks(true)
     try {
-      // Start a warehouse-style session for the existing inventory box
-      const res = await authFetch(`${API_URL}/api/warehouse/sessions/start`, {
-        method: 'POST',
-        body: JSON.stringify({
-          lot_number: box.lot?.lot_number || '',
-          box_id: box.id,
-          box_number: box.box_number
-        })
+      // Resume the existing session for the inventory box
+      const res = await authFetch(`${API_URL}/api/warehouse/boxes/${box.id}/resume-session`, {
+        method: 'POST'
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start verification session')
@@ -627,8 +622,17 @@ export default function InventoryPage() {
     }
   }
 
-  const handleResetVerifSession = () => {
+  const handleResetVerifSession = async () => {
     if (!verifCurrentSession) return
+    try {
+      if (verifBox) {
+        await authFetch(`${API_URL}/api/warehouse/boxes/${verifBox.id}/cancel-session`, {
+          method: 'POST'
+        })
+      }
+    } catch (e) {
+      console.error('Failed to reset session status:', e)
+    }
     setVerifSessionActive(false)
     setVerifBox(null)
     setVerifBooks([])
@@ -679,8 +683,7 @@ export default function InventoryPage() {
       await authFetch(`${API_URL}/api/warehouse/sessions/${verifCurrentSession.id}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          total_books_expected: parseInt(verifTotalBooksExpected),
-          issues: verifIssues
+          stage: 'inventory'
         })
       })
 
