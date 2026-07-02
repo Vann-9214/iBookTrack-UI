@@ -6,7 +6,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
-import { AlertTriangle, Package, Trash2, Check, ChevronsUpDown } from 'lucide-react'
+import { AlertTriangle, Package, PackagePlus, PackageMinus, Trash2, Check, ChevronsUpDown, ScanBarcode, CircleCheck, CircleX, BookOpen, Activity, X } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -102,6 +102,7 @@ export default function WarehousePage() {
   const [flagIssue, setFlagIssue] = useState('')
   const [flagRemarks, setFlagRemarks] = useState('')
   const [flagSaving, setFlagSaving] = useState(false)
+  const [flagSearch, setFlagSearch] = useState('')
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false)
   const [confirmResetOpen, setConfirmResetOpen] = useState(false)
   // Complete session modal state
@@ -120,6 +121,7 @@ export default function WarehousePage() {
   // Combobox states
   const [lotOpen, setLotOpen] = useState(false)
   const [boxOpen, setBoxOpen] = useState(false)
+  const [flagOpen, setFlagOpen] = useState(false)
 
   const { toast } = useToast()
 
@@ -287,7 +289,7 @@ export default function WarehousePage() {
           issues: issues
         })
       })
-      setSessionActive(false); setScannedBooks([]); setBookCounter(0); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0)
+      setSessionActive(false); setScannedBooks([]); setBookCounter(0); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0); setActiveLot('');
       setTotalBooksExpected('')
       setIssueIsbn('')
       setIssues([])
@@ -326,6 +328,7 @@ export default function WarehousePage() {
     setSelectedBox('')
     setCurrentBoxNumber('')
     setCurrentBoxBooks(0)
+    setActiveLot('')
     toast({ title: 'Session Cancelled', description: 'Session has been cancelled and removed from the database.' })
   }
 
@@ -459,6 +462,8 @@ export default function WarehousePage() {
     setFlagModalBook(book)
     setFlagIssue(book.flag_issue || '')
     setFlagRemarks(book.flag_remarks || '')
+    setFlagSearch('')
+    setFlagOpen(false)
   }
 
   const saveFlagFromLog = async () => {
@@ -503,150 +508,232 @@ export default function WarehousePage() {
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar />
+        <DashboardNavbar disableBrandToggle={sessionActive} />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Confirm Complete Session Modal */}
-          {confirmCompleteOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmCompleteOpen(false)}>
-              <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <h3 className="text-base font-semibold text-foreground mb-4">Complete Session</h3>
-                
-                {/* Total Books Expected */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-1 mb-1">
-                    <label className="text-sm font-medium text-foreground">Total Books Expected</label>
-                    <label className="text-sm font-medium text-red-500">*</label>
-                  </div>
-                  
-                  <input
-                    type="number"
-                    value={totalBooksExpected}
-                    onChange={(e) => setTotalBooksExpected(e.target.value)}
-                    placeholder="Enter expected total count"
-                    className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
+{confirmCompleteOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmCompleteOpen(false)}>
+    <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-4xl mx-auto flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
+            <CircleCheck className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-foreground">Complete Session</h3>
+            <p className="text-xs text-muted-foreground">Finalize scan log and resolve discrepancies</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setConfirmCompleteOpen(false)}
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
 
-                {/* Issue Tracking */}
-                <div className="mb-4">
-                  <label className="text-sm font-medium text-foreground mb-2 block">Discrepancies (Missing/Extra Books)</label>
-                  
-                  {/* Issue Input */}
-                  <div className="flex gap-2 mb-3">
-                    <Select value={issueType} onValueChange={(v) => setIssueType(v as 'missing' | 'extra')}>
-                      <SelectTrigger className="w-28 h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="missing">Missing</SelectItem>
-                        <SelectItem value="extra">Extra</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <input
-                      type="text"
-                      value={issueIsbn}
-                      onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9]/g, ''))}
-                      onKeyPress={handleIssueKeyPress}
-                      placeholder="Scan or Input ISBN (numbers only) - book details will auto-fetch"
-                      className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    />
+      {/* Scrollable Body */}
+      <div className="p-6 overflow-y-auto flex-1 space-y-6">
+
+        {/* Total Books Expected */}
+        <div className="bg-muted/30 border border-border rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+              <Package className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1">
+                <label className="text-sm font-semibold text-foreground">Total Books Expected</label>
+                <span className="text-destructive font-bold">*</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground">The actual physical count of books inside this box</p>
+            </div>
+          </div>
+
+          <input
+            type="number"
+            value={totalBooksExpected}
+            onChange={(e) => setTotalBooksExpected(e.target.value)}
+            placeholder="e.g. 100"
+            className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium"
+          />
+        </div>
+
+        {/* Issue Tracking */}
+        <div className="bg-muted/30 border border-border rounded-xl p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-foreground">Discrepancies</label>
+              <p className="text-[11px] text-muted-foreground">Log any missing or extra books found in the physical box</p>
+            </div>
+          </div>
+
+          {/* Type toggle */}
+          <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit mb-2">
+            <button
+              type="button"
+              onClick={() => setIssueType('missing')}
+              className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
+                issueType === 'missing'
+                  ? 'bg-red-500 text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <PackageMinus className="h-3.5 w-3.5" />
+              Missing
+            </button>
+            <button
+              type="button"
+              onClick={() => setIssueType('extra')}
+              className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
+                issueType === 'extra'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <PackagePlus className="h-3.5 w-3.5" />
+              Extra
+            </button>
+          </div>
+
+          {/* Issue Input */}
+          <div className="flex gap-2 mb-4">
+            <input
+              type="text"
+              value={issueIsbn}
+              onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9]/g, ''))}
+              onKeyPress={handleIssueKeyPress}
+              placeholder="Scan or input ISBN..."
+              className="flex-1 h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
+            />
+            <button
+              onClick={handleAddIssue}
+              disabled={!issueIsbn.trim() || fetchingIssueBook}
+              className="px-4 h-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold disabled:opacity-50 transition-colors text-xs shrink-0"
+            >
+              {fetchingIssueBook ? 'Adding...' : 'Add Book'}
+            </button>
+          </div>
+
+          {/* Issues List */}
+          {issues.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium text-muted-foreground">
+                {issues.length} {issues.length === 1 ? 'issue' : 'issues'} logged
+              </p>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {issues.map((issue, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:border-muted-foreground/30 transition-colors"
+                  >
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${
+                      issue.type === 'missing' ? 'bg-red-500/10' : 'bg-primary/10'
+                    }`}>
+                      {issue.type === 'missing'
+                        ? <PackageMinus className="h-4 w-4 text-red-600" />
+                        : <PackagePlus className="h-4 w-4 text-primary" />}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold text-foreground truncate">{issue.title}</p>
+                        <span className="text-xs text-muted-foreground font-mono shrink-0">ISBN: {issue.isbn}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate">{issue.author}</p>
+                    </div>
+
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium shrink-0 ${
+                      issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-primary/10 text-primary'
+                    }`}>
+                      {issue.type === 'missing' ? 'Missing' : 'Extra'}
+                    </span>
+
                     <button
-                      onClick={handleAddIssue}
-                      disabled={!issueIsbn.trim() || fetchingIssueBook}
-                      className="px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50"
+                      onClick={() => handleRemoveIssue(issue.isbn)}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
                     >
-                      {fetchingIssueBook ? 'Addingâ€¦' : 'Add'}
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
-
-                  {/* Issues List */}
-                  {issues.length > 0 && (
-                    <>
-                      {/* Header row */}
-                      <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
-                        <div className="col-span-2">Type</div>
-                        <div className="col-span-3">ISBN</div>
-                        <div className="col-span-4">Book Title</div>
-                        <div className="col-span-2">Book Author</div>
-                        <div className="col-span-1 text-right">Action</div>
-                      </div>
-                      {/* Issues entries */}
-                      <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                        {issues.map((issue, index) => (
-                          <div key={index} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
-                            <div className="col-span-2">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                {issue.type === 'missing' ? 'Missing' : 'Extra'}
-                              </span>
-                            </div>
-                            <div className="col-span-3">
-                              <p className="text-xs font-medium text-foreground truncate">{issue.isbn}</p>
-                            </div>
-                            <div className="col-span-4">
-                              <p className="text-[11px] text-muted-foreground truncate">{issue.title}</p>
-                            </div>
-                            <div className="col-span-2">
-                              <p className="text-[11px] text-muted-foreground truncate">{issue.author}</p>
-                            </div>
-                            <div className="col-span-1 flex justify-end">
-                              <button
-                                onClick={() => handleRemoveIssue(issue.isbn)}
-                                className="text-[10px] text-muted-foreground hover:text-destructive underline"
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Summary */}
-                <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium">Expected:</span> {totalBooksExpected || 0} books
-                    <span className="ml-3">
-                      <span className="font-medium">Scanned:</span> {currentSession?.total_scanned || 0} books
-                    </span>
-                    {issues.length > 0 && (
-                      <span className="ml-3">
-                        <span className="font-medium">Issues:</span> {issues.length} ({issues.filter(i => i.type === 'missing').length} missing, {issues.filter(i => i.type === 'extra').length} extra)
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    * All scanned books will be saved to database when you confirm completion
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => {
-                    setConfirmCompleteOpen(false)
-                    setTotalBooksExpected('')
-                    setIssueIsbn('')
-                    setIssues([])
-                  }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
-                  <button onClick={confirmCloseSession} disabled={loading} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50">
-                    {loading ? 'Completingâ€¦' : 'Confirm Complete'}
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
           )}
+        </div>
+
+      </div>
+
+      {/* Footer / Actions */}
+      <div className="px-6 py-4 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between rounded-b-2xl">
+        <div className="flex-1">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
+            <div className="w-px h-3 bg-border" />
+            <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
+            {issues.length > 0 && (
+              <>
+                <div className="w-px h-3 bg-border" />
+                <div><span className="font-semibold text-destructive">{issues.length}</span> Issues</div>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={() => {
+            setConfirmCompleteOpen(false)
+            setTotalBooksExpected('')
+            setIssueIsbn('')
+            setIssues([])
+          }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+          <button onClick={confirmCloseSession} disabled={loading} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors">
+            <CircleCheck className="h-4 w-4" />
+            {loading ? 'Completing...' : 'Confirm Complete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
           {/* Reset Session Modal */}
           {confirmResetOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConfirmResetOpen(false)}>
-              <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-                <h3 className="text-base font-semibold text-foreground mb-2">Reset Session?</h3>
-                <p className="text-sm text-muted-foreground mb-5">This will reset the current session. All scanned data will be lost and not saved.</p>
-                <div className="flex gap-2 justify-end">
-                  <button onClick={() => setConfirmResetOpen(false)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
-                  <button onClick={confirmResetSession} className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium">Reset</button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmResetOpen(false)}>
+              <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-destructive/10">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Reset Session</h3>
+                      <p className="text-[11px] text-muted-foreground">This action cannot be undone</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setConfirmResetOpen(false)}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* Body */}
+                <div className="px-5 py-4">
+                  <p className="text-sm text-muted-foreground">All scanned books in this session will be permanently discarded. The box will be removed and the lot count will be updated.</p>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
+                  <button onClick={() => setConfirmResetOpen(false)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                  <button onClick={confirmResetSession} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Reset Session
+                  </button>
                 </div>
               </div>
             </div>
@@ -654,59 +741,150 @@ export default function WarehousePage() {
 
           {/* Conflict Modal */}
           {conflictModalState.open && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setConflictModalState({ open: false, type: null, message: '' })}>
-              <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-                <h3 className="text-base font-semibold text-foreground mb-2 flex items-center gap-2">
-                  <AlertTriangle className={`h-4 w-4 ${conflictModalState.type === 'has_books' ? 'text-destructive' : 'text-amber-500'}`} /> 
-                  {conflictModalState.type === 'has_books' ? 'Cannot Start Session' : 'Box Already Exists'}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-5">{conflictModalState.message}</p>
-                <div className="flex gap-2 justify-end">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConflictModalState({ open: false, type: null, message: '' })}>
+              <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${conflictModalState.type === 'has_books' ? 'bg-destructive/10' : 'bg-amber-500/10'}`}>
+                      <AlertTriangle className={`h-4 w-4 ${conflictModalState.type === 'has_books' ? 'text-destructive' : 'text-amber-500'}`} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">
+                        {conflictModalState.type === 'has_books' ? 'Cannot Start Session' : 'Box Already Exists'}
+                      </h3>
+                      <p className="text-[11px] text-muted-foreground">Action Required</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setConflictModalState({ open: false, type: null, message: '' })}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* Body */}
+                <div className="px-5 py-4">
+                  <p className="text-sm text-muted-foreground">{conflictModalState.message}</p>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
                   {conflictModalState.type === 'zero_books' ? (
                     <>
                       <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
                       <button onClick={() => { setConflictModalState({ open: false, type: null, message: '' }); handleNewSession(true) }} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors">Retry Again</button>
                     </>
                   ) : (
-                    <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors">Close</button>
+                    <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-muted font-medium transition-colors">Close</button>
                   )}
                 </div>
               </div>
             </div>
           )}
 
-        {/* Flag Modal */}
+          {/* Flag Modal */}
           {flagModalBook && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setFlagModalBook(null)}>
-              <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-destructive" /> Flag as Non-Processable
-                  </h3>
-                  <button onClick={() => setFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">âœ•</button>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">{flagModalBook.isbn} â€” {flagModalBook.title} â€” {flagModalBook.author}</p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
-                    <select value={flagIssue} onChange={e => setFlagIssue(e.target.value)}
-                      className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
-                      <option value="">Select issueâ€¦</option>
-                      {FLAG_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
-                    </select>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setFlagModalBook(null)}>
+              <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                {/* Modal Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-destructive/10">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Flag as Non-Processable</h3>
+                      <p className="text-[11px] text-muted-foreground">Mark this book with a rejection reason</p>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-foreground mb-1 block">Remarks / Page No. (optional)</label>
-                    <input type="text" value={flagRemarks} onChange={e => setFlagRemarks(e.target.value)}
-                      placeholder="e.g. page 42"
-                      className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                  <button
+                    onClick={() => setFlagModalBook(null)}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Book Info */}
+                <div className="px-5 py-3 bg-muted/30 border-b border-border">
+                  <div className="flex items-start gap-2">
+                    <BookOpen className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-foreground truncate">{flagModalBook.title}</p>
+                      <p className="text-sm font-bold tracking-wider text-foreground font-mono mt-1">ISBN: {flagModalBook.isbn}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2 justify-end mt-4">
-                  <button onClick={() => setFlagModalBook(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
-                  <button onClick={saveFlagFromLog} disabled={!flagIssue || flagSaving}
-                    className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50">
-                    {flagSaving ? 'Savingâ€¦' : 'Confirm Flag'}
+
+                {/* Form */}
+                <div className="px-5 py-4 space-y-4">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground mb-2 block">Rejection Reason <span className="text-destructive">*</span></label>
+                    <Popover open={flagOpen} onOpenChange={setFlagOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={flagOpen}
+                          className="w-full justify-between font-normal text-sm h-9 hover:bg-muted/50 hover:text-foreground"
+                        >
+                          <span className={flagIssue ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}>
+                            {flagIssue ? FLAG_ISSUES.find(i => i.value === flagIssue)?.label : 'Select rejection reason...'}
+                          </span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                        <Command>
+                          <CommandInput placeholder="Search issue..." />
+                          <CommandList className="max-h-48">
+                            <CommandEmpty>No issue found.</CommandEmpty>
+                            <CommandGroup>
+                              {FLAG_ISSUES.map(i => (
+                                <CommandItem
+                                  key={i.value}
+                                  value={i.label}
+                                  onSelect={() => { setFlagIssue(i.value); setFlagOpen(false) }}
+                                  className="flex justify-between items-center w-full"
+                                >
+                                  <span>{i.label}</span>
+                                  <Check className={cn('h-4 w-4 text-white', flagIssue === i.value ? 'opacity-100' : 'opacity-0')} />
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No. <span className="text-muted-foreground font-normal">(optional)</span></label>
+                    <input
+                      type="text"
+                      value={flagRemarks}
+                      onChange={e => setFlagRemarks(e.target.value)}
+                      placeholder="e.g. Page 42, bottom margin"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
+                  <button
+                    onClick={() => setFlagModalBook(null)}
+                    className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveFlagFromLog}
+                    disabled={!flagIssue || flagSaving}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50 transition-colors"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {flagSaving ? 'Saving...' : 'Confirm Flag'}
                   </button>
                 </div>
               </div>
@@ -714,141 +892,223 @@ export default function WarehousePage() {
           )}
 
           {/* Header */}
-          <header>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse &amp; Inventory</h1>
-            <p className="text-sm text-muted-foreground mt-1">Scan books into a single box. Flag Non-Processable ones inline &mdash; no re-boxing needed.</p>
-          </header>
+          {sessionActive && (
+            <header className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  {sessionActive && (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-500 border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      LIVE SESSION
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                  {sessionActive ? `Receiving — Lot ${activeLot} · Box ${currentBoxNumber}` : 'Warehouse Receiving'}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {sessionActive
+                    ? `Scan each book's barcode. Flag non-processable items inline — session saves on completion.`
+                    : 'Select a lot and box to begin a new receiving session.'}
+                </p>
+              </div>
+            </header>
+          )}
 
           {/* Session Control */}
           {!sessionActive ? (
-            <div className="bg-card border border-border shadow-sm rounded-xl p-8 w-full">
-              <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-foreground">Start New Session</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Select a lot and box to begin receiving books.</p>
-                </div>
-                <div className="flex gap-2">
-                  {activeLot && <span className="bg-primary/10 text-primary px-3 py-1 rounded-md text-sm font-medium">#{activeLot}</span>}
-                  {selectedBox && <span className="bg-primary/10 text-primary px-3 py-1 rounded-md text-sm font-medium">{boxes.find(b => b.id === selectedBox)?.box_number}</span>}
-                </div>
+            <div className="flex-1 flex flex-col items-center justify-center py-10 min-h-[500px]">
+              
+              <div className="mb-8 text-center space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground">Warehouse Receiving</h1>
+                <p className="text-sm text-muted-foreground">Select a lot and box to initialize a new scanning session</p>
               </div>
-              <div className="flex flex-col sm:flex-row items-end gap-6">
-                <div className="flex-1 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-foreground">Lot</label>
-                      <Popover open={lotOpen} onOpenChange={setLotOpen}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" role="combobox" aria-expanded={lotOpen} className="w-full justify-between font-normal">
-                            {activeLot ? lots.find(l => l.lot_number === activeLot)?.lot_number : 'Search lot...'}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[280px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Search..." />
-                            <CommandList>
-                              <CommandEmpty>No lot found.</CommandEmpty>
-                              <CommandGroup>
-                                {lots.map(l => (
-                                  <CommandItem key={l.id} value={l.lot_number} onSelect={v => { setActiveLot(v === activeLot ? '' : v); setLotOpen(false) }} className="flex justify-between items-center w-full">
-                                    <span>{l.lot_number}</span>
-                                    <Check className={cn('h-4 w-4 text-white', activeLot === l.lot_number ? 'opacity-100' : 'opacity-0')} />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
 
-                    <div className="flex flex-col gap-2">
-                      <label className="text-sm font-medium text-foreground">Box Number</label>
-                      <Popover open={boxOpen} onOpenChange={setBoxOpen}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" role="combobox" aria-expanded={boxOpen} disabled={!activeLot} className="w-full justify-between font-normal">
-                            {selectedBox ? boxes.find(b => b.id === selectedBox)?.box_number : 'Search box...'}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[280px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Search box..." />
-                            <CommandList>
-                              <CommandEmpty>No box found.</CommandEmpty>
-                              <CommandGroup>
-                                {boxes.map(b => (
-                                  <CommandItem key={b.id} value={b.box_number} onSelect={() => { setSelectedBox(b.id === selectedBox ? '' : b.id); setBoxOpen(false) }} className="flex justify-between items-center w-full">
-                                    <span>{b.box_number}</span>
-                                    <Check className={cn('h-4 w-4 text-white', selectedBox === b.id ? 'opacity-100' : 'opacity-0')} />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+              <div className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl w-full max-w-2xl overflow-hidden relative">
+                {/* Accent strip */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />
+                
+                <div className="p-8 md:p-10">
+                  <div className="flex items-center gap-5 mb-8">
+                    <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 shrink-0">
+                      <Package className="h-7 w-7 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-foreground">Start Receiving Session</h2>
+                      <p className="text-sm text-muted-foreground mt-1.5">Select a lot and box to begin scanning books into inventory.</p>
                     </div>
                   </div>
-                </div>
 
-                <Button
-                  onClick={() => handleNewSession(false)}
-                  disabled={loading || !activeLot || !selectedBox}
-                  className="h-10 px-8 w-full sm:w-auto"
-                >
-                  {loading ? 'Starting...' : 'Start Session'}
-                </Button>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 rounded-xl bg-muted/30 border border-border">
+                      {/* Lot Selector */}
+                      <div className="flex flex-col gap-2.5">
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
+                          Lot Number
+                          {activeLot && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">SELECTED</span>}
+                        </label>
+                        <Popover open={lotOpen} onOpenChange={setLotOpen}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" aria-expanded={lotOpen} className="w-full justify-between font-normal h-11 bg-background text-sm shadow-sm transition-colors hover:bg-background hover:text-foreground hover:border-primary/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/50">
+                              {activeLot ? <span className="font-semibold text-foreground">{lots.find(l => l.lot_number === activeLot)?.lot_number}</span> : <span className="text-muted-foreground group-hover:text-foreground">Select lot...</span>}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[280px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search..." />
+                              <CommandList>
+                                <CommandEmpty>No lot found.</CommandEmpty>
+                                <CommandGroup>
+                                  {lots.map(l => (
+                                    <CommandItem key={l.id} value={l.lot_number} onSelect={v => { setActiveLot(v === activeLot ? '' : v); setLotOpen(false) }} className="flex justify-between items-center w-full py-2">
+                                      <span className="font-medium">{l.lot_number}</span>
+                                      <Check className={cn('h-4 w-4 text-white', activeLot === l.lot_number ? 'opacity-100' : 'opacity-0')} />
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      {/* Box Selector */}
+                      <div className="flex flex-col gap-2.5">
+                        <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
+                          Box Number
+                          {selectedBox && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">SELECTED</span>}
+                        </label>
+                        <Popover open={boxOpen} onOpenChange={setBoxOpen}>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" role="combobox" aria-expanded={boxOpen} disabled={!activeLot} className="w-full justify-between font-normal h-11 bg-background text-sm shadow-sm transition-colors hover:bg-background hover:text-foreground hover:border-primary/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/50">
+                              {selectedBox ? <span className="font-semibold text-foreground">{boxes.find(b => b.id === selectedBox)?.box_number}</span> : <span className="text-muted-foreground group-hover:text-foreground">Select box...</span>}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[280px] p-0" align="start">
+                            <Command>
+                              <CommandInput placeholder="Search box..." />
+                              <CommandList>
+                                <CommandEmpty>No box found.</CommandEmpty>
+                                <CommandGroup>
+                                  {boxes.map(b => (
+                                    <CommandItem key={b.id} value={b.box_number} onSelect={() => { setSelectedBox(b.id === selectedBox ? '' : b.id); setBoxOpen(false) }} className="flex justify-between items-center w-full py-2">
+                                      <span className="font-medium">{b.box_number}</span>
+                                      <Check className={cn('h-4 w-4 text-white', selectedBox === b.id ? 'opacity-100' : 'opacity-0')} />
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+                    
+                    {activeLot && selectedBox && (
+                      <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-primary/5 border border-primary/10 rounded-xl text-sm font-semibold text-primary animate-in fade-in zoom-in-95 duration-200">
+                        <Package className="h-4 w-4 opacity-70" />
+                        <span>Lot {lots.find(l => l.lot_number === activeLot)?.lot_number}</span>
+                        <span className="text-primary/30">•</span>
+                        <span>Box {boxes.find(b => b.id === selectedBox)?.box_number}</span>
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={() => handleNewSession(false)}
+                      disabled={loading || !activeLot || !selectedBox}
+                      className="w-full h-12 text-sm font-bold shadow-md transition-all hover:shadow-lg disabled:hover:shadow-none bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      {loading ? (
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                          Starting Session...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <ScanBarcode className="h-5 w-5" />
+                          Start Scanning Session
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           ) : (
             <>
-              {/* Active session bar */}
-              <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-4">
-                <div className="flex items-center gap-4">
-                  <Package className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Active Lot</p>
-                    <p className="text-sm font-semibold text-foreground">{activeLot}</p>
-                  </div>
-                  {currentBoxNumber && (
-                    <div>
-                      <p className="text-xs text-muted-foreground">Current Box</p>
-                      <p className="text-sm font-semibold text-foreground">{currentBoxNumber} <span className="font-normal text-muted-foreground">({currentBoxBooks} books)</span></p>
+              {/* Active session banner */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {/* Top accent strip */}
+                <div className="h-0.5 w-full bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
+                  <div className="flex items-center gap-5">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10">
+                      <Package className="h-4 w-4 text-primary" />
                     </div>
-                  )}
-                  <div>
-                    <p className="text-xs text-muted-foreground">User</p>
-                    <p className="text-sm font-semibold text-foreground">{userName || 'Unknown User'}</p>
+                    <div className="flex items-center divide-x divide-border">
+                      <div className="pr-5">
+                        <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Lot</p>
+                        <p className="text-sm font-bold text-foreground mt-0.5">{activeLot}</p>
+                      </div>
+                      {currentBoxNumber && (
+                        <div className="px-5">
+                          <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Box</p>
+                          <p className="text-sm font-bold text-foreground mt-0.5">{currentBoxNumber}</p>
+                          <p className="text-[10px] text-muted-foreground">{currentBoxBooks} books</p>
+                        </div>
+                      )}
+                      <div className="pl-5">
+                        <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Operator</p>
+                        <p className="text-sm font-bold text-foreground mt-0.5">{userName || 'Unknown'}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={handleResetSession}
-                    className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors">
-                    Reset Session
-                  </button>
-                  <button onClick={handleCloseSession} disabled={loading || scannedBooks.length === 0}
-                    className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    Complete Session
-                  </button>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={handleResetSession}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
+                      <X className="h-3.5 w-3.5" />
+                      Reset
+                    </button>
+                    <button onClick={handleCloseSession} disabled={loading || scannedBooks.length === 0}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
+                      <CircleCheck className="h-3.5 w-3.5" />
+                      Complete Session
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Stats */}
               {currentSession && (
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs text-blue-600 font-medium">Total Scanned</p>
-                    <p className="text-2xl font-bold text-blue-900">{currentSession.total_scanned}</p>
+                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
+                      <ScanBarcode className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
+                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_scanned}</p>
+                    </div>
                   </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-xs text-green-600 font-medium">Processable</p>
-                    <p className="text-2xl font-bold text-green-900">{currentSession.total_processable}</p>
+                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
+                      <CircleCheck className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
+                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_processable}</p>
+                    </div>
                   </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-xs text-red-600 font-medium">Non-Processable</p>
-                    <p className="text-2xl font-bold text-red-900">{currentSession.total_non_processable}</p>
+                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
+                      <CircleX className="h-4 w-4 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
+                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_non_processable}</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -857,57 +1117,95 @@ export default function WarehousePage() {
               <ScannerInput onScan={handleScan} />
 
               {/* Scan log */}
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Scan Log</h3>
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">Scan Log</h3>
+                    {scannedBooks.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary">{scannedBooks.length}</span>
+                    )}
+                  </div>
+                  {scannedBooks.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground">Most recent on top</p>
+                  )}
+                </div>
                 {scannedBooks.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
+                  <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted">
+                      <ScanBarcode className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">Awaiting scan</p>
+                    <p className="text-xs text-muted-foreground">Scan a book barcode to add it here.</p>
+                  </div>
                 ) : (
-                  <>
+                  <div className="divide-y divide-border">
                     {/* Header row */}
-                    <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
-                      <div className="col-span-2">ISBN</div>
-                      <div className="col-span-3">Book Title</div>
-                      <div className="col-span-3">Book Author</div>
-                      <div className="col-span-3 text-right">Status</div>
-                      <div className="col-span-1 text-right">Action</div>
+                    <div className="grid grid-cols-12 gap-3 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30">
+                      <div className="col-span-3">ISBN</div>
+                      <div className="col-span-3">Title</div>
+                      <div className="col-span-2">Author</div>
+                      <div className="col-span-3 text-center">Status</div>
+                      <div className="col-span-1 text-right">Remove</div>
                     </div>
                     {/* Scan log entries */}
-                    <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                      {scannedBooks.map(book => (
-                        <div key={book.id} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
-                          <div className="col-span-2">
-                            <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                    <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
+                      {scannedBooks.map((book, idx) => (
+                        <div
+                          key={book.id}
+                          className={`grid grid-cols-12 gap-3 px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
+                            book.scan_status === 'non_processable' ? 'bg-destructive/5' : ''
+                          }`}
+                        >
+                          <div className="col-span-3">
+                            <p className="text-xs font-mono font-semibold text-foreground truncate">{book.isbn}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </p>
                           </div>
                           <div className="col-span-3">
-                            <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
+                            <p className="text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
                             {book.flag_issue && (
-                              <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` â€” ${book.flag_remarks}` : ''}</p>
+                              <p className="text-[10px] text-destructive mt-0.5 truncate">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                             )}
                           </div>
-                          <div className="col-span-3">
-                            <p className="text-[11px] text-muted-foreground truncate">{book.author}</p>
+                          <div className="col-span-2">
+                            <p className="text-xs text-muted-foreground truncate">{book.author}</p>
                           </div>
-                          <div className="col-span-3 flex items-center justify-end gap-2">
+                          <div className="col-span-3 flex items-center justify-center gap-2">
                             {book.scan_status === 'processable' ? (
                               <>
-                                <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Processable</span>
-                                <button onClick={() => openFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Flag</button>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                                  <CircleCheck className="h-3 w-3" />
+                                  Processable
+                                </span>
+                                <button
+                                  onClick={() => openFlagModal(book)}
+                                  className="text-[10px] text-muted-foreground hover:text-destructive underline transition-colors"
+                                >
+                                  Flag
+                                </button>
                               </>
                             ) : (
-                              <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700">
-                                <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20">
+                                <CircleX className="h-3 w-3" />
+                                Non-Processable
                               </span>
                             )}
                           </div>
                           <div className="col-span-1 flex items-center justify-end">
-                            <button onClick={() => handleRemoveBook(book.id)} className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors" title="Remove from scan log">
+                            <button
+                              onClick={() => handleRemoveBook(book.id)}
+                              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title="Remove from scan log"
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             </>
@@ -918,4 +1216,3 @@ export default function WarehousePage() {
     </div>
   )
 }
-

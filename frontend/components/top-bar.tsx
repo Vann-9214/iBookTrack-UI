@@ -98,7 +98,7 @@ function decodeTokenUser(token: string | null): NavbarUser | null {
   }
 }
 
-export function DashboardNavbar() {
+export function DashboardNavbar({ disableBrandToggle }: { disableBrandToggle?: boolean } = {}) {
   const [user, setUser] = useState<NavbarUser>(fallbackUser)
   const router = useRouter()
   const { brand, setBrand, colors } = useBrand()
@@ -139,8 +139,10 @@ export function DashboardNavbar() {
           <button
             key={b}
             onClick={() => setBrand(b)}
+            disabled={disableBrandToggle}
             className={cn(
               'px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 capitalize',
+              disableBrandToggle && 'opacity-50 cursor-not-allowed',
               brand === b
                 ? 'text-white shadow-sm'
                 : 'text-muted-foreground hover:text-foreground'

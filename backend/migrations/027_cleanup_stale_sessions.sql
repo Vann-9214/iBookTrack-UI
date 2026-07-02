@@ -3,12 +3,12 @@ RETURNS void AS $$
 BEGIN
     -- This function cleans up abandoned sessions safely.
     -- Instead of deleting the session directly, it deletes the parent BOX.
-    -- Because 'book_sessions' has 'ON DELETE CASCADE', the session is automatically deleted.
+    -- Because 'box_sessions' has 'ON DELETE CASCADE', the session is automatically deleted.
     -- Because of our trigger on 'boxes', the lot count is automatically decremented.
     DELETE FROM boxes
     WHERE id IN (
         SELECT box_id 
-        FROM book_sessions 
+        FROM box_sessions 
         WHERE status = 'in_progress' 
         AND started_at < NOW() - INTERVAL '3 hours'
     );

@@ -46,7 +46,7 @@ interface BoxItem {
   total_books_expected: number
   received_at: string | null
   lot: { lot_number: string } | null
-  book_sessions?: { received_by_name: string }[]
+  box_sessions?: { received_by_name: string }[]
 }
 
 interface ScannedBook {
@@ -950,9 +950,9 @@ export default function StationCheckpointsPage() {
                                         <div>
                                           <p className="text-sm font-medium text-card-foreground group-hover:text-primary transition-colors flex items-center gap-2">
                                             {box.box_number}
-                                            {box.book_sessions && box.book_sessions.length > 0 && (
+                                            {box.box_sessions && box.box_sessions.length > 0 && (
                                               <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                                Received by {box.book_sessions[0].received_by_name}
+                                                Received by {box.box_sessions[0].received_by_name}
                                               </span>
                                             )}
                                           </p>

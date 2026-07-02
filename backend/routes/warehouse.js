@@ -126,7 +126,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
 
     // Create warehouse session — use selected box if provided, otherwise create on first scan
     const { data: session, error: sessionError } = await supabaseAdmin
-      .from('book_sessions')
+      .from('box_sessions')
       .insert({
         box_id: assignedBoxId, // null means box will be created on first scan
         lot_id: lot.id,
@@ -167,7 +167,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     // Get session details (use admin to bypass RLS)
     const { data: session, error: sessionError } = await supabaseAdmin
-      .from('book_sessions')
+      .from('box_sessions')
       .select('*')
       .eq('id', session_id)
       .single()
@@ -259,7 +259,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
       currentBox = await createBoxIfNeeded('processable', lotNumber)
       assignedBoxId = currentBox.id
       await supabaseAdmin
-        .from('book_sessions')
+        .from('box_sessions')
         .update({ box_id: currentBox.id })
         .eq('id', session_id)
     } else {
@@ -275,7 +275,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
         currentBox = await createBoxIfNeeded('processable', lotNumber)
         assignedBoxId = currentBox.id
         await supabaseAdmin
-          .from('book_sessions')
+          .from('box_sessions')
           .update({ box_id: currentBox.id })
           .eq('id', session_id)
       } else {
@@ -357,11 +357,11 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
   try {
     const { session_id } = req.params
-    const { total_books_expected, issues } = req.body
+    const { total_books_expected, issues, stage } = req.body
 
     // Get session to find the associated box
     const { data: session, error: sessionFetchError } = await supabaseAdmin
-      .from('book_sessions')
+      .from('box_sessions')
       .select('*')
       .eq('id', session_id)
       .single()
@@ -369,7 +369,7 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
     if (sessionFetchError) throw sessionFetchError
 
     // Update total_books_expected on the associated box
-    if (session.box_id && total_books_expected) {
+    if (session.box_id && total_books_expected && stage !== 'inventory') {
       await supabaseAdmin
         .from('boxes')
         .update({ total_books_expected: parseInt(total_books_expected) })
@@ -377,7 +377,7 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
     }
 
     const { data, error } = await supabaseAdmin
-      .from('book_sessions')
+      .from('box_sessions')
       .update({
         status: 'completed',
         completed_at: new Date().toISOString()
@@ -395,20 +395,106 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
   }
 })
 
+// Resume an existing session for a box (used by Inventory)
+router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
+  try {
+    const { box_id } = req.params
+    
+    // Find the latest session for this box
+    const { data: session, error: fetchErr } = await supabaseAdmin
+      .from('box_sessions')
+      .select('*')
+      .eq('box_id', box_id)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (fetchErr) throw fetchErr
+
+    if (!session) {
+      // Create a fallback session if none exists
+      const { data: box } = await supabaseAdmin.from('boxes').select('lot_id').eq('id', box_id).single()
+      if (!box) throw new Error('Box not found')
+
+      const { data: newSession, error: createErr } = await supabaseAdmin
+        .from('box_sessions')
+        .insert({
+          box_id: box_id,
+          lot_id: box.lot_id,
+          received_by: req.user.id,
+          received_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email,
+          status: 'in_progress'
+        })
+        .select()
+        .single()
+      
+      if (createErr) throw createErr
+      return res.json({ session: newSession })
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('box_sessions')
+      .update({ status: 'in_progress' })
+      .eq('id', session.id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    res.json({ session: data })
+  } catch (error) {
+    console.error('Resume session error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Cancel an existing session for a box (used by Inventory to reset verification)
+router.post('/boxes/:box_id/cancel-session', requireAuth, async (req, res) => {
+  try {
+    const { box_id } = req.params
+    
+    // Find the latest session for this box
+    const { data: session, error: fetchErr } = await supabaseAdmin
+      .from('box_sessions')
+      .select('*')
+      .eq('box_id', box_id)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (fetchErr) throw fetchErr
+    if (!session) return res.json({ success: true, message: 'No session to cancel' })
+
+    const { data, error } = await supabaseAdmin
+      .from('box_sessions')
+      .update({ status: 'received' })
+      .eq('id', session.id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    res.json({ session: data })
+  } catch (error) {
+    console.error('Cancel session error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Delete/cancel a warehouse session
 router.delete('/sessions/:session_id', requireAuth, async (req, res) => {
   try {
     const { session_id } = req.params
 
     const { data: session } = await supabaseAdmin
-      .from('book_sessions')
+      .from('box_sessions')
       .select('box_id, lot_id')
       .eq('id', session_id)
       .single()
 
     if (session) {
       // First delete the session (cascades to scans usually, but we delete session first)
-      await supabaseAdmin.from('book_sessions').delete().eq('id', session_id)
+      await supabaseAdmin.from('box_sessions').delete().eq('id', session_id)
       
       // Attempt to delete the box if it has no other dependencies
       if (session.box_id) {
@@ -430,7 +516,7 @@ router.get('/sessions', requireAuth, async (req, res) => {
     const { status, limit = 20 } = req.query
 
     let query = supabaseAdmin
-      .from('book_sessions')
+      .from('box_sessions')
       .select(`
         *,
         box:boxes(box_number, lot:lots(lot_number))

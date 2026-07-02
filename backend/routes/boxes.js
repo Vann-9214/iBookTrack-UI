@@ -38,7 +38,7 @@ router.get('/', requireAuth, async (req, res) => {
         books:books(
           scans:book_scans(count)
         ),
-        book_sessions:book_sessions(received_by_name)
+        box_sessions:box_sessions(received_by_name)
       `)
       .order('created_at', { ascending: false })
 
@@ -319,6 +319,15 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
       .single()
 
     if (updateError) throw updateError
+
+    // If advancing from warehouse to inventory, mark the box_session as received
+    if (box.current_stage === 'warehouse' && nextStage === 'inventory') {
+      await db
+        .from('box_sessions')
+        .update({ status: 'received' })
+        .eq('box_id', id)
+        .eq('status', 'completed')
+    }
 
     // Log pipeline event
     await db.from('pipeline_events').insert({
