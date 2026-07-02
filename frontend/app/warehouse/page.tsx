@@ -289,7 +289,7 @@ export default function WarehousePage() {
           issues: issues
         })
       })
-      setSessionActive(false); setScannedBooks([]); setBookCounter(0); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0)
+      setSessionActive(false); setScannedBooks([]); setBookCounter(0); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0); setActiveLot('');
       setTotalBooksExpected('')
       setIssueIsbn('')
       setIssues([])
