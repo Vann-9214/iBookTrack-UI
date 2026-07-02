@@ -35,7 +35,9 @@ router.get('/', requireAuth, async (req, res) => {
       .select(`
         *,
         lot:lots(lot_number, shipment_id, status),
-        scans:warehouse_book_scans(count)
+        books:books(
+          scans:warehouse_book_scans(count)
+        )
       `)
       .order('created_at', { ascending: false })
 
@@ -46,7 +48,15 @@ router.get('/', requireAuth, async (req, res) => {
     const { data, error } = await query
     if (error) throw error
 
-    let boxes = data
+    let boxes = (data || []).map(b => {
+      // Calculate total scans from books
+      const totalScans = (b.books || []).reduce((sum, bk) => sum + (bk.scans?.[0]?.count || 0), 0)
+      const { books, ...rest } = b
+      return {
+        ...rest,
+        scans: [{ count: totalScans }]
+      }
+    })
 
     // Exclude storage-stage boxes that are already placed in a storage slot
     if (exclude_assigned_storage === 'true') {

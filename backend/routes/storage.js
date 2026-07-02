@@ -45,7 +45,10 @@ router.get('/locations', requireAuth, async (req, res) => {
           box:boxes(
             id, box_number, total_books_expected, lot_id,
             lot:lots(lot_number),
-            scans:warehouse_book_scans(scan_status, book:books(isbn, title))
+            books:books(
+              isbn, title,
+              scans:warehouse_book_scans(scan_status)
+            )
           )
         )
       `)
@@ -69,9 +72,11 @@ router.get('/locations', requireAuth, async (req, res) => {
         box_number: a.box?.box_number,
         lot_number: a.box?.lot?.lot_number || null,
         total_books: a.box?.total_books_expected || 0,
-        books: (a.box?.scans || [])
-          .filter(s => s.scan_status === 'processable')
-          .map(s => ({ isbn: s.book?.isbn, title: s.book?.title || `ISBN: ${s.book?.isbn}` })),
+        books: (a.box?.books || [])
+          .flatMap(b => {
+            const processable = (b.scans || []).some(s => s.scan_status === 'processable')
+            return processable ? [{ isbn: b.isbn, title: b.title || `ISBN: ${b.isbn}` }] : []
+          }),
       })),
     }))
 
@@ -217,7 +222,10 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
       .select(`
         id, box_number, total_books_expected, lot_id,
         lot:lots(lot_number),
-        scans:warehouse_book_scans(scan_status, book:books(isbn, title))
+        books:books(
+          isbn, title,
+          scans:warehouse_book_scans(scan_status)
+        )
       `)
       .eq('current_stage', 'storage')
       .order('created_at', { ascending: false })
@@ -234,9 +242,11 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
       box_number: b.box_number,
       lot_number: b.lot?.lot_number || null,
       total_books: b.total_books_expected || 0,
-      books: (b.scans || [])
-        .filter(s => s.scan_status === 'processable')
-        .map(s => ({ isbn: s.isbn, title: s.title || `ISBN: ${s.isbn}` })),
+      books: (b.books || [])
+        .flatMap(bk => {
+          const processable = (bk.scans || []).some(s => s.scan_status === 'processable')
+          return processable ? [{ isbn: bk.isbn, title: bk.title || `ISBN: ${bk.isbn}` }] : []
+        }),
     }))
 
     res.json({ success: true, boxes: normalized })

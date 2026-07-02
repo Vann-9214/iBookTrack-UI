@@ -77,7 +77,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
     // If no existing box found but a box_number was provided, create the box with the requested name
     if (!assignedBoxId && requestedBoxNumber) {
       // Use the box_number from the dropdown selection as the box name
-      const boxName = `Box ${requestedBoxNumber}`
+      const boxName = requestedBoxNumber
       const { data: newBox, error: boxCreateError } = await supabaseAdmin
         .from('boxes')
         .insert({
