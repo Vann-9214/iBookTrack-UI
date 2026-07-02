@@ -48,10 +48,10 @@ router.get('/lot-status', requireAuth, async (req, res) => {
 
     if (boxesError) throw boxesError
 
-    // 3. Fetch all scans (isbn, assigned_box_id, scan_status)
+    // 3. Fetch all scans
     const { data: scans, error: scansError } = await db
       .from('warehouse_book_scans')
-      .select('isbn, assigned_box_id, scan_status')
+      .select('scan_status, books!inner(isbn, box_id)')
 
     if (scansError) throw scansError
 
@@ -67,7 +67,8 @@ router.get('/lot-status', requireAuth, async (req, res) => {
     // Group scans by lot via box
     const scansByLot = {}
     for (const scan of scans || []) {
-      const box = boxById[scan.assigned_box_id]
+      const boxId = scan.books?.box_id
+      const box = boxById[boxId]
       if (!box) continue
       const lotId = box.lot_id
       if (!scansByLot[lotId]) scansByLot[lotId] = []
