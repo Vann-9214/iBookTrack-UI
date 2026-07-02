@@ -46,6 +46,7 @@ interface BoxItem {
   total_books_expected: number
   received_at: string | null
   lot: { lot_number: string } | null
+  book_sessions?: { received_by_name: string }[]
 }
 
 interface ScannedBook {
@@ -124,6 +125,12 @@ export default function StationCheckpointsPage() {
   const prevBoxesRef = useRef<BoxItem[]>([])
   const prevTransitionsRef = useRef<Transition[]>([])
 
+  // Keep latest filter/brand in refs so fetchData doesn't need to re-create
+  const transitionStageFilterRef = useRef(transitionStageFilter)
+  const brandRef = useRef(brand)
+  useEffect(() => { transitionStageFilterRef.current = transitionStageFilter }, [transitionStageFilter])
+  useEffect(() => { brandRef.current = brand }, [brand])
+
   // Helper to check if data actually changed
   const hasDataChanged = useCallback((oldData: any[], newData: any[]): boolean => {
     if (oldData.length !== newData.length) return true
@@ -132,11 +139,13 @@ export default function StationCheckpointsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50${transitionStageFilter ? `&stage=${transitionStageFilter}` : ''}`
+      const currentFilter = transitionStageFilterRef.current
+      const currentBrand = brandRef.current
+      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50${currentFilter ? `&stage=${currentFilter}` : ''}`
       const [boxRes, transRes, liveRes] = await Promise.all([
         authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true`),
         authFetch(transitionUrl),
-        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${brand}`).catch(() => null),
+        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}`).catch(() => null),
       ])
       const boxData = await boxRes.json()
       const transData = await transRes.json()
@@ -168,11 +177,12 @@ export default function StationCheckpointsPage() {
     } finally {
       setLoading(false)
     }
-  }, [hasDataChanged, transitionStageFilter, brand])
+  }, [hasDataChanged])
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 15000)
+    // Poll every 60 seconds — keeps data fresh without hammering the API
+    const interval = setInterval(fetchData, 60000)
     return () => clearInterval(interval)
   }, [fetchData])
 
@@ -315,16 +325,21 @@ export default function StationCheckpointsPage() {
     }
     if (stage === 'warehouse' || box.received_at) {
       return (
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={advancing === box.id}
-          onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
-          className="h-7 gap-1 text-xs border-primary/30 text-primary hover:bg-primary/10 shrink-0"
-        >
-          {advancing === box.id ? '...' : 'Send'}
-          {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
-        </Button>
+        <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
+          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default">
+            Done
+          </Badge>
+          <Button
+            size="sm"
+            variant="default"
+            disabled={advancing === box.id}
+            onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
+            className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300"
+          >
+            {advancing === box.id ? '...' : 'Send'}
+            {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
+          </Button>
+        </div>
       )
     }
     return (
@@ -458,7 +473,11 @@ export default function StationCheckpointsPage() {
   }
 
   const boxesByStage = STAGE_ORDER.reduce<Record<Stage, BoxItem[]>>((acc, stage) => {
-    acc[stage] = boxes.filter(b => b.current_stage === stage)
+    let stageBoxes = boxes.filter(b => b.current_stage === stage)
+    if (stage === 'warehouse') {
+      stageBoxes = stageBoxes.filter(b => b.total_books_expected > 0)
+    }
+    acc[stage] = stageBoxes
     return acc
   }, {} as Record<Stage, BoxItem[]>)
 
@@ -922,17 +941,24 @@ export default function StationCheckpointsPage() {
                                       isExpanded && `border-l-4 ${borderClass}`
                                     )}
                                   >
-                                    <div className="flex items-center justify-between px-3 py-2.5">
-                                      <button
-                                        onClick={() => toggleStageBoxDetails(box)}
-                                        className="min-w-0 flex items-center gap-2 text-left group"
-                                      >
-                                        {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                    <div 
+                                      className="flex items-center justify-between px-3 py-2.5 cursor-pointer group"
+                                      onClick={() => toggleStageBoxDetails(box)}
+                                    >
+                                      <div className="min-w-0 flex items-center gap-2 text-left">
+                                        {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />}
                                         <div>
-                                          <p className="text-sm font-medium text-card-foreground group-hover:text-primary transition-colors">{box.box_number}</p>
+                                          <p className="text-sm font-medium text-card-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                                            {box.box_number}
+                                            {box.book_sessions && box.book_sessions.length > 0 && (
+                                              <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                                Received by {box.book_sessions[0].received_by_name}
+                                              </span>
+                                            )}
+                                          </p>
                                           <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · {box.total_books_expected} books</p>
                                         </div>
-                                      </button>
+                                      </div>
                                       <div onClick={e => e.stopPropagation()}>
                                         {renderBoxAction(box)}
                                       </div>
