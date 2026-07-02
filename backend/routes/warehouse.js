@@ -700,4 +700,52 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
   }
 })
 
+// Get warehouse scans for a specific box (for inventory comparison)
+router.get('/boxes/:box_id/scans', requireAuth, async (req, res) => {
+  try {
+    const { box_id } = req.params
+
+    // Get all warehouse scans for books in this box
+    const { data: scans, error } = await supabaseAdmin
+      .from('book_scans')
+      .select(`
+        *,
+        books!inner(
+          isbn,
+          title,
+          box:boxes(
+            box_number,
+            lot:lots(lot_number)
+          )
+        )
+      `)
+      .eq('books.box_id', box_id)
+      .order('scanned_at', { ascending: false })
+
+    if (error) throw error
+
+    // Map to simpler format for comparison
+    const warehouseBooks = scans.map(scan => ({
+      isbn: scan.books?.isbn,
+      title: scan.books?.title,
+      scan_status: scan.scan_status,
+      rejection_reason: scan.rejection_reason,
+      scanned_at: scan.scanned_at,
+      scanned_by_name: scan.scanned_by_name
+    }))
+
+    res.json({ 
+      success: true, 
+      box_id,
+      warehouse_books: warehouseBooks,
+      total_count: warehouseBooks.length,
+      processable_count: warehouseBooks.filter(b => b.scan_status === 'processable').length,
+      non_processable_count: warehouseBooks.filter(b => b.scan_status === 'non_processable').length
+    })
+  } catch (error) {
+    console.error('Get warehouse scans by box error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 export default router
