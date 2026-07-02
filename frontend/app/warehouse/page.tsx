@@ -166,6 +166,26 @@ export default function WarehousePage() {
       toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
       return
     }
+
+    const expected = parseInt(totalBooksExpected)
+    if (isNaN(expected)) {
+      toast({ title: 'Invalid Input', description: 'Total books expected must be a valid number.', variant: 'destructive' })
+      return
+    }
+
+    const missingCount = issues.filter(i => i.type === 'missing').length
+    const extraCount = issues.filter(i => i.type === 'extra').length
+    const calculatedExpected = scannedBooks.length + missingCount - extraCount
+
+    if (expected !== calculatedExpected) {
+      toast({ 
+        title: 'Mismatch Detected', 
+        description: `Total expected books (${expected}) does not match scanned books (${scannedBooks.length}) with missing (${missingCount}) and extra (${extraCount}).`, 
+        variant: 'destructive' 
+      })
+      return
+    }
+
     setConfirmCompleteOpen(false)
     setLoading(true)
     try {
