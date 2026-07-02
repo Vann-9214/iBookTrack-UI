@@ -36,7 +36,7 @@ router.get('/', requireAuth, async (req, res) => {
         *,
         lot:lots(lot_number, shipment_id, status),
         books:books(
-          scans:warehouse_book_scans(count)
+          scans:book_scans(count)
         )
       `)
       .order('created_at', { ascending: false })
@@ -127,9 +127,9 @@ router.get('/:id', requireAuth, async (req, res) => {
     if (boxError) throw boxError
     if (!box) return res.status(404).json({ error: 'Box not found' })
 
-    // Pull scanned books from warehouse_book_scans for this box
+    // Pull scanned books from book_scans for this box
     const { data: scans } = await db
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select('id, scan_status, scanned_at, rejection_reason, books!inner(isbn, title, box_id)')
       .eq('books.box_id', id)
       .order('scanned_at', { ascending: true })
@@ -283,7 +283,7 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
       const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
 
       const { data: scans } = await db
-        .from('warehouse_book_scans')
+        .from('book_scans')
         .select('books!inner(isbn, box_id)')
         .eq('books.box_id', id)
         .eq('scan_status', 'processable')
@@ -416,7 +416,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
 
     // 2. Get all scans for this box
     const { data: scans, error: scansError } = await db
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select('id, scan_status, rejection_reason, scanned_at, books!inner(isbn, title, box_id)')
       .eq('books.box_id', box.id)
       .order('scanned_at', { ascending: true })
@@ -501,9 +501,9 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
       })
     }
 
-    // 2. Get all processable ISBNs in this box from warehouse_book_scans
+    // 2. Get all processable ISBNs in this box from book_scans
     const { data: scans, error: scansError } = await db
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select('scan_status, books!inner(isbn, title, box_id)')
       .eq('books.box_id', id)
       .eq('scan_status', 'processable')
@@ -606,7 +606,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     // Delete dependents first (FK order)
     const { data: booksToDelete } = await db.from('books').select('id').eq('box_id', id)
     if (booksToDelete && booksToDelete.length > 0) {
-      await db.from('warehouse_book_scans').delete().in('book_id', booksToDelete.map(b => b.id))
+      await db.from('book_scans').delete().in('book_id', booksToDelete.map(b => b.id))
       await db.from('books').delete().in('id', booksToDelete.map(b => b.id))
     }
     await db.from('storage_assignments').delete().eq('box_id', id)

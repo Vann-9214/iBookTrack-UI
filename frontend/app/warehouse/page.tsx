@@ -123,20 +123,38 @@ export default function WarehousePage() {
     if (!activeLot) { alert('Please select a lot first'); return }
     if (!selectedBox) { alert('Please select a box first'); return }
     
-    // Set up local state without writing to database yet
-    setCurrentSession({ 
-      id: 'pending',
-      total_scanned: 0,
-      total_processable: 0, 
-      total_non_processable: 0 
-    })
-    setSessionActive(true)
-    setScannedBooks([])
-    setBookCounter(0)
-    const selected = boxes.find(b => b.id === selectedBox)
-    setCurrentBoxNumber(selected?.box_number || '')
-    setCurrentBoxBooks(0)
-    toast({ title: 'Session Started', description: `Session started for ${activeLot}. Data will be saved upon completion.` })
+    setLoading(true)
+    try {
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Authentication required.')
+
+      const startRes = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '' })
+      })
+      const startData = await startRes.json()
+      if (!startRes.ok) throw new Error(startData.error || 'Failed to create session on backend')
+
+      setCurrentSession({ 
+        id: startData.session.id,
+        status: startData.session.status,
+        total_scanned: 0,
+        total_processable: 0, 
+        total_non_processable: 0 
+      })
+      setSessionActive(true)
+      setScannedBooks([])
+      setBookCounter(0)
+      const selected = boxes.find(b => b.id === selectedBox)
+      setCurrentBoxNumber(selected?.box_number || '')
+      setCurrentBoxBooks(0)
+      toast({ title: 'Session Started', description: `Session created and marked as in-progress for ${activeLot}.` })
+    } catch (error) {
+      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to start session', variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCloseSession = async () => {
@@ -185,15 +203,8 @@ export default function WarehousePage() {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
 
-      // 1. Create the session in the database
-      const startRes = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '' })
-      })
-      const startData = await startRes.json()
-      if (!startRes.ok) throw new Error(startData.error || 'Failed to create session on backend')
-      const realSessionId = startData.session.id
+      // 1. Session is already created in handleNewSession
+      const realSessionId = currentSession.id
 
       // 2. Save all scanned books to database
       const savedBookIds: string[] = []
@@ -229,10 +240,25 @@ export default function WarehousePage() {
     setConfirmResetOpen(true)
   }
 
-  const confirmResetSession = () => {
+  const confirmResetSession = async () => {
     if (!currentSession) return
     setConfirmResetOpen(false)
-    // Clear local state without calling API (data won't be saved to database)
+    
+    try {
+      if (currentSession.id !== 'pending') {
+        const token = await getValidAccessToken()
+        if (token) {
+          await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        }
+      }
+    } catch (e) {
+      console.error('Failed to delete session', e)
+    }
+
+    // Clear local state
     setSessionActive(false)
     setScannedBooks([])
     setBookCounter(0)
@@ -240,7 +266,7 @@ export default function WarehousePage() {
     setSelectedBox('')
     setCurrentBoxNumber('')
     setCurrentBoxBooks(0)
-    toast({ title: 'Session Reset', description: 'Session has been reset. Data was not saved.' })
+    toast({ title: 'Session Cancelled', description: 'Session has been cancelled and removed from the database.' })
   }
 
   const handleAddIssue = async () => {

@@ -50,7 +50,7 @@ router.get('/lot-status', requireAuth, async (req, res) => {
 
     // 3. Fetch all scans
     const { data: scans, error: scansError } = await db
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select('scan_status, books!inner(isbn, box_id)')
 
     if (scansError) throw scansError
