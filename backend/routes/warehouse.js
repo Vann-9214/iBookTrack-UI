@@ -109,7 +109,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
 
     // Create warehouse session — use selected box if provided, otherwise create on first scan
     const { data: session, error: sessionError } = await supabaseAdmin
-      .from('warehouse_sessions')
+      .from('book_sessions')
       .insert({
         box_id: assignedBoxId, // null means box will be created on first scan
         lot_id: lot.id,
@@ -150,7 +150,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     // Get session details (use admin to bypass RLS)
     const { data: session, error: sessionError } = await supabaseAdmin
-      .from('warehouse_sessions')
+      .from('book_sessions')
       .select('*')
       .eq('id', session_id)
       .single()
@@ -242,7 +242,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
       currentBox = await createBoxIfNeeded('processable', lotNumber)
       assignedBoxId = currentBox.id
       await supabaseAdmin
-        .from('warehouse_sessions')
+        .from('book_sessions')
         .update({ box_id: currentBox.id })
         .eq('id', session_id)
     } else {
@@ -258,7 +258,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
         currentBox = await createBoxIfNeeded('processable', lotNumber)
         assignedBoxId = currentBox.id
         await supabaseAdmin
-          .from('warehouse_sessions')
+          .from('book_sessions')
           .update({ box_id: currentBox.id })
           .eq('id', session_id)
       } else {
@@ -291,7 +291,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     // Create scan log (use admin to bypass RLS)
     const { data: scanLog, error: scanError } = await supabaseAdmin
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .insert({
         session_id,
         book_id: bookId,
@@ -344,7 +344,7 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
 
     // Get session to find the associated box
     const { data: session, error: sessionFetchError } = await supabaseAdmin
-      .from('warehouse_sessions')
+      .from('book_sessions')
       .select('*')
       .eq('id', session_id)
       .single()
@@ -360,7 +360,7 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
     }
 
     const { data, error } = await supabaseAdmin
-      .from('warehouse_sessions')
+      .from('book_sessions')
       .update({
         status: 'completed',
         completed_at: new Date().toISOString()
@@ -378,13 +378,41 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
   }
 })
 
+// Delete/cancel a warehouse session
+router.delete('/sessions/:session_id', requireAuth, async (req, res) => {
+  try {
+    const { session_id } = req.params
+
+    const { data: session } = await supabaseAdmin
+      .from('book_sessions')
+      .select('box_id')
+      .eq('id', session_id)
+      .single()
+
+    if (session) {
+      // First delete the session (cascades to scans usually, but we delete session first)
+      await supabaseAdmin.from('book_sessions').delete().eq('id', session_id)
+      
+      // Attempt to delete the box if it has no other dependencies
+      if (session.box_id) {
+        await supabaseAdmin.from('boxes').delete().eq('id', session.box_id)
+      }
+    }
+
+    res.json({ success: true, message: 'Session cancelled' })
+  } catch (error) {
+    console.error('Delete session error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Get all warehouse sessions
 router.get('/sessions', requireAuth, async (req, res) => {
   try {
     const { status, limit = 20 } = req.query
 
     let query = supabaseAdmin
-      .from('warehouse_sessions')
+      .from('book_sessions')
       .select(`
         *,
         box:boxes(box_number, lot:lots(lot_number))
@@ -442,7 +470,7 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
 
     // Search in warehouse scan logs
     const { data: scans, error: scanError } = await supabaseAdmin
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select(`
         *,
         books!inner(
@@ -529,7 +557,7 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
     const { limit = 50 } = req.query
 
     const { data: rejectedBooks, error } = await supabaseAdmin
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select(`
         id,
         rejection_reason,
@@ -578,7 +606,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
     }
 
     const { data, error } = await supabaseAdmin
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .update({ scan_status: 'non_processable', rejection_reason, notes: notes || null })
       .eq('id', scan_id)
       .select()
@@ -611,7 +639,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
 
     // Fetch the scan to verify it exists
     const { data: existing, error: fetchError } = await supabaseAdmin
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select('id, scan_status, books(isbn)')
       .eq('id', scan_id)
       .single()
@@ -624,7 +652,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
 
     // Update scan_status and rejection_reason
     const { data: updated, error: updateError } = await supabaseAdmin
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .update({
         scan_status: status,
         rejection_reason: remarks.trim(),

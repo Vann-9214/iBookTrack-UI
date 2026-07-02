@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.warehouse_sessions (
   
   -- Session tracking
   status          TEXT        NOT NULL DEFAULT 'in_progress'
-                              CHECK (status IN ('in_progress', 'completed', 'cancelled')),
+                              CHECK (status IN ('in_progress', 'completed')),
   total_scanned   INTEGER     NOT NULL DEFAULT 0,
   total_accepted  INTEGER     NOT NULL DEFAULT 0,
   total_rejected  INTEGER     NOT NULL DEFAULT 0,
@@ -25,7 +25,6 @@ CREATE TABLE IF NOT EXISTS public.warehouse_sessions (
   
   started_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at    TIMESTAMPTZ,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

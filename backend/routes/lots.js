@@ -63,7 +63,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
     if (lotError) throw lotError
     if (!lot) return res.status(404).json({ success: false, error: 'Lot not found' })
 
-    // 2. Get all warehouse_book_scans for this lot (via boxes)
+    // 2. Get all book_scans for this lot (via boxes)
     const { data: boxes } = await db
       .from('boxes')
       .select('id')
@@ -85,7 +85,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
     }
 
     const { data: scans, error: scansError } = await db
-      .from('warehouse_book_scans')
+      .from('book_scans')
       .select('id, scan_status, rejection_reason, scanned_at, books!inner(isbn, title, box_id)')
       .in('books.box_id', boxIds)
       .order('scanned_at', { ascending: false })
