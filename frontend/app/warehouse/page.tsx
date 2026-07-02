@@ -370,22 +370,45 @@ export default function WarehousePage() {
 
   const handleScan = async (isbn: string) => {
     if (!currentSession) return
+    
+    // Prevent duplicate ISBN entries within the same session
+    if (scannedBooks.some(b => b.isbn === isbn)) {
+      toast({ title: 'Duplicate Scan', description: `ISBN ${isbn} has already been scanned in this session.`, variant: 'destructive' })
+      return
+    }
+
     setLoading(true)
     try {
-      const response = await fetch(`${API_URL}/api/books/ilms/search/${isbn}`)
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Authentication required.')
+
+      const response = await fetch(`${API_URL}/api/warehouse/search/isbn/${isbn}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       const data = await response.json()
-      if (data.success && data.data && !data.data.Message) {
-        // Add to local state only (not saving to DB yet)
-        saveBookToLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || `Author ${bookCounter + 1}` }, 'processable', null, null)
-      } else {
-        // Book not found in iLMS, but still add to local scan log with generated title and author
-        saveBookToLocal({ isbn, title: `Book ${bookCounter + 1}`, author: `Author ${bookCounter + 1}` }, 'processable', null, null)
-        toast({ title: 'Book Not Found', description: 'ISBN not found in iLMS. Added to scan log anyway.', variant: 'destructive' })
+
+      // Global duplicate check: reject if it's already in the warehouse
+      if (data.success && data.book?.in_warehouse) {
+        toast({ 
+          title: 'Already in Warehouse', 
+          description: `ISBN ${isbn} has already been scanned into Box ${data.book.box_number} (Lot ${data.book.lot_number}).`, 
+          variant: 'destructive' 
+        })
+        return
       }
-    } catch {
+
+      if (data.success && data.book?.in_ilms) {
+        // Book found in ILMS but not in warehouse
+        saveBookToLocal({ isbn: data.book.isbn, title: data.book.title, author: data.ilmsData?.Author || `Author ${bookCounter + 1}` }, 'processable', null, null)
+      } else {
+        // Book not found in ILMS or DB, but still add to local scan log with generated title/author for testing
+        saveBookToLocal({ isbn, title: `Book ${bookCounter + 1}`, author: `Author ${bookCounter + 1}` }, 'processable', null, null)
+        toast({ title: 'Book Not Found', description: 'ISBN not found in iLMS records. Added to scan log anyway.', variant: 'destructive' })
+      }
+    } catch (error) {
       // API error, but still add to local scan log with generated title and author
       saveBookToLocal({ isbn, title: `Book ${bookCounter + 1}`, author: `Author ${bookCounter + 1}` }, 'processable', null, null)
-      toast({ title: 'API Error', description: 'Failed to fetch book details. Added to scan log anyway.', variant: 'destructive' })
+      toast({ title: 'API Error', description: 'Failed to verify ISBN. Added to scan log anyway.', variant: 'destructive' })
     } finally { setLoading(false) }
   }
 
@@ -730,7 +753,7 @@ export default function WarehousePage() {
                                 {lots.map(l => (
                                   <CommandItem key={l.id} value={l.lot_number} onSelect={v => { setActiveLot(v === activeLot ? '' : v); setLotOpen(false) }} className="flex justify-between items-center w-full">
                                     <span>{l.lot_number}</span>
-                                    <Check className={cn('h-4 w-4', activeLot === l.lot_number ? 'opacity-100' : 'opacity-0')} />
+                                    <Check className={cn('h-4 w-4 text-white', activeLot === l.lot_number ? 'opacity-100' : 'opacity-0')} />
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
@@ -758,7 +781,7 @@ export default function WarehousePage() {
                                 {boxes.map(b => (
                                   <CommandItem key={b.id} value={b.box_number} onSelect={() => { setSelectedBox(b.id === selectedBox ? '' : b.id); setBoxOpen(false) }} className="flex justify-between items-center w-full">
                                     <span>{b.box_number}</span>
-                                    <Check className={cn('h-4 w-4', selectedBox === b.id ? 'opacity-100' : 'opacity-0')} />
+                                    <Check className={cn('h-4 w-4 text-white', selectedBox === b.id ? 'opacity-100' : 'opacity-0')} />
                                   </CommandItem>
                                 ))}
                               </CommandGroup>
