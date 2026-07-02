@@ -331,6 +331,28 @@ export default function InventoryPage() {
   // Boxes move here after a verification session is completed (still inventory stage in DB).
   const [verifiedBoxIds, setVerifiedBoxIds] = useState<Set<string>>(new Set())
 
+  // ── Book Verification list: expandable row state ───────────────────────────
+  const [verifExpandedBoxId, setVerifExpandedBoxId] = useState<string | null>(null)
+  const [verifRowBooks, setVerifRowBooks] = useState<Record<string, BookInBox[]>>({})
+  const [loadingVerifRowBooks, setLoadingVerifRowBooks] = useState<string | null>(null)
+
+  const toggleVerifRow = async (boxId: string) => {
+    if (verifExpandedBoxId === boxId) { setVerifExpandedBoxId(null); return }
+    setVerifExpandedBoxId(boxId)
+    if (!verifRowBooks[boxId]) {
+      setLoadingVerifRowBooks(boxId)
+      try {
+        const res = await authFetch(`${API_URL}/api/boxes/${boxId}`)
+        const data = await res.json()
+        setVerifRowBooks(prev => ({ ...prev, [boxId]: data.box?.books || [] }))
+      } catch {
+        setVerifRowBooks(prev => ({ ...prev, [boxId]: [] }))
+      } finally {
+        setLoadingVerifRowBooks(null)
+      }
+    }
+  }
+
   // ── Incoming: Receive box (warehouse → inventory) ──────────────────────────
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
@@ -376,9 +398,10 @@ export default function InventoryPage() {
 
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
-  const handleStartVerifSession = async () => {
-    if (!verifSelectedBoxId) return
-    const box = inventoryBoxes.find(b => b.id === verifSelectedBoxId)
+  const handleStartVerifSession = async (overrideBoxId?: string) => {
+    const boxId = overrideBoxId ?? verifSelectedBoxId
+    if (!boxId) return
+    const box = inventoryBoxes.find(b => b.id === boxId)
     if (!box) return
     setLoadingVerifBooks(true)
     try {
@@ -1138,34 +1161,95 @@ export default function InventoryPage() {
               )}
 
               {!verifSessionActive ? (
-                /* ── Session start panel ── */
-                <div className="bg-card border border-border rounded-xl p-6 flex flex-col sm:flex-row items-end justify-between gap-4">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm font-medium text-foreground">Select a box to verify</p>
-                    <p className="text-xs text-muted-foreground">Choose an inventory-stage box, scan its books, flag non-processable ones, then complete the session.</p>
-                    <div className="mt-3">
-                      <Select value={verifSelectedBoxId} onValueChange={setVerifSelectedBoxId}>
-                        <SelectTrigger className="w-72 h-9">
-                          <SelectValue placeholder={inventoryBoxes.length === 0 ? 'No boxes available' : 'Select a box…'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {inventoryBoxes.map(b => (
-                            <SelectItem key={b.id} value={b.id}>
-                              {b.box_number} — {b.lot?.lot_number || '—'} ({b.total_books_expected} books)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                /* ── Box list for verification ── */
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    {loadingBoxes ? 'Loading…' : `${inventoryBoxes.length} box${inventoryBoxes.length !== 1 ? 'es' : ''} awaiting verification`}
+                  </p>
+                  {loadingBoxes ? (
+                    <div className="py-12 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading boxes…
                     </div>
-                  </div>
-                  <button
-                    onClick={handleStartVerifSession}
-                    disabled={!verifSelectedBoxId || loadingVerifBooks}
-                    className="px-6 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {loadingVerifBooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
-                    {loadingVerifBooks ? 'Loading…' : 'Start Session'}
-                  </button>
+                  ) : inventoryBoxes.length === 0 ? (
+                    <div className="py-20 flex flex-col items-center gap-3 text-center">
+                      <div className="bg-amber-50 rounded-full p-5"><ClipboardCheck className="h-8 w-8 text-amber-400" /></div>
+                      <p className="text-sm font-semibold text-foreground">No boxes to verify</p>
+                      <p className="text-xs text-muted-foreground max-w-xs">Receive boxes from the Incoming Boxes tab first.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {inventoryBoxes.map(box => {
+                        const isExpanded = verifExpandedBoxId === box.id
+                        const rowBooks = verifRowBooks[box.id] || []
+                        const isLoadingBooks = loadingVerifRowBooks === box.id
+                        const bookCount = box.total_books_expected || 0
+                        return (
+                          <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
+                            {/* Row header — same style as Incoming Boxes */}
+                            <div className="flex items-center px-4 py-3 gap-4">
+                              {/* Expand chevron */}
+                              <button
+                                onClick={() => toggleVerifRow(box.id)}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                              {/* Icon */}
+                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-amber-600" />
+                              </div>
+                              {/* Info — clickable to expand */}
+                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
+                                <p className="text-sm font-semibold text-foreground">{box.box_number}</p>
+                                <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books</p>
+                              </div>
+                              {/* Date */}
+                              <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                                {box.created_at ? new Date(box.created_at).toLocaleDateString() : ''}
+                              </span>
+                              {/* Start Session button */}
+                              <button
+                                onClick={() => handleStartVerifSession(box.id)}
+                                disabled={loadingVerifBooks}
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                              >
+                                {loadingVerifBooks
+                                  ? <Loader2 className="h-4 w-4 animate-spin" />
+                                  : <ClipboardList className="h-4 w-4" />}
+                                {loadingVerifBooks ? 'Starting…' : 'Start Session'}
+                              </button>
+                            </div>
+                            {/* Expandable books list */}
+                            {isExpanded && (
+                              <div className="border-t border-border px-5 py-3 bg-muted/30">
+                                {isLoadingBooks ? (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                  </div>
+                                ) : rowBooks.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                                ) : (
+                                  <div className="flex flex-col gap-0">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
+                                    {rowBooks.map((book, idx) => (
+                                      <div key={book.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/40 last:border-0">
+                                        <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}</span>
+                                        <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
+                                        <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
+                                        <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                          {book.scan_status}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               ) : verifBox && (
                 <>
@@ -1321,11 +1405,11 @@ export default function InventoryPage() {
                           </div>
                           <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books</p>
                         </div>
-                        {/* Send to Cut button */}
+                        {/* Send button */}
                         <button
                           onClick={() => handleSendToCut(box)}
                           disabled={sendingToCut === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-60 transition-colors shrink-0"
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-60 transition-colors shrink-0"
                         >
                           {sendingToCut === box.id
                             ? <Loader2 className="h-4 w-4 animate-spin" />
