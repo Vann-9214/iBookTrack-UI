@@ -961,6 +961,7 @@ export default function StationCheckpointsPage() {
                               {filteredBoxes.map(box => {
                                 const isExpanded = expandedStageBoxId === box.id
                                 const details = stageBoxDetails[box.id]
+                                const latestTransition = transitions.find(t => t.box?.box_number === box.box_number && t.to_stage === box.current_stage)
                                 return (
                                   <div
                                     key={box.id}
@@ -972,25 +973,58 @@ export default function StationCheckpointsPage() {
                                     )}
                                   >
                                     <div 
-                                      className="flex items-center justify-between px-3 py-2.5 cursor-pointer group"
+                                      className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer group hover:bg-slate-50 transition-colors gap-3"
                                       onClick={() => toggleStageBoxDetails(box)}
                                     >
-                                      <div className="min-w-0 flex items-center gap-2 text-left">
-                                        {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />}
-                                        <div>
-                                          <p className="text-sm font-medium text-card-foreground group-hover:text-primary transition-colors flex items-center gap-2">
-                                            {box.box_number}
-                                            {box.box_sessions && box.box_sessions.length > 0 && (
-                                              <span className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                                                Received by {box.box_sessions[0].received_by_name}
-                                              </span>
-                                            )}
+                                      {/* Left side: Box & Lot */}
+                                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        {isExpanded ? (
+                                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform" />
+                                        ) : (
+                                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
+                                        )}
+                                        <div className="min-w-0">
+                                          <p className="text-sm font-bold text-foreground truncate">
+                                            BOX: {box.box_number}
                                           </p>
-                                          <p className="text-xs text-muted-foreground">{box.lot?.lot_number || '—'} · {box.total_books_expected} books</p>
+                                          <p className="text-xs text-muted-foreground truncate">
+                                            LOT: {box.lot?.lot_number || '—'}
+                                          </p>
                                         </div>
                                       </div>
-                                      <div onClick={e => e.stopPropagation()}>
-                                        {renderBoxAction(box)}
+
+                                      {/* Middle section: Book numbers, Station, Received By */}
+                                      <div className="grid grid-cols-3 gap-4 sm:flex sm:items-center sm:gap-6 text-left shrink-0">
+                                        <div className="min-w-[80px]">
+                                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
+                                          <span className="text-xs font-semibold text-foreground">
+                                            {box.total_books_expected} expected
+                                          </span>
+                                        </div>
+
+                                        <div className="min-w-[90px]">
+                                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Station</span>
+                                          <span className="text-xs font-semibold text-foreground capitalize">
+                                            {STAGE_META[box.current_stage]?.label || box.current_stage}
+                                          </span>
+                                        </div>
+
+                                        <div className="min-w-[130px] col-span-1">
+                                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Received By</span>
+                                          <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={latestTransition?.moved_by_name || '—'}>
+                                            {latestTransition?.moved_by_name || '—'}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Right side: Timestamp */}
+                                      <div className="text-left sm:text-right shrink-0 min-w-[100px] pr-2">
+                                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">Received At</span>
+                                        <span className="text-xs font-semibold text-muted-foreground">
+                                          {latestTransition?.created_at
+                                            ? new Date(latestTransition.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                                            : '—'}
+                                        </span>
                                       </div>
                                     </div>
 
