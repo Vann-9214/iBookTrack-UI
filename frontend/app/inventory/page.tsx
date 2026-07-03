@@ -670,12 +670,16 @@ export default function InventoryPage() {
     }
     setLoadingVerifBooks(true)
     try {
-      // Save ONLY flagged books to DB to prevent double counting processable books
-      const booksToSave = verifScannedBooks.filter(b => b.scan_status === 'non_processable');
+      // Save ONLY flagged books or completely new books to DB to prevent double counting processable books
+      const booksToSave = verifScannedBooks.filter(b => 
+        b.scan_status === 'non_processable' || 
+        !warehouseBooks.some(wb => wb.isbn === b.isbn)
+      );
+      
       for (const book of booksToSave) {
         try {
           const warehouseBook = warehouseBooks.find(wb => wb.isbn === book.isbn);
-          if (warehouseBook && warehouseBook.scan_status === 'processable') {
+          if (warehouseBook && warehouseBook.scan_status === 'processable' && book.scan_status === 'non_processable') {
             // Book was previously processable, now non_processable. Tag it using the scan ID
             if (warehouseBook.id) {
               const res = await authFetch(`${API_URL}/api/warehouse/scans/${warehouseBook.id}/tag`, {

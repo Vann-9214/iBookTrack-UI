@@ -376,6 +376,72 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
         .eq('id', session.box_id)
     }
 
+    // Process issues (missing/extra books)
+    if (issues && issues.length > 0) {
+      const scannedBy = req.user.id
+      const scannedByName = req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email
+
+      for (const issue of issues) {
+        // Find if book already exists in DB for this box
+        let { data: existingBook } = await supabaseAdmin
+          .from('books')
+          .select('id')
+          .eq('isbn', issue.isbn)
+          .eq('box_id', session.box_id)
+          .maybeSingle()
+
+        let bookId = existingBook?.id
+
+        if (!bookId) {
+          // Check globally in case it exists in another box
+          let { data: globalBook } = await supabaseAdmin
+            .from('books')
+            .select('id')
+            .eq('isbn', issue.isbn)
+            .limit(1)
+            .maybeSingle()
+            
+          if (globalBook) {
+            bookId = globalBook.id
+          } else {
+            // Insert new book
+            const { data: newBook } = await supabaseAdmin
+              .from('books')
+              .insert({
+                isbn: issue.isbn,
+                title: issue.title || 'Unknown Title',
+                box_id: session.box_id,
+                status: 'pending'
+              })
+              .select('id')
+              .single()
+            if (newBook) bookId = newBook.id
+          }
+        }
+
+        if (bookId) {
+          // Flag the book as unaccounted in the books table
+          await supabaseAdmin
+            .from('books')
+            .update({ is_unaccounted: true })
+            .eq('id', bookId)
+
+          // Insert into book_scans as non_processable with rejection_reason = issue.type
+          await supabaseAdmin
+            .from('book_scans')
+            .insert({
+              session_id: session_id,
+              book_id: bookId,
+              scan_status: 'non_processable',
+              rejection_reason: issue.type, // 'missing' or 'extra'
+              notes: `Marked as ${issue.type} during session completion`,
+              scanned_by: scannedBy,
+              scanned_by_name: scannedByName
+            })
+        }
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('box_sessions')
       .update({
