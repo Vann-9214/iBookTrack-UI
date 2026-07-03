@@ -323,27 +323,10 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     if (scanError) throw scanError
 
-    // Update box counts (use admin to bypass RLS) — increment books_received
-    if (assignedBoxId) {
-      const { data: boxData } = await supabaseAdmin
-        .from('boxes')
-        .select('books_received')
-        .eq('id', assignedBoxId)
-        .single()
-      
-      if (boxData) {
-        await supabaseAdmin
-          .from('boxes')
-          .update({ books_received: (boxData.books_received || 0) + 1 })
-          .eq('id', assignedBoxId)
-      }
-    }
-
     res.status(201).json({ 
       scanLog,
       currentBox: currentBox ? {
         box_number: currentBox.box_number,
-        books_received: (currentBox.books_received || 0) + 1,
         is_sealed: currentBox.is_sealed
       } : null
     })

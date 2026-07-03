@@ -30,7 +30,6 @@ interface Box {
   box_number: string
   lot_id: string
   total_books_expected: number
-  books_received: number
   books_transmitted: number
   current_stage: string
   created_at: string

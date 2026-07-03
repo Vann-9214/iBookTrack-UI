@@ -38,7 +38,7 @@ router.get('/', requireAuth, async (req, res) => {
         books:books(
           scans:book_activity(count)
         ),
-        box_sessions:box_sessions(received_by_name)
+        box_sessions:box_sessions(received_by_name, started_at)
       `)
       .order('created_at', { ascending: false })
 
@@ -229,7 +229,7 @@ router.post('/:id/receive', requireAuth, async (req, res) => {
 
     const { data: updatedBox, error: updateError } = await db
       .from('boxes')
-      .update({ received_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single()
@@ -310,10 +310,10 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
       }
     }
 
-    // Update box stage and clear received_at for the new stage
+    // Update box stage for the new stage
     const { data: updatedBox, error: updateError } = await db
       .from('boxes')
-      .update({ current_stage: nextStage, received_at: null })
+      .update({ current_stage: nextStage })
       .eq('id', id)
       .select()
       .single()
@@ -557,7 +557,7 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
       const nextStage = 'transmit'
       const { error: updateError } = await db
         .from('boxes')
-        .update({ current_stage: nextStage, received_at: null })
+        .update({ current_stage: nextStage })
         .eq('id', id)
 
       if (updateError) throw updateError
