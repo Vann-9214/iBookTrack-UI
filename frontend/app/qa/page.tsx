@@ -418,7 +418,8 @@ export default function BookInspectionPage() {
       await authFetch(`${API_URL}/api/warehouse/sessions/${inspCurrentSession.id}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          total_books_expected: parseInt(inspTotalBooksExpected),
+          expected: parseInt(inspTotalBooksExpected),
+          stage: 'qa',
           issues: inspIssues,
         }),
       })
@@ -824,8 +825,8 @@ export default function BookInspectionPage() {
                             <div className="col-span-1 text-right">Action</div>
                           </div>
                           <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                            {inspScannedBooks.map(book => (
-                              <div key={book.id} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
+                            {inspScannedBooks.map((book, idx) => (
+                              <div key={`${book.id}-${idx}`} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
                                 <div className="col-span-2">
                                   <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                 </div>

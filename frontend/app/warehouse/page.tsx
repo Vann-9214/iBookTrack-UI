@@ -1190,7 +1190,7 @@ export default function WarehousePage() {
                     <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
                       {scannedBooks.map((book, idx) => (
                         <div
-                          key={book.id}
+                          key={`${book.id}-${idx}`}
                           className={`grid grid-cols-12 gap-3 px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
                             book.scan_status === 'non_processable' ? 'bg-destructive/5' : ''
                           }`}

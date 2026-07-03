@@ -667,6 +667,14 @@ export default function InventoryPage() {
       toast({ title: 'Cannot Complete Session', description: 'Please scan at least one book before completing the session.', variant: 'destructive' })
       return
     }
+
+    const isFullyMatched = warehouseBooks.length === verifScannedBooks.length &&
+      warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn));
+      
+    if (!isFullyMatched) {
+      toast({ title: 'Discrepancy Detected', description: 'Your scans must perfectly match the Warehouse guide before you can complete the session.', variant: 'destructive' })
+      return
+    }
     setVerifTotalBooksExpected('')
     setVerifIssueIsbn('')
     setVerifIssueType('missing')
@@ -676,10 +684,6 @@ export default function InventoryPage() {
 
   const handleCompleteVerifSession = async () => {
     if (!verifCurrentSession || !verifBox) return
-    if (!verifTotalBooksExpected.trim()) {
-      toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
-      return
-    }
     setLoadingVerifBooks(true)
     try {
       // Save ONLY flagged books or completely new books to DB to prevent double counting processable books
@@ -723,7 +727,8 @@ export default function InventoryPage() {
       await authFetch(`${API_URL}/api/warehouse/sessions/${verifCurrentSession.id}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          stage: 'inventory'
+          stage: 'inventory',
+          issues: verifIssues
         })
       })
 
@@ -1111,85 +1116,27 @@ export default function InventoryPage() {
                   <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                     <h3 className="text-base font-semibold text-foreground mb-4">Complete Verification</h3>
 
-                    {/* Total Books Expected */}
-                    <div className="mb-4">
-                      <div className="flex items-center gap-1 mb-1">
-                        <label className="text-sm font-medium text-foreground">Total Books Expected</label>
-                        <label className="text-sm font-medium text-red-500">*</label>
-                      </div>
-                      
-                      <input
-                        type="number"
-                        value={verifTotalBooksExpected}
-                        onChange={(e) => setVerifTotalBooksExpected(e.target.value)}
-                        placeholder="Enter expected total count"
-                        className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    </div>
 
-                    {/* Issue Tracking */}
+                    {/* Scan Log Summary */}
                     <div className="mb-4">
-                      <label className="text-sm font-medium text-foreground mb-2 block">Discrepancies (Missing/Extra Books)</label>
-                      <div className="flex gap-2 mb-3">
-                        <Select value={verifIssueType} onValueChange={(v) => setVerifIssueType(v as 'missing' | 'extra')}>
-                          <SelectTrigger className="w-28 h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="missing">Missing</SelectItem>
-                            <SelectItem value="extra">Extra</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <input
-                          type="text"
-                          value={verifIssueIsbn}  
-                          onChange={(e) => setVerifIssueIsbn(e.target.value)}
-                          onKeyDown={handleVerifIssueKeyPress}
-                          placeholder="Scan or Input ISBN (numbers only) - book details will auto-fetch"
-                          className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                        <button
-                          onClick={handleVerifAddIssue}
-                          disabled={!verifIssueIsbn.trim() || verifFetchingIssueBook}
-                          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50"
-                        >
-                          {verifFetchingIssueBook ? 'Adding…' : 'Add'}
-                        </button>
-                      </div>
-
-                      {verifIssues.length > 0 && (
-                        <div className="space-y-1.5 mb-3">
-                          {verifIssues.map((issue, idx) => (
-                            <div key={`${issue.isbn}-${idx}`} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                  {issue.type === 'missing' ? 'Missing' : 'Extra'}
-                                </span>
-                                <span className="text-xs font-medium text-foreground">{issue.isbn}</span>
-                                <span className="text-[11px] text-muted-foreground">{issue.title}</span>
-                              </div>
-                              <button onClick={() => handleVerifRemoveIssue(issue.isbn)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Remove</button>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Scanned Books Summary</label>
+                      <div className="max-h-80 overflow-y-auto border border-border rounded-lg bg-card divide-y divide-border">
+                        {verifScannedBooks.length === 0 ? (
+                          <div className="p-4 text-center text-xs text-muted-foreground">No books scanned.</div>
+                        ) : (
+                          verifScannedBooks.map((book, idx) => (
+                            <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
+                              <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
+                              <span className="text-[11px] truncate flex-1">{book.title}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Summary */}
-                    <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium">Expected:</span> {verifTotalBooksExpected || 0} books
-                        <span className="ml-3">
-                          <span className="font-medium">Scanned:</span> {verifCurrentSession?.total_scanned || 0} books
-                        </span>
-                        {verifIssues.length > 0 && (
-                          <span className="ml-3">
-                            <span className="font-medium">Issues:</span> {verifIssues.length} ({verifIssues.filter(i => i.type === 'missing').length} missing, {verifIssues.filter(i => i.type === 'extra').length} extra)
-                          </span>
+                          ))
                         )}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        * All scanned books will be saved to database when you confirm completion
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        * Total {verifScannedBooks.length} scanned books will be saved to the database when you confirm.
                       </p>
                     </div>
 
@@ -1365,7 +1312,12 @@ export default function InventoryPage() {
                         className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors">
                         Reset Session
                       </button>
-                      <button onClick={handleOpenVerifComplete} disabled={loadingVerifBooks || verifScannedBooks.length === 0}
+                      <button onClick={handleOpenVerifComplete} disabled={
+                          loadingVerifBooks || 
+                          verifScannedBooks.length === 0 ||
+                          verifScannedBooks.length !== warehouseBooks.length ||
+                          !warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn))
+                        }
                         className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Complete Session
                       </button>
@@ -1487,9 +1439,9 @@ export default function InventoryPage() {
                                 const isMatch = warehouseBook && warehouseBook.scan_status === book.scan_status
                                 return { book, isMatch }
                               })
-                              .sort((a, b) => (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1))
+                              .sort((a, b) => b.book.timestamp.getTime() - a.book.timestamp.getTime())
                               .map(({ book, isMatch }, i) => (
-                                <div key={book.id} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
+                                <div key={`${book.id}-${i}`} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
                                   isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
                                 }`}>
                                   <div className="col-span-2">
