@@ -479,9 +479,25 @@ export default function InventoryPage() {
 
   const handleVerifScan = async (isbn: string) => {
     if (!verifCurrentSession) return
+
+    const cleanedIsbn = isbn.trim()
+    if (verifScannedBooks.some(b => b.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())) {
+      toast({ title: 'Duplicate Scan', description: 'This book has already been scanned in this session.', variant: 'destructive' })
+      return
+    }
+
+    if (verifScannedBooks.length >= warehouseBooks.length) {
+      toast({ 
+        title: 'Scan Limit Reached', 
+        description: `You cannot scan more than the expected number of books (${warehouseBooks.length}).`, 
+        variant: 'destructive' 
+      })
+      return
+    }
+
     setLoadingVerifBooks(true)
     // Look up warehouse status for this ISBN so the inventory scan inherits it
-    const warehouseStatus = warehouseBooks.find(wb => wb.isbn === isbn)?.scan_status ?? 'processable'
+    const warehouseStatus = warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())?.scan_status ?? 'processable'
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await res.json()
