@@ -30,13 +30,13 @@ interface Box {
   box_number: string
   lot_id: string
   total_books_expected: number
-  books_received: number
   books_transmitted: number
   current_stage: string
   created_at: string
   lot: { lot_number: string; status: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
+  box_sessions?: { id?: string; status: string; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_scan?: string; started_at?: string }[]
 }
 
 interface VerifScannedBook {
@@ -60,6 +60,7 @@ interface VerifSession {
 }
 
 interface WarehouseBook {
+  id?: string
   isbn: string
   title: string
   scan_status: 'processable' | 'non_processable'
@@ -211,9 +212,10 @@ export default function InventoryPage() {
 
   useEffect(() => {
     const loadUserProfile = async () => {
-      const profile = await fetchUserProfile()
-      if (profile && profile.name) {
-        setVerifUserName(profile.name)
+      const profile = await fetchUserProfile() as any
+      if (profile) {
+        if (profile.name) setVerifUserName(profile.name)
+        if (profile.id) setVerifUserId(profile.id)
       }
     }
     loadUserProfile()
@@ -342,8 +344,6 @@ export default function InventoryPage() {
 
   // ── Verified box IDs (session-complete → outgoing) ─────────────────────────
   // Boxes move here after a verification session is completed (still inventory stage in DB).
-  const [verifiedBoxIds, setVerifiedBoxIds] = useState<Set<string>>(new Set())
-
   // ── Book Verification list: expandable row state ───────────────────────────
   const [verifExpandedBoxId, setVerifExpandedBoxId] = useState<string | null>(null)
   const [verifRowBooks, setVerifRowBooks] = useState<Record<string, BookInBox[]>>({})
@@ -390,6 +390,7 @@ export default function InventoryPage() {
   const [verifSessionActive, setVerifSessionActive] = useState(false)
   const [verifSelectedBoxId, setVerifSelectedBoxId] = useState('')
   const [verifUserName, setVerifUserName] = useState('')
+  const [verifUserId, setVerifUserId] = useState('')
   const [verifBox, setVerifBox] = useState<Box | null>(null)
   const [verifBooks, setVerifBooks] = useState<BookInBox[]>([])
   const [loadingVerifBooks, setLoadingVerifBooks] = useState(false)
@@ -456,7 +457,7 @@ export default function InventoryPage() {
       const boxRes = await authFetch(`${API_URL}/api/boxes/${box.id}`)
       const boxData = await boxRes.json()
 
-      setVerifCurrentSession({ ...data.session, total_processable: 0, total_non_processable: 0 })
+      setVerifCurrentSession({ ...data.session, total_scanned: 0, total_processable: 0, total_non_processable: 0 })
       setVerifBox(box)
       setVerifBooks(boxData.box?.books || [])
       setVerifScannedBooks([])
@@ -591,6 +592,19 @@ export default function InventoryPage() {
 
   const handleVerifAddIssue = async () => {
     if (!verifIssueIsbn.trim()) return
+
+    if (verifScannedBooks.some(b => b.isbn === verifIssueIsbn.trim())) {
+      toast.error('This book was already scanned successfully in this session.')
+      setVerifIssueIsbn('')
+      return
+    }
+    
+    if (verifIssues.some(i => i.isbn === verifIssueIsbn.trim())) {
+      toast.error('This issue has already been added.')
+      setVerifIssueIsbn('')
+      return
+    }
+
     setVerifFetchingIssueBook(true)
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${verifIssueIsbn}`)
@@ -659,6 +673,14 @@ export default function InventoryPage() {
       toast({ title: 'Cannot Complete Session', description: 'Please scan at least one book before completing the session.', variant: 'destructive' })
       return
     }
+
+    const isFullyMatched = warehouseBooks.length === verifScannedBooks.length &&
+      warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn));
+      
+    if (!isFullyMatched) {
+      toast({ title: 'Discrepancy Detected', description: 'Your scans must perfectly match the Warehouse guide before you can complete the session.', variant: 'destructive' })
+      return
+    }
     setVerifTotalBooksExpected('')
     setVerifIssueIsbn('')
     setVerifIssueType('missing')
@@ -668,16 +690,39 @@ export default function InventoryPage() {
 
   const handleCompleteVerifSession = async () => {
     if (!verifCurrentSession || !verifBox) return
-    if (!verifTotalBooksExpected.trim()) {
-      toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
-      return
-    }
     setLoadingVerifBooks(true)
     try {
-      // Save all scanned books to DB first
-      for (const book of verifScannedBooks) {
+      // Save ONLY flagged books or completely new books to DB to prevent double counting processable books
+      const booksToSave = verifScannedBooks.filter(b => 
+        b.scan_status === 'non_processable' || 
+        !warehouseBooks.some(wb => wb.isbn === b.isbn)
+      );
+      
+      for (const book of booksToSave) {
         try {
-          await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
+          const warehouseBook = warehouseBooks.find(wb => wb.isbn === book.isbn);
+          if (warehouseBook && warehouseBook.scan_status === 'processable' && book.scan_status === 'non_processable') {
+            // Book was previously processable, now non_processable. Tag it using the scan ID
+            if (warehouseBook.id) {
+              const res = await authFetch(`${API_URL}/api/warehouse/scans/${warehouseBook.id}/tag`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  status: 'non_processable',
+                  remarks: book.flag_issue + (book.flag_remarks ? ` - ${book.flag_remarks}` : '')
+                })
+              });
+              if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Failed to tag book');
+              }
+            } else {
+              // Fallback if ID is missing (shouldn't happen with the updated backend)
+              await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null);
+            }
+          } else if (!warehouseBook) {
+            // Book wasn't scanned in warehouse at all, save as new scan
+            await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null);
+          }
         } catch (error) {
           toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' })
           throw error
@@ -688,11 +733,16 @@ export default function InventoryPage() {
       await authFetch(`${API_URL}/api/warehouse/sessions/${verifCurrentSession.id}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          stage: 'inventory'
+          stage: 'inventory',
+          issues: verifIssues
         })
       })
 
-      setVerifiedBoxIds(prev => new Set([...prev, verifBox.id]))
+      // Update local boxes state to reflect session completed status instantly
+      setBoxes(prev => prev.map(b => b.id === verifBox.id ? { 
+        ...b, 
+        box_sessions: b.box_sessions?.map(s => s.id === verifCurrentSession.id ? { ...s, status: 'completed' } : s) || [{ status: 'completed' }]
+      } : b))
       setVerifSessionActive(false)
       setVerifBox(null)
       setVerifBooks([])
@@ -815,13 +865,25 @@ export default function InventoryPage() {
   const filteredBoxes = boxes.filter(searchFilter)
 
   // Incoming Boxes — warehouse stage
-  const incomingBoxes = boxes.filter(b => b.current_stage === 'warehouse')
+  const incomingBoxes = boxes.filter(b => 
+    b.current_stage === 'warehouse' && 
+    b.box_sessions?.some(s => s.status === 'completed')
+  )
 
   // Book Verification — inventory stage, not yet verified
-  const inventoryBoxes = boxes.filter(b => b.current_stage === 'inventory' && !verifiedBoxIds.has(b.id))
+  const inventoryBoxes = boxes.filter(b => {
+    if (b.current_stage !== 'inventory') return false
+    if (b.box_sessions?.some(s => s.status === 'completed')) return false
+    // Only hide in_progress boxes from others once we know who the current user is
+    if (verifUserId) {
+      const inProgressSession = b.box_sessions?.find(s => s.status === 'in_progress')
+      if (inProgressSession && inProgressSession.inventory_user_scan !== verifUserId) return false
+    }
+    return true
+  })
 
   // Outgoing Boxes — inventory stage + verified this session
-  const outgoingBoxes = boxes.filter(b => b.current_stage === 'inventory' && verifiedBoxIds.has(b.id))
+  const outgoingBoxes = boxes.filter(b => b.current_stage === 'inventory' && b.box_sessions?.some(s => s.status === 'completed'))
 
   // Pagination only used by All Boxes tab
   const pagination = usePagination({ totalItems: filteredBoxes.length, defaultPageSize: 50 })
@@ -961,9 +1023,9 @@ export default function InventoryPage() {
     )}
 
     <div className="flex h-screen overflow-hidden bg-background print:hidden">
-      <DashboardSidebar />
+      <DashboardSidebar navigationLocked={verifSessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar />
+        <DashboardNavbar disableBrandToggle={verifSessionActive} navigationLocked={verifSessionActive} />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Header */}
@@ -997,11 +1059,12 @@ export default function InventoryPage() {
             ).map(({ key, label, icon: Icon, count, activeColor }) => (
               <button
                 key={key}
+                disabled={verifSessionActive}
                 onClick={() => setInventoryTab(key)}
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                   inventoryTab === key
                     ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -1090,85 +1153,27 @@ export default function InventoryPage() {
                   <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                     <h3 className="text-base font-semibold text-foreground mb-4">Complete Verification</h3>
 
-                    {/* Total Books Expected */}
-                    <div className="mb-4">
-                      <div className="flex items-center gap-1 mb-1">
-                        <label className="text-sm font-medium text-foreground">Total Books Expected</label>
-                        <label className="text-sm font-medium text-red-500">*</label>
-                      </div>
-                      
-                      <input
-                        type="number"
-                        value={verifTotalBooksExpected}
-                        onChange={(e) => setVerifTotalBooksExpected(e.target.value)}
-                        placeholder="Enter expected total count"
-                        className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                    </div>
 
-                    {/* Issue Tracking */}
+                    {/* Scan Log Summary */}
                     <div className="mb-4">
-                      <label className="text-sm font-medium text-foreground mb-2 block">Discrepancies (Missing/Extra Books)</label>
-                      <div className="flex gap-2 mb-3">
-                        <Select value={verifIssueType} onValueChange={(v) => setVerifIssueType(v as 'missing' | 'extra')}>
-                          <SelectTrigger className="w-28 h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="missing">Missing</SelectItem>
-                            <SelectItem value="extra">Extra</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <input
-                          type="text"
-                          value={verifIssueIsbn}  
-                          onChange={(e) => setVerifIssueIsbn(e.target.value)}
-                          onKeyDown={handleVerifIssueKeyPress}
-                          placeholder="Scan or Input ISBN (numbers only) - book details will auto-fetch"
-                          className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                        <button
-                          onClick={handleVerifAddIssue}
-                          disabled={!verifIssueIsbn.trim() || verifFetchingIssueBook}
-                          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50"
-                        >
-                          {verifFetchingIssueBook ? 'Adding…' : 'Add'}
-                        </button>
-                      </div>
-
-                      {verifIssues.length > 0 && (
-                        <div className="space-y-1.5 mb-3">
-                          {verifIssues.map((issue, idx) => (
-                            <div key={`${issue.isbn}-${idx}`} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                  {issue.type === 'missing' ? 'Missing' : 'Extra'}
-                                </span>
-                                <span className="text-xs font-medium text-foreground">{issue.isbn}</span>
-                                <span className="text-[11px] text-muted-foreground">{issue.title}</span>
-                              </div>
-                              <button onClick={() => handleVerifRemoveIssue(issue.isbn)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Remove</button>
+                      <label className="text-sm font-medium text-foreground mb-2 block">Scanned Books Summary</label>
+                      <div className="max-h-80 overflow-y-auto border border-border rounded-lg bg-card divide-y divide-border">
+                        {verifScannedBooks.length === 0 ? (
+                          <div className="p-4 text-center text-xs text-muted-foreground">No books scanned.</div>
+                        ) : (
+                          verifScannedBooks.map((book, idx) => (
+                            <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
+                              <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
+                              <span className="text-[11px] truncate flex-1">{book.title}</span>
+                              <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Summary */}
-                    <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground">
-                        <span className="font-medium">Expected:</span> {verifTotalBooksExpected || 0} books
-                        <span className="ml-3">
-                          <span className="font-medium">Scanned:</span> {verifCurrentSession?.total_scanned || 0} books
-                        </span>
-                        {verifIssues.length > 0 && (
-                          <span className="ml-3">
-                            <span className="font-medium">Issues:</span> {verifIssues.length} ({verifIssues.filter(i => i.type === 'missing').length} missing, {verifIssues.filter(i => i.type === 'extra').length} extra)
-                          </span>
+                          ))
                         )}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        * All scanned books will be saved to database when you confirm completion
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-2">
+                        * Total {verifScannedBooks.length} scanned books will be saved to the database when you confirm.
                       </p>
                     </div>
 
@@ -1250,6 +1255,7 @@ export default function InventoryPage() {
                         const rowBooks = verifRowBooks[box.id] || []
                         const isLoadingBooks = loadingVerifRowBooks === box.id
                         const bookCount = box.total_books_expected || 0
+                        const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_scan === verifUserId)
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                             {/* Row header — same style as Incoming Boxes */}
@@ -1262,28 +1268,35 @@ export default function InventoryPage() {
                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </button>
                               {/* Icon */}
-                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-amber-600" />
+                              <div className={`${stuckSession ? 'bg-orange-50' : 'bg-amber-50'} rounded-lg p-2 shrink-0`}>
+                                <Package className={`h-5 w-5 ${stuckSession ? 'text-orange-500' : 'text-amber-600'}`} />
                               </div>
                               {/* Info — clickable to expand */}
                               <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
                                 <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                                 <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
-                              {/* Date */}
-                              <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                                {box.created_at ? new Date(box.created_at).toLocaleDateString() : ''}
-                              </span>
+                              {/* Date + stuck badge */}
+                              <div className="shrink-0 hidden sm:flex flex-col items-end gap-1">
+                                <span className="text-xs text-muted-foreground">
+                                  {box.created_at ? new Date(box.created_at).toLocaleDateString() : ''}
+                                </span>
+                                {stuckSession && (
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 border border-orange-200">
+                                    ⚠ In Progress Stuck
+                                  </span>
+                                )}
+                              </div>
                               {/* Start Session button */}
                               <button
                                 onClick={() => handleStartVerifSession(box.id)}
                                 disabled={loadingVerifBooks}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60 transition-colors shrink-0 ${stuckSession ? 'bg-orange-500 hover:bg-orange-600' : 'bg-amber-600 hover:bg-amber-700'}`}
                               >
                                 {loadingVerifBooks
                                   ? <Loader2 className="h-4 w-4 animate-spin" />
                                   : <ClipboardList className="h-4 w-4" />}
-                                {loadingVerifBooks ? 'Starting…' : 'Start Session'}
+                                {loadingVerifBooks ? 'Starting…' : stuckSession ? 'Resume Session' : 'Start Session'}
                               </button>
                             </div>
                             {/* Expandable books list */}
@@ -1344,7 +1357,12 @@ export default function InventoryPage() {
                         className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors">
                         Reset Session
                       </button>
-                      <button onClick={handleOpenVerifComplete} disabled={loadingVerifBooks || verifScannedBooks.length === 0}
+                      <button onClick={handleOpenVerifComplete} disabled={
+                          loadingVerifBooks || 
+                          verifScannedBooks.length === 0 ||
+                          verifScannedBooks.length !== warehouseBooks.length ||
+                          !warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn))
+                        }
                         className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Complete Session
                       </button>
@@ -1424,7 +1442,7 @@ export default function InventoryPage() {
                                     <span className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
                                       book.scan_status === 'processable' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
                                     }`}>
-                                      {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                      {book.scan_status === 'processable' ? 'Processable' : (book.rejection_reason === 'missing' || book.rejection_reason === 'extra') ? `Non-Processable (${book.rejection_reason.charAt(0).toUpperCase() + book.rejection_reason.slice(1)})` : 'Non-Processable'}
                                     </span>
                                   </div>
                                   <div className="col-span-1"></div>
@@ -1466,9 +1484,9 @@ export default function InventoryPage() {
                                 const isMatch = warehouseBook && warehouseBook.scan_status === book.scan_status
                                 return { book, isMatch }
                               })
-                              .sort((a, b) => (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1))
+                              .sort((a, b) => b.book.timestamp.getTime() - a.book.timestamp.getTime())
                               .map(({ book, isMatch }, i) => (
-                                <div key={book.id} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
+                                <div key={`${book.id}-${i}`} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
                                   isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
                                 }`}>
                                   <div className="col-span-2">

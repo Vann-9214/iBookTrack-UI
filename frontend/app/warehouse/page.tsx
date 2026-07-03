@@ -249,12 +249,13 @@ export default function WarehousePage() {
 
     const missingCount = issues.filter(i => i.type === 'missing').length
     const extraCount = issues.filter(i => i.type === 'extra').length
-    const calculatedExpected = scannedBooks.length + missingCount - extraCount
+    // Extra books are unaccounted and don't reduce the expected total.
+    const calculatedExpected = scannedBooks.length + missingCount
 
     if (expected !== calculatedExpected) {
       toast({ 
         title: 'Mismatch Detected', 
-        description: `Total expected books (${expected}) does not match scanned books (${scannedBooks.length}) with missing (${missingCount}) and extra (${extraCount}).`, 
+        description: `Total expected books (${expected}) does not match total scanned (${scannedBooks.length}) + missing (${missingCount}) books.`, 
         variant: 'destructive' 
       })
       return
@@ -335,6 +336,19 @@ export default function WarehousePage() {
 
   const handleAddIssue = async () => {
     if (!issueIsbn.trim()) return
+
+    if (scannedBooks.some(b => b.isbn === issueIsbn.trim())) {
+      toast({ title: 'Already Scanned', description: 'This book was already scanned successfully in this session.', variant: 'destructive' })
+      setIssueIsbn('')
+      return
+    }
+    
+    if (issues.some(i => i.isbn === issueIsbn.trim())) {
+      toast({ title: 'Duplicate Issue', description: 'This issue has already been added.', variant: 'destructive' })
+      setIssueIsbn('')
+      return
+    }
+
     setFetchingIssueBook(true)
     try {
       const response = await fetch(`${API_URL}/api/books/ilms/search/${issueIsbn}`)
@@ -1199,7 +1213,7 @@ export default function WarehousePage() {
                     <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
                       {scannedBooks.map((book, idx) => (
                         <div
-                          key={book.id}
+                          key={`${book.id}-${idx}`}
                           className={`grid grid-cols-12 gap-3 px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
                             book.scan_status === 'non_processable' ? 'bg-destructive/5' : ''
                           }`}

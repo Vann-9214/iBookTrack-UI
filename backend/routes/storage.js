@@ -47,7 +47,7 @@ router.get('/locations', requireAuth, async (req, res) => {
             lot:lots(lot_number),
             books:books(
               isbn, title,
-              scans:book_scans(scan_status)
+              scans:book_activity(scan_status)
             )
           )
         )
@@ -224,7 +224,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
         lot:lots(lot_number),
         books:books(
           isbn, title,
-          scans:book_scans(scan_status)
+          scans:book_activity(scan_status)
         )
       `)
       .eq('current_stage', 'storage')
@@ -365,9 +365,9 @@ router.get('/search', requireAuth, async (req, res) => {
       .ilike('box_number', `%${query}%`)
       .limit(10)
 
-    // Try matching by ISBN in book_scans (join with books table)
+    // Try matching by ISBN in book_activity (join with books table)
     const { data: scansByIsbn } = await db()
-      .from('book_scans')
+      .from('book_activity')
       .select('book:books!inner(box_id, isbn, title)')
       .ilike('book.isbn', `%${query}%`)
       .limit(10)
