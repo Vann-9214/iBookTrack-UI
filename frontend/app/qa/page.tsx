@@ -350,6 +350,19 @@ export default function BookInspectionPage() {
 
   const handleAddInspIssue = async () => {
     if (!inspIssueIsbn.trim()) return
+
+    if (inspScannedBooks.some(b => b.isbn === inspIssueIsbn.trim())) {
+      toast.error('This book was already scanned successfully in this session.')
+      setInspIssueIsbn('')
+      return
+    }
+    
+    if (inspIssues.some(i => i.isbn === inspIssueIsbn.trim())) {
+      toast.error('This issue has already been added.')
+      setInspIssueIsbn('')
+      return
+    }
+
     setInspFetchingIssueBook(true)
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${inspIssueIsbn}`)

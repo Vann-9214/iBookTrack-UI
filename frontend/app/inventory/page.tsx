@@ -586,6 +586,19 @@ export default function InventoryPage() {
 
   const handleVerifAddIssue = async () => {
     if (!verifIssueIsbn.trim()) return
+
+    if (verifScannedBooks.some(b => b.isbn === verifIssueIsbn.trim())) {
+      toast.error('This book was already scanned successfully in this session.')
+      setVerifIssueIsbn('')
+      return
+    }
+    
+    if (verifIssues.some(i => i.isbn === verifIssueIsbn.trim())) {
+      toast.error('This issue has already been added.')
+      setVerifIssueIsbn('')
+      return
+    }
+
     setVerifFetchingIssueBook(true)
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${verifIssueIsbn}`)

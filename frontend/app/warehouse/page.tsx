@@ -336,6 +336,19 @@ export default function WarehousePage() {
 
   const handleAddIssue = async () => {
     if (!issueIsbn.trim()) return
+
+    if (scannedBooks.some(b => b.isbn === issueIsbn.trim())) {
+      toast({ title: 'Already Scanned', description: 'This book was already scanned successfully in this session.', variant: 'destructive' })
+      setIssueIsbn('')
+      return
+    }
+    
+    if (issues.some(i => i.isbn === issueIsbn.trim())) {
+      toast({ title: 'Duplicate Issue', description: 'This issue has already been added.', variant: 'destructive' })
+      setIssueIsbn('')
+      return
+    }
+
     setFetchingIssueBook(true)
     try {
       const response = await fetch(`${API_URL}/api/books/ilms/search/${issueIsbn}`)
