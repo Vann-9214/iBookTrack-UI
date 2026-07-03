@@ -36,6 +36,7 @@ interface Box {
   lot: { lot_number: string; status: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
+  box_sessions?: { status: string; received_by_name?: string; started_at?: string }[]
 }
 
 interface VerifScannedBook {
@@ -340,8 +341,6 @@ export default function InventoryPage() {
 
   // ── Verified box IDs (session-complete → outgoing) ─────────────────────────
   // Boxes move here after a verification session is completed (still inventory stage in DB).
-  const [verifiedBoxIds, setVerifiedBoxIds] = useState<Set<string>>(new Set())
-
   // ── Book Verification list: expandable row state ───────────────────────────
   const [verifExpandedBoxId, setVerifExpandedBoxId] = useState<string | null>(null)
   const [verifRowBooks, setVerifRowBooks] = useState<Record<string, BookInBox[]>>({})
@@ -732,7 +731,11 @@ export default function InventoryPage() {
         })
       })
 
-      setVerifiedBoxIds(prev => new Set([...prev, verifBox.id]))
+      // Update local boxes state to reflect session completed status instantly
+      setBoxes(prev => prev.map(b => b.id === verifBox.id ? { 
+        ...b, 
+        box_sessions: b.box_sessions?.map(s => s.id === verifCurrentSession.id ? { ...s, status: 'completed' } : s) || [{ status: 'completed' }]
+      } : b))
       setVerifSessionActive(false)
       setVerifBox(null)
       setVerifBooks([])
@@ -855,13 +858,16 @@ export default function InventoryPage() {
   const filteredBoxes = boxes.filter(searchFilter)
 
   // Incoming Boxes — warehouse stage
-  const incomingBoxes = boxes.filter(b => b.current_stage === 'warehouse')
+  const incomingBoxes = boxes.filter(b => 
+    b.current_stage === 'warehouse' && 
+    b.box_sessions?.some(s => s.status === 'completed')
+  )
 
   // Book Verification — inventory stage, not yet verified
-  const inventoryBoxes = boxes.filter(b => b.current_stage === 'inventory' && !verifiedBoxIds.has(b.id))
+  const inventoryBoxes = boxes.filter(b => b.current_stage === 'inventory' && !b.box_sessions?.some(s => s.status === 'completed'))
 
   // Outgoing Boxes — inventory stage + verified this session
-  const outgoingBoxes = boxes.filter(b => b.current_stage === 'inventory' && verifiedBoxIds.has(b.id))
+  const outgoingBoxes = boxes.filter(b => b.current_stage === 'inventory' && b.box_sessions?.some(s => s.status === 'completed'))
 
   // Pagination only used by All Boxes tab
   const pagination = usePagination({ totalItems: filteredBoxes.length, defaultPageSize: 50 })
@@ -1001,9 +1007,9 @@ export default function InventoryPage() {
     )}
 
     <div className="flex h-screen overflow-hidden bg-background print:hidden">
-      <DashboardSidebar />
+      <DashboardSidebar navigationLocked={verifSessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar />
+        <DashboardNavbar disableBrandToggle={verifSessionActive} navigationLocked={verifSessionActive} />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Header */}
@@ -1023,11 +1029,12 @@ export default function InventoryPage() {
             ).map(({ key, label, icon: Icon, count, activeColor }) => (
               <button
                 key={key}
+                disabled={verifSessionActive}
                 onClick={() => setInventoryTab(key)}
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                   inventoryTab === key
                     ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
+                    : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -1397,7 +1404,7 @@ export default function InventoryPage() {
                                     <span className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
                                       book.scan_status === 'processable' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
                                     }`}>
-                                      {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                      {book.scan_status === 'processable' ? 'Processable' : (book.rejection_reason === 'missing' || book.rejection_reason === 'extra') ? `Non-Processable (${book.rejection_reason.charAt(0).toUpperCase() + book.rejection_reason.slice(1)})` : 'Non-Processable'}
                                     </span>
                                   </div>
                                   <div className="col-span-1"></div>

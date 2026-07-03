@@ -351,12 +351,20 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
 
     if (sessionFetchError) throw sessionFetchError
 
-    // Update total_books_expected on the associated box
-    if (session.box_id && total_books_expected && stage !== 'inventory') {
-      await supabaseAdmin
-        .from('boxes')
-        .update({ total_books_expected: parseInt(total_books_expected) })
-        .eq('id', session.box_id)
+    // Update box based on stage
+    if (session.box_id) {
+      if (stage === 'inventory') {
+        // Mark box as sealed so it's recognized as verified by inventory
+        await supabaseAdmin
+          .from('boxes')
+          .update({ is_sealed: true })
+          .eq('id', session.box_id)
+      } else if (total_books_expected) {
+        await supabaseAdmin
+          .from('boxes')
+          .update({ total_books_expected: parseInt(total_books_expected) })
+          .eq('id', session.box_id)
+      }
     }
 
     // Process issues (missing/extra books)

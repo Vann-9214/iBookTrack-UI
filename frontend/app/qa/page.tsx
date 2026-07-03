@@ -445,11 +445,11 @@ export default function BookInspectionPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <DashboardSidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar />
-        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
+    <div className="flex min-h-screen bg-background">
+      <DashboardSidebar navigationLocked={inspSessionActive} />
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
+        <div className="flex-1 overflow-y-auto bg-slate-50/50">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 
             {/* Header */}
@@ -484,11 +484,12 @@ export default function BookInspectionPage() {
               ] as const).map(({ key, label, icon: Icon, count, activeColor }) => (
                 <button
                   key={key}
+                  disabled={inspSessionActive}
                   onClick={() => setActiveTab(key)}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeTab === key
                       ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
