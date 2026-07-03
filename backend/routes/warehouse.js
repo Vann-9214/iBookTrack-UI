@@ -709,6 +709,15 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'rejection_reason is required' })
     }
 
+    // We need to fetch the existing scan to see its old status and session_id
+    const { data: existingScan, error: fetchError } = await supabaseAdmin
+      .from('book_scans')
+      .select('id, scan_status, session_id')
+      .eq('id', scan_id)
+      .single()
+
+    if (fetchError || !existingScan) return res.status(404).json({ error: 'Scan not found' })
+
     const { data, error } = await supabaseAdmin
       .from('book_scans')
       .update({ scan_status: 'non_processable', rejection_reason, notes: notes || null })
@@ -717,7 +726,25 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
       .single()
 
     if (error) throw error
-    if (!data) return res.status(404).json({ error: 'Scan not found' })
+
+    // Adjust session counts if it changed from processable to non_processable
+    if (existingScan.scan_status === 'processable') {
+      const { data: session } = await supabaseAdmin
+        .from('box_sessions')
+        .select('total_accepted, total_rejected')
+        .eq('id', existingScan.session_id)
+        .single()
+        
+      if (session) {
+        await supabaseAdmin
+          .from('box_sessions')
+          .update({
+            total_accepted: Math.max(0, session.total_accepted - 1),
+            total_rejected: session.total_rejected + 1
+          })
+          .eq('id', existingScan.session_id)
+      }
+    }
 
     res.json({ success: true, scan: data })
   } catch (error) {
@@ -741,10 +768,10 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'remarks are required before tagging an ISBN' })
     }
 
-    // Fetch the scan to verify it exists
+    // Fetch the scan to verify it exists and get its session_id
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from('book_scans')
-      .select('id, scan_status, books(isbn)')
+      .select('id, scan_status, session_id, books(isbn)')
       .eq('id', scan_id)
       .single()
 
@@ -767,6 +794,25 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
       .single()
 
     if (updateError) throw updateError
+
+    // Adjust session counts if it changed from processable to non_processable (or reject)
+    if (existing.scan_status === 'processable' && (status === 'non_processable' || status === 'reject')) {
+      const { data: session } = await supabaseAdmin
+        .from('box_sessions')
+        .select('total_accepted, total_rejected')
+        .eq('id', existing.session_id)
+        .single()
+        
+      if (session) {
+        await supabaseAdmin
+          .from('box_sessions')
+          .update({
+            total_accepted: Math.max(0, session.total_accepted - 1),
+            total_rejected: session.total_rejected + 1
+          })
+          .eq('id', existing.session_id)
+      }
+    }
 
     // Also upsert into qc_flags for audit trail
     await supabaseAdmin
@@ -812,6 +858,7 @@ router.get('/boxes/:box_id/scans', requireAuth, async (req, res) => {
 
     // Map to simpler format for comparison
     const warehouseBooks = scans.map(scan => ({
+      id: scan.id,
       isbn: scan.books?.isbn,
       title: scan.books?.title,
       scan_status: scan.scan_status,

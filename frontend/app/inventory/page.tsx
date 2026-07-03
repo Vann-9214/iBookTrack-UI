@@ -60,6 +60,7 @@ interface VerifSession {
 }
 
 interface WarehouseBook {
+  id?: string
   isbn: string
   title: string
   scan_status: 'processable' | 'non_processable'
@@ -451,7 +452,7 @@ export default function InventoryPage() {
       const boxRes = await authFetch(`${API_URL}/api/boxes/${box.id}`)
       const boxData = await boxRes.json()
 
-      setVerifCurrentSession({ ...data.session, total_processable: 0, total_non_processable: 0 })
+      setVerifCurrentSession({ ...data.session, total_scanned: 0, total_processable: 0, total_non_processable: 0 })
       setVerifBox(box)
       setVerifBooks(boxData.box?.books || [])
       setVerifScannedBooks([])
@@ -669,10 +670,33 @@ export default function InventoryPage() {
     }
     setLoadingVerifBooks(true)
     try {
-      // Save all scanned books to DB first
-      for (const book of verifScannedBooks) {
+      // Save ONLY flagged books to DB to prevent double counting processable books
+      const booksToSave = verifScannedBooks.filter(b => b.scan_status === 'non_processable');
+      for (const book of booksToSave) {
         try {
-          await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
+          const warehouseBook = warehouseBooks.find(wb => wb.isbn === book.isbn);
+          if (warehouseBook && warehouseBook.scan_status === 'processable') {
+            // Book was previously processable, now non_processable. Tag it using the scan ID
+            if (warehouseBook.id) {
+              const res = await authFetch(`${API_URL}/api/warehouse/scans/${warehouseBook.id}/tag`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  status: 'non_processable',
+                  remarks: book.flag_issue + (book.flag_remarks ? ` - ${book.flag_remarks}` : '')
+                })
+              });
+              if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'Failed to tag book');
+              }
+            } else {
+              // Fallback if ID is missing (shouldn't happen with the updated backend)
+              await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null);
+            }
+          } else if (!warehouseBook) {
+            // Book wasn't scanned in warehouse at all, save as new scan
+            await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null);
+          }
         } catch (error) {
           toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' })
           throw error
