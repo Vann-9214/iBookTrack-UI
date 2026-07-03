@@ -214,9 +214,6 @@ export default function StationCheckpointsPage() {
 
   useEffect(() => {
     fetchData()
-    // Poll every 60 seconds — keeps data fresh without hammering the API
-    const interval = setInterval(fetchData, 60000)
-    return () => clearInterval(interval)
   }, [fetchData])
 
   // Load Simflex rows whenever the Scan or Transmit stage modal opens

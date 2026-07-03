@@ -299,17 +299,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
       {/* ── Footer ── */}
       <div className="mx-3 h-px bg-white/10 mb-2" />
       <div className="px-[10px] pb-4">
-        <LockedNavButton
-          navigationLocked={navigationLocked}
-          onClick={() => router.push('/settings')}
-          className={navItemCls(isActive('/settings'))}
-          aria-current={isActive('/settings') ? 'page' : undefined}
-          title="Settings"
-        >
-          {isActive('/settings') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-          <IconCell><Settings className="h-5 w-5" /></IconCell>
-          <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Settings</span>
-        </LockedNavButton>
+        {/* Settings button removed as requested */}
       </div>
     </aside>
   )
