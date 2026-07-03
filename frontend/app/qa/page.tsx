@@ -140,8 +140,6 @@ export default function BookInspectionPage() {
   useEffect(() => {
     fetchIncoming()
     fetchEndorsementBoxes()
-    const interval = setInterval(() => { fetchIncoming(); fetchEndorsementBoxes() }, 20000)
-    return () => clearInterval(interval)
   }, [fetchIncoming, fetchEndorsementBoxes])
 
   // ── Outgoing Boxes (endorsed → send to Scan) ────────────────────────────────

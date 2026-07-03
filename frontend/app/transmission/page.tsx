@@ -258,8 +258,6 @@ export default function TransmissionMonitorPage() {
 
   useEffect(() => {
     fetchLiveData()
-    const interval = setInterval(() => fetchLiveData(), 60000)
-    return () => clearInterval(interval)
   }, [fetchLiveData])
 
   // --- LOT transmission summary fetch ---

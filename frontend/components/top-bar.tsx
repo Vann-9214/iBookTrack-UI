@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useBrand, BRAND_COLORS, type Brand } from '@/hooks/use-brand'
-import { useLiveNotifications } from '@/hooks/use-live-notifications'
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -120,7 +120,7 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
   const [user, setUser] = useState<NavbarUser>(fallbackUser)
   const router = useRouter()
   const { brand, setBrand, colors } = useBrand()
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useLiveNotifications(5, 5000)
+
   const initials = getInitials(user.name, user.email)
 
   useEffect(() => {
@@ -193,111 +193,6 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Notifications */}
-      {navigationLocked ? (
-        <SessionOngoingTooltip side="bottom">
-          <span className="inline-flex">
-            <button
-              aria-label="Notifications"
-              className={cn(
-                'relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent/10 hover:text-foreground',
-                'pointer-events-none opacity-50 cursor-not-allowed',
-              )}
-              type="button"
-              disabled
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
-          </span>
-        </SessionOngoingTooltip>
-      ) : (
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
-            <button
-              aria-label="Notifications"
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-accent/10 hover:text-foreground"
-              type="button"
-            >
-              <Bell className="h-5 w-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-80 rounded-2xl p-0"
-            onCloseAutoFocus={(event) => event.preventDefault()}
-            sideOffset={8}
-          >
-            <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-              <p className="text-sm font-semibold text-foreground">Notifications</p>
-              {unreadCount > 0 && (
-                <button onClick={markAllAsRead} className="text-xs text-primary hover:underline">
-                  Mark all as read
-                </button>
-              )}
-            </div>
-            <div className="max-h-[400px] overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-                  Live notifications will appear here as activity is recorded.
-                </div>
-              ) : notifications.map((notification) => {
-                const typeStyles: Record<string, string> = {
-                  success: 'bg-success/10 text-success',
-                  warning: 'bg-warning/10 text-warning',
-                  error: 'bg-destructive/10 text-destructive',
-                  info: 'bg-info/10 text-blue-500',
-                }
-                const iconMap: Record<string, React.ReactNode> = {
-                  success: <CheckCircle2 className="h-4 w-4" />,
-                  warning: <AlertTriangle className="h-4 w-4" />,
-                  error: <XCircle className="h-4 w-4" />,
-                  info: <AlertCircle className="h-4 w-4" />,
-                }
-                return (
-                  <button
-                    key={notification.id}
-                    className="w-full px-4 py-3 text-left hover:bg-muted transition-colors border-b border-border/50 last:border-0"
-                    type="button"
-                    onClick={() => markAsRead(notification.id)}
-                  >
-                    <div className="flex gap-3">
-                      <div className={cn('h-8 w-8 rounded-full flex items-center justify-center shrink-0', typeStyles[notification.type])}>
-                        {iconMap[notification.type]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-semibold text-foreground truncate">{notification.title}</p>
-                          {!notification.read && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notification.message}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">{notification.timestamp}</p>
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-            <div className="px-4 py-2 border-t border-border">
-              <button
-                onClick={() => router.push('/notifications')}
-                className="text-xs font-medium text-primary hover:underline w-full text-center"
-              >
-                View All Notifications
-              </button>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
 
       {/* User profile */}
       {navigationLocked ? (

@@ -98,11 +98,8 @@ export function useLiveNotifications(limit = 20, refreshMs = 5000): UseLiveNotif
 
     load()
 
-    const interval = window.setInterval(load, refreshMs)
-
     return () => {
       cancelled = true
-      window.clearInterval(interval)
     }
   }, [limit, refreshMs, applyReadIds])
 

@@ -76,8 +76,6 @@ export function TransmissionQueue() {
 
   useEffect(() => {
     fetchLive()
-    const interval = setInterval(fetchLive, 8000)
-    return () => clearInterval(interval)
   }, [brand])
 
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
