@@ -18,7 +18,11 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
-export function DashboardSidebar() {
+type DashboardSidebarProps = {
+  navigationLocked?: boolean
+}
+
+export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarProps) {
   const [warehouseOpen, setWarehouseOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -29,9 +33,12 @@ export function DashboardSidebar() {
 
   const navItemCls = (active: boolean) => cn(
     'group/item flex items-center gap-3 rounded-lg pl-6.5 pr-3 py-2.5 text-sm font-medium transition-colors w-full',
+    navigationLocked && 'cursor-not-allowed opacity-50',
     active
       ? 'bg-white/20 text-white'
-      : 'text-white/70 hover:bg-white/10 hover:text-white'
+      : navigationLocked
+        ? 'text-white/70'
+        : 'text-white/70 hover:bg-white/10 hover:text-white'
   )
 
   return (
@@ -72,6 +79,8 @@ export function DashboardSidebar() {
 
         {/* Dashboard */}
         <button
+          type="button"
+          disabled={navigationLocked}
           onClick={() => router.push('/Dashboard')}
           className={navItemCls(isActive('/Dashboard'))}
           aria-current={isActive('/Dashboard') ? 'page' : undefined}
@@ -86,6 +95,8 @@ export function DashboardSidebar() {
         {/* Warehouse & Inventory (expandable) */}
         <div>
           <button
+            type="button"
+            disabled={navigationLocked}
             onClick={() => setWarehouseOpen((prev) => !prev)}
             className={navItemCls(isWarehouseSection)}
             title="Warehouse & Inventory"
@@ -106,6 +117,8 @@ export function DashboardSidebar() {
           {warehouseOpen && (
             <div className="ml-4 mt-1 flex flex-col gap-1 border-l border-white/20 pl-3">
               <button
+                type="button"
+                disabled={navigationLocked}
                 onClick={() => router.push('/warehouse')}
                 className={navItemCls(isActive('/warehouse'))}
                 aria-current={isActive('/warehouse') ? 'page' : undefined}
@@ -114,6 +127,8 @@ export function DashboardSidebar() {
                 <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse</span>
               </button>
               <button
+                type="button"
+                disabled={navigationLocked}
                 onClick={() => router.push('/inventory')}
                 className={navItemCls(isActive('/inventory'))}
                 aria-current={isActive('/inventory') ? 'page' : undefined}
@@ -127,6 +142,8 @@ export function DashboardSidebar() {
 
         {/* Station Checkpoints */}
         <button
+          type="button"
+          disabled={navigationLocked}
           onClick={() => router.push('/checkpoints')}
           className={navItemCls(isActive('/checkpoints'))}
           aria-current={isActive('/checkpoints') ? 'page' : undefined}
@@ -138,6 +155,8 @@ export function DashboardSidebar() {
 
         {/* Book Inspection & Endorsement */}
         <button
+          type="button"
+          disabled={navigationLocked}
           onClick={() => router.push('/qa')}
           className={navItemCls(isActive('/qa'))}
           aria-current={isActive('/qa') ? 'page' : undefined}
@@ -149,6 +168,8 @@ export function DashboardSidebar() {
 
         {/* Transmission Monitor */}
         <button
+          type="button"
+          disabled={navigationLocked}
           onClick={() => router.push('/transmission')}
           className={navItemCls(isActive('/transmission'))}
           aria-current={isActive('/transmission') ? 'page' : undefined}
@@ -160,6 +181,8 @@ export function DashboardSidebar() {
 
         {/* Warehouse Locator */}
         <button
+          type="button"
+          disabled={navigationLocked}
           onClick={() => router.push('/locator')}
           className={navItemCls(isActive('/locator'))}
           aria-current={isActive('/locator') ? 'page' : undefined}
@@ -171,6 +194,8 @@ export function DashboardSidebar() {
 
         {/* Reports */}
         <button
+          type="button"
+          disabled={navigationLocked}
           onClick={() => router.push('/reports')}
           className={navItemCls(isActive('/reports'))}
           aria-current={isActive('/reports') ? 'page' : undefined}
