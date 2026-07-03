@@ -39,6 +39,39 @@ const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color:
   storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
 }
 
+const statusConfig = {
+  active: {
+    nodeRing: "border-blue-400 text-blue-500",
+    countColor: "text-blue-500",
+    bar: "bg-blue-400",
+    cardBg: "bg-blue-50",
+    dot: "bg-blue-400",
+    label: "Active",
+  },
+  busy: {
+    nodeRing: "border-orange-400 text-orange-500",
+    countColor: "text-orange-500",
+    bar: "bg-orange-400",
+    cardBg: "bg-orange-50",
+    dot: "bg-orange-400",
+    label: "Busy",
+  },
+  idle: {
+    nodeRing: "border-gray-300 text-gray-400",
+    countColor: "text-gray-400",
+    bar: "bg-gray-400",
+    cardBg: "bg-gray-50",
+    dot: "bg-gray-400",
+    label: "Idle",
+  },
+} as const
+
+function getStepStatus(count: number) {
+  if (count >= 5) return "busy"
+  if (count === 0) return "idle"
+  return "active"
+}
+
 interface BoxItem {
   id: string
   box_number: string
@@ -145,7 +178,7 @@ export default function StationCheckpointsPage() {
       const [boxRes, transRes, liveRes] = await Promise.all([
         authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true`),
         authFetch(transitionUrl),
-        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}`).catch(() => null),
+        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}&wipOnly=true`).catch(() => null),
       ])
       const boxData = await boxRes.json()
       const transData = await transRes.json()
@@ -1074,105 +1107,169 @@ export default function StationCheckpointsPage() {
             </header>
 
             {/* Pipeline Stage Flow */}
-            <div className="flex items-center gap-1 flex-wrap">
-              {STAGE_ORDER.map((stage, i) => {
-                const meta = STAGE_META[stage]
-                const count = boxesByStage[stage]?.length || 0
-                return (
-                  <div key={stage} className="flex items-center gap-1">
-                    <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${meta.color}`}>
-                      <meta.icon className="h-3 w-3" />
-                      {meta.label}
-                      {count > 0 && <span className="ml-1 bg-white/60 rounded-full px-1.5 font-bold">{count}</span>}
-                    </span>
-                    {i < STAGE_ORDER.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
-                  </div>
-                )
-              })}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-1 flex-wrap">
+                {STAGE_ORDER.map((stage, i) => {
+                  const meta = STAGE_META[stage]
+                  const count = boxesByStage[stage]?.length || 0
+                  return (
+                    <div key={stage} className="flex items-center gap-1">
+                      <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${meta.color}`}>
+                        <meta.icon className="h-3 w-3" />
+                        {meta.label}
+                        {count > 0 && <span className="ml-1 bg-white/60 rounded-full px-1.5 font-bold">{count}</span>}
+                      </span>
+                      {i < STAGE_ORDER.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Status Legend */}
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-400" />
+                  <span className="text-xs text-muted-foreground">Active</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-orange-400" />
+                  <span className="text-xs text-muted-foreground">Busy / Bottleneck</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-gray-400" />
+                  <span className="text-xs text-muted-foreground">Idle</span>
+                </div>
+              </div>
             </div>
 
             {/* Station Cards Grid */}
             {loading ? (
               <div className="text-center py-16 text-sm text-muted-foreground">Loading stations...</div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {STAGE_ORDER.map((stage) => {
-                  const meta = STAGE_META[stage]
-                  const stageBoxes = boxesByStage[stage]
-                  const previewBoxes = stageBoxes.slice(0, 3)
-                  const borderClass = meta.color.split(' ').find(c => c.startsWith('border-')) || 'border-gray-300'
-                  const textClass = meta.color.split(' ').find(c => c.startsWith('text-')) || 'text-gray-700'
+              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                {/* Desktop: 7 inline columns */}
+                <div className="hidden lg:flex items-stretch gap-3">
+                  {STAGE_ORDER.map((stage) => {
+                    const meta = STAGE_META[stage]
+                    const stageBoxes = boxesByStage[stage]
+                    const count = stage === 'scan'
+                      ? (scanBooks ?? 0)
+                      : stage === 'transmit'
+                      ? (transmitBooks ?? 0)
+                      : stageBoxes.length
+                    
+                    const status = getStepStatus(count)
+                    const cfg = statusConfig[status]
 
-                  return (
-                    <div
-                      key={stage}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => { setSelectedStage(stage); setStageModalSearch('') }}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setSelectedStage(stage); setStageModalSearch('') }}}
-                      className={cn(
-                        "rounded-2xl border border-border bg-card shadow-sm p-5 flex flex-col cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-primary/30",
-                        `border-t-4 ${borderClass}`
-                      )}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl border", meta.color)}>
-                          <meta.icon className="h-5 w-5" />
-                        </div>
-                        {stage === 'scan' || stage === 'transmit' ? (
-                          <div className="flex flex-col items-end">
-                            <span className={cn("text-3xl font-black leading-none", textClass)}>
-                              {stage === 'scan'
-                                ? (scanBooks ?? '—')
-                                : (transmitBooks ?? '—')}
-                            </span>
-                            <span className="text-[10px] font-medium text-muted-foreground mt-0.5">books</span>
-                          </div>
-                        ) : (
-                          <span className={cn("text-3xl font-black", textClass)}>
-                            {stageBoxes.length}
-                          </span>
+                    const iconColorCls = status === 'active'
+                      ? 'bg-blue-100 text-blue-700 border-blue-200'
+                      : status === 'busy'
+                      ? 'bg-orange-100 text-orange-700 border-orange-200'
+                      : 'bg-gray-100 text-gray-500 border-gray-200'
+
+                    return (
+                      <div
+                        key={stage}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => { setSelectedStage(stage); setStageModalSearch('') }}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setSelectedStage(stage); setStageModalSearch('') }}}
+                        className={cn(
+                          "flex-1 min-w-0 rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:shadow-sm hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary/30 border-t-4 select-none",
+                          status === 'active' && "border-t-blue-400",
+                          status === 'busy' && "border-t-orange-400",
+                          status === 'idle' && "border-t-gray-300"
                         )}
-                      </div>
-                      <h3 className="text-sm font-semibold text-card-foreground">{meta.label}</h3>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        {stage === 'scan' || stage === 'transmit'
-                          ? `${stage === 'scan' ? 'box in scan pipeline' : 'box transmitting'}`
-                          : `${stageBoxes.length === 1 ? 'box' : 'boxes'} waiting`}
-                      </p>
-
-                      {stage === 'scan' || stage === 'transmit' ? (
-                        <div className="mt-auto rounded-md border border-dashed border-border py-4 text-center">
-                          <span className="text-xs text-muted-foreground">Live from Simflex</span>
-                        </div>
-                      ) : previewBoxes.length > 0 ? (
-                        <div className="space-y-1.5 mt-auto">
-                          {previewBoxes.map(box => (
-                            <div
-                              key={box.id}
-                              className="flex items-center justify-between text-xs rounded-md border border-border bg-card px-2 py-1.5"
-                            >
-                              <span className="text-card-foreground truncate pr-2">{box.box_number}</span>
-                              <span className="text-muted-foreground truncate">{box.lot?.lot_number || '—'}</span>
+                      >
+                        <div className="flex items-center justify-between mb-3 gap-2">
+                          <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", iconColorCls)}>
+                            <meta.icon className="h-4 w-4" />
+                          </div>
+                          {stage === 'scan' || stage === 'transmit' ? (
+                            <div className="flex flex-col items-end min-w-0">
+                              <span className={cn("text-xl font-extrabold leading-none truncate max-w-full", cfg.countColor)}>
+                                {stage === 'scan' ? (scanBooks ?? '—') : (transmitBooks ?? '—')}
+                              </span>
+                              <span className="text-[8px] font-medium text-muted-foreground mt-0.5">books</span>
                             </div>
-                          ))}
-                          {stageBoxes.length > 3 && (
-                            <p className="text-xs text-muted-foreground text-center mt-2">+{stageBoxes.length - 3} more</p>
+                          ) : (
+                            <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
+                              {stageBoxes.length}
+                            </span>
                           )}
                         </div>
-                      ) : (
-                        <div className="mt-auto rounded-md border border-dashed border-border py-4 text-center">
-                          <span className="text-xs text-muted-foreground">No boxes here</span>
+                        <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
+                          {meta.label}
+                        </h3>
+                        <div className="flex items-center gap-1 mt-1.5 shrink-0">
+                          <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
                         </div>
-                      )}
-
-                      <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                        <span>Click to view</span>
-                        <ChevronRight className="h-3.5 w-3.5" />
                       </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
+
+                {/* Mobile: 2-column grid */}
+                <div className="grid grid-cols-2 gap-3 lg:hidden">
+                  {STAGE_ORDER.map((stage) => {
+                    const meta = STAGE_META[stage]
+                    const stageBoxes = boxesByStage[stage]
+                    const count = stage === 'scan'
+                      ? (scanBooks ?? 0)
+                      : stage === 'transmit'
+                      ? (transmitBooks ?? 0)
+                      : stageBoxes.length
+                    
+                    const status = getStepStatus(count)
+                    const cfg = statusConfig[status]
+
+                    const iconColorCls = status === 'active'
+                      ? 'bg-blue-100 text-blue-700 border-blue-200'
+                      : status === 'busy'
+                      ? 'bg-orange-100 text-orange-700 border-orange-200'
+                      : 'bg-gray-100 text-gray-500 border-gray-200'
+
+                    return (
+                      <div
+                        key={stage}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => { setSelectedStage(stage); setStageModalSearch('') }}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setSelectedStage(stage); setStageModalSearch('') }}}
+                        className={cn(
+                          "rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-primary/30 border-t-4 select-none",
+                          status === 'active' && "border-t-blue-400",
+                          status === 'busy' && "border-t-orange-400",
+                          status === 'idle' && "border-t-gray-300"
+                        )}
+                      >
+                        <div className="flex items-center justify-between mb-2 gap-2">
+                          <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", iconColorCls)}>
+                            <meta.icon className="h-4 w-4" />
+                          </div>
+                          {stage === 'scan' || stage === 'transmit' ? (
+                            <div className="flex flex-col items-end min-w-0">
+                              <span className={cn("text-xl font-extrabold leading-none truncate max-w-full", cfg.countColor)}>
+                                {stage === 'scan' ? (scanBooks ?? '—') : (transmitBooks ?? '—')}
+                              </span>
+                              <span className="text-[8px] font-medium text-muted-foreground mt-0.5">books</span>
+                            </div>
+                          ) : (
+                            <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
+                              {stageBoxes.length}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-xs font-bold text-card-foreground mt-auto truncate">{meta.label}</h3>
+                        <div className="flex items-center gap-1 mt-1.5 shrink-0">
+                          <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
 

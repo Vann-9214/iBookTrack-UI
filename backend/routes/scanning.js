@@ -32,6 +32,28 @@ router.get('/live', requireAuth, async (req, res) => {
     const toDate = req.query.to || today
     const location = req.query.location || 'mustang' // 'mustang' | 'jaguar'
     const newProcessOnly = req.query.newProcessOnly === 'true'
+    const wipOnly = req.query.wipOnly === 'true'
+
+    if (wipOnly) {
+      const [byStage, stageCounts] = await Promise.all([
+        simflexDb.getScanningByStage(fromDate, toDate, location, newProcessOnly),
+        pipelineCounts.getStageCounts(fromDate, toDate, location),
+      ])
+
+      const SCAN_STAGES = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval']
+      const scanWipCount = byStage.data?.reduce((sum, s) => {
+        return SCAN_STAGES.includes(s.Stage) ? sum + (s.Total || 0) : sum
+      }, 0) || 0
+
+      const transmitStage = (stageCounts.stages || []).find(s => s.stage === 'Transmission_Archive')
+      const transmitBooks = transmitStage ? transmitStage.Ongoing : 0
+
+      return res.json({
+        success: true,
+        scanWipCount,
+        transmitBooks,
+      })
+    }
 
     const [summary, byMachine, byStage, data, allTime, dailyOutput, stageCounts, completedTransmissions, allBooks] = await Promise.all([
       simflexDb.getTodayScanningSummary(fromDate, toDate, location, newProcessOnly),
