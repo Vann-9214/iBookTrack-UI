@@ -36,7 +36,7 @@ interface Box {
   lot: { lot_number: string; status: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
-  box_sessions?: { status: string; received_by_name?: string; started_at?: string }[]
+  box_sessions?: { id?: string; status: string; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_scan?: string; started_at?: string }[]
 }
 
 interface VerifScannedBook {
@@ -211,9 +211,10 @@ export default function InventoryPage() {
 
   useEffect(() => {
     const loadUserProfile = async () => {
-      const profile = await fetchUserProfile()
-      if (profile && profile.name) {
-        setVerifUserName(profile.name)
+      const profile = await fetchUserProfile() as any
+      if (profile) {
+        if (profile.name) setVerifUserName(profile.name)
+        if (profile.id) setVerifUserId(profile.id)
       }
     }
     loadUserProfile()
@@ -387,6 +388,7 @@ export default function InventoryPage() {
   const [verifSessionActive, setVerifSessionActive] = useState(false)
   const [verifSelectedBoxId, setVerifSelectedBoxId] = useState('')
   const [verifUserName, setVerifUserName] = useState('')
+  const [verifUserId, setVerifUserId] = useState('')
   const [verifBox, setVerifBox] = useState<Box | null>(null)
   const [verifBooks, setVerifBooks] = useState<BookInBox[]>([])
   const [loadingVerifBooks, setLoadingVerifBooks] = useState(false)
@@ -864,7 +866,16 @@ export default function InventoryPage() {
   )
 
   // Book Verification — inventory stage, not yet verified
-  const inventoryBoxes = boxes.filter(b => b.current_stage === 'inventory' && !b.box_sessions?.some(s => s.status === 'completed'))
+  const inventoryBoxes = boxes.filter(b => {
+    if (b.current_stage !== 'inventory') return false
+    if (b.box_sessions?.some(s => s.status === 'completed')) return false
+    // Only hide in_progress boxes from others once we know who the current user is
+    if (verifUserId) {
+      const inProgressSession = b.box_sessions?.find(s => s.status === 'in_progress')
+      if (inProgressSession && inProgressSession.inventory_user_scan !== verifUserId) return false
+    }
+    return true
+  })
 
   // Outgoing Boxes — inventory stage + verified this session
   const outgoingBoxes = boxes.filter(b => b.current_stage === 'inventory' && b.box_sessions?.some(s => s.status === 'completed'))
@@ -1225,6 +1236,7 @@ export default function InventoryPage() {
                         const rowBooks = verifRowBooks[box.id] || []
                         const isLoadingBooks = loadingVerifRowBooks === box.id
                         const bookCount = box.total_books_expected || 0
+                        const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_scan === verifUserId)
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                             {/* Row header — same style as Incoming Boxes */}
@@ -1237,28 +1249,35 @@ export default function InventoryPage() {
                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </button>
                               {/* Icon */}
-                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-amber-600" />
+                              <div className={`${stuckSession ? 'bg-orange-50' : 'bg-amber-50'} rounded-lg p-2 shrink-0`}>
+                                <Package className={`h-5 w-5 ${stuckSession ? 'text-orange-500' : 'text-amber-600'}`} />
                               </div>
                               {/* Info — clickable to expand */}
                               <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
                                 <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                                 <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
-                              {/* Date */}
-                              <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                                {box.created_at ? new Date(box.created_at).toLocaleDateString() : ''}
-                              </span>
+                              {/* Date + stuck badge */}
+                              <div className="shrink-0 hidden sm:flex flex-col items-end gap-1">
+                                <span className="text-xs text-muted-foreground">
+                                  {box.created_at ? new Date(box.created_at).toLocaleDateString() : ''}
+                                </span>
+                                {stuckSession && (
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 border border-orange-200">
+                                    ⚠ In Progress Stuck
+                                  </span>
+                                )}
+                              </div>
                               {/* Start Session button */}
                               <button
                                 onClick={() => handleStartVerifSession(box.id)}
                                 disabled={loadingVerifBooks}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60 transition-colors shrink-0 ${stuckSession ? 'bg-orange-500 hover:bg-orange-600' : 'bg-amber-600 hover:bg-amber-700'}`}
                               >
                                 {loadingVerifBooks
                                   ? <Loader2 className="h-4 w-4 animate-spin" />
                                   : <ClipboardList className="h-4 w-4" />}
-                                {loadingVerifBooks ? 'Starting…' : 'Start Session'}
+                                {loadingVerifBooks ? 'Starting…' : stuckSession ? 'Resume Session' : 'Start Session'}
                               </button>
                             </div>
                             {/* Expandable books list */}

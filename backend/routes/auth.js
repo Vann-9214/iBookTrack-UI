@@ -240,6 +240,7 @@ router.get('/profile', requireAuth, async (req, res) => {
     }
 
     return res.json({
+      id: req.user.id,
       name: profile.name,
       email: profile.email,
     })

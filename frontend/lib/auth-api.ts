@@ -180,7 +180,7 @@ export async function authRequest({ endpoint, payload }: AuthRequestOptions): Pr
 }
 
 // Fetch user profile
-export async function fetchUserProfile(): Promise<{ name: string; email: string } | null> {
+export async function fetchUserProfile(): Promise<{ id: string; name: string; email: string } | null> {
   const token = await getValidAccessToken()
   if (!token) return null
 

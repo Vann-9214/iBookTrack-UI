@@ -38,7 +38,7 @@ router.get('/', requireAuth, async (req, res) => {
         books:books(
           scans:book_activity(count)
         ),
-        box_sessions:box_sessions(status, received_by_name, started_at)
+        box_sessions:box_sessions(id, status, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_scan, started_at)
       `)
       .order('created_at', { ascending: false })
 
@@ -324,9 +324,28 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
     if (box.current_stage === 'warehouse' && nextStage === 'inventory') {
       await db
         .from('box_sessions')
-        .update({ status: 'received' })
+        .update({ status: 'received', inventory_user_received: req.user.id })
         .eq('box_id', id)
         .eq('status', 'completed')
+    }
+
+    // If advancing from inventory to qa (endorsement), record the endorsement user
+    if (box.current_stage === 'inventory' && nextStage === 'qa') {
+      // Get the latest session to update
+      const { data: session } = await db
+        .from('box_sessions')
+        .select('id')
+        .eq('box_id', id)
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (session) {
+        await db
+          .from('box_sessions')
+          .update({ endorsement_user_received: req.user.id })
+          .eq('id', session.id)
+      }
     }
 
     // Log pipeline event

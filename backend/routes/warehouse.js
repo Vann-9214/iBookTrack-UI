@@ -130,8 +130,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       .insert({
         box_id: assignedBoxId, // null means box will be created on first scan
         lot_id: lot.id,
-        received_by: req.user.id,
-        received_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email,
+        warehouse_user_received: req.user.id,
         status: 'in_progress'
       })
       .select()
@@ -481,8 +480,7 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
         .insert({
           box_id: box_id,
           lot_id: box.lot_id,
-          received_by: req.user.id,
-          received_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email,
+          warehouse_user_received: req.user.id,
           status: 'in_progress'
         })
         .select()
@@ -494,7 +492,10 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
 
     const { data, error } = await supabaseAdmin
       .from('box_sessions')
-      .update({ status: 'in_progress' })
+      .update({ 
+        status: 'in_progress',
+        inventory_user_scan: req.user.id
+      })
       .eq('id', session.id)
       .select()
       .single()
