@@ -43,8 +43,9 @@ interface BoxEntry {
   id: string
   box_number: string
   total_books_expected: number
-  received_at: string | null
+
   lot: { lot_number: string } | null
+  box_sessions?: { started_at: string }[]
 }
 
 interface BoxBookEntry {
@@ -349,6 +350,19 @@ export default function BookInspectionPage() {
 
   const handleAddInspIssue = async () => {
     if (!inspIssueIsbn.trim()) return
+
+    if (inspScannedBooks.some(b => b.isbn === inspIssueIsbn.trim())) {
+      toast.error('This book was already scanned successfully in this session.')
+      setInspIssueIsbn('')
+      return
+    }
+    
+    if (inspIssues.some(i => i.isbn === inspIssueIsbn.trim())) {
+      toast.error('This issue has already been added.')
+      setInspIssueIsbn('')
+      return
+    }
+
     setInspFetchingIssueBook(true)
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${inspIssueIsbn}`)
@@ -404,7 +418,8 @@ export default function BookInspectionPage() {
       await authFetch(`${API_URL}/api/warehouse/sessions/${inspCurrentSession.id}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          total_books_expected: parseInt(inspTotalBooksExpected),
+          expected: parseInt(inspTotalBooksExpected),
+          stage: 'qa',
           issues: inspIssues,
         }),
       })
@@ -430,17 +445,17 @@ export default function BookInspectionPage() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <DashboardSidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar />
-        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
+    <div className="flex min-h-screen bg-background">
+      <DashboardSidebar navigationLocked={inspSessionActive} />
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
+        <div className="flex-1 overflow-y-auto bg-slate-50/50">
           <div className="flex flex-col gap-6 p-6 lg:p-8">
 
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Book Inspection & Endorsement</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Book Inspection &amp; Endorsement</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Receive boxes from Cut, inspect and scan books, then send to Scan.
                 </p>
@@ -469,11 +484,12 @@ export default function BookInspectionPage() {
               ] as const).map(({ key, label, icon: Icon, count, activeColor }) => (
                 <button
                   key={key}
+                  disabled={inspSessionActive}
                   onClick={() => setActiveTab(key)}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeTab === key
                       ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -517,7 +533,7 @@ export default function BookInspectionPage() {
                           <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                          {box.received_at ? new Date(box.received_at).toLocaleDateString() : ''}
+                          {box.box_sessions?.[0]?.started_at ? new Date(box.box_sessions[0].started_at).toLocaleDateString() : ''}
                         </span>
                         <button
                           onClick={() => handleReceiveBox(box)}
@@ -703,7 +719,7 @@ export default function BookInspectionPage() {
                                   <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
                                 <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                                  {box.received_at ? new Date(box.received_at).toLocaleDateString() : ''}
+                                  {box.box_sessions?.[0]?.started_at ? new Date(box.box_sessions[0].started_at).toLocaleDateString() : ''}
                                 </span>
                                 <button
                                   onClick={() => handleStartInspSession(box.id)}
@@ -810,8 +826,8 @@ export default function BookInspectionPage() {
                             <div className="col-span-1 text-right">Action</div>
                           </div>
                           <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                            {inspScannedBooks.map(book => (
-                              <div key={book.id} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
+                            {inspScannedBooks.map((book, idx) => (
+                              <div key={`${book.id}-${idx}`} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
                                 <div className="col-span-2">
                                   <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                 </div>

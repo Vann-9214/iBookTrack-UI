@@ -77,9 +77,9 @@ interface BoxItem {
   box_number: string
   current_stage: Stage
   total_books_expected: number
-  received_at: string | null
+
   lot: { lot_number: string } | null
-  box_sessions?: { received_by_name: string }[]
+  box_sessions?: { started_at: string }[]
 }
 
 interface ScannedBook {
@@ -356,7 +356,7 @@ export default function StationCheckpointsPage() {
         </Button>
       )
     }
-    if (stage === 'warehouse' || box.received_at) {
+    if (stage === 'warehouse') {
       return (
         <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
           <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default">

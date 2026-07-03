@@ -47,7 +47,7 @@ const POLL_CYCLE_TIMEOUT_MS = 5 * 60 * 1000
  */
 async function advanceBoxStage(boxId, lotId, fromStage, toStage, notes) {
   // Update the box's current stage
-  await db().from('boxes').update({ current_stage: toStage, received_at: null }).eq('id', boxId)
+  await db().from('boxes').update({ current_stage: toStage }).eq('id', boxId)
 
   // Log the transition so operators can see the auto-advance in the pipeline history
   await db().from('pipeline_events').insert({
@@ -71,7 +71,7 @@ async function checkAndAdvanceBox(box) {
   try {
     // Get all processable ISBNs assigned to this box
     const { data: scans, error: scansError } = await db()
-      .from('book_scans')
+      .from('book_activity')
       .select('scan_status, books!inner(isbn, box_id)')
       .eq('books.box_id', box.id)
       .eq('scan_status', 'processable')

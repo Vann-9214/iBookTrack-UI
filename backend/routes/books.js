@@ -52,7 +52,7 @@ router.get('/ilms/search/:isbn', requireAuth, async (req, res) => {
 })
 
 // Flag a book with a QC issue (from Book Inspection page)
-// :id is a book_scans row ID
+// :id is a book_activity row ID
 router.post('/:id/flag', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
@@ -63,7 +63,7 @@ router.post('/:id/flag', requireAuth, async (req, res) => {
 
     // Look up the scan record (source of truth for scanned books)
     const { data: scan, error: scanError } = await db
-      .from('book_scans')
+      .from('book_activity')
       .select('id, books(isbn, title, box_id)')
       .eq('id', id)
       .single()

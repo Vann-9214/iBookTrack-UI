@@ -130,8 +130,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       .insert({
         box_id: assignedBoxId, // null means box will be created on first scan
         lot_id: lot.id,
-        received_by: req.user.id,
-        received_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email,
+        warehouse_user_received: req.user.id,
         status: 'in_progress'
       })
       .select()
@@ -308,7 +307,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     // Create scan log (use admin to bypass RLS)
     const { data: scanLog, error: scanError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .insert({
         session_id,
         book_id: bookId,
@@ -323,27 +322,10 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     if (scanError) throw scanError
 
-    // Update box counts (use admin to bypass RLS) — increment books_received
-    if (assignedBoxId) {
-      const { data: boxData } = await supabaseAdmin
-        .from('boxes')
-        .select('books_received')
-        .eq('id', assignedBoxId)
-        .single()
-      
-      if (boxData) {
-        await supabaseAdmin
-          .from('boxes')
-          .update({ books_received: (boxData.books_received || 0) + 1 })
-          .eq('id', assignedBoxId)
-      }
-    }
-
     res.status(201).json({ 
       scanLog,
       currentBox: currentBox ? {
         box_number: currentBox.box_number,
-        books_received: (currentBox.books_received || 0) + 1,
         is_sealed: currentBox.is_sealed
       } : null
     })
@@ -368,12 +350,89 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
 
     if (sessionFetchError) throw sessionFetchError
 
-    // Update total_books_expected on the associated box
-    if (session.box_id && total_books_expected && stage !== 'inventory') {
-      await supabaseAdmin
-        .from('boxes')
-        .update({ total_books_expected: parseInt(total_books_expected) })
-        .eq('id', session.box_id)
+    // Update box based on stage
+    if (session.box_id) {
+      if (stage === 'inventory') {
+        // Mark box as sealed so it's recognized as verified by inventory
+        await supabaseAdmin
+          .from('boxes')
+          .update({ is_sealed: true })
+          .eq('id', session.box_id)
+      } else if (total_books_expected) {
+        await supabaseAdmin
+          .from('boxes')
+          .update({ total_books_expected: parseInt(total_books_expected) })
+          .eq('id', session.box_id)
+      }
+    }
+
+    // Process issues (missing/extra books)
+    if (issues && issues.length > 0) {
+      const scannedBy = req.user.id
+      const scannedByName = req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email
+
+      for (const issue of issues) {
+        // Find if book already exists in DB for this box
+        let { data: existingBook } = await supabaseAdmin
+          .from('books')
+          .select('id')
+          .eq('isbn', issue.isbn)
+          .eq('box_id', session.box_id)
+          .maybeSingle()
+
+        let bookId = existingBook?.id
+
+        if (!bookId) {
+          // Check globally in case it exists in another box
+          let { data: globalBook } = await supabaseAdmin
+            .from('books')
+            .select('id')
+            .eq('isbn', issue.isbn)
+            .limit(1)
+            .maybeSingle()
+            
+          if (globalBook) {
+            bookId = globalBook.id
+          } else {
+            // Insert new book
+            const { data: newBook } = await supabaseAdmin
+              .from('books')
+              .insert({
+                isbn: issue.isbn,
+                title: issue.title || 'Unknown Title',
+                box_id: session.box_id
+              })
+              .select('id')
+              .single()
+            if (newBook) bookId = newBook.id
+          }
+        }
+
+        if (bookId) {
+          // Flag the book as missing or extra in the books table
+          const updateData = issue.type === 'missing' 
+            ? { is_missing: true }
+            : { is_extra: true }
+            
+          await supabaseAdmin
+            .from('books')
+            .update(updateData)
+            .eq('id', bookId)
+
+          // Insert into book_activity as non_processable with rejection_reason = issue.type
+          await supabaseAdmin
+            .from('book_activity')
+            .insert({
+              session_id: session_id,
+              book_id: bookId,
+              scan_status: 'non_processable',
+              rejection_reason: issue.type, // 'missing' or 'extra'
+              notes: `Marked as ${issue.type} during session completion`,
+              scanned_by: scannedBy,
+              scanned_by_name: scannedByName
+            })
+        }
+      }
     }
 
     const { data, error } = await supabaseAdmin
@@ -421,8 +480,7 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
         .insert({
           box_id: box_id,
           lot_id: box.lot_id,
-          received_by: req.user.id,
-          received_by_name: req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email,
+          warehouse_user_received: req.user.id,
           status: 'in_progress'
         })
         .select()
@@ -434,7 +492,10 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
 
     const { data, error } = await supabaseAdmin
       .from('box_sessions')
-      .update({ status: 'in_progress' })
+      .update({ 
+        status: 'in_progress',
+        inventory_user_scan: req.user.id
+      })
       .eq('id', session.id)
       .select()
       .single()
@@ -574,7 +635,7 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
 
     // Search in warehouse scan logs
     const { data: scans, error: scanError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select(`
         *,
         books!inner(
@@ -639,7 +700,7 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
         title: bookTitle || book?.title || 'Unknown',
         box_number: boxNumber || ilmsBoxNo || 'Not in warehouse yet',
         lot_number: lotNumber || ilmsLotNo || 'Unknown',
-        current_stage: scans?.[0]?.books?.box?.current_stage || book?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
+        current_stage: scans?.[0]?.books?.box?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
         in_warehouse: inWarehouse,
@@ -661,7 +722,7 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
     const { limit = 50 } = req.query
 
     const { data: rejectedBooks, error } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select(`
         id,
         rejection_reason,
@@ -709,15 +770,42 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'rejection_reason is required' })
     }
 
+    // We need to fetch the existing scan to see its old status and session_id
+    const { data: existingScan, error: fetchError } = await supabaseAdmin
+      .from('book_activity')
+      .select('id, scan_status, session_id')
+      .eq('id', scan_id)
+      .single()
+
+    if (fetchError || !existingScan) return res.status(404).json({ error: 'Scan not found' })
+
     const { data, error } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .update({ scan_status: 'non_processable', rejection_reason, notes: notes || null })
       .eq('id', scan_id)
       .select()
       .single()
 
     if (error) throw error
-    if (!data) return res.status(404).json({ error: 'Scan not found' })
+
+    // Adjust session counts if it changed from processable to non_processable
+    if (existingScan.scan_status === 'processable') {
+      const { data: session } = await supabaseAdmin
+        .from('box_sessions')
+        .select('total_accepted, total_rejected')
+        .eq('id', existingScan.session_id)
+        .single()
+        
+      if (session) {
+        await supabaseAdmin
+          .from('box_sessions')
+          .update({
+            total_accepted: Math.max(0, session.total_accepted - 1),
+            total_rejected: session.total_rejected + 1
+          })
+          .eq('id', existingScan.session_id)
+      }
+    }
 
     res.json({ success: true, scan: data })
   } catch (error) {
@@ -741,10 +829,10 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'remarks are required before tagging an ISBN' })
     }
 
-    // Fetch the scan to verify it exists
+    // Fetch the scan to verify it exists and get its session_id
     const { data: existing, error: fetchError } = await supabaseAdmin
-      .from('book_scans')
-      .select('id, scan_status, books(isbn)')
+      .from('book_activity')
+      .select('id, scan_status, session_id, books(isbn)')
       .eq('id', scan_id)
       .single()
 
@@ -756,7 +844,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
 
     // Update scan_status and rejection_reason
     const { data: updated, error: updateError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .update({
         scan_status: status,
         rejection_reason: remarks.trim(),
@@ -767,6 +855,25 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
       .single()
 
     if (updateError) throw updateError
+
+    // Adjust session counts if it changed from processable to non_processable (or reject)
+    if (existing.scan_status === 'processable' && (status === 'non_processable' || status === 'reject')) {
+      const { data: session } = await supabaseAdmin
+        .from('box_sessions')
+        .select('total_accepted, total_rejected')
+        .eq('id', existing.session_id)
+        .single()
+        
+      if (session) {
+        await supabaseAdmin
+          .from('box_sessions')
+          .update({
+            total_accepted: Math.max(0, session.total_accepted - 1),
+            total_rejected: session.total_rejected + 1
+          })
+          .eq('id', existing.session_id)
+      }
+    }
 
     // Also upsert into qc_flags for audit trail
     await supabaseAdmin
@@ -793,7 +900,7 @@ router.get('/boxes/:box_id/scans', requireAuth, async (req, res) => {
 
     // Get all warehouse scans for books in this box
     const { data: scans, error } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select(`
         *,
         books!inner(
@@ -812,6 +919,7 @@ router.get('/boxes/:box_id/scans', requireAuth, async (req, res) => {
 
     // Map to simpler format for comparison
     const warehouseBooks = scans.map(scan => ({
+      id: scan.id,
       isbn: scan.books?.isbn,
       title: scan.books?.title,
       scan_status: scan.scan_status,
