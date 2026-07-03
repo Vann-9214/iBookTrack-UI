@@ -594,13 +594,13 @@ export default function InventoryPage() {
     if (!verifIssueIsbn.trim()) return
 
     if (verifScannedBooks.some(b => b.isbn === verifIssueIsbn.trim())) {
-      toast.error('This book was already scanned successfully in this session.')
+      toast({ title: 'Error', description: 'This book was already scanned successfully in this session.', variant: 'destructive' })
       setVerifIssueIsbn('')
       return
     }
     
     if (verifIssues.some(i => i.isbn === verifIssueIsbn.trim())) {
-      toast.error('This issue has already been added.')
+      toast({ title: 'Error', description: 'This issue has already been added.', variant: 'destructive' })
       setVerifIssueIsbn('')
       return
     }
@@ -777,8 +777,6 @@ export default function InventoryPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send to cut')
-      // Remove from verified set once sent
-      setVerifiedBoxIds(prev => { const next = new Set(prev); next.delete(box.id); return next })
       fetchBoxes()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to send to cut')

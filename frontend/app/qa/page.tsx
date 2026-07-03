@@ -914,7 +914,7 @@ export default function BookInspectionPage() {
 
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
