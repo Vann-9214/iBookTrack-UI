@@ -513,194 +513,217 @@ export default function WarehousePage() {
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Confirm Complete Session Modal */}
-{confirmCompleteOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmCompleteOpen(false)}>
-    <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-4xl mx-auto flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
-            <CircleCheck className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-foreground">Complete Session</h3>
-            <p className="text-xs text-muted-foreground">Finalize scan log and resolve discrepancies</p>
-          </div>
-        </div>
-        <button
-          onClick={() => setConfirmCompleteOpen(false)}
-          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Scrollable Body */}
-      <div className="p-6 overflow-y-auto flex-1 space-y-6">
-
-        {/* Total Books Expected */}
-        <div className="bg-muted/30 border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-              <Package className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <label className="text-sm font-semibold text-foreground">Total Books Expected</label>
-                <span className="text-destructive font-bold">*</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground">The actual physical count of books inside this box</p>
-            </div>
-          </div>
-
-          <input
-            type="number"
-            value={totalBooksExpected}
-            onChange={(e) => setTotalBooksExpected(e.target.value)}
-            placeholder="e.g. 100"
-            className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium"
-          />
-        </div>
-
-        {/* Issue Tracking */}
-        <div className="bg-muted/30 border border-border rounded-xl p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-foreground">Discrepancies</label>
-              <p className="text-[11px] text-muted-foreground">Log any missing or extra books found in the physical box</p>
-            </div>
-          </div>
-
-          {/* Type toggle */}
-          <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit mb-2">
-            <button
-              type="button"
-              onClick={() => setIssueType('missing')}
-              className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
-                issueType === 'missing'
-                  ? 'bg-red-500 text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <PackageMinus className="h-3.5 w-3.5" />
-              Missing
-            </button>
-            <button
-              type="button"
-              onClick={() => setIssueType('extra')}
-              className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
-                issueType === 'extra'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <PackagePlus className="h-3.5 w-3.5" />
-              Extra
-            </button>
-          </div>
-
-          {/* Issue Input */}
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={issueIsbn}
-              onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9]/g, ''))}
-              onKeyPress={handleIssueKeyPress}
-              placeholder="Scan or input ISBN..."
-              className="flex-1 h-10 rounded-lg border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
-            />
-            <button
-              onClick={handleAddIssue}
-              disabled={!issueIsbn.trim() || fetchingIssueBook}
-              className="px-4 h-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-semibold disabled:opacity-50 transition-colors text-xs shrink-0"
-            >
-              {fetchingIssueBook ? 'Adding...' : 'Add Book'}
-            </button>
-          </div>
-
-          {/* Issues List */}
-          {issues.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-[11px] font-medium text-muted-foreground">
-                {issues.length} {issues.length === 1 ? 'issue' : 'issues'} logged
-              </p>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {issues.map((issue, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border bg-background hover:border-muted-foreground/30 transition-colors"
+          {confirmCompleteOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmCompleteOpen(false)}>
+              <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl mx-auto flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10">
+                      <CircleCheck className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-foreground">Complete Session</h3>
+                      <p className="text-xs text-muted-foreground">Finalize scan log and resolve discrepancies</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setConfirmCompleteOpen(false)}
+                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                   >
-                    <div className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${
-                      issue.type === 'missing' ? 'bg-red-500/10' : 'bg-primary/10'
-                    }`}>
-                      {issue.type === 'missing'
-                        ? <PackageMinus className="h-4 w-4 text-red-600" />
-                        : <PackagePlus className="h-4 w-4 text-primary" />}
-                    </div>
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold text-foreground truncate">{issue.title}</p>
-                        <span className="text-xs text-muted-foreground font-mono shrink-0">ISBN: {issue.isbn}</span>
+                {/* Scrollable Body — sections sit flush in the modal, no nested card */}
+                <div className="overflow-y-auto flex-1">
+
+                  {/* TOP SECTION: Total Books Expected */}
+                  <div className="px-6 py-5 space-y-3 bg-blue-500/5 border-t border-blue-500/50">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-primary/10">
+                        <Package className="h-3.5 w-3.5 text-primary" />
                       </div>
-                      <p className="text-[11px] text-muted-foreground truncate">{issue.author}</p>
+                      <div>
+                        <div className="flex items-center gap-1">
+                          <label className="text-xs font-bold text-foreground tracking-tight">Total Books Expected</label>
+                          <span className="text-destructive font-bold text-xs">*</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">The actual physical count of books inside this box</p>
+                      </div>
                     </div>
 
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-medium shrink-0 ${
-                      issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-primary/10 text-primary'
-                    }`}>
-                      {issue.type === 'missing' ? 'Missing' : 'Extra'}
-                    </span>
+                    <input
+                      type="number"
+                      value={totalBooksExpected}
+                      onChange={(e) => setTotalBooksExpected(e.target.value)}
+                      placeholder="e.g. 100"
+                      className="w-full max-w h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-medium"
+                    />
+                  </div>
 
-                    <button
-                      onClick={() => handleRemoveIssue(issue.isbn)}
-                      className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
-                    >
-                      <X className="h-3.5 w-3.5" />
+                  {/* BOTTOM SECTION: Discrepancies */}
+                  <div className="px-6 py-5 space-y-4 bg-amber-500/5 border-t border-b border-amber-500/50">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-amber-500/10">
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                      </div>
+                      <div>
+                        <label className="text-sm font-bold text-foreground tracking-tight">Discrepancies</label>
+                        <p className="text-[11px] text-muted-foreground">Log any missing or extra books found in the physical box</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* Type toggle */}
+                      <div className="flex gap-1 p-1 bg-muted/80 rounded-lg w-fit">
+                        <button
+                          type="button"
+                          onClick={() => setIssueType('missing')}
+                          className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
+                            issueType === 'missing'
+                              ? 'bg-red-500 text-white shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <PackageMinus className="h-3.5 w-3.5" />
+                          Missing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIssueType('extra')}
+                          className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
+                            issueType === 'extra'
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          <PackagePlus className="h-3.5 w-3.5" />
+                          Extra
+                        </button>
+                      </div>
+
+                      {/* Issue Input */}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={issueIsbn}
+                          onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9]/g, ''))}
+                          onKeyPress={handleIssueKeyPress}
+                          placeholder={issueType === 'missing' ? "Input ISBN..." : "Scan or input ISBN..."}
+                          className="flex-1 h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
+                        />
+                        <button
+                          onClick={handleAddIssue}
+                          disabled={!issueIsbn.trim() || fetchingIssueBook}
+                          className={`px-4 h-10 rounded-lg font-semibold disabled:opacity-50 transition-colors text-xs shrink-0 shadow-sm ${
+                            issueType === 'missing'
+                              ? 'bg-red-500 text-white hover:bg-red-600'
+                              : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                          }`}
+                        >
+                          {fetchingIssueBook ? 'Adding...' : 'Add Book'}
+                        </button>
+                      </div>
+
+                      {/* Issues List */}
+                      {issues.length > 0 && (
+                        <div className="space-y-2 pt-2">
+                          <p className="text-[11px] font-medium text-muted-foreground">
+                            {issues.length} {issues.length === 1 ? 'issue' : 'issues'} logged
+                          </p>
+                          <div className="border border-border rounded-lg p-2 bg-background/50">
+                            <div
+                              className="space-y-1.5 max-h-48 overflow-y-auto pr-1
+                                [&::-webkit-scrollbar]:w-1.5
+                                [&::-webkit-scrollbar-track]:bg-transparent
+                                [&::-webkit-scrollbar-thumb]:bg-amber-500/60
+                                [&::-webkit-scrollbar-thumb]:rounded-full
+                                [&::-webkit-scrollbar-thumb:hover]:bg-amber-500/80
+                                [&::-webkit-scrollbar-button]:hidden
+                                [&::-webkit-scrollbar-button]:h-0
+                                [&::-webkit-scrollbar-button]:w-0"
+                              style={{ scrollbarColor: 'rgba(245, 158, 11, 0.6) transparent', scrollbarWidth: 'thin' }}
+                            >
+                              {issues.map((issue, index) => (
+                                <div
+                                  key={index}
+                                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors shadow-sm ${
+                                    issue.type === 'missing'
+                                      ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
+                                      : 'bg-primary/5 border-primary/20 hover:border-primary/40'
+                                  }`}
+                                >
+                                  <div className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${
+                                    issue.type === 'missing' ? 'bg-red-500/10' : 'bg-primary/10'
+                                  }`}>
+                                    {issue.type === 'missing'
+                                      ? <PackageMinus className="h-4 w-4 text-red-500" />
+                                      : <PackagePlus className="h-4 w-4 text-primary" />}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="items-center gap-2">
+                                      <span className="text-xs font-semibold text-foreground truncate">ISBN: {issue.isbn}</span>
+                                      <p className="text-xs text-muted-foreground font-mono shrink-0">{issue.title}</p>
+                                      <p className="text-[11px] text-muted-foreground truncate">{issue.author}</p>
+                                    </div>
+                                  </div>
+
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-medium shrink-0 ${
+                                    issue.type === 'missing' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'
+                                  }`}>
+                                    {issue.type === 'missing' ? 'Missing' : 'Extra'}
+                                  </span>
+
+                                  <button
+                                    onClick={() => handleRemoveIssue(issue.isbn)}
+                                    className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Footer / Actions */}
+                <div className="px-6 py-4 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
+                      <div className="w-px h-3 bg-border" />
+                      <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
+                      {issues.length > 0 && (
+                        <>
+                          <div className="w-px h-3 bg-border" />
+                          <div><span className="font-semibold text-destructive">{issues.length}</span> Issues</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => {
+                      setConfirmCompleteOpen(false)
+                      setTotalBooksExpected('')
+                      setIssueIsbn('')
+                      setIssues([])
+                    }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                    <button onClick={confirmCloseSession} disabled={loading} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors shadow-sm">
+                      <CircleCheck className="h-4 w-4" />
+                      {loading ? 'Completing...' : 'Confirm Complete'}
                     </button>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           )}
-        </div>
-
-      </div>
-
-      {/* Footer / Actions */}
-      <div className="px-6 py-4 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between rounded-b-2xl">
-        <div className="flex-1">
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
-            <div className="w-px h-3 bg-border" />
-            <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
-            {issues.length > 0 && (
-              <>
-                <div className="w-px h-3 bg-border" />
-                <div><span className="font-semibold text-destructive">{issues.length}</span> Issues</div>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <button onClick={() => {
-            setConfirmCompleteOpen(false)
-            setTotalBooksExpected('')
-            setIssueIsbn('')
-            setIssues([])
-          }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-          <button onClick={confirmCloseSession} disabled={loading} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors">
-            <CircleCheck className="h-4 w-4" />
-            {loading ? 'Completing...' : 'Confirm Complete'}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
 
           {/* Reset Session Modal */}
           {confirmResetOpen && (

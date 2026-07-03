@@ -10,7 +10,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
-import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList } from 'lucide-react'
+import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw } from 'lucide-react'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
@@ -113,6 +113,7 @@ const FLAG_ISSUES = [
 export default function InventoryPage() {
   const { brand } = useBrand()
   const { toast } = useToast()
+  const [lastInventoryUpdate, setLastInventoryUpdate] = useState<Date | null>(null)
 
   // --- Boxes tab state ---
   const [boxes, setBoxes] = useState<Box[]>([])
@@ -237,6 +238,7 @@ export default function InventoryPage() {
         result = result.filter(b => aliases.includes((b.lot?.lot_number || '').toLowerCase()))
       }
       setBoxes(result)
+      setLastInventoryUpdate(new Date())
     } catch (e) {
       console.error('Failed to fetch boxes:', e)
     } finally {
@@ -412,6 +414,9 @@ export default function InventoryPage() {
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
 
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
+  const lastInventoryUpdateLabel = lastInventoryUpdate
+    ? `Updated ${lastInventoryUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
+    : 'Not updated yet'
 
   // ── Fetch Warehouse Books for Comparison ───────────────────────────────────
   const fetchWarehouseBooks = async (boxId: string) => {
@@ -962,9 +967,23 @@ export default function InventoryPage() {
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Header */}
-          <header>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory</h1>
-            <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
+          <header className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory</h1>
+              <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={fetchBoxes}
+                disabled={loadingBoxes}
+                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${loadingBoxes ? 'animate-spin' : ''}`}  />
+                Refresh
+              </button>
+              <p className="text-xs text-muted-foreground whitespace-nowrap">{lastInventoryUpdateLabel}</p>
+            </div>
           </header>
 
           {/* ── Tab Navigation ── */}
