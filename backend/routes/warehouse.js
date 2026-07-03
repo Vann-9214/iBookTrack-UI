@@ -411,7 +411,7 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
                 isbn: issue.isbn,
                 title: issue.title || 'Unknown Title',
                 box_id: session.box_id,
-                status: 'pending'
+                scan_status: 'pending'
               })
               .select('id')
               .single()
@@ -420,10 +420,14 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
         }
 
         if (bookId) {
-          // Flag the book as unaccounted in the books table
+          // Flag the book as missing or extra in the books table
+          const updateData = issue.type === 'missing' 
+            ? { is_unaccounted_missing: true }
+            : { is_unaccounted_extra: true }
+            
           await supabaseAdmin
             .from('books')
-            .update({ is_unaccounted: true })
+            .update(updateData)
             .eq('id', bookId)
 
           // Insert into book_scans as non_processable with rejection_reason = issue.type
@@ -705,7 +709,7 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
         title: bookTitle || book?.title || 'Unknown',
         box_number: boxNumber || ilmsBoxNo || 'Not in warehouse yet',
         lot_number: lotNumber || ilmsLotNo || 'Unknown',
-        current_stage: scans?.[0]?.books?.box?.current_stage || book?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
+        current_stage: scans?.[0]?.books?.box?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
         in_warehouse: inWarehouse,

@@ -248,12 +248,13 @@ export default function WarehousePage() {
 
     const missingCount = issues.filter(i => i.type === 'missing').length
     const extraCount = issues.filter(i => i.type === 'extra').length
-    const calculatedExpected = scannedBooks.length + missingCount - extraCount
+    // Extra books are unaccounted and don't reduce the expected total.
+    const calculatedExpected = scannedBooks.length + missingCount
 
     if (expected !== calculatedExpected) {
       toast({ 
         title: 'Mismatch Detected', 
-        description: `Total expected books (${expected}) does not match scanned books (${scannedBooks.length}) with missing (${missingCount}) and extra (${extraCount}).`, 
+        description: `Total expected books (${expected}) does not match total scanned (${scannedBooks.length}) + missing (${missingCount}) books.`, 
         variant: 'destructive' 
       })
       return
