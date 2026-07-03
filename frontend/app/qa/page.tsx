@@ -455,7 +455,7 @@ export default function BookInspectionPage() {
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Book Inspection & Endorsement</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Book Inspection &amp; Endorsement</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Receive boxes from Cut, inspect and scan books, then send to Scan.
                 </p>
