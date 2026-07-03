@@ -79,7 +79,7 @@ interface BoxItem {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { started_at: string }[]
+  box_sessions?: { started_at?: string; received_by_name?: string }[]
 }
 
 interface ScannedBook {
@@ -1125,21 +1125,7 @@ export default function StationCheckpointsPage() {
                 })}
               </div>
 
-              {/* Status Legend */}
-              <div className="flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-blue-400" />
-                  <span className="text-xs text-muted-foreground">Active</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-orange-400" />
-                  <span className="text-xs text-muted-foreground">Busy / Bottleneck</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-gray-400" />
-                  <span className="text-xs text-muted-foreground">Idle</span>
-                </div>
-              </div>
+
             </div>
 
             {/* Station Cards Grid */}
@@ -1269,6 +1255,22 @@ export default function StationCheckpointsPage() {
                       </div>
                     )
                   })}
+                </div>
+
+                {/* Status Legend */}
+                <div className="flex items-center gap-4 text-xs mt-4">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-blue-400" />
+                    <span className="text-xs text-muted-foreground">Active</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-orange-400" />
+                    <span className="text-xs text-muted-foreground">Busy / Bottleneck</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-gray-400" />
+                    <span className="text-xs text-muted-foreground">Idle</span>
+                  </div>
                 </div>
               </div>
             )}
