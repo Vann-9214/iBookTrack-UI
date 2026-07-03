@@ -308,7 +308,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     // Create scan log (use admin to bypass RLS)
     const { data: scanLog, error: scanError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .insert({
         session_id,
         book_id: bookId,
@@ -410,8 +410,7 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
               .insert({
                 isbn: issue.isbn,
                 title: issue.title || 'Unknown Title',
-                box_id: session.box_id,
-                scan_status: 'pending'
+                box_id: session.box_id
               })
               .select('id')
               .single()
@@ -422,17 +421,17 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
         if (bookId) {
           // Flag the book as missing or extra in the books table
           const updateData = issue.type === 'missing' 
-            ? { is_unaccounted_missing: true }
-            : { is_unaccounted_extra: true }
+            ? { is_missing: true }
+            : { is_extra: true }
             
           await supabaseAdmin
             .from('books')
             .update(updateData)
             .eq('id', bookId)
 
-          // Insert into book_scans as non_processable with rejection_reason = issue.type
+          // Insert into book_activity as non_processable with rejection_reason = issue.type
           await supabaseAdmin
-            .from('book_scans')
+            .from('book_activity')
             .insert({
               session_id: session_id,
               book_id: bookId,
@@ -644,7 +643,7 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
 
     // Search in warehouse scan logs
     const { data: scans, error: scanError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select(`
         *,
         books!inner(
@@ -731,7 +730,7 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
     const { limit = 50 } = req.query
 
     const { data: rejectedBooks, error } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select(`
         id,
         rejection_reason,
@@ -781,7 +780,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
 
     // We need to fetch the existing scan to see its old status and session_id
     const { data: existingScan, error: fetchError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select('id, scan_status, session_id')
       .eq('id', scan_id)
       .single()
@@ -789,7 +788,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
     if (fetchError || !existingScan) return res.status(404).json({ error: 'Scan not found' })
 
     const { data, error } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .update({ scan_status: 'non_processable', rejection_reason, notes: notes || null })
       .eq('id', scan_id)
       .select()
@@ -840,7 +839,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
 
     // Fetch the scan to verify it exists and get its session_id
     const { data: existing, error: fetchError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select('id, scan_status, session_id, books(isbn)')
       .eq('id', scan_id)
       .single()
@@ -853,7 +852,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
 
     // Update scan_status and rejection_reason
     const { data: updated, error: updateError } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .update({
         scan_status: status,
         rejection_reason: remarks.trim(),
@@ -909,7 +908,7 @@ router.get('/boxes/:box_id/scans', requireAuth, async (req, res) => {
 
     // Get all warehouse scans for books in this box
     const { data: scans, error } = await supabaseAdmin
-      .from('book_scans')
+      .from('book_activity')
       .select(`
         *,
         books!inner(

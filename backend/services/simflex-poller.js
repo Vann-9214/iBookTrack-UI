@@ -71,7 +71,7 @@ async function checkAndAdvanceBox(box) {
   try {
     // Get all processable ISBNs assigned to this box
     const { data: scans, error: scansError } = await db()
-      .from('book_scans')
+      .from('book_activity')
       .select('scan_status, books!inner(isbn, box_id)')
       .eq('books.box_id', box.id)
       .eq('scan_status', 'processable')
