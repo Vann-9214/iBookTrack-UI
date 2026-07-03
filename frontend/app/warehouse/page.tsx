@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 const FLAG_ISSUES = [
@@ -506,9 +507,9 @@ export default function WarehousePage() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <DashboardSidebar />
+      <DashboardSidebar navigationLocked={sessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar disableBrandToggle={sessionActive} />
+        <DashboardNavbar disableBrandToggle={sessionActive} navigationLocked={sessionActive} />
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
 
           {/* Confirm Complete Session Modal */}
@@ -1041,7 +1042,7 @@ export default function WarehousePage() {
               {/* Active session banner */}
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 {/* Top accent strip */}
-                <div className="h-0.5 w-full bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+                <div className="h-0.5 w-full bg-primary/80" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
                   <div className="flex items-center gap-5">
                     <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10">
@@ -1067,15 +1068,38 @@ export default function WarehousePage() {
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={handleResetSession}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
                       <X className="h-3.5 w-3.5" />
                       Reset
                     </button>
-                    <button onClick={handleCloseSession} disabled={loading || scannedBooks.length === 0}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm">
-                      <CircleCheck className="h-3.5 w-3.5" />
-                      Complete Session
-                    </button>
+                    {scannedBooks.length === 0 ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex">
+                            <button
+                              onClick={handleCloseSession}
+                              disabled
+                              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                            >
+                              <CircleCheck className="h-3.5 w-3.5" />
+                              Complete Session
+                            </button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" sideOffset={8} variant="destructive">
+                          Scan at least one book first
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <button
+                        onClick={handleCloseSession}
+                        disabled={loading}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                      >
+                        <CircleCheck className="h-3.5 w-3.5" />
+                        Complete Session
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1117,13 +1141,13 @@ export default function WarehousePage() {
               <ScannerInput onScan={handleScan} />
 
               {/* Scan log */}
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="bg-card border border-emerald-500 border-border rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-emerald-100/50">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-sm font-semibold text-foreground">Scan Log</h3>
+                    <BookOpen className="h-4 w-4 text-emerald-800" />
+                    <h3 className="text-sm font-semibold text-emerald-800">Scan Log</h3>
                     {scannedBooks.length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-primary/10 text-primary">{scannedBooks.length}</span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-500/20 text-red-600">{scannedBooks.length}</span>
                     )}
                   </div>
                   {scannedBooks.length > 0 && (
@@ -1132,8 +1156,8 @@ export default function WarehousePage() {
                 </div>
                 {scannedBooks.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted">
-                      <ScanBarcode className="h-5 w-5 text-muted-foreground" />
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100/50">
+                      <ScanBarcode className="h-5 w-5 text-emerald-800" />
                     </div>
                     <p className="text-sm font-medium text-foreground">Awaiting scan</p>
                     <p className="text-xs text-muted-foreground">Scan a book barcode to add it here.</p>
@@ -1158,10 +1182,7 @@ export default function WarehousePage() {
                           }`}
                         >
                           <div className="col-span-3">
-                            <p className="text-xs font-mono font-semibold text-foreground truncate">{book.isbn}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </p>
+                            <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
                           </div>
                           <div className="col-span-3">
                             <p className="text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
@@ -1193,7 +1214,10 @@ export default function WarehousePage() {
                               </span>
                             )}
                           </div>
-                          <div className="col-span-1 flex items-center justify-end">
+                          <div className="col-span-1 flex items-center justify-end gap-2">
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </p>
                             <button
                               onClick={() => handleRemoveBook(book.id)}
                               className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"

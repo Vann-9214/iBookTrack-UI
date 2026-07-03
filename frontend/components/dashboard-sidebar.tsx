@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useBrand } from '@/hooks/use-brand'
 import Image from 'next/image'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   LayoutDashboard,
   Package,
@@ -18,7 +19,50 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
-export function DashboardSidebar() {
+type DashboardSidebarProps = {
+  navigationLocked?: boolean
+}
+
+function LockedNavButton({
+  navigationLocked,
+  tooltip = 'Session Ongoing',
+  side = 'right',
+  className,
+  children,
+  ...props
+}: React.ComponentProps<'button'> & {
+  navigationLocked?: boolean
+  tooltip?: string
+  side?: 'top' | 'right' | 'bottom' | 'left'
+}) {
+  const button = (
+    <button
+      {...props}
+      disabled={navigationLocked || props.disabled}
+      className={cn(className, navigationLocked && 'pointer-events-none')}
+      type={props.type ?? 'button'}
+    >
+      {children}
+    </button>
+  )
+
+  if (!navigationLocked) {
+    return button
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="block w-full">{button}</span>
+      </TooltipTrigger>
+      <TooltipContent side={side} sideOffset={8} variant="destructive">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarProps) {
   const [warehouseOpen, setWarehouseOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
@@ -29,9 +73,12 @@ export function DashboardSidebar() {
 
   const navItemCls = (active: boolean) => cn(
     'group/item flex items-center gap-3 rounded-lg pl-6.5 pr-3 py-2.5 text-sm font-medium transition-colors w-full',
+    navigationLocked && 'cursor-not-allowed opacity-50',
     active
       ? 'bg-white/20 text-white'
-      : 'text-white/70 hover:bg-white/10 hover:text-white'
+      : navigationLocked
+        ? 'text-white/70'
+        : 'text-white/70 hover:bg-white/10 hover:text-white'
   )
 
   return (
@@ -71,7 +118,8 @@ export function DashboardSidebar() {
       <nav className="flex-1 overflow-y-auto px-3 py-4 flex flex-col gap-1 max-h-screen" role="navigation" aria-label="Main navigation">
 
         {/* Dashboard */}
-        <button
+        <LockedNavButton
+          navigationLocked={navigationLocked}
           onClick={() => router.push('/Dashboard')}
           className={navItemCls(isActive('/Dashboard'))}
           aria-current={isActive('/Dashboard') ? 'page' : undefined}
@@ -81,11 +129,12 @@ export function DashboardSidebar() {
           <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
             Dashboard
           </span>
-        </button>
+        </LockedNavButton>
 
         {/* Warehouse & Inventory (expandable) */}
         <div>
-          <button
+          <LockedNavButton
+            navigationLocked={navigationLocked}
             onClick={() => setWarehouseOpen((prev) => !prev)}
             className={navItemCls(isWarehouseSection)}
             title="Warehouse & Inventory"
@@ -100,33 +149,36 @@ export function DashboardSidebar() {
                 warehouseOpen && 'rotate-180'
               )}
             />
-          </button>
+          </LockedNavButton>
 
           {/* Sub-items */}
           {warehouseOpen && (
             <div className="ml-4 mt-1 flex flex-col gap-1 border-l border-white/20 pl-3">
-              <button
+              <LockedNavButton
+                navigationLocked={navigationLocked}
                 onClick={() => router.push('/warehouse')}
                 className={navItemCls(isActive('/warehouse'))}
                 aria-current={isActive('/warehouse') ? 'page' : undefined}
               >
                 <Warehouse className="h-4 w-4 shrink-0" />
                 <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse</span>
-              </button>
-              <button
+              </LockedNavButton>
+              <LockedNavButton
+                navigationLocked={navigationLocked}
                 onClick={() => router.push('/inventory')}
                 className={navItemCls(isActive('/inventory'))}
                 aria-current={isActive('/inventory') ? 'page' : undefined}
               >
                 <Archive className="h-4 w-4 shrink-0" />
                 <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Inventory</span>
-              </button>
+              </LockedNavButton>
             </div>
           )}
         </div>
 
         {/* Station Checkpoints */}
-        <button
+        <LockedNavButton
+          navigationLocked={navigationLocked}
           onClick={() => router.push('/checkpoints')}
           className={navItemCls(isActive('/checkpoints'))}
           aria-current={isActive('/checkpoints') ? 'page' : undefined}
@@ -134,10 +186,11 @@ export function DashboardSidebar() {
         >
           <MapPin className="h-5 w-5 shrink-0" />
           <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
-        </button>
+        </LockedNavButton>
 
         {/* Book Inspection & Endorsement */}
-        <button
+        <LockedNavButton
+          navigationLocked={navigationLocked}
           onClick={() => router.push('/qa')}
           className={navItemCls(isActive('/qa'))}
           aria-current={isActive('/qa') ? 'page' : undefined}
@@ -145,10 +198,11 @@ export function DashboardSidebar() {
         >
           <CheckCircle className="h-5 w-5 shrink-0" />
           <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Book Inspection &amp; Endorsement</span>
-        </button>
+        </LockedNavButton>
 
         {/* Transmission Monitor */}
-        <button
+        <LockedNavButton
+          navigationLocked={navigationLocked}
           onClick={() => router.push('/transmission')}
           className={navItemCls(isActive('/transmission'))}
           aria-current={isActive('/transmission') ? 'page' : undefined}
@@ -156,10 +210,11 @@ export function DashboardSidebar() {
         >
           <Radio className="h-5 w-5 shrink-0" />
           <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Transmission Monitor</span>
-        </button>
+        </LockedNavButton>
 
         {/* Warehouse Locator */}
-        <button
+        <LockedNavButton
+          navigationLocked={navigationLocked}
           onClick={() => router.push('/locator')}
           className={navItemCls(isActive('/locator'))}
           aria-current={isActive('/locator') ? 'page' : undefined}
@@ -167,10 +222,11 @@ export function DashboardSidebar() {
         >
           <Map className="h-5 w-5 shrink-0" />
           <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
-        </button>
+        </LockedNavButton>
 
         {/* Reports */}
-        <button
+        <LockedNavButton
+          navigationLocked={navigationLocked}
           onClick={() => router.push('/reports')}
           className={navItemCls(isActive('/reports'))}
           aria-current={isActive('/reports') ? 'page' : undefined}
@@ -178,7 +234,7 @@ export function DashboardSidebar() {
         >
           <BarChart3 className="h-5 w-5 shrink-0" />
           <span className="truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Reports</span>
-        </button>
+        </LockedNavButton>
 
       </nav>
     </aside>
