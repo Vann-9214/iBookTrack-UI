@@ -462,7 +462,11 @@ export default function WarehousePage() {
       const ilmsData = await ilmsRes.json()
 
       if (!ilmsData.success) {
-        toast({ title: 'Book Not Found', description: `ISBN not found in ${currentSession.type?.toUpperCase() || 'iLMS'} records.`, variant: 'destructive' })
+        toast({ 
+          title: ilmsData.error && ilmsData.error.includes('Duplicate') ? 'Duplicate Scan' : 'Book Not Found', 
+          description: ilmsData.error || `ISBN not found in ${currentSession.type?.toUpperCase() || 'iLMS'} records.`, 
+          variant: 'destructive' 
+        })
         return
       }
 

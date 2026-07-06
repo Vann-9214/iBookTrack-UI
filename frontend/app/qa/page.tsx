@@ -661,7 +661,7 @@ export default function BookInspectionPage() {
                         </h3>
                         <button onClick={() => setInspFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">✕</button>
                       </div>
-                      <p className="text-xs text-muted-foreground mb-3">{inspFlagModalBook.isbn} — {inspFlagModalBook.title} — {inspFlagModalBook.author}</p>
+                      <p className="text-xs text-muted-foreground mb-3">{inspFlagModalBook.isbn} — {inspFlagModalBook.title}</p>
                       <div className="space-y-3">
                         <div>
                           <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
@@ -826,8 +826,7 @@ export default function BookInspectionPage() {
                         <>
                           <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
                             <div className="col-span-2">ISBN</div>
-                            <div className="col-span-3">Book Title</div>
-                            <div className="col-span-3">Book Author</div>
+                            <div className="col-span-6">Book Title</div>
                             <div className="col-span-3 text-right">Status</div>
                             <div className="col-span-1 text-right">Action</div>
                           </div>
@@ -837,14 +836,11 @@ export default function BookInspectionPage() {
                                 <div className="col-span-2">
                                   <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                 </div>
-                                <div className="col-span-3">
+                                <div className="col-span-6">
                                   <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
                                   {book.flag_issue && (
                                     <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                                   )}
-                                </div>
-                                <div className="col-span-3">
-                                  <p className="text-[11px] text-muted-foreground truncate">{book.author}</p>
                                 </div>
                                 <div className="col-span-3 flex items-center justify-end gap-2">
                                   {book.scan_status === 'processable' ? (

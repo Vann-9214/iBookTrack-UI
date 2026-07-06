@@ -257,7 +257,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     if (!session.box_id) {
       // Create the single session box on first scan
-      currentBox = await createBoxIfNeeded('processable', lotNumber)
+      currentBox = await createBoxIfNeeded(book_type || null, lotNumber)
       assignedBoxId = currentBox.id
       await supabaseAdmin
         .from('box_sessions')
@@ -273,7 +273,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
       if (boxData && boxData.is_sealed) {
         // Box is full — create a new one and update session
-        currentBox = await createBoxIfNeeded('processable', lotNumber)
+        currentBox = await createBoxIfNeeded(book_type || null, lotNumber)
         assignedBoxId = currentBox.id
         await supabaseAdmin
           .from('box_sessions')
@@ -317,9 +317,20 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
       scan_status
     };
     
-    if (stage === 'inventory') activityInsert.inventory_scan_by = req.user.id;
-    else if (stage === 'qa' || stage === 'endorsement') activityInsert.endorsement_scan_by = req.user.id;
-    else activityInsert.warehouse_scan_by = req.user.id;
+    if (stage === 'inventory') {
+      activityInsert.inventory_scan_by = req.user.id;
+      activityInsert.inventory_scan_at = new Date().toISOString();
+    }
+    else if (stage === 'qa' || stage === 'endorsement') {
+      activityInsert.endorsement_scan_by = req.user.id;
+      activityInsert.endorsement_scan_at = new Date().toISOString();
+    }
+    else {
+      activityInsert.warehouse_scan_by = req.user.id;
+      // warehouse_scan_at defaults to NOW() in DB usually, but we can set it
+      // actually the DB handles warehouse_scan_at via default value, but just in case:
+      // activityInsert.warehouse_scan_at is handled by DB
+    }
 
     // Create scan log (use admin to bypass RLS)
     const { data: scanLog, error: scanError } = await supabaseAdmin
@@ -388,7 +399,43 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
           .from('boxes')
           .update({ is_sealed: true })
           .eq('id', session.box_id)
-      } else if (total_books_expected) {
+          
+        const { data: booksInBox } = await supabaseAdmin
+          .from('books')
+          .select('id')
+          .eq('box_id', session.box_id)
+          
+        if (booksInBox && booksInBox.length > 0) {
+          const bookIds = booksInBox.map(b => b.id)
+          await supabaseAdmin
+            .from('book_activity')
+            .update({
+              inventory_scan_by: req.user.id,
+              inventory_scan_at: new Date().toISOString()
+            })
+            .in('book_id', bookIds)
+            .is('inventory_scan_by', null)
+        }
+      } else if (stage === 'qa' || stage === 'endorsement') {
+        const { data: booksInBox } = await supabaseAdmin
+          .from('books')
+          .select('id')
+          .eq('box_id', session.box_id)
+          
+        if (booksInBox && booksInBox.length > 0) {
+          const bookIds = booksInBox.map(b => b.id)
+          await supabaseAdmin
+            .from('book_activity')
+            .update({
+              endorsement_scan_by: req.user.id,
+              endorsement_scan_at: new Date().toISOString()
+            })
+            .in('book_id', bookIds)
+            .is('endorsement_scan_by', null)
+        }
+      }
+      
+      if (total_books_expected) {
         await supabaseAdmin
           .from('boxes')
           .update({ total_books_expected: parseInt(total_books_expected) })
@@ -507,16 +554,16 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     }
 
     // 1. Resolve Lot
-    let { data: lot, error: lotError } = await supabaseAdmin
-      .from('lots')
-      .select('id, lot_number')
-      .eq('lot_number', lot_number)
-      .single()
+    let lotQuery = supabaseAdmin.from('lots').select('id, lot_number').eq('lot_number', lot_number);
+    if (book_type) lotQuery = lotQuery.eq('type', book_type.toLowerCase());
+    else lotQuery = lotQuery.is('type', null);
+    
+    let { data: lot, error: lotError } = await lotQuery.single()
 
     if (!lot) {
       const { data: newLot, error: createError } = await supabaseAdmin
         .from('lots')
-        .insert({ lot_number, total_boxes: 0 })
+        .insert({ lot_number, type: book_type ? book_type.toLowerCase() : null, total_boxes: 0 })
         .select()
         .single()
       if (createError) throw createError;
@@ -527,7 +574,11 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     let assignedBoxId = null;
     let existingBox = null;
     if (box_number) {
-      const { data: box } = await supabaseAdmin.from('boxes').select('id, total_books_expected, current_stage').eq('lot_id', lot.id).eq('box_number', box_number).maybeSingle();
+      let query = supabaseAdmin.from('boxes').select('id, total_books_expected, current_stage').eq('lot_id', lot.id).eq('box_number', box_number);
+      if (book_type) query = query.eq('box_type', book_type);
+      else query = query.is('box_type', null);
+      
+      const { data: box } = await query.maybeSingle();
       if (box) {
         if (!force && box.total_books_expected > 0) {
           return res.status(409).json({ error: 'BoxExistsWithBooks' });
@@ -537,7 +588,7 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
       } else {
         const { data: newBox } = await supabaseAdmin
           .from('boxes')
-          .insert({ box_number, lot_id: lot.id, box_type: 'processable', current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0, is_sealed: false })
+          .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0, is_sealed: false })
           .select()
           .single();
         assignedBoxId = newBox.id;
@@ -565,9 +616,17 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     // 4. Save scanned books
     for (const b of (scanned_books || [])) {
       let bookId = null;
-      const { data: bookData, error: bError } = await supabaseAdmin.from('books').insert({ isbn: b.isbn, title: b.title || 'Unknown Title', box_id: assignedBoxId, book_type: book_type || null }).select('id').single();
-      if (bError) throw bError;
-      if (bookData) bookId = bookData.id;
+      let query = supabaseAdmin.from('books').select('id').eq('isbn', b.isbn);
+      if (book_type) query = query.eq('book_type', book_type);
+      else query = query.is('book_type', null);
+      let { data: bData } = await query.limit(1).maybeSingle();
+      if (bData) {
+        bookId = bData.id;
+      } else {
+        const { data: bookData, error: bError } = await supabaseAdmin.from('books').insert({ isbn: b.isbn, title: b.title || 'Unknown Title', box_id: assignedBoxId, book_type: book_type || null }).select('id').single();
+        if (bError) throw bError;
+        if (bookData) bookId = bookData.id;
+      }
 
       const { data: actData, error: actError } = await supabaseAdmin.from('book_activity').insert({
         book_id: bookId,
@@ -588,7 +647,10 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     // 5. Process issues (missing/extra)
     if (issues && issues.length > 0) {
       for (const issue of issues) {
-        let { data: globalBook } = await supabaseAdmin.from('books').select('id').eq('isbn', issue.isbn).limit(1).maybeSingle();
+        let query = supabaseAdmin.from('books').select('id').eq('isbn', issue.isbn);
+        if (book_type) query = query.eq('book_type', book_type);
+        else query = query.is('book_type', null);
+        let { data: globalBook } = await query.limit(1).maybeSingle();
         let bookId = globalBook?.id;
         if (!bookId) {
            const { data: newBook, error: nbError } = await supabaseAdmin.from('books').insert({ isbn: issue.isbn, title: issue.title || 'Unknown', box_id: assignedBoxId, book_type: book_type || null }).select('id').single();
@@ -847,6 +909,16 @@ router.post('/isbn-stream/query', requireAuth, async (req, res) => {
   if (!isbn) return res.status(400).json({ error: 'isbn is required' })
 
   try {
+    const { supabaseAdmin } = await import('../config/supabase.js');
+    let query = supabaseAdmin.from('books').select('id').eq('isbn', isbn);
+    if (type) query = query.eq('book_type', type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
+    else query = query.is('book_type', null);
+    
+    const { data: existingBook } = await query.limit(1).maybeSingle();
+    if (existingBook) {
+      return res.json({ success: false, error: `Duplicate ISBN: This book has already been scanned into the system for ${type || 'this brand'}.` });
+    }
+
     const { ilmsApi } = await import('../services/ilms-api.js')
     let ilmsResult;
     
