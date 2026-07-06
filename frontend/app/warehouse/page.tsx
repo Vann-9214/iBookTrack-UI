@@ -284,6 +284,8 @@ export default function WarehousePage() {
 
   const confirmCloseSession = async () => {
     if (!currentSession) return
+    if (loading) return
+    
     if (!totalBooksExpected.trim()) {
       toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
       return
@@ -314,43 +316,34 @@ export default function WarehousePage() {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
 
-      // 1. Create the session in Supabase NOW (along with Lot and Box)
-      const startRes = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: activeLot, box_number: currentBoxNumber, type: currentSession.type, force: true })
-      })
-      const startData = await startRes.json()
-      if (!startRes.ok) throw new Error(startData.error || 'Failed to create session in database')
-      const realSessionId = startData.session.id
-
-      // 2. Save all scanned books to database
-      const savedBookIds: string[] = []
-      for (const book of scannedBooks) {
-        try {
-          const dbId = await saveBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null, realSessionId)
-          savedBookIds.push(dbId)
-        } catch (error) {
-          toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not fully completed.`, variant: 'destructive' })
-          throw error
-        }
-      }
-
-      // 3. Complete the session
-      await fetch(`${API_URL}/api/warehouse/sessions/${realSessionId}/complete`, {
+      // 1. Single Bulk Request
+      const bulkRes = await fetch(`${API_URL}/api/warehouse/sessions/bulk-save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-          total_books_expected: parseInt(totalBooksExpected),
-          issues: issues
+          lot_number: activeLot,
+          box_number: currentBoxNumber,
+          type: currentSession.type,
+          force: true,
+          total_books_expected: parseInt(totalBooksExpected) || 0,
+          issues: issues,
+          scanned_books: scannedBooks,
+          book_type: brand
         })
       })
+      const bulkData = await bulkRes.json()
+      if (!bulkRes.ok) throw new Error(bulkData.error || 'Failed to bulk save session')
+      
       setSessionActive(false); setScannedBooks([]); setBookCounter(0); setCurrentSession(null); setSelectedBox(''); setCurrentBoxNumber(''); setCurrentBoxBooks(0); setActiveLot('');
       setTotalBooksExpected('')
       setIssueIsbn('')
       setIssues([])
       toast({ title: 'Session Closed', description: 'Session closed successfully.' })
-    } catch { toast({ title: 'Error', description: 'Failed to complete session', variant: 'destructive' }) } finally { setLoading(false) }
+    } catch (error: any) { 
+      toast({ title: 'Error', description: error.message || 'Failed to complete session', variant: 'destructive' }) 
+    } finally { 
+      setLoading(false) 
+    }
   }
 
   const handleResetSession = () => {
@@ -508,24 +501,6 @@ export default function WarehousePage() {
     } : null)
   }
 
-  const saveBookToDB = async (bookData: any, scan_status: 'processable' | 'non_processable', flag_issue: string | null, flag_remarks: string | null, sessionId: string) => {
-    if (!bookData) return
-    try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-      const response = await fetch(`${API_URL}/api/warehouse/sessions/${sessionId}/scan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ isbn: bookData.isbn, title: bookData.title, author: bookData.author, scan_status, rejection_reason: flag_issue || null, notes: flag_remarks || null })
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to process book')
-      return data.scanLog.id
-    } catch (error) {
-      console.error('Error saving book to DB:', error)
-      throw error
-    }
-  }
 
   const openFlagModal = (book: ScannedBook) => {
     setFlagModalBook(book)

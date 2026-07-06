@@ -86,9 +86,9 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
 
     const { data: scans, error: scansError } = await db
       .from('book_activity')
-      .select('id, scan_status, rejection_reason, scanned_at, books!inner(isbn, title, box_id)')
+      .select('id, scan_status, user_flags(rejection_reason), warehouse_scan_at, books!inner(isbn, title, box_id)')
       .in('books.box_id', boxIds)
-      .order('scanned_at', { ascending: false })
+      .order('warehouse_scan_at', { ascending: false })
 
     if (scansError) throw scansError
 
@@ -122,7 +122,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
         isbn: isbn,
         title: s.books?.title || null,
         scan_status: s.scan_status,
-        scanned_at: s.scanned_at,
+        warehouse_scan_at: s.warehouse_scan_at,
         assigned_box_id: s.books?.box_id,
         simflex_status: latestStatus,
         transmission_completed: transmissionCompleted,

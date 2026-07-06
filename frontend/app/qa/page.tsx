@@ -45,7 +45,7 @@ interface BoxEntry {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { started_at: string }[]
+  box_sessions?: { warehouse_time_received?: string }[]
 }
 
 interface BoxBookEntry {
@@ -535,7 +535,7 @@ export default function BookInspectionPage() {
                           <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                          {box.box_sessions?.[0]?.started_at ? new Date(box.box_sessions[0].started_at).toLocaleDateString() : ''}
+                          {box.box_sessions?.[0]?.warehouse_time_received ? new Date(box.box_sessions[0].warehouse_time_received).toLocaleDateString() : ''}
                         </span>
                         <button
                           onClick={() => handleReceiveBox(box)}
@@ -721,7 +721,7 @@ export default function BookInspectionPage() {
                                   <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
                                 <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                                  {box.box_sessions?.[0]?.started_at ? new Date(box.box_sessions[0].started_at).toLocaleDateString() : ''}
+                                  {box.box_sessions?.[0]?.warehouse_time_received ? new Date(box.box_sessions[0].warehouse_time_received).toLocaleDateString() : ''}
                                 </span>
                                 <button
                                   onClick={() => handleStartInspSession(box.id)}
