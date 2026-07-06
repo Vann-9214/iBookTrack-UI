@@ -38,7 +38,7 @@ router.get('/', requireAuth, async (req, res) => {
         books:books(
           scans:book_activity(count)
         ),
-        box_sessions:box_sessions(id, status, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_scan, started_at)
+        box_sessions:box_sessions(id, status, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received)
       `)
       .order('created_at', { ascending: false })
 
@@ -131,29 +131,17 @@ router.get('/:id', requireAuth, async (req, res) => {
     // Pull scanned books from book_activity for this box
     const { data: scans } = await db
       .from('book_activity')
-      .select('id, scan_status, scanned_at, rejection_reason, books!inner(isbn, title, box_id)')
+      .select('id, scan_status, warehouse_scan_at, user_flags(rejection_reason, notes), books!inner(isbn, title, box_id)')
       .eq('books.box_id', id)
-      .order('scanned_at', { ascending: true })
-
-    // Pull existing flags for all scans in this box
-    const scanIds = (scans || []).map(s => s.id)
-    let flagMap = {}
-    if (scanIds.length > 0) {
-      const { data: flags } = await db
-        .from('qc_flags')
-        .select('scan_id, issue, remarks, flagged_at, flagged_by_name')
-        .in('scan_id', scanIds)
-      ;(flags || []).forEach(f => { flagMap[f.scan_id] = f })
-    }
+      .order('warehouse_scan_at', { ascending: true })
 
     const books = (scans || []).map(s => {
-      let flag = flagMap[s.id] || null
-      // If non-processable but no explicit qc_flag entry, synthesize from rejection_reason
-      if (!flag && s.scan_status === 'non_processable') {
+      let flag = null;
+      if (s.user_flags || s.scan_status === 'non_processable') {
         flag = {
-          issue: s.rejection_reason || 'non-processable',
-          remarks: '',
-          flagged_at: s.scanned_at,
+          issue: s.user_flags?.rejection_reason || 'non-processable',
+          remarks: s.user_flags?.notes || '',
+          flagged_at: s.warehouse_scan_at,
           flagged_by_name: 'Warehouse scan',
           source: 'scan_status',
         }
@@ -324,26 +312,61 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
     if (box.current_stage === 'warehouse' && nextStage === 'inventory') {
       await db
         .from('box_sessions')
-        .update({ status: 'received', inventory_user_received: req.user.id })
+        .update({ status: 'received', inventory_user_received: req.user.id, inventory_time_received: new Date().toISOString() })
         .eq('box_id', id)
         .eq('status', 'completed')
     }
-
-    // If advancing from inventory to qa (endorsement), record the endorsement user
-    if (box.current_stage === 'inventory' && nextStage === 'qa') {
-      // Get the latest session to update
+    // If advancing FROM inventory TO cut (or endorsement), record the inventory send user
+    if (box.current_stage === 'inventory' && (nextStage === 'cut' || nextStage === 'endorsement' || nextStage === 'qa')) {
       const { data: session } = await db
         .from('box_sessions')
         .select('id')
         .eq('box_id', id)
-        .order('started_at', { ascending: false })
+        .order('warehouse_time_received', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       if (session) {
         await db
           .from('box_sessions')
-          .update({ endorsement_user_received: req.user.id })
+          .update({ inventory_user_send: req.user.id, inventory_time_send: new Date().toISOString() })
+          .eq('id', session.id)
+      }
+    }
+
+    // If advancing from inventory to endorsement (qa), record the endorsement user
+    if ((box.current_stage === 'inventory' || box.current_stage === 'cut') && (nextStage === 'endorsement' || nextStage === 'qa')) {
+      // Get the latest session to update
+      const { data: session } = await db
+        .from('box_sessions')
+        .select('id')
+        .eq('box_id', id)
+        .order('warehouse_time_received', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (session) {
+        await db
+          .from('box_sessions')
+          .update({ endorsement_user_received: req.user.id, endorsement_time_received: new Date().toISOString() })
+          .eq('id', session.id)
+      }
+    }
+
+    // If advancing from endorsement to scan, record the endorsement send user
+    if ((box.current_stage === 'endorsement' || box.current_stage === 'qa') && nextStage === 'scan') {
+      const { data: session } = await db
+        .from('box_sessions')
+        .select('id')
+        .eq('box_id', id)
+        .order('warehouse_time_received', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (session) {
+        await db
+          .from('box_sessions')
+          .update({ endorsement_user_send: req.user.id, endorsement_time_send: new Date().toISOString() })
           .eq('id', session.id)
       }
     }
@@ -446,9 +469,9 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
     // 2. Get all scans for this box
     const { data: scans, error: scansError } = await db
       .from('book_activity')
-      .select('id, scan_status, rejection_reason, scanned_at, books!inner(isbn, title, box_id)')
+      .select('id, scan_status, user_flags(rejection_reason), warehouse_scan_at, books!inner(isbn, title, box_id)')
       .eq('books.box_id', box.id)
-      .order('scanned_at', { ascending: true })
+      .order('warehouse_scan_at', { ascending: true })
 
     if (scansError) throw scansError
 
@@ -475,8 +498,8 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
         isbn: isbn,
         title: s.books?.title || null,
         scan_status: s.scan_status,
-        rejection_reason: s.rejection_reason || null,
-        scanned_at: s.scanned_at,
+        rejection_reason: s.user_flags?.rejection_reason || null,
+        warehouse_scan_at: s.warehouse_scan_at,
         simflex_status: sf.latestStatus || null,
         transmission_completed: sf.transmissionCompleted || false,
         transmission_date: sf.transmissionCompleted ? (sf.latestUpdated || null) : null,
