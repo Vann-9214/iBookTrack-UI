@@ -38,7 +38,7 @@ interface Box {
   lot: { lot_number: string; status: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
-  box_sessions?: { id?: string; status: string; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_scan?: string; started_at?: string }[]
+  box_sessions?: { id?: string; status: string; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_send?: string; warehouse_time_received?: string }[]
 }
 
 interface VerifScannedBook {
@@ -909,7 +909,7 @@ export default function InventoryPage() {
     // Only hide in_progress boxes from others once we know who the current user is
     if (verifUserId) {
       const inProgressSession = b.box_sessions?.find(s => s.status === 'in_progress')
-      if (inProgressSession && inProgressSession.inventory_user_scan !== verifUserId) return false
+      if (inProgressSession && inProgressSession.inventory_user_send !== verifUserId) return false
     }
     return true
   })
@@ -1288,7 +1288,7 @@ export default function InventoryPage() {
                         const rowBooks = verifRowBooks[box.id] || []
                         const isLoadingBooks = loadingVerifRowBooks === box.id
                         const bookCount = box.total_books_expected || 0
-                        const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_scan === verifUserId)
+                        const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_send === verifUserId)
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                             {/* Row header — same style as Incoming Boxes */}

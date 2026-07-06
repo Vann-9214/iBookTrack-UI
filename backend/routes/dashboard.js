@@ -114,7 +114,9 @@ router.get('/stats', requireAuth, async (req, res) => {
     const { count: totalBooks } = await bookQuery
 
     // Get transmitted books count
-    let transmittedQuery = db
+    // Get transmitted books count (TODO: Re-implement using book_activity later)
+    let transmittedBooks = 0
+    /* let transmittedQuery = db
       .from('books')
       .select('id', { count: 'exact', head: true })
       .eq('is_transmitted', true)
@@ -127,14 +129,15 @@ router.get('/stats', requireAuth, async (req, res) => {
         transmittedQuery = transmittedQuery.in('box_id', boxes.map(b => b.id))
       }
     }
-    const { count: transmittedBooks } = await transmittedQuery
+    const { count } = await transmittedQuery
+    transmittedBooks = count || 0 */
 
-    // Get QC flagged books count from qc_flags (always use admin to bypass RLS)
+    // Get flagged books count from user_flags (always use admin to bypass RLS)
     const adminDb = supabaseAdmin || db
     const { count: unaccountedBooks, error: flagCountError } = await adminDb
-      .from('qc_flags')
+      .from('user_flags')
       .select('id', { count: 'exact', head: true })
-    if (flagCountError) console.warn('qc_flags count error:', flagCountError.message)
+    if (flagCountError) console.warn('user_flags count error:', flagCountError.message)
 
     // Get active lots count
     let activeLots = 0
@@ -200,7 +203,9 @@ router.get('/open-lots', async (req, res) => {
     const boxIds = (boxes || []).map(b => b.id)
 
     // Count transmitted books per box
-    const { data: transmittedBooks, error: transmittedError } = await db
+    // Count transmitted books per box (TODO: Re-implement using book_activity later)
+    const transmittedByBox = {}
+    /* const { data: transmittedBooks, error: transmittedError } = await db
       .from('books')
       .select('box_id')
       .in('box_id', boxIds)
@@ -208,10 +213,9 @@ router.get('/open-lots', async (req, res) => {
 
     if (transmittedError) throw transmittedError
 
-    const transmittedByBox = {}
     ;(transmittedBooks || []).forEach(b => {
       transmittedByBox[b.box_id] = (transmittedByBox[b.box_id] || 0) + 1
-    })
+    }) */
 
     // Aggregate by lot
     const boxesByLot = {}
@@ -255,11 +259,22 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
   try {
     const db = supabaseAdmin || supabase
     const { data, error } = await db
-      .from('qc_flags')
-      .select('scan_id, isbn, title, box_id, issue, remarks, flagged_by_name, flagged_at')
-      .order('flagged_at', { ascending: false })
+      .from('user_flags')
+      .select('id, book_activity_id, rejection_reason, notes, warehouse_flag_by, warehouse_flag_at, book_activity(books(isbn, title, box_id))')
+      .order('warehouse_flag_at', { ascending: false })
     if (error) throw error
-    res.json({ success: true, flags: data || [] })
+    
+    const mappedFlags = (data || []).map(f => ({
+      scan_id: f.id,
+      isbn: f.book_activity?.books?.isbn,
+      title: f.book_activity?.books?.title,
+      box_id: f.book_activity?.books?.box_id,
+      issue: f.rejection_reason,
+      remarks: f.notes,
+      flagged_at: f.warehouse_flag_at
+    }))
+    
+    res.json({ success: true, flags: mappedFlags })
   } catch (error) {
     console.error('Get QC flags error:', error)
     res.status(500).json({ error: error.message })
@@ -297,7 +312,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
         .limit(limit),
       db
         .from('scan_history')
-        .select('id, isbn, title, box_number, lot_number, scanned_by_name, slip_printed, created_at')
+        .select('id, isbn, title, box_number, lot_number, slip_printed, created_at')
         .order('created_at', { ascending: false })
         .limit(limit),
       db
@@ -352,7 +367,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
           title: statusLabels[status] || 'Transmission Update',
           message: `${lotNumber}${boxNumber} · ${details}`,
           read: status === 'completed',
-          created_at: entry.completed_at || entry.created_at,
+          created_at: entry.warehouse_time_received || entry.created_at,
         })
       }),
       ...(unaccountedResult.data || []).map((entry) => buildNotification({
@@ -369,7 +384,7 @@ router.get('/notifications', requireAuth, async (req, res) => {
         source: 'scan',
         type: entry.slip_printed ? 'success' : 'info',
         title: entry.slip_printed ? 'Scan Slip Printed' : 'Book Scan Recorded',
-        message: `${entry.isbn}${entry.title ? ` · ${entry.title}` : ''}${entry.box_number ? ` · Box ${entry.box_number}` : ''}${entry.lot_number ? ` · Lot ${entry.lot_number}` : ''}${entry.scanned_by_name ? ` · ${entry.scanned_by_name}` : ''}`,
+        message: `${entry.isbn}${entry.title ? ` · ${entry.title}` : ''}${entry.box_number ? ` · Box ${entry.box_number}` : ''}${entry.lot_number ? ` · Lot ${entry.lot_number}` : ''}`,
         read: true,
         created_at: entry.created_at,
       })),

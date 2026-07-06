@@ -64,25 +64,34 @@ router.post('/:id/flag', requireAuth, async (req, res) => {
     // Look up the scan record (source of truth for scanned books)
     const { data: scan, error: scanError } = await db
       .from('book_activity')
-      .select('id, books(isbn, title, box_id)')
+      .select('id, book_id, books(id, isbn, title, box_id)')
       .eq('id', id)
       .single()
 
     if (scanError || !scan) return res.status(404).json({ error: 'Scan record not found' })
 
-    // Insert a QC flag record (log it, don't delete the scan)
-    const { error: flagError } = await db
-      .from('qc_flags')
-      .upsert({
-        scan_id: id,
-        isbn: scan.books?.isbn,
-        title: scan.books?.title,
-        box_id: scan.books?.box_id || box_id || null,
-        issue,
-        remarks: remarks || null,
-        flagged_by: req.user.id,
-        flagged_by_name: req.user.user_metadata?.name || req.user.email
-      }, { onConflict: 'scan_id' })
+    // Find the latest activity for this book to attach the flag to
+    const { data: latestActivity } = await db
+      .from('book_activity')
+      .select('id')
+      .eq('book_id', scan.book_id || scan.books?.id)
+      .order('warehouse_scan_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    const activityId = latestActivity?.id || id
+
+    // Insert a QC flag record
+    const { data: flagData, error: flagError } = await db
+      .from('user_flags')
+      .insert({
+        book_activity_id: activityId,
+        rejection_reason: issue,
+        notes: remarks || null,
+        warehouse_flag_by: req.user.id
+      })
+      .select('id')
+      .single()
 
     if (flagError) {
       console.error('QC flag insert error:', flagError)
@@ -102,10 +111,15 @@ router.delete('/:id/flag', requireAuth, async (req, res) => {
     const { id } = req.params
     const db = supabaseAdmin
 
-    const { error } = await db
-      .from('qc_flags')
-      .delete()
-      .eq('scan_id', id)
+    const { data: activity } = await db.from('book_activity').select('user_flag_id').eq('id', id).single()
+    let error = null;
+    if (activity?.user_flag_id) {
+       const res = await db.from('user_flags').delete().eq('id', activity.user_flag_id)
+       error = res.error
+       if (!error) {
+         await db.from('book_activity').update({ user_flag_id: null }).eq('id', id)
+       }
+    }
 
     if (error) throw error
 

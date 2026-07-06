@@ -88,7 +88,7 @@ interface BoxItem {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { started_at?: string; received_by_name?: string }[]
+  box_sessions?: { warehouse_time_received?: string; received_by_name?: string }[]
 }
 
 interface ScannedBook {
