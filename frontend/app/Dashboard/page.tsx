@@ -10,8 +10,9 @@ import { UnaccountedBooks } from "@/components/missing-item-log"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
-import { Search, Book, Package, Barcode, X, RefreshCw } from "lucide-react"
+import { Search, Book, Package, Barcode, X, RefreshCw, CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
 import { useBrand } from "@/hooks/use-brand"
@@ -176,24 +177,12 @@ export default function DashboardPage() {
           setCurrentLot(lotQuery)
           setDisplayRange(null)
           fetchDashboardStats(lotQuery)
-          const response = await authFetch(`${API_URL}/api/boxes/lot/${encodeURIComponent(lotQuery)}`)
+          const response = await authFetch(`${API_URL}/api/dashboard/lot-details/${encodeURIComponent(lotQuery)}`)
           const data = await response.json()
-          
-          if (data.success && data.boxes) {
-            const allBooks: any[] = []
-            for (const box of data.boxes) {
-              const boxResponse = await authFetch(`${API_URL}/api/boxes/${box.id}`)
-              const boxData = await boxResponse.json()
-              if (boxData.box && boxData.box.books) {
-                allBooks.push(...boxData.box.books)
-              }
-            }
-            setSearchResult({
-              type: 'lot',
-              data: { lot_number: lotQuery, total_boxes: data.boxes.length, total_books: allBooks.length },
-              books: allBooks
-            })
-            toast({ title: 'Lot Found', description: `Found ${allBooks.length} books in ${data.boxes.length} boxes` })
+
+          if (data.success && data.lotDetails) {
+            setSearchResult({ type: 'lot', data: data.lotDetails, books: [] })
+            toast({ title: 'Lot Found', description: `${data.lotDetails.total_books} books across ${data.lotDetails.total_boxes} boxes` })
           } else {
             toast({ title: 'Not Found', description: `Lot "${lotQuery}" not found. Check the exact lot number as it appears in the system.`, variant: 'destructive' })
             setSearchResult(null)
@@ -483,43 +472,85 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
-                  {searchResult.type === 'lot' && searchResult.books && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Lot Number</p>
-                          <p className="font-semibold">{searchResult.data.lot_number}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Boxes</p>
-                          <p className="font-semibold">{searchResult.data.total_boxes}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Books</p>
-                          <p className="font-semibold">{searchResult.data.total_books}</p>
-                        </div>
-                      </div>
-                      <div className="border-t pt-4">
-                        <h4 className="font-semibold mb-3">Books in this Lot:</h4>
-                        <div className="max-h-96 overflow-y-auto space-y-2">
-                          {searchResult.books.length > 0 ? (
-                            searchResult.books.map((book: any, index: number) => (
-                              <div key={book.id || index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                                <div className="flex-1">
-                                  <p className="text-sm font-semibold">{book.isbn}</p>
-                                  <p className="text-sm text-muted-foreground">{book.title || 'No title'}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-medium">{book.book_type || 'N/A'}</p>
-                                  <p className="text-xs text-muted-foreground">{book.current_stage || 'Unknown'}</p>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-center text-muted-foreground py-8">No books found in this lot</p>
-                          )}
+                  {searchResult.type === 'lot' && searchResult.data && (
+                    <div className="space-y-5">
+                      {/* Status + progress row */}
+                      <div className="flex items-center gap-3">
+                        {searchResult.data.processing_status === 'Completed' && (
+                          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Completed
+                          </span>
+                        )}
+                        {searchResult.data.processing_status === 'In Progress' && (
+                          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">
+                            <Clock className="h-3.5 w-3.5" /> In Progress
+                          </span>
+                        )}
+                        {searchResult.data.processing_status === 'Not Started' && (
+                          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-xs font-semibold border border-border">
+                            <AlertCircle className="h-3.5 w-3.5" /> Not Started
+                          </span>
+                        )}
+                        {searchResult.data.lot_type && (
+                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold border border-primary/30 bg-primary/10 text-primary capitalize">
+                            {searchResult.data.lot_type}
+                          </span>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-muted-foreground">Overall Completion</span>
+                            <span className="text-xs font-semibold">{searchResult.data.completion_progress ?? 0}%</span>
+                          </div>
+                          <Progress value={searchResult.data.completion_progress ?? 0} className="h-1.5" />
                         </div>
                       </div>
+
+                      {/* Summary stats */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { label: 'Lot Number', value: searchResult.data.lot_number },
+                          { label: 'Total Boxes', value: searchResult.data.total_boxes },
+                          { label: 'Total Books', value: searchResult.data.total_books },
+                          { label: 'Transmitted', value: searchResult.data.books_by_status?.transmitted ?? 0 },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="rounded-xl bg-muted/40 border border-border px-3 py-2.5">
+                            <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                            <p className="text-base font-bold text-foreground">{value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Stage breakdown */}
+                      {searchResult.data.stage_breakdown && Object.keys(searchResult.data.stage_breakdown).length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Pipeline Stages</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(searchResult.data.stage_breakdown as Record<string, number>).map(([stage, count]) => (
+                              <span key={stage} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted border border-border text-xs">
+                                <span className="font-semibold capitalize text-foreground">{stage}</span>
+                                <span className="bg-background text-muted-foreground font-bold px-1.5 py-0.5 rounded-full text-[10px]">{count as number}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Book status breakdown */}
+                      {searchResult.data.books_by_status && (
+                        <div className="grid grid-cols-2 gap-2 border-t pt-4">
+                          {[
+                            { label: 'Transmitted', value: searchResult.data.books_by_status.transmitted, color: 'text-emerald-600' },
+                            { label: 'Pending', value: searchResult.data.books_by_status.pending, color: 'text-amber-600' },
+                            { label: 'Processable', value: searchResult.data.books_by_status.processable, color: 'text-blue-600' },
+                            { label: 'Non-Processable', value: searchResult.data.books_by_status.non_processable, color: 'text-red-600' },
+                          ].map(({ label, value, color }) => (
+                            <div key={label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/30">
+                              <span className="text-xs text-muted-foreground">{label}</span>
+                              <span className={`text-sm font-bold ${color}`}>{value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
