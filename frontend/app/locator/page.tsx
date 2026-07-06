@@ -599,7 +599,7 @@ export default function WarehouseLocatorPage() {
                       <MapPin className="h-4 w-4 text-primary shrink-0" />
                       <div className="flex-1 text-sm">
                         <span className="font-semibold text-foreground">{r.box_number}</span>
-                        {r.lot_number && <span className="text-muted-foreground ml-2">· Lot {r.lot_number}</span>}
+                        {r.lot_number && <span className="text-muted-foreground ml-2">· {r.lot_number.toLowerCase().startsWith('lot') ? r.lot_number : `Lot ${r.lot_number}`}</span>}
                       </div>
                       <span className="text-sm font-semibold text-primary">{r.location_label}</span>
                       <button onClick={() => {
@@ -1019,7 +1019,7 @@ export default function WarehouseLocatorPage() {
                             : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                           <Package className="h-4 w-4 text-primary shrink-0" />
                           <span className="text-sm font-semibold text-foreground truncate">{a.box_number}</span>
-                          {a.lot_number && <span className="text-xs text-muted-foreground shrink-0">Lot {a.lot_number}</span>}
+                          {a.lot_number && <span className="text-xs text-muted-foreground shrink-0">{a.lot_number.toLowerCase().startsWith('lot') ? a.lot_number : `Lot ${a.lot_number}`}</span>}
                           <span className="text-xs text-muted-foreground ml-auto shrink-0">
                             <BookOpen className="inline h-3 w-3 mr-0.5" />{a.books.length} books
                           </span>
@@ -1161,7 +1161,7 @@ export default function WarehouseLocatorPage() {
                               <Package className="h-4 w-4 text-primary shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-foreground">{b.box_number}</p>
-                                {b.lot_number && <p className="text-xs text-muted-foreground">Lot {b.lot_number}</p>}
+                                {b.lot_number && <p className="text-xs text-muted-foreground">{b.lot_number.toLowerCase().startsWith('lot') ? b.lot_number : `Lot ${b.lot_number}`}</p>}
                               </div>
                               <span className="text-xs text-muted-foreground shrink-0">
                                 <BookOpen className="inline h-3 w-3 mr-0.5" />{b.books.length} books

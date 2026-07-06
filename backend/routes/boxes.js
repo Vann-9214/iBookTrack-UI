@@ -34,7 +34,7 @@ router.get('/', requireAuth, async (req, res) => {
       .from('boxes')
       .select(`
         *,
-        lot:lots(lot_number, shipment_id, status),
+        lot:lots(lot_number, shipment_id, type),
         books:books(
           scans:book_activity(count)
         ),
@@ -120,7 +120,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       .from('boxes')
       .select(`
         *,
-        lot:lots(lot_number, shipment_id, status)
+        lot:lots(lot_number, shipment_id, type)
       `)
       .eq('id', id)
       .single()
