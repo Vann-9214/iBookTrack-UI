@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 function getStepStatus(count: number, stage: string) {
   if (stage === "storage") {return count > 0 ? "completed" : "idle"}
-  if (count >= 10) return "busy"
+  if (count >= 100) return "busy"
   if (count === 0) return "idle"
   return "active"
 }
@@ -35,7 +35,7 @@ const statusConfig = {
     dot: "bg-gray-400",
     label: "Idle",
   },
-    completed: {
+  completed: {
     nodeRing: "border-green-300 text-green-400",
     countColor: "text-green-400",
     bar: "bg-green-400",
@@ -48,9 +48,11 @@ const statusConfig = {
 interface ActivePipelineProps {
   currentLot?: string
   stats?: any
+  brand?: 'mustang' | 'jaguar'
 }
 
-export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) {
+export function ActivePipeline({ currentLot = "", stats, brand = 'mustang' }: ActivePipelineProps) {
+  const borderColor = brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600'
   const pipelineSteps = [
     { label: "Warehouse",   count: stats?.pipelineStages?.warehouse   || 0, unit: stats?.pipelineStages?.warehouse   === 1 ? "Box"  : "Boxes", stage: "warehouse",   clickable: false },
     { label: "Inventory",   count: stats?.pipelineStages?.inventory   || 0, unit: stats?.pipelineStages?.inventory   === 1 ? "Box"  : "Boxes", stage: "inventory",   clickable: false },
@@ -63,7 +65,7 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
 
   return (
     <>
-      <Card className="border-border bg-card">
+      <Card className={cn("border-border bg-card border-t-2", borderColor)}>
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold text-card-foreground">
             Active Pipeline {currentLot && <span className="text-muted-foreground">| {currentLot}</span>}

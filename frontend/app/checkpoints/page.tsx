@@ -64,10 +64,19 @@ const statusConfig = {
     dot: "bg-gray-400",
     label: "Idle",
   },
+  completed: {
+    nodeRing: "border-green-300 text-green-400",
+    countColor: "text-green-400",
+    bar: "bg-green-400",
+    cardBg: "bg-green-50",
+    dot: "bg-green-400",
+    label: "Completed",
+  },
 } as const
 
-function getStepStatus(count: number) {
-  if (count >= 5) return "busy"
+function getStepStatus(count: number, stage: string) {
+  if (stage === "storage") {return count > 0 ? "completed" : "idle"}
+  if (count >= 100) return "busy"
   if (count === 0) return "idle"
   return "active"
 }
@@ -551,8 +560,10 @@ export default function StationCheckpointsPage() {
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
     : 'Not updated yet'
 
+  const pipelineBorderColor = brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600'
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
@@ -1167,7 +1178,7 @@ export default function StationCheckpointsPage() {
             {loading ? (
               <div className="text-center py-16 text-sm text-muted-foreground">Loading stations...</div>
             ) : (
-              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+              <div className={cn("bg-card border border-border rounded-2xl p-5 shadow-sm border-t-2", pipelineBorderColor)}>
                 {/* Desktop: 7 inline columns */}
                 <div className="hidden lg:flex items-stretch gap-3">
                   {STAGE_ORDER.map((stage) => {
@@ -1179,7 +1190,7 @@ export default function StationCheckpointsPage() {
                       ? (transmitBooks ?? 0)
                       : stageBoxes.length
                     
-                    const status = getStepStatus(count)
+                    const status = getStepStatus(count, stage)
                     const cfg = statusConfig[status]
 
                     const iconColorCls = status === 'active'
@@ -1242,7 +1253,7 @@ export default function StationCheckpointsPage() {
                       ? (transmitBooks ?? 0)
                       : stageBoxes.length
                     
-                    const status = getStepStatus(count)
+                    const status = getStepStatus(count, stage)
                     const cfg = statusConfig[status]
 
                     const iconColorCls = status === 'active'
@@ -1305,6 +1316,10 @@ export default function StationCheckpointsPage() {
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-gray-400" />
                     <span className="text-xs text-muted-foreground">Idle</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-green-400" />
+                    <span className="text-xs text-muted-foreground">Completed</span>
                   </div>
                 </div>
               </div>
