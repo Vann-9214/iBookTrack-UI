@@ -238,7 +238,7 @@ export default function DashboardPage() {
     : 'Not updated yet'
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>  
       <DashboardSidebar />
 
       {/* Main Content */}
@@ -527,7 +527,7 @@ export default function DashboardPage() {
             )}
 
             {/* Active Pipeline Flowchart */}
-            <ActivePipeline currentLot={displayText} stats={dashboardStats} />
+            <ActivePipeline currentLot={displayText} stats={dashboardStats} brand={brand} />
 
             {/* Bottom Split: Transmission Queue & Unaccounted Books */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">

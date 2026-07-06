@@ -12,6 +12,7 @@ import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
@@ -1037,7 +1038,7 @@ export default function InventoryPage() {
       </div>
     )}
 
-    <div className="flex h-screen overflow-hidden bg-background print:hidden">
+    <div className={cn("flex h-screen overflow-hidden bg-background print:hidden", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={verifSessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar disableBrandToggle={verifSessionActive} navigationLocked={verifSessionActive} />
@@ -1079,14 +1080,14 @@ export default function InventoryPage() {
                 onClick={() => setInventoryTab(key)}
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                   inventoryTab === key
-                    ? 'bg-background text-foreground shadow-sm'
+                    ? 'bg-primary text-background shadow-sm'
                     : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                 }`}
               >
                 <Icon className="h-4 w-4" />
                 {label}
                 {count > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${inventoryTab === key ? activeColor : 'bg-muted-foreground/20 text-muted-foreground'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${inventoryTab === key ? 'bg-background text-primary' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
                     {count}
                   </span>
                 )}

@@ -378,8 +378,10 @@ export default function TransmissionMonitorPage() {
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
     : 'Not updated yet'
 
+  const stageBorderColor = brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600'
+
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar />
 
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -510,7 +512,7 @@ export default function TransmissionMonitorPage() {
                   {ordered.map((s: any) => {
                     const pct = s.Total > 0 ? (s.Completed / s.Total) * 100 : 0
                     return (
-                      <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-3">
+                      <div key={s.Stage} className={cn("rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-3 border-t-2", stageBorderColor)}>
                         {/* Stage name + total */}
                         <div className="flex items-start justify-between gap-1">
                           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight">{formatPipelineStage(s.Stage)}</p>
