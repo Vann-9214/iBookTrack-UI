@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { authFetch, fetchUserProfile } from "@/lib/auth-api"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
+import { useBrand } from "@/hooks/use-brand"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import { Button } from "@/components/ui/button"
@@ -78,6 +80,8 @@ interface InspSession {
 const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
 export default function BookInspectionPage() {
+  const { brand } = useBrand()
+
   // ── Tab navigation ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'incoming' | 'inspection' | 'outgoing'>('incoming')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
@@ -447,7 +451,7 @@ export default function BookInspectionPage() {
     : 'Not updated yet'
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={cn("flex min-h-screen bg-background", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={inspSessionActive} />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
@@ -490,14 +494,14 @@ export default function BookInspectionPage() {
                   onClick={() => setActiveTab(key)}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     activeTab === key
-                      ? 'bg-background text-foreground shadow-sm'
+                      ? 'bg-primary text-white shadow-sm'
                       : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
                   }`}
                 >
                   <Icon className="h-4 w-4" />
                   {label}
                   {count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${activeTab === key ? activeColor : 'bg-muted-foreground/20 text-muted-foreground'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${activeTab === key ? 'bg-background text-primary' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
                       {count}
                     </span>
                   )}
