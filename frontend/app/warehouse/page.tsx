@@ -8,11 +8,13 @@ import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
 import { AlertTriangle, Package, PackagePlus, PackageMinus, Trash2, Check, ChevronsUpDown, ScanBarcode, CircleCheck, CircleX, BookOpen, Activity, X } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { useBrand } from '@/hooks/use-brand'
 
 const FLAG_ISSUES = [
   { value: "bleed-through",        label: "Bleed-through on page" },
@@ -38,18 +40,15 @@ const FLAG_ISSUES = [
   { value: "torn-pages",           label: "Torn pages" },
 ]
 
-// Static lots for demo purposes (will be replaced with API calls later)
-const STATIC_LOTS = Array.from({ length: 100 }, (_, i) => ({
-  id: `lot-${i + 1}`,
-  lot_number: `${i + 1}`
-}))
 
-// Static boxes for demo purposes (will be replaced with API calls later)
-const STATIC_BOXES = Array.from({ length: 100 }, (_, i) => ({
-  id: `box-${i + 1}`,
-  box_number: `${i + 1}/100`,
-  is_sealed: false
-}))
+interface ILMSBookData {
+  Title?: string
+  Author?: string
+  LotNo?: string
+  BoxNo?: string
+  'Received-Status'?: string
+  [key: string]: any
+}
 
 interface ScannedBook {
   id: string
@@ -60,36 +59,28 @@ interface ScannedBook {
   flag_issue?: string
   flag_remarks?: string
   timestamp: Date
+  ilmsData?: ILMSBookData | null
 }
 
 interface WarehouseSession {
   id: string
   status: string
+  type?: string
   total_scanned: number
   total_processable: number
   total_non_processable: number
   box_id?: string | null
 }
 
-interface Lot {
-  id: string
-  lot_number: string
-}
-
-interface Box {
-  id: string
-  box_number: string
-  is_sealed?: boolean
-}
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function WarehousePage() {
+  const { brand } = useBrand()
   const [activeLot, setActiveLot] = useState<string>('')
-  const [lots, setLots] = useState<Lot[]>(STATIC_LOTS)
+  const [lots, setLots] = useState<{ lot_number: string; type?: string; boxes: string[] }[]>([])
+  const [lotsLoading, setLotsLoading] = useState(false)
+  const [lotsError, setLotsError] = useState<string | null>(null)
   const [selectedBox, setSelectedBox] = useState<string>('')
-  const [boxes, setBoxes] = useState<Box[]>(STATIC_BOXES)
-  const [boxesLoading, setBoxesLoading] = useState(false)
   const [sessionActive, setSessionActive] = useState(false)
   const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([])
   const [currentSession, setCurrentSession] = useState<WarehouseSession | null>(null)
@@ -98,6 +89,8 @@ export default function WarehousePage() {
   const [currentBoxBooks, setCurrentBoxBooks] = useState(0)
   const [bookCounter, setBookCounter] = useState(0)
   const [userName, setUserName] = useState<string>('')
+  // SSE connection ref for ISBN lookups
+  const sseRef = useRef<EventSource | null>(null)
   // Flag modal state
   const [flagModalBook, setFlagModalBook] = useState<ScannedBook | null>(null)
   const [flagIssue, setFlagIssue] = useState('')
@@ -128,11 +121,28 @@ export default function WarehousePage() {
 
   const currentSessionRef = useRef<WarehouseSession | null>(null)
   const sessionActiveRef = useRef(false)
+  const boxInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     currentSessionRef.current = currentSession
     sessionActiveRef.current = sessionActive
   }, [currentSession, sessionActive])
+
+  // Open SSE connection when a session starts, close when it ends
+  useEffect(() => {
+    if (sessionActive) {
+      const token = localStorage.getItem('access_token')
+      if (!token) return
+      const es = new EventSource(`${API_URL}/api/warehouse/isbn-stream?token=${encodeURIComponent(token)}`)
+      es.addEventListener('connected', () => console.log('📡 ISBN stream connected'))
+      es.onerror = () => console.warn('ISBN stream error — will retry automatically')
+      sseRef.current = es
+      return () => { es.close(); sseRef.current = null }
+    } else {
+      sseRef.current?.close()
+      sseRef.current = null
+    }
+  }, [sessionActive])
 
   // Handle page refresh/exit and component unmount
   useEffect(() => {
@@ -171,53 +181,73 @@ export default function WarehousePage() {
     loadUserProfile()
   }, [])
 
-  const handleNewSession = async (force: boolean = false) => {
-    if (!activeLot) { alert('Please select a lot first'); return }
-    if (!selectedBox) { alert('Please select a box first'); return }
-    
-    setLoading(true)
-    try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-
-      const startRes = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ lot_number: activeLot, box_id: selectedBox, box_number: boxes.find(b => b.id === selectedBox)?.box_number || '', force })
-      })
-      const startData = await startRes.json()
-      
-      if (startRes.status === 409) {
-        if (startData.error === 'BoxExistsWithZeroBooks') {
-           setConflictModalState({ open: true, type: 'zero_books', message: startData.message, boxInfo: startData.box })
-           return
-        } else if (startData.error === 'BoxExistsWithBooks') {
-           setConflictModalState({ open: true, type: 'has_books', message: startData.message, boxInfo: startData.box })
-           return
+  // Fetch all active (non-received) lots + boxes from iLMS on mount
+  useEffect(() => {
+    const loadLots = async () => {
+      setLotsLoading(true)
+      setLotsError(null)
+      try {
+        const token = await getValidAccessToken()
+        if (!token) throw new Error('Not authenticated')
+        const res = await fetch(`${API_URL}/api/warehouse/ilms-lots`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        if (data.success) {
+          setLots(data.lots || [])
+        } else {
+          setLotsError('Failed to load lots from iLMS.')
         }
+      } catch (err: any) {
+        setLotsError(err.message || 'Failed to connect to iLMS.')
+      } finally {
+        setLotsLoading(false)
       }
-
-      if (!startRes.ok) throw new Error(startData.error || 'Failed to create session on backend')
-
-      setCurrentSession({ 
-        id: startData.session.id,
-        status: startData.session.status,
-        total_scanned: 0,
-        total_processable: 0, 
-        total_non_processable: 0 
-      })
-      setSessionActive(true)
-      setScannedBooks([])
-      setBookCounter(0)
-      const selected = boxes.find(b => b.id === selectedBox)
-      setCurrentBoxNumber(selected?.box_number || '')
-      setCurrentBoxBooks(0)
-      toast({ title: 'Session Started', description: `Session created and marked as in-progress for ${activeLot}.` })
-    } catch (error) {
-      toast({ title: 'Error', description: error instanceof Error ? error.message : 'Failed to start session', variant: 'destructive' })
-    } finally {
-      setLoading(false)
     }
+    loadLots()
+  }, [])
+
+  // Boxes for the currently selected lot
+  const availableBoxes = lots.find(l => l.lot_number === activeLot)?.boxes ?? []
+
+  const handleNewSession = async (force: boolean = false) => {
+    let formattedLot = activeLot.trim()
+    if (!formattedLot) { alert('Please select a lot first'); return }
+    if (!formattedLot.toLowerCase().startsWith('lot')) {
+      toast({ title: "Invalid Lot Format", description: "The Lot Number must start with the word 'Lot' (e.g. Lot-109).", variant: "destructive" })
+      return
+    }
+    if (!selectedBox) { alert('Please select a box first'); return }
+    if (!selectedBox.includes('/')) {
+      toast({ title: "Invalid Box Format", description: "The Box Number must contain a '/' (e.g. 181/264).", variant: "destructive" })
+      return
+    }
+    
+    const [currentBox, totalBoxes] = selectedBox.split('/')
+    const currentNum = parseInt(currentBox, 10)
+    const totalNum = parseInt(totalBoxes, 10)
+
+    if (isNaN(currentNum) || isNaN(totalNum) || currentNum > totalNum) {
+      toast({ title: "Invalid Box Numbers", description: "The total boxes (right side) must be greater than or equal to the current box (left side). Example: 12/400.", variant: "destructive" })
+      return
+    }
+
+    // Bypass Backend: Set up local session only
+    // The database Lot and Box will only be created when they actually Complete the session!
+    setCurrentSession({ 
+      id: `pending-${Date.now()}`,
+      status: 'completed',
+      type: brand, // Store the brand active when session was started
+      total_scanned: 0,
+      total_processable: 0, 
+      total_non_processable: 0 
+    })
+    setSessionActive(true)
+    setScannedBooks([])
+    setBookCounter(0)
+    setCurrentBoxNumber(selectedBox)
+    setCurrentBoxBooks(0)
+    toast({ title: 'Session Started', description: `Local session created. Lot will be saved to database upon completion.` })
   }
 
   const handleCloseSession = async () => {
@@ -248,7 +278,6 @@ export default function WarehousePage() {
     }
 
     const missingCount = issues.filter(i => i.type === 'missing').length
-    const extraCount = issues.filter(i => i.type === 'extra').length
     // Extra books are unaccounted and don't reduce the expected total.
     const calculatedExpected = scannedBooks.length + missingCount
 
@@ -267,8 +296,15 @@ export default function WarehousePage() {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
 
-      // 1. Session is already created in handleNewSession
-      const realSessionId = currentSession.id
+      // 1. Create the session in Supabase NOW (along with Lot and Box)
+      const startRes = await fetch(`${API_URL}/api/warehouse/sessions/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ lot_number: activeLot, box_number: currentBoxNumber, type: currentSession.type, force: true })
+      })
+      const startData = await startRes.json()
+      if (!startRes.ok) throw new Error(startData.error || 'Failed to create session in database')
+      const realSessionId = startData.session.id
 
       // 2. Save all scanned books to database
       const savedBookIds: string[] = []
@@ -309,7 +345,7 @@ export default function WarehousePage() {
     setConfirmResetOpen(false)
     
     try {
-      if (currentSession.id !== 'pending') {
+      if (!currentSession.id.startsWith('pending')) {
         const token = await getValidAccessToken()
         if (token) {
           await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}`, {
@@ -351,26 +387,32 @@ export default function WarehousePage() {
 
     setFetchingIssueBook(true)
     try {
-      const response = await fetch(`${API_URL}/api/books/ilms/search/${issueIsbn}`)
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Authentication required.')
+
+      const response = await fetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ isbn: issueIsbn.trim(), type: currentSession?.type })
+      })
       const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        toast({ title: 'Book Not Found', description: `ISBN ${issueIsbn} was not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`, variant: 'destructive' })
+        setIssueIsbn('')
+        return
+      }
+
       const issueData = {
         isbn: issueIsbn,
         type: issueType,
-        title: data.success && data.data && !data.data.Message ? data.data.Title : `Book ${bookCounter + 1}`,
-        author: data.success && data.data && !data.data.Message ? data.data.Author : `Author ${bookCounter + 1}`
+        title: data.data?.Title || 'Unknown Title',
+        author: data.data?.Author || 'Unknown Author'
       }
       setIssues(prev => [...prev, issueData])
       setIssueIsbn('')
     } catch {
-      // Even if fetch fails, add the issue with generated title/author
-      const issueData = {
-        isbn: issueIsbn,
-        type: issueType,
-        title: `Book ${bookCounter + 1}`,
-        author: `Author ${bookCounter + 1}`
-      }
-      setIssues(prev => [...prev, issueData])
-      setIssueIsbn('')
+      toast({ title: 'API Error', description: 'Failed to connect to iLMS. Please try again.', variant: 'destructive' })
     } finally {
       setFetchingIssueBook(false)
     }
@@ -400,33 +442,26 @@ export default function WarehousePage() {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
 
-      const response = await fetch(`${API_URL}/api/warehouse/search/isbn/${isbn}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // Use the SSE query endpoint — lightweight POST that returns iLMS data
+      const ilmsRes = await fetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ isbn, type: currentSession.type })
       })
-      const data = await response.json()
+      const ilmsData = await ilmsRes.json()
 
-      // Global duplicate check: reject if it's already in the warehouse
-      if (data.success && data.book?.in_warehouse) {
-        toast({ 
-          title: 'Already in Warehouse', 
-          description: `ISBN ${isbn} has already been scanned into Box ${data.book.box_number} (Lot ${data.book.lot_number}).`, 
-          variant: 'destructive' 
-        })
+      if (!ilmsData.success) {
+        toast({ title: 'Book Not Found', description: `ISBN not found in ${currentSession.type?.toUpperCase() || 'iLMS'} records.`, variant: 'destructive' })
         return
       }
 
-      if (data.success && data.book?.in_ilms) {
-        // Book found in ILMS but not in warehouse
-        saveBookToLocal({ isbn: data.book.isbn, title: data.book.title, author: data.ilmsData?.Author || `Author ${bookCounter + 1}` }, 'processable', null, null)
-      } else {
-        // Book not found in ILMS or DB, but still add to local scan log with generated title/author for testing
-        saveBookToLocal({ isbn, title: `Book ${bookCounter + 1}`, author: `Author ${bookCounter + 1}` }, 'processable', null, null)
-        toast({ title: 'Book Not Found', description: 'ISBN not found in iLMS records. Added to scan log anyway.', variant: 'destructive' })
-      }
+      const bookData = ilmsData.data as ILMSBookData
+      saveBookToLocal(
+        { isbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || 'Unknown Author', ilmsData: bookData },
+        'processable', null, null
+      )
     } catch (error) {
-      // API error, but still add to local scan log with generated title and author
-      saveBookToLocal({ isbn, title: `Book ${bookCounter + 1}`, author: `Author ${bookCounter + 1}` }, 'processable', null, null)
-      toast({ title: 'API Error', description: 'Failed to verify ISBN. Added to scan log anyway.', variant: 'destructive' })
+      toast({ title: 'API Error', description: 'Failed to verify ISBN. Please try again.', variant: 'destructive' })
     } finally { setLoading(false) }
   }
 
@@ -438,6 +473,7 @@ export default function WarehousePage() {
     const newBook: ScannedBook = {
       id: `local-${Date.now()}`, // Temporary ID
       isbn: bookData.isbn,
+      ilmsData: bookData.ilmsData || null,
       title: bookData.title,
       author: bookData.author,
       scan_status,
@@ -520,7 +556,7 @@ export default function WarehousePage() {
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={sessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar disableBrandToggle={sessionActive} navigationLocked={sessionActive} />
@@ -679,8 +715,7 @@ export default function WarehousePage() {
                                   <div className="flex-1 min-w-0">
                                     <div className="items-center gap-2">
                                       <span className="text-xs font-semibold text-foreground truncate">ISBN: {issue.isbn}</span>
-                                      <p className="text-xs text-muted-foreground font-mono shrink-0">{issue.title}</p>
-                                      <p className="text-[11px] text-muted-foreground truncate">{issue.author}</p>
+                                      <p className="text-[13px] font-semibold text-foreground line-clamp-1 leading-tight">{issue.title || 'Unknown Title'}</p>
                                     </div>
                                   </div>
 
@@ -983,25 +1018,65 @@ export default function WarehousePage() {
                       <div className="flex flex-col gap-2.5">
                         <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
                           Lot Number
-                          {activeLot && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">SELECTED</span>}
+                          {activeLot && !lotsLoading && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">SELECTED</span>}
                         </label>
                         <Popover open={lotOpen} onOpenChange={setLotOpen}>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={lotOpen} className="w-full justify-between font-normal h-11 bg-background text-sm shadow-sm transition-colors hover:bg-background hover:text-foreground hover:border-primary/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/50">
-                              {activeLot ? <span className="font-semibold text-foreground">{lots.find(l => l.lot_number === activeLot)?.lot_number}</span> : <span className="text-muted-foreground group-hover:text-foreground">Select lot...</span>}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[280px] p-0" align="start">
+                          <PopoverAnchor asChild>
+                            <div className="relative">
+                              <Input
+                                placeholder="Type or search lot..."
+                                value={activeLot}
+                                onChange={(e) => {
+                                  setActiveLot(e.target.value);
+                                  setLotOpen(true);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    setLotOpen(false);
+                                    if (activeLot && selectedBox) {
+                                      handleNewSession(false);
+                                    } else {
+                                      setTimeout(() => boxInputRef.current?.focus(), 0);
+                                    }
+                                  }
+                                }}
+                                onFocus={() => setLotOpen(true)}
+                                disabled={lotsLoading}
+                                className="h-11 pr-10 bg-background text-sm shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                              />
+                              <ChevronsUpDown className="absolute right-3 top-3.5 h-4 w-4 shrink-0 opacity-50 pointer-events-none" />
+                            </div>
+                          </PopoverAnchor>
+                          <PopoverContent className="w-[280px] p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                             <Command>
-                              <CommandInput placeholder="Search..." />
                               <CommandList>
-                                <CommandEmpty>No lot found.</CommandEmpty>
+                                <CommandEmpty className="py-4 flex justify-center text-sm">
+                                  {activeLot ? (
+                                    <div className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-md font-medium text-xs tracking-wide">
+                                      Use custom: {activeLot}
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted-foreground">No lot found.</span>
+                                  )}
+                                </CommandEmpty>
                                 <CommandGroup>
-                                  {lots.map(l => (
-                                    <CommandItem key={l.id} value={l.lot_number} onSelect={v => { setActiveLot(v === activeLot ? '' : v); setLotOpen(false) }} className="flex justify-between items-center w-full py-2">
-                                      <span className="font-medium">{l.lot_number}</span>
-                                      <Check className={cn('h-4 w-4 text-white', activeLot === l.lot_number ? 'opacity-100' : 'opacity-0')} />
+                                  {lots
+                                    .filter(l => l.type === brand && String(l.lot_number).toLowerCase().includes(activeLot.toLowerCase()))
+                                    .slice(0, 10)
+                                    .map(l => (
+                                    <CommandItem 
+                                      key={l.lot_number} 
+                                      value={String(l.lot_number)} 
+                                      onSelect={(v) => { 
+                                        setActiveLot(String(l.lot_number));
+                                        setLotOpen(false); 
+                                        setTimeout(() => boxInputRef.current?.focus(), 0);
+                                      }} 
+                                      className="flex justify-between items-center w-full py-2 cursor-pointer"
+                                    >
+                                      <span className="font-medium">{String(l.lot_number).toLowerCase().startsWith('lot') ? String(l.lot_number) : `Lot ${String(l.lot_number)}`}</span>
+                                      <Check className={cn('h-4 w-4 text-primary ml-auto', activeLot === String(l.lot_number) ? 'opacity-100' : 'opacity-0')} />
                                     </CommandItem>
                                   ))}
                                 </CommandGroup>
@@ -1017,45 +1092,43 @@ export default function WarehousePage() {
                           Box Number
                           {selectedBox && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-[10px] font-bold">SELECTED</span>}
                         </label>
-                        <Popover open={boxOpen} onOpenChange={setBoxOpen}>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" aria-expanded={boxOpen} disabled={!activeLot} className="w-full justify-between font-normal h-11 bg-background text-sm shadow-sm transition-colors hover:bg-background hover:text-foreground hover:border-primary/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/50">
-                              {selectedBox ? <span className="font-semibold text-foreground">{boxes.find(b => b.id === selectedBox)?.box_number}</span> : <span className="text-muted-foreground group-hover:text-foreground">Select box...</span>}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[280px] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Search box..." />
-                              <CommandList>
-                                <CommandEmpty>No box found.</CommandEmpty>
-                                <CommandGroup>
-                                  {boxes.map(b => (
-                                    <CommandItem key={b.id} value={b.box_number} onSelect={() => { setSelectedBox(b.id === selectedBox ? '' : b.id); setBoxOpen(false) }} className="flex justify-between items-center w-full py-2">
-                                      <span className="font-medium">{b.box_number}</span>
-                                      <Check className={cn('h-4 w-4 text-white', selectedBox === b.id ? 'opacity-100' : 'opacity-0')} />
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                        <Input
+                          ref={boxInputRef}
+                          placeholder="e.g. 181/264"
+                          value={selectedBox}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (/^[0-9/]*$/.test(val)) {
+                              setSelectedBox(val);
+                            }
+                          }}
+                          disabled={!activeLot}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && activeLot && selectedBox) {
+                              e.preventDefault();
+                              handleNewSession(false);
+                            }
+                          }}
+                          className="h-11 bg-background text-sm shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+                        />
                       </div>
                     </div>
                     
                     {activeLot && selectedBox && (
                       <div className="flex items-center justify-center gap-2.5 py-3 px-4 bg-primary/5 border border-primary/10 rounded-xl text-sm font-semibold text-primary animate-in fade-in zoom-in-95 duration-200">
                         <Package className="h-4 w-4 opacity-70" />
-                        <span>Lot {lots.find(l => l.lot_number === activeLot)?.lot_number}</span>
+                        <span>{activeLot.toLowerCase().startsWith('lot') ? activeLot : `Lot ${activeLot}`}</span>
                         <span className="text-primary/30">•</span>
-                        <span>Box {boxes.find(b => b.id === selectedBox)?.box_number}</span>
+                        <span>Box {selectedBox}</span>
                       </div>
+                    )}
+                    {lotsError && (
+                      <p className="text-xs text-destructive text-center">{lotsError}</p>
                     )}
 
                     <Button
                       onClick={() => handleNewSession(false)}
-                      disabled={loading || !activeLot || !selectedBox}
+                      disabled={loading || !activeLot || !selectedBox || lotsLoading}
                       className="w-full h-12 text-sm font-bold shadow-md transition-all hover:shadow-lg disabled:hover:shadow-none bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       {loading ? (
@@ -1204,8 +1277,7 @@ export default function WarehousePage() {
                     {/* Header row */}
                     <div className="grid grid-cols-12 gap-3 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30">
                       <div className="col-span-3">ISBN</div>
-                      <div className="col-span-3">Title</div>
-                      <div className="col-span-2">Author</div>
+                      <div className="col-span-5">Title</div>
                       <div className="col-span-3 text-center">Status</div>
                       <div className="col-span-1 text-right">Remove</div>
                     </div>
@@ -1221,14 +1293,11 @@ export default function WarehousePage() {
                           <div className="col-span-3">
                             <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
                           </div>
-                          <div className="col-span-3">
+                          <div className="col-span-5">
                             <p className="text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
                             {book.flag_issue && (
                               <p className="text-[10px] text-destructive mt-0.5 truncate">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                             )}
-                          </div>
-                          <div className="col-span-2">
-                            <p className="text-xs text-muted-foreground truncate">{book.author}</p>
                           </div>
                           <div className="col-span-3 flex items-center justify-center gap-2">
                             {book.scan_status === 'processable' ? (

@@ -28,13 +28,17 @@ import { supabase } from '../config/supabase.js'
 export const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization
 
-  // Header must exist and start with "Bearer "
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Missing or invalid authorization header.' })
+  // Accept token from Authorization header OR ?token= query param (SSE/EventSource can't send headers)
+  let token = null
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1]
+  } else if (req.query.token) {
+    token = req.query.token
   }
 
-  // Extract the raw JWT
-  const token = authHeader.split(' ')[1]
+  if (!token) {
+    return res.status(401).json({ error: 'Missing or invalid authorization header.' })
+  }
 
   // Ask Supabase to validate the token and return the user record
   const { data: { user }, error } = await supabase.auth.getUser(token)

@@ -52,7 +52,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
         .insert({
           lot_number: lot_number,
           total_boxes: 0,
-          status: 'intake'
+          type: req.body.type || 'mustang'
         })
         .select()
         .single()
@@ -131,7 +131,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
         box_id: assignedBoxId, // null means box will be created on first scan
         lot_id: lot.id,
         warehouse_user_received: req.user.id,
-        status: 'in_progress'
+        status: 'completed' // User requested to auto-complete session instead of in_progress
       })
       .select()
       .single()
@@ -174,9 +174,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
     if (sessionError) throw sessionError
     if (!session) return res.status(404).json({ error: 'Session not found' })
 
-    if (session.status !== 'in_progress') {
-      return res.status(400).json({ error: 'Session is not in progress' })
-    }
+    // Removed the 'in_progress' check here because sessions are now auto-completed upon start.
 
     // Get lot_id and lot_number from session
     const lotId = session.lot_id
@@ -598,6 +596,110 @@ router.get('/sessions', requireAuth, async (req, res) => {
   }
 })
 
+// Fetch historical lots from Supabase (instead of live from iLMS)
+// Used to populate the Lot dropdown on the session start screen
+router.get('/ilms-lots', requireAuth, async (req, res) => {
+  try {
+    // We now just fetch distinct lots from our local database rather than pinging iLMS
+    const { data: lots, error } = await supabaseAdmin
+      .from('lots')
+      .select('lot_number, type')
+      .order('created_at', { ascending: false })
+      .limit(100) // fetch up to 100 recent lots
+
+    if (error) throw error
+
+    // Format them for the frontend
+    const formattedLots = lots.map(l => ({
+      lot_number: l.lot_number,
+      type: l.type,
+      boxes: [] // we no longer pre-fetch boxes, users manually type them
+    }))
+
+    res.json({ success: true, lots: formattedLots })
+  } catch (error) {
+    console.error('fetch historical lots error:', error)
+    res.status(500).json({ success: false, error: error.message, lots: [] })
+  }
+})
+
+// ── SSE: persistent ISBN lookup stream ───────────────────────────────────────
+// Opens one long-lived connection. Client sends ?isbn=<value> to trigger a
+// lookup; the server pushes back a single SSE event with the result.
+// Connection stays open indefinitely until the client disconnects.
+router.get('/isbn-stream', requireAuth, async (req, res) => {
+  // SSE headers — keep connection alive
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('X-Accel-Buffering', 'no') // disable nginx buffering if present
+  res.flushHeaders()
+
+  // Send a heartbeat comment every 25 s to prevent proxy timeouts
+  const heartbeat = setInterval(() => {
+    res.write(': heartbeat\n\n')
+  }, 25000)
+
+  // Helper to push a named event to the client
+  const send = (event, data) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+  }
+
+  // Send initial connected event
+  send('connected', { message: 'ISBN stream ready' })
+
+  // If the client passes ?isbn= on the initial request, handle it immediately
+  const initialIsbn = req.query.isbn
+  if (initialIsbn) {
+    try {
+      const { ilmsApi } = await import('../services/ilms-api.js')
+      const ilmsResult = await ilmsApi.searchBookByISBN(initialIsbn)
+      send('isbn-result', { isbn: initialIsbn, success: ilmsResult.success, data: ilmsResult.data || null, source: ilmsResult.source || null, error: ilmsResult.error || null })
+    } catch (err) {
+      send('isbn-result', { isbn: initialIsbn, success: false, data: null, error: err.message })
+    }
+  }
+
+  // Attach a request handler so the client can trigger lookups by sending
+  // a new GET to this same SSE connection via a POST to /isbn-stream/query
+  req.on('close', () => {
+    clearInterval(heartbeat)
+  })
+})
+
+// ISBN lookup triggered over SSE — client POSTs here with { isbn } body
+// and the SSE connection receives the result as an event
+router.post('/isbn-stream/query', requireAuth, async (req, res) => {
+  const { isbn, type } = req.body
+  if (!isbn) return res.status(400).json({ error: 'isbn is required' })
+
+  try {
+    const { ilmsApi } = await import('../services/ilms-api.js')
+    let ilmsResult;
+    
+    if (type) {
+      const projResult = await ilmsApi.searchByProject(isbn, type)
+      ilmsResult = {
+        success: projResult.success,
+        data: Array.isArray(projResult.data) ? projResult.data[0] : projResult.data,
+        source: type.charAt(0).toUpperCase() + type.slice(1)
+      }
+    } else {
+      ilmsResult = await ilmsApi.searchBookByISBN(isbn)
+    }
+
+    res.json({
+      isbn,
+      success: ilmsResult.success,
+      data: ilmsResult.data || null,
+      source: ilmsResult.source || null,
+      error: ilmsResult.error || null
+    })
+  } catch (err) {
+    res.status(500).json({ isbn, success: false, data: null, error: err.message })
+  }
+})
+
 // Search book by ISBN to find which box it's in
 router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
   try {
@@ -610,27 +712,13 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
     let bookTitle = null
     let ilmsBoxNo = null
     let ilmsLotNo = null
-    let ilmsExactMatch = null
+    let ilmsData = null
 
     if (ilmsResult.success && ilmsResult.data) {
-      // iLMS returns a general text search — filter to only the entry whose ISBN
-      // exactly matches what was searched (case-insensitive, strip hyphens/spaces)
-      const normalize = s => String(s || '').replace(/[-\s]/g, '').toLowerCase()
-      const searchedNorm = normalize(isbn)
-
-      const candidates = Array.isArray(ilmsResult.data)
-        ? ilmsResult.data
-        : [ilmsResult.data]
-
-      ilmsExactMatch = candidates.find(
-        item => item && !item.Message && normalize(item.ISBN) === searchedNorm
-      ) || null
-
-      if (ilmsExactMatch) {
-        bookTitle = ilmsExactMatch.Title
-        ilmsBoxNo = ilmsExactMatch.BoxNo
-        ilmsLotNo = ilmsExactMatch.LotNo
-      }
+      ilmsData = ilmsResult.data
+      bookTitle = ilmsData.Title
+      ilmsBoxNo = ilmsData.BoxNo
+      ilmsLotNo = ilmsData.LotNo
     }
 
     // Search in warehouse scan logs
@@ -682,8 +770,8 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
       inWarehouse = true
     }
 
-    // If book found in iLMS (exact ISBN match) or database, return success
-    const bookFound = ilmsExactMatch || book || (scans && scans.length > 0)
+    // If book found in iLMS or database, return success
+    const bookFound = ilmsData || book || (scans && scans.length > 0)
 
     if (!bookFound) {
       return res.json({
@@ -704,11 +792,11 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
         in_warehouse: inWarehouse,
-        in_ilms: !!ilmsExactMatch
+        in_ilms: !!ilmsData
       },
       scans,
       currentLocation: book || null,
-      ilmsData: ilmsExactMatch || null
+      ilmsData: ilmsData || null
     })
   } catch (error) {
     console.error('Search ISBN error:', error)
