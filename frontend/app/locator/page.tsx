@@ -71,6 +71,7 @@ export default function WarehouseLocatorPage() {
   const [loadingLocations, setLoadingLocations] = useState(true)
   const [loadingReady, setLoadingReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   // Search
   const [searchValue, setSearchValue] = useState("")
@@ -138,6 +139,7 @@ export default function WarehouseLocatorPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to load storage locations')
       setLocations(data.locations || [])
+      setLastUpdated(new Date())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -530,6 +532,10 @@ export default function WarehouseLocatorPage() {
   const sectionRacks = getSectionRacks(activeSection)
   const sectionLevels = getSectionLevels(activeSection)
 
+  const lastUpdateLabel = lastUpdated
+    ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
+    : 'Not updated yet'
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
@@ -540,23 +546,26 @@ export default function WarehouseLocatorPage() {
           <div className="flex flex-col gap-6 p-6 lg:p-8 max-w-4xl mx-auto">
 
             {/* Header */}
-            <header className="flex items-start justify-between">
+            <header className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">Storage Locator</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Assign incoming boxes to rack slots. Search by ISBN or box number to find their location.
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchLocations}
-                disabled={loadingLocations}
-                className="gap-1.5"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${loadingLocations ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+              <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchLocations}
+                  disabled={loadingLocations}
+                  className="gap-1.5"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${loadingLocations ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+              </div>
             </header>
 
             {/* Search */}

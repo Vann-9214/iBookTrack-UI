@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
@@ -1048,16 +1049,17 @@ export default function InventoryPage() {
               <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory</h1>
               <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                type="button"
+            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={fetchBoxes}
                 disabled={loadingBoxes}
-                className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+                className="gap-1.5"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loadingBoxes ? 'animate-spin' : ''}`}  />
                 Refresh
-              </button>
+              </Button>
               <p className="text-xs text-muted-foreground whitespace-nowrap">{lastInventoryUpdateLabel}</p>
             </div>
           </header>

@@ -540,7 +540,7 @@ export default function WarehousePage() {
 
   const lastUpdateLabel = lastStatsUpdate
     ? `Updated ${lastStatsUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
-    : null
+    : 'Not updated yet'
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -961,16 +961,12 @@ export default function WarehousePage() {
                 size="sm"
                 onClick={handleRefreshStats}
                 disabled={refreshingStats}
-                className="gap-1.5 h-9 bg-card"
+                className="gap-1.5"
               >
-                <RefreshCw className={cn("h-3.5 w-3.5", refreshingStats && "animate-spin")} />
+                <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              {lastUpdateLabel && (
-                <p className="text-xs text-muted-foreground whitespace-nowrap select-none">
-                  {lastUpdateLabel}
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
             </div>
           </header>
 
