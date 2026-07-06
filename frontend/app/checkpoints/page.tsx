@@ -106,7 +106,7 @@ export default function StationCheckpointsPage() {
   const [loading, setLoading] = useState(true)
   const [advancing, setAdvancing] = useState<string | null>(null)
   const [receiving, setReceiving] = useState<string | null>(null)
-  const [lastUpdated, setLastUpdated] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [scanInput, setScanInput] = useState('')
   const [highlightBox, setHighlightBox] = useState<string | null>(null)
   const [transitionSearch, setTransitionSearch] = useState('')
@@ -204,7 +204,7 @@ export default function StationCheckpointsPage() {
         }
       }
 
-      setLastUpdated(new Date().toLocaleTimeString())
+      setLastUpdated(new Date())
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
@@ -546,6 +546,10 @@ export default function StationCheckpointsPage() {
     warehouse: 'Warehouse', inventory: 'Inventory', cut: 'Cut',
     endorsement: 'Endorsement', scan: 'Scan', transmit: 'Transmit', storage: 'Storage'
   }
+
+  const lastUpdateLabel = lastUpdated
+    ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
+    : 'Not updated yet'
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -1132,7 +1136,7 @@ export default function StationCheckpointsPage() {
                     <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
-                  {lastUpdated && <span className="text-xs text-muted-foreground">{lastUpdated}</span>}
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
                 </div>
               </div>
             </header>

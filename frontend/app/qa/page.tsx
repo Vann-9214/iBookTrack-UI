@@ -80,7 +80,7 @@ const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.labe
 export default function BookInspectionPage() {
   // ── Tab navigation ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'incoming' | 'inspection' | 'outgoing'>('incoming')
-  const [lastUpdated, setLastUpdated] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   // ── Incoming Boxes (cut stage) ──────────────────────────────────────────────
   const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
@@ -129,7 +129,7 @@ export default function BookInspectionPage() {
       if (data.boxes) {
         setEndorsementBoxes(data.boxes)
       }
-      setLastUpdated(new Date().toLocaleTimeString())
+      setLastUpdated(new Date())
     } catch (e) {
       console.error('Failed to fetch endorsement boxes:', e)
     } finally {
@@ -442,6 +442,10 @@ export default function BookInspectionPage() {
     }
   }
 
+  const lastUpdateLabel = lastUpdated
+    ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
+    : 'Not updated yet'
+
   return (
     <div className="flex min-h-screen bg-background">
       <DashboardSidebar navigationLocked={inspSessionActive} />
@@ -469,7 +473,7 @@ export default function BookInspectionPage() {
                   <RefreshCw className={`h-3.5 w-3.5 ${(loadingIncoming || loadingEndorsement) ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
-                {lastUpdated && <span className="text-xs text-muted-foreground">Updated {lastUpdated}</span>}
+                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
               </div>
             </header>
 

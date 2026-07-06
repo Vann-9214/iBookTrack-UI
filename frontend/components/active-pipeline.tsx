@@ -3,8 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-function getStepStatus(count: number) {
-  if (count >= 5) return "busy"
+function getStepStatus(count: number, stage: string) {
+  if (stage === "storage") {return count > 0 ? "completed" : "idle"}
+  if (count >= 10) return "busy"
   if (count === 0) return "idle"
   return "active"
 }
@@ -33,6 +34,14 @@ const statusConfig = {
     cardBg: "bg-gray-50",
     dot: "bg-gray-400",
     label: "Idle",
+  },
+    completed: {
+    nodeRing: "border-green-300 text-green-400",
+    countColor: "text-green-400",
+    bar: "bg-green-400",
+    cardBg: "bg-green-50",
+    dot: "bg-green-400",
+    label: "Completed",
   },
 }
 
@@ -64,7 +73,7 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
           {/* Desktop: card layout */}
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count)
+              const status = getStepStatus(step.count, step.stage)
               const cfg = statusConfig[status]
               const inner = (
                 <>
@@ -109,12 +118,16 @@ export function ActivePipeline({ currentLot = "", stats }: ActivePipelineProps) 
               <span className="h-2 w-2 rounded-full bg-gray-400" />
               <span className="text-xs text-muted-foreground">Idle</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-green-400" />
+              <span className="text-xs text-muted-foreground">Completed</span>
+            </div>
           </div>
 
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count)
+              const status = getStepStatus(step.count, step.stage)
               const cfg = statusConfig[status]
               const inner = (
                 <>

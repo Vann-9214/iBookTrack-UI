@@ -374,6 +374,10 @@ export default function TransmissionMonitorPage() {
   const boxBookPagination = usePagination({ totalItems: filteredBoxBooks.length, defaultPageSize: 50 })
   const paginatedBoxBooks = filteredBoxBooks.slice(boxBookPagination.offset, boxBookPagination.offset + boxBookPagination.limit)
 
+  const lastUpdateLabel = lastUpdated
+    ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
+    : 'Not updated yet'
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
@@ -443,11 +447,10 @@ export default function TransmissionMonitorPage() {
                   <Trophy className="h-3.5 w-3.5" /> Ranking
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5">
-                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
                 </Button>
-                {lastUpdated && (
-                  <span className="text-xs text-muted-foreground">Updated {lastUpdated.toLocaleTimeString()}</span>
-                )}
+                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
               </div>
             </header>
 

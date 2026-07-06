@@ -113,7 +113,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
     {
       title: "Non-Processable",
       value: unaccounted.toLocaleString(),
-      subtext: `${unaccounted} flagged today`,
+      subtext: "flagged today",
       badge: "Needs review",
       icon: AlertTriangle,
       iconColor: "text-red-600",
@@ -128,8 +128,8 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
     {
       title: "Daily Output",
       value: dailyOutput.toLocaleString(),
-      subtext: "books scanned",
-      badge: "102% of target",
+      subtext: "books transmitted",
+      badge: "All processed",
       icon: FileOutput,
       iconColor: "text-green-600",
       iconBg: "bg-green-500",
@@ -175,12 +175,12 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
               <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm", stat.iconBg)}>
                 <stat.icon className="h-6 w-6" />
               </div>
-              <span className="text-[11px] font-semibold text-gray-500">{stat.badge}</span>
+              {/* Value */}
+              <div className={cn("text-4xl font-black mb-0.5", stat.valueColor)}>
+                {stat.value}
+              </div>
             </div>
-            {/* Value */}
-            <div className={cn("text-3xl font-black mb-0.5", stat.valueColor)}>
-              {stat.value}
-            </div>
+
             {/* Title */}
             <div className="text-sm font-semibold text-gray-700 mb-0.5">{stat.title}</div>
             {/* Subtext */}
@@ -234,9 +234,6 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
               </div>
             ) : flags.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-2">
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <span className="text-xl">✅</span>
-                </div>
                 <span className="text-sm font-medium text-gray-500">No flagged books recorded yet</span>
               </div>
             ) : (

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { Search, Book, Package, Barcode, X } from "lucide-react"
+import { Search, Book, Package, Barcode, X, RefreshCw } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
 import { useBrand } from "@/hooks/use-brand"
@@ -40,6 +40,10 @@ export default function DashboardPage() {
   const [dashboardStats, setDashboardStats] = useState<any>(null)
   const { toast } = useToast()
 
+  // New state hooks for tracking background refresh metrics
+  const [refreshingStats, setRefreshingStats] = useState(false)
+  const [lastStatsUpdate, setLastStatsUpdate] = useState<Date | null>(null)
+
   const clearSearch = () => {
     setSearchResult(null)
     setSearchValue('')
@@ -60,6 +64,7 @@ export default function DashboardPage() {
   }, [brand])
 
   const fetchDashboardStats = async (lotNumber?: string) => {
+    setRefreshingStats(true)
     try {
       const statsUrl = lotNumber
         ? `${API_URL}/api/dashboard/stats?lot_number=${encodeURIComponent(lotNumber)}`
@@ -76,9 +81,6 @@ export default function DashboardPage() {
       const statsData = await statsRes.json()
       const pipelineData = await pipelineRes.json()
 
-      // Get daily transmitted count + all-time total from Simflex.
-      // Use the same scan-pipeline WIP total as the Transmission Monitor so the
-      // dashboard Scan card matches the "checked new process only" figure.
       let dailyTransmitted = 0
       let simflexAllTime = 0
       let scanWipCount = 0
@@ -88,7 +90,7 @@ export default function DashboardPage() {
         scanWipCount = simflex.scanWipCount || 0
         console.log('[Dashboard] /live scanWipCount:', scanWipCount, '| transmitBooks:', simflex.transmitBooks, '| success:', simflex.success)
         if (simflex.success) {
-          dailyTransmitted = simflex.dailyOutput || 0
+          dailyTransmitted = simflex.summary?.completedTransmissions || 0
           simflexAllTime   = simflex.allTimeTotal || 0
           transmitBooks = simflex.transmitBooks || 0
         }
@@ -96,23 +98,20 @@ export default function DashboardPage() {
         console.warn('[Dashboard] simflexRes not ok:', simflexRes?.status)
       }
 
-      // Start with Supabase box counts for Warehouse→Storage stages,
-      // then override the Scan and Transmit stages with exact Simflex book counts.
       const stages = {
         ...(pipelineData.stageCounts || {}),
         scan:     scanWipCount,
         transmit: transmitBooks,
       }
 
-      // Keep the Supabase box count for the Transmit stage so the pipeline card
-      // remains clickable and shows the real boxes waiting at that station.
-      // dailyTransmitted (Simflex ongoing) is kept separately for stats widgets.
-
       if (statsData.success) {
         setDashboardStats({ ...statsData.stats, pipelineStages: stages, dailyTransmitted, totalBooks: simflexAllTime || statsData.stats.totalBooks })
+        setLastStatsUpdate(new Date())
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)
+    } finally {
+      setRefreshingStats(false)
     }
   }
 
@@ -133,13 +132,11 @@ export default function DashboardPage() {
     setLoading(true)
     try {
       if (searchType === 'isbn') {
-        // Validate: ISBN must be exactly 13 digits
         if (!searchValue.trim()) {
           toast({ title: 'Invalid ISBN', description: 'Please enter an ISBN.', variant: 'destructive' })
           setLoading(false)
           return
         }
-        // Search by ISBN using exactly what was typed (already digits-only from onChange)
         const response = await authFetch(`${API_URL}/api/warehouse/search/isbn/${searchValue.trim()}`)
         const data = await response.json()
         
@@ -150,7 +147,6 @@ export default function DashboardPage() {
             books: [data.book]
           })
           
-          // Show appropriate message based on where book was found
           if (data.book.in_warehouse) {
             toast({ title: 'Book Found in Warehouse', description: `Located in ${data.book.box_number || 'Unknown Box'}` })
           } else if (data.book.in_ilms) {
@@ -167,7 +163,6 @@ export default function DashboardPage() {
           setSearchResult(null)
         }
       } else if (searchType === 'lot') {
-        // Search by Lot — use value exactly as typed
         const lotQuery = searchValue.trim()
         if (isRange && rangeStart && rangeEnd) {
           setDisplayRange(`${rangeStart} – ${rangeEnd}`)
@@ -181,7 +176,6 @@ export default function DashboardPage() {
           setCurrentLot(lotQuery)
           setDisplayRange(null)
           fetchDashboardStats(lotQuery)
-          // Fetch boxes for this lot using the exact typed lot number
           const response = await authFetch(`${API_URL}/api/boxes/lot/${encodeURIComponent(lotQuery)}`)
           const data = await response.json()
           
@@ -238,6 +232,11 @@ export default function DashboardPage() {
   }
 
   const displayText = displayRange || (currentLot ? `Lot ${currentLot.replace(/^lot[-\s]*/i, '').trim()}` : "")
+  
+  const lastUpdateLabel = lastStatsUpdate
+    ? `Updated ${lastStatsUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
+    : 'Not updated yet'
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <DashboardSidebar />
@@ -257,7 +256,7 @@ export default function DashboardPage() {
                   Real-time overview of the 8-step pipeline, transmissions, and warehouse activity.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="relative">
                   <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
@@ -278,6 +277,19 @@ export default function DashboardPage() {
                   <Search className="h-4 w-4" />
                   Search ISBN / Lot
                 </Button>
+                
+                {/* Visual Action Component Injection Group */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchDashboardStats(currentLot || undefined)}
+                  disabled={refreshingStats}
+                  className="gap-1.5"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`}  />
+                  Refresh
+                </Button>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
 
                 {/* Search Dashboard Modal */}
                 {searchOpen && (
@@ -364,7 +376,6 @@ export default function DashboardPage() {
                               value={searchValue}
                               onChange={(e) => {
                                 if (searchType === "isbn") {
-                                  // Strip any non-digit characters
                                   setSearchValue(e.target.value.replace(/[^0-9]/g, ''))
                                 } else {
                                   setSearchValue(e.target.value)
@@ -426,7 +437,6 @@ export default function DashboardPage() {
                 <CardContent>
                   {searchResult.type === 'isbn' && searchResult.data && (
                     <div className="space-y-4">
-                      {/* Status Badge */}
                       <div className="flex gap-2">
                         {searchResult.data.in_warehouse && (
                           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
@@ -520,9 +530,16 @@ export default function DashboardPage() {
             <ActivePipeline currentLot={displayText} stats={dashboardStats} />
 
             {/* Bottom Split: Transmission Queue & Unaccounted Books */}
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <TransmissionQueue />
-              <UnaccountedBooks />
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+              {/* Left Table: Takes up 7 out of 12 columns (~58% width) */}
+              <div className="xl:col-span-7">
+                <TransmissionQueue />
+              </div>
+              
+              {/* Right Table: Takes up 5 out of 12 columns (~42% width) */}
+              <div className="xl:col-span-5">
+                <UnaccountedBooks />
+              </div>
             </div>
           </div>
         </div>
