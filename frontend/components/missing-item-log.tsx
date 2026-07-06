@@ -103,7 +103,6 @@ export function UnaccountedBooks() {
           </div>
         ) : books.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-lg">✅</div>
             <p className="text-sm text-muted-foreground">No flagged books yet.</p>
           </div>
         ) : (
