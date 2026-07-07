@@ -75,6 +75,11 @@ interface WarehouseSession {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+const isValidIsbn = (isbn: string): boolean => {
+  const digits = isbn.replace(/[^0-9]/g, '')
+  return digits.length === 10 || digits.length === 13
+}
+
 export default function WarehousePage() {
   const { brand } = useBrand()
   const [activeLot, setActiveLot] = useState<string>('')
@@ -216,7 +221,7 @@ export default function WarehousePage() {
       setLastStatsUpdate(new Date())
       toast({ title: 'Lots Refreshed', description: 'Warehouse lot list synchronized successfully.' })
     } catch {
-      toast({ title: 'Error', description: 'Failed to refresh lots.', variant: 'destructive' })
+      setSessionError('Failed to refresh lots.')
     } finally {
       setRefreshingStats(false)
     }
@@ -299,7 +304,7 @@ export default function WarehousePage() {
   const handleCloseSession = async () => {
     if (!currentSession) return
     if (scannedBooks.length === 0) {
-      toast({ title: 'Cannot Complete Session', description: 'Please scan at least one book before completing the session.', variant: 'destructive' })
+      setSessionError('Please scan at least one book before completing the session.')
       return
     }
     // Reset modal state
@@ -315,13 +320,13 @@ export default function WarehousePage() {
     if (loading) return
     
     if (!totalBooksExpected.trim()) {
-      toast({ title: 'Required Field', description: 'Please enter the total books expected.', variant: 'destructive' })
+      setSessionError('Please enter the total books expected.')
       return
     }
 
     const expected = parseInt(totalBooksExpected)
     if (isNaN(expected)) {
-      toast({ title: 'Invalid Input', description: 'Total books expected must be a valid number.', variant: 'destructive' })
+      setSessionError('Total books expected must be a valid number.')
       return
     }
 
@@ -330,11 +335,7 @@ export default function WarehousePage() {
     const calculatedExpected = scannedBooks.length + missingCount
 
     if (expected !== calculatedExpected) {
-      toast({ 
-        title: 'Mismatch Detected', 
-        description: `Total expected books (${expected}) does not match total scanned (${scannedBooks.length}) + missing (${missingCount}) books.`, 
-        variant: 'destructive' 
-      })
+      setSessionError(`Total expected books (${expected}) does not match total scanned (${scannedBooks.length}) + missing (${missingCount}) books.`)
       return
     }
 
@@ -368,7 +369,7 @@ export default function WarehousePage() {
       setIssues([])
       toast({ title: 'Session Closed', description: 'Session closed successfully.' })
     } catch (error: any) { 
-      toast({ title: 'Error', description: error.message || 'Failed to complete session', variant: 'destructive' }) 
+      setSessionError(error.message || 'Failed to complete session') 
     } finally { 
       setLoading(false) 
     }
@@ -410,21 +411,29 @@ export default function WarehousePage() {
   }
 
   const handleAddIssue = async () => {
-    if (!issueIsbn.trim()) return
+    const cleanIsbn = issueIsbn.trim().replace(/[^0-9]/g, '')
+    if (!cleanIsbn) return
 
-    if (scannedBooks.some(b => b.isbn === issueIsbn.trim())) {
-      toast({ title: 'Already Scanned', description: 'This book was already scanned successfully in this session.', variant: 'destructive' })
+    if (!isValidIsbn(cleanIsbn)) {
+      setSessionError('Input is not a valid ISBN (must be 10 or 13 digits).')
+      setIssueIsbn('')
+      return
+    }
+
+    if (scannedBooks.some(b => b.isbn === cleanIsbn)) {
+      setSessionError(`You already scanned ISBN ${cleanIsbn} in your scan log. Remove it first if you want to re-add it as missing/extra.`)
       setIssueIsbn('')
       return
     }
     
-    if (issues.some(i => i.isbn === issueIsbn.trim())) {
-      toast({ title: 'Duplicate Issue', description: 'This issue has already been added.', variant: 'destructive' })
+    if (issues.some(i => i.isbn === cleanIsbn)) {
+      setSessionError(`ISBN ${cleanIsbn} is already listed as a missing/extra issue.`)
       setIssueIsbn('')
       return
     }
 
     setFetchingIssueBook(true)
+    setSessionError(null)
     try {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
@@ -432,18 +441,18 @@ export default function WarehousePage() {
       const response = await fetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ isbn: issueIsbn.trim(), type: currentSession?.type })
+        body: JSON.stringify({ isbn: cleanIsbn, type: currentSession?.type, allowExisting: true })
       })
       const data = await response.json()
 
       if (!response.ok || !data.success) {
-        toast({ title: 'Book Not Found', description: `ISBN ${issueIsbn} was not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`, variant: 'destructive' })
+        setSessionError(`ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`)
         setIssueIsbn('')
         return
       }
 
       const issueData = {
-        isbn: issueIsbn,
+        isbn: cleanIsbn,
         type: issueType,
         title: data.data?.Title || 'Unknown Title',
         author: data.data?.Author || 'Unknown Author'
@@ -451,7 +460,7 @@ export default function WarehousePage() {
       setIssues(prev => [...prev, issueData])
       setIssueIsbn('')
     } catch {
-      toast({ title: 'API Error', description: 'Failed to connect to iLMS. Please try again.', variant: 'destructive' })
+      setSessionError('Failed to connect to iLMS. Please try again.')
     } finally {
       setFetchingIssueBook(false)
     }
@@ -470,9 +479,17 @@ export default function WarehousePage() {
   const handleScan = async (isbn: string) => {
     if (!currentSession) return
     
+    setSessionError(null)
+    
+    const cleanIsbn = isbn.replace(/[^0-9]/g, '')
+    if (!isValidIsbn(cleanIsbn)) {
+      setSessionError('Scanned code is not a valid ISBN (must be 10 or 13 digits).')
+      return
+    }
+
     // Prevent duplicate ISBN entries within the same session
-    if (scannedBooks.some(b => b.isbn === isbn)) {
-      toast({ title: 'Duplicate Scan', description: `ISBN ${isbn} has already been scanned in this session.`, variant: 'destructive' })
+    if (scannedBooks.some(b => b.isbn === cleanIsbn)) {
+      setSessionError(`ISBN ${cleanIsbn} is already in your scan log. You cannot scan the same book twice before completing the session.`)
       return
     }
 
@@ -485,26 +502,22 @@ export default function WarehousePage() {
       const ilmsRes = await fetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ isbn, type: currentSession.type })
+        body: JSON.stringify({ isbn: cleanIsbn, type: currentSession.type })
       })
       const ilmsData = await ilmsRes.json()
 
       if (!ilmsData.success) {
-        toast({ 
-          title: ilmsData.error && ilmsData.error.includes('Duplicate') ? 'Duplicate Scan' : 'Book Not Found', 
-          description: ilmsData.error || `ISBN not found in ${currentSession.type?.toUpperCase() || 'iLMS'} records.`, 
-          variant: 'destructive' 
-        })
+        setSessionError(ilmsData.error || `ISBN ${cleanIsbn} not found in ${currentSession.type?.toUpperCase() || 'iLMS'} records.`)
         return
       }
 
       const bookData = ilmsData.data as ILMSBookData
       saveBookToLocal(
-        { isbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || 'Unknown Author', ilmsData: bookData },
+        { isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || 'Unknown Author', ilmsData: bookData },
         'processable', null, null
       )
     } catch (error) {
-      toast({ title: 'API Error', description: 'Failed to verify ISBN. Please try again.', variant: 'destructive' })
+      setSessionError('Failed to verify ISBN. Please try again.')
     } finally { setLoading(false) }
   }
 
@@ -543,7 +556,7 @@ export default function WarehousePage() {
   }
 
   const saveFlagFromLog = async () => {
-    if (!flagModalBook || !flagIssue) { toast({ title: 'Select an issue first', variant: 'destructive' }); return }
+    if (!flagModalBook || !flagIssue) { setSessionError('Select an issue first'); return }
     setFlagSaving(true)
     try {
       // Update local state only (will be saved to DB on session completion)
@@ -559,7 +572,7 @@ export default function WarehousePage() {
       setFlagModalBook(null)
       toast({ title: 'Flagged as Non-Processable' })
     } catch (e) {
-      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed', variant: 'destructive' })
+      setSessionError(e instanceof Error ? e.message : 'Failed to flag book')
     } finally { setFlagSaving(false) }
   }
 
@@ -994,7 +1007,7 @@ export default function WarehousePage() {
           )}
 
           {/* Header */}
-          {lotsLoading ? (
+          {!sessionActive && (lotsLoading ? (
             <div className="flex items-center justify-end">
               <Skeleton className="h-9 w-28 bg-muted-foreground/20" />
             </div>
@@ -1014,10 +1027,10 @@ export default function WarehousePage() {
                 </Button>
               </div>
             </header>
-          )}
+          ))}
 
           {(sessionError || lotsError) && (
-            <div className="fixed top-6 right-6 z-50 flex items-start gap-3 max-w-md px-5 py-4 rounded-xl bg-destructive text-destructive-foreground text-base font-semibold shadow-lg animate-in fade-in slide-in-from-right-4">
+            <div className="fixed top-10 right-6 z-50 flex items-start gap-3 max-w-md px-5 py-4 rounded-xl bg-destructive text-destructive-foreground text-base font-semibold shadow-lg animate-in fade-in slide-in-from-right-4">
               <AlertTriangle className="h-6 w-6 shrink-0 mt-0.5" />
               <span className="leading-snug flex-1">{sessionError || lotsError}</span>
               <button
@@ -1137,7 +1150,7 @@ export default function WarehousePage() {
                                 <CommandList>
                                   <CommandEmpty className="py-4 flex justify-center text-sm">
                                     {activeLot ? (
-                                      <div className="bg-emerald-500/15 text-emerald-500 border border-emerald-500/20 px-3 py-1.5 rounded-md font-medium text-xs tracking-wide">
+                                      <div className="bg-primary/10 text-primary border border-primary/20 px-3 py-1.5 rounded-md font-medium text-xs tracking-wide">
                                         Use custom: {activeLot}
                                       </div>
                                     ) : (
@@ -1146,7 +1159,7 @@ export default function WarehousePage() {
                                   </CommandEmpty>
                                   <CommandGroup>
                                     {lots
-                                      .filter(l => l.type === brand && String(l.lot_number).toLowerCase().includes(activeLot.toLowerCase()))
+                                      .filter(l => l.type?.toLowerCase() === brand && String(l.lot_number).toLowerCase().includes(activeLot.toLowerCase()))
                                       .slice(0, 10)
                                       .map(l => (
                                       <CommandItem 
@@ -1233,7 +1246,20 @@ export default function WarehousePage() {
             )}
           </div>
           ) : (
-            <>
+            <div className="relative flex-1 flex flex-col min-h-0">
+              {loading && (
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-card rounded-xl">
+                  <div className="flex items-center gap-3 px-5 py-4 bg-muted/50 border border-border rounded-xl shadow-lg">
+                    <span className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    <span className="text-sm font-semibold text-foreground">Completing session...</span>
+                  </div>
+                </div>
+              )}
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse Receiving</h1>
+                <p className="text-sm text-muted-foreground mt-1">Active scanning session — scan books into the current lot and box.</p>
+              </div>
+
               {/* Active session banner */}
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 {/* Top accent strip */}
@@ -1336,11 +1362,11 @@ export default function WarehousePage() {
               <ScannerInput onScan={handleScan} />
 
               {/* Scan log */}
-              <div className="bg-card border border-emerald-500 border-border rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-emerald-100/50">
+              <div className="bg-card border border-primary/30 rounded-xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/10">
                   <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-emerald-800" />
-                    <h3 className="text-sm font-semibold text-emerald-800">Scan Log</h3>
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <h3 className="text-sm font-semibold text-primary">Scan Log</h3>
                     {scannedBooks.length > 0 && (
                       <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-500/20 text-red-600">{scannedBooks.length}</span>
                     )}
@@ -1351,8 +1377,8 @@ export default function WarehousePage() {
                 </div>
                 {scannedBooks.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-100/50">
-                      <ScanBarcode className="h-5 w-5 text-emerald-800" />
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                      <ScanBarcode className="h-5 w-5 text-primary" />
                     </div>
                     <p className="text-sm font-medium text-foreground">Awaiting scan</p>
                     <p className="text-xs text-muted-foreground">Scan a book barcode to add it here.</p>
@@ -1360,23 +1386,23 @@ export default function WarehousePage() {
                 ) : (
                   <div className="divide-y divide-border">
                     {/* Header row */}
-                    <div className="grid grid-cols-12 gap-3 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30">
+                    <div className="grid grid-cols-12 gap-2 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30">
                       <div className="col-span-3">ISBN</div>
                       <div className="col-span-5">Title</div>
-                      <div className="col-span-3 text-center">Status</div>
-                      <div className="col-span-1 text-right">Remove</div>
+                      <div className="col-span-2 text-center">Status</div>
+                      <div className="col-span-2 text-right">Remove</div>
                     </div>
                     {/* Scan log entries */}
                     <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
                       {scannedBooks.map((book, idx) => (
                         <div
                           key={`${book.id}-${idx}`}
-                          className={`grid grid-cols-12 gap-3 px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
+                          className={`grid grid-cols-12 gap-2 px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
                             book.scan_status === 'non_processable' ? 'bg-destructive/5' : ''
                           }`}
                         >
                           <div className="col-span-3">
-                            <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
+                            <p className="text-xs font-mono text-foreground truncate">{book.isbn}</p>
                           </div>
                           <div className="col-span-5">
                             <p className="text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
@@ -1384,7 +1410,7 @@ export default function WarehousePage() {
                               <p className="text-[10px] text-destructive mt-0.5 truncate">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                             )}
                           </div>
-                          <div className="col-span-3 flex items-center justify-center gap-2">
+                          <div className="col-span-2 flex items-center justify-center gap-2">
                             {book.scan_status === 'processable' ? (
                               <>
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
@@ -1405,7 +1431,7 @@ export default function WarehousePage() {
                               </span>
                             )}
                           </div>
-                          <div className="col-span-1 flex items-center justify-end gap-2">
+                          <div className="col-span-2 flex items-center justify-end gap-2">
                             <p className="text-[10px] text-muted-foreground mt-0.5">
                               {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </p>
@@ -1423,7 +1449,7 @@ export default function WarehousePage() {
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
 
         </div>

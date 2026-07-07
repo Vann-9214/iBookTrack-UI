@@ -52,7 +52,9 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
         .insert({
           lot_number: lot_number,
           total_boxes: 0,
-          type: req.body.type || 'mustang'
+          type: req.body.type
+            ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase()
+            : 'Mustang'
         })
         .select()
         .single()
@@ -555,7 +557,7 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
 
     // 1. Resolve Lot
     let lotQuery = supabaseAdmin.from('lots').select('id, lot_number').eq('lot_number', lot_number);
-    if (book_type) lotQuery = lotQuery.eq('type', book_type.toLowerCase());
+    if (book_type) lotQuery = lotQuery.eq('type', book_type);
     else lotQuery = lotQuery.is('type', null);
     
     let { data: lot, error: lotError } = await lotQuery.single()
@@ -563,7 +565,7 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     if (!lot) {
       const { data: newLot, error: createError } = await supabaseAdmin
         .from('lots')
-        .insert({ lot_number, type: book_type ? book_type.toLowerCase() : null, total_boxes: 0 })
+        .insert({ lot_number, type: book_type || null, total_boxes: 0 })
         .select()
         .single()
       if (createError) throw createError;
@@ -878,7 +880,7 @@ router.get('/box-exists', requireAuth, async (req, res) => {
 
     // Resolve the lot (matching the same type-scoping rules as bulk-save)
     let lotQuery = supabaseAdmin.from('lots').select('id').eq('lot_number', lot_number)
-    if (book_type) lotQuery = lotQuery.eq('type', book_type.toLowerCase())
+    if (book_type) lotQuery = lotQuery.eq('type', book_type)
     else lotQuery = lotQuery.is('type', null)
 
     const { data: lot } = await lotQuery.maybeSingle()
@@ -945,46 +947,85 @@ router.get('/isbn-stream', requireAuth, async (req, res) => {
   })
 })
 
+
+
 // ISBN lookup triggered over SSE — client POSTs here with { isbn } body
 // and the SSE connection receives the result as an event
 router.post('/isbn-stream/query', requireAuth, async (req, res) => {
-  const { isbn, type } = req.body
+  const { isbn, type, allowExisting } = req.body
   if (!isbn) return res.status(400).json({ error: 'isbn is required' })
+
+  const digits = isbn.replace(/[^0-9]/g, '')
+  if (digits.length !== 10 && digits.length !== 13) {
+    return res.status(400).json({ success: false, error: 'Invalid ISBN. Must be 10 or 13 digits.' })
+  }
 
   try {
     const { supabaseAdmin } = await import('../config/supabase.js');
-    let query = supabaseAdmin.from('books').select('id').eq('isbn', isbn);
-    if (type) query = query.eq('book_type', type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
-    else query = query.is('book_type', null);
-    
-    const { data: existingBook } = await query.limit(1).maybeSingle();
-    if (existingBook) {
-      return res.json({ success: false, error: `Duplicate ISBN: This book has already been scanned into the system for ${type || 'this brand'}.` });
+
+    // Only block global duplicates for normal scans. Missing/extra issue entries
+    // are allowed to reference books already scanned in other lots/boxes.
+    if (!allowExisting) {
+      let query = supabaseAdmin
+        .from('books')
+        .select(`
+          id,
+          box:boxes(box_number, box_type, lot:lots(lot_number))
+        `)
+        .eq('isbn', digits)
+      if (type) query = query.eq('book_type', type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
+      else query = query.is('book_type', null);
+
+      const { data: existingBook } = await query.limit(1).maybeSingle();
+      if (existingBook) {
+        const rawLot = existingBook.box?.lot?.lot_number || 'unknown'
+        const lotLabel = rawLot.toLowerCase().startsWith('lot')
+          ? rawLot.charAt(0).toUpperCase() + rawLot.slice(1)
+          : `Lot ${rawLot}`
+        const boxNumber = existingBook.box?.box_number || 'unknown'
+        const boxType = existingBook.box?.box_type || 'unknown'
+        return res.json({
+          success: false,
+          error: `Duplicate ISBN: ${digits} is already scanned in ${lotLabel}, Box ${boxNumber} (${boxType}).`
+        });
+      }
     }
 
     const { ilmsApi } = await import('../services/ilms-api.js')
     let ilmsResult;
     
     if (type) {
-      const projResult = await ilmsApi.searchByProject(isbn, type)
+      const projResult = await ilmsApi.searchByProject(digits, type)
+      const results = Array.isArray(projResult.data) ? projResult.data : (projResult.data ? [projResult.data] : [])
+      const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9]/g, '') === digits) || null
       ilmsResult = {
-        success: projResult.success,
-        data: Array.isArray(projResult.data) ? projResult.data[0] : projResult.data,
+        success: !!firstHit,
+        data: firstHit,
         source: type.charAt(0).toUpperCase() + type.slice(1)
       }
     } else {
-      ilmsResult = await ilmsApi.searchBookByISBN(isbn)
+      const rawResult = await ilmsApi.searchBookByISBN(digits)
+      let firstHit = rawResult.data
+      if (firstHit && firstHit.ISBN && firstHit.ISBN.replace(/[^0-9]/g, '') !== digits) {
+        // iLMS did a fuzzy search; reject the title match
+        firstHit = null
+      }
+      ilmsResult = {
+        success: !!firstHit,
+        data: firstHit,
+        error: firstHit ? null : (rawResult.error || 'Book not found in iLMS system')
+      }
     }
 
     res.json({
-      isbn,
+      isbn: digits,
       success: ilmsResult.success,
       data: ilmsResult.data || null,
       source: ilmsResult.source || null,
       error: ilmsResult.error || null
     })
   } catch (err) {
-    res.status(500).json({ isbn, success: false, data: null, error: err.message })
+    res.status(500).json({ isbn: digits, success: false, data: null, error: err.message })
   }
 })
 
