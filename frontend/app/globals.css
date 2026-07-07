@@ -3,6 +3,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Mobile safe-area: pad the bottom of scroll containers so content
+   isn't hidden behind the phone's home bar / navigation bar.
+   pb-safe-6 = 1.5rem normal padding + safe-area + 16px extra buffer */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pb-safe-6 {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px) + 16px);
+}
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, AlertOctagon, ChevronLeft, ChevronRight } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
 
 const FLAG_LABELS: Record<string, string> = {
@@ -54,9 +54,12 @@ interface UnaccountedBooksProps {
   loading?: boolean
 }
 
+const MOBILE_PAGE_SIZE = 5
+
 export function UnaccountedBooks({ refreshKey, books: propBooks, loading: propLoading = false }: UnaccountedBooksProps) {
   const [fetchedBooks, setFetchedBooks] = useState<FlaggedBook[]>([])
   const [loading, setLoading] = useState(!propBooks)
+  const [mobilePage, setMobilePage] = useState(0)
 
   const books = propBooks || fetchedBooks
 
@@ -85,17 +88,17 @@ export function UnaccountedBooks({ refreshKey, books: propBooks, loading: propLo
 
   return (
     <Card className="border-border bg-card flex flex-col overflow-hidden p-0 h-full">
-      {/* Red header — sticky */}
+      {/* Red header — sticky, matches Live Transmission Feed style */}
       <div className="flex items-center justify-between px-5 py-4 bg-red-50 border-b border-red-100 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500 text-white">
-            <AlertTriangle className="h-4 w-4" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500 text-white shadow-sm">
+            <AlertOctagon className="h-4 w-4" />
           </div>
           <div>
             <p className="text-sm font-bold text-gray-800">Flagged / Non-Processable Books</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-              <span className="text-xs text-gray-500">Needs review</span>
+              <span className="text-xs text-red-500 font-medium">Needs review</span>
             </div>
           </div>
         </div>
@@ -132,47 +135,86 @@ export function UnaccountedBooks({ refreshKey, books: propBooks, loading: propLo
           <div className="flex flex-col items-center justify-center py-12 gap-2">
             <p className="text-sm text-muted-foreground">No flagged books today.</p>
           </div>
-        ) : (
-          <div className="h-full overflow-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white sticky top-0 z-10">
-                <tr className="border-b border-gray-100">
-                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
-                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Lot &amp; Box</th>
-                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Issue</th>
-                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left hidden sm:table-cell">Reported By</th>
-                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {books.map((item) => (
-                  <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="text-xs font-semibold text-gray-800 px-4 py-3">{item.isbn}</td>
-                    <td className="text-xs px-4 py-3">
-                      <span className="font-semibold text-blue-600">{item.assigned_box?.lot?.lot_number || '—'}</span>
-                      {item.assigned_box?.box_number && (
-                        <span className="block text-[11px] text-gray-400 mt-0.5">{item.assigned_box.box_number}</span>
-                      )}
-                    </td>
-                    <td className="text-xs px-4 py-3">
-                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 whitespace-nowrap">
-                        {issueLabel(item.rejection_reason)}
-                      </span>
-                    </td>
-                    <td className="text-xs text-gray-500 px-4 py-3 hidden sm:table-cell">
-                      {item.scanned_by_name || '—'}
-                    </td>
-                    <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
-                      {item.scanned_at
-                        ? new Date(item.scanned_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ) : (() => {
+          const totalPages = Math.ceil(books.length / MOBILE_PAGE_SIZE)
+          const mobileRows = books.slice(mobilePage * MOBILE_PAGE_SIZE, (mobilePage + 1) * MOBILE_PAGE_SIZE)
+          const tableHead = (
+            <thead className="bg-white sticky top-0 z-10">
+              <tr className="border-b border-gray-100">
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Lot &amp; Box</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Issue</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left hidden sm:table-cell">Reported By</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Time</th>
+              </tr>
+            </thead>
+          )
+          const renderRows = (rows: FlaggedBook[]) => rows.map((item) => (
+            <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+              <td className="text-xs font-semibold text-gray-800 px-4 py-3">{item.isbn}</td>
+              <td className="text-xs px-4 py-3">
+                <span className="font-semibold text-blue-600">{item.assigned_box?.lot?.lot_number || '—'}</span>
+                {item.assigned_box?.box_number && (
+                  <span className="block text-[11px] text-gray-400 mt-0.5">{item.assigned_box.box_number}</span>
+                )}
+              </td>
+              <td className="text-xs px-4 py-3">
+                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 whitespace-nowrap">
+                  {issueLabel(item.rejection_reason)}
+                </span>
+              </td>
+              <td className="text-xs text-gray-500 px-4 py-3 hidden sm:table-cell">
+                {item.scanned_by_name || '—'}
+              </td>
+              <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
+                {item.scanned_at
+                  ? new Date(item.scanned_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })
+                  : '—'}
+              </td>
+            </tr>
+          ))
+          return (
+            <>
+              {/* Mobile: 5 rows + prev/next */}
+              <div className="sm:hidden flex flex-col">
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    {tableHead}
+                    <tbody>{renderRows(mobileRows)}</tbody>
+                  </table>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-white">
+                    <button
+                      onClick={() => setMobilePage(p => Math.max(0, p - 1))}
+                      disabled={mobilePage === 0}
+                      className="flex items-center gap-1 text-xs text-muted-foreground disabled:opacity-30 hover:text-foreground transition-colors"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      {mobilePage + 1} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setMobilePage(p => Math.min(totalPages - 1, p + 1))}
+                      disabled={mobilePage >= totalPages - 1}
+                      className="flex items-center gap-1 text-xs text-muted-foreground disabled:opacity-30 hover:text-foreground transition-colors"
+                    >
+                      Next <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              {/* Desktop: full scroll */}
+              <div className="hidden sm:block h-full overflow-auto">
+                <table className="w-full text-sm">
+                  {tableHead}
+                  <tbody>{renderRows(books)}</tbody>
+                </table>
+              </div>
+            </>
+          )
+        })()}
       </CardContent>
     </Card>
   )

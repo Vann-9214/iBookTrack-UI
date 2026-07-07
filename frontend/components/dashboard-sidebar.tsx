@@ -17,7 +17,8 @@ import {
   Map,
   BarChart3,
   ChevronRight,
-  Settings,
+  X,
+  Menu,
 } from 'lucide-react'
 
 type DashboardSidebarProps = {
@@ -62,8 +63,6 @@ function LockedNavButton({
 }
 
 // Fixed-width icon cell — always centered in the 76px collapsed sidebar
-// (76px rail - 10px + 10px nav padding = 56px available row width, so the
-// cell must be 56px, not 36px, or it centers itself within too-narrow a box)
 function IconCell({ children }: { children: React.ReactNode }) {
   return (
     <span className="flex items-center justify-center shrink-0" style={{ width: '56px' }}>
@@ -72,9 +71,7 @@ function IconCell({ children }: { children: React.ReactNode }) {
   )
 }
 
-// Section header — a thin divider line when collapsed (so the reserved space
-// reads as an intentional separator instead of a gap), which crossfades into
-// the uppercase label once the sidebar is hovered/expanded.
+// Section header for desktop rail
 function SectionLabel({ children, first = false }: { children: React.ReactNode; first?: boolean }) {
   return (
     <div className={cn('relative h-3 mb-1 flex items-center', !first && 'mt-3')}>
@@ -89,8 +86,18 @@ function SectionLabel({ children, first = false }: { children: React.ReactNode; 
   )
 }
 
+// Section header for mobile drawer
+function MobileSectionLabel({ children, first = false }: { children: React.ReactNode; first?: boolean }) {
+  return (
+    <p className={cn('text-[9px] font-bold tracking-[0.2em] uppercase text-white/50 px-3', !first && 'mt-4')}>
+      {children}
+    </p>
+  )
+}
+
 export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarProps) {
   const [warehouseOpen, setWarehouseOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { colors } = useBrand()
@@ -98,6 +105,12 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
   const isActive = (href: string) => pathname === href
   const isWarehouseSection = pathname === '/warehouse' || pathname === '/inventory'
 
+  const navigate = (href: string) => {
+    router.push(href)
+    setMobileOpen(false)
+  }
+
+  // Desktop nav item style
   const navItemCls = (active: boolean) => cn(
     'group/item relative flex items-center gap-0 rounded-xl h-11 w-full transition-all duration-200 overflow-hidden',
     navigationLocked && 'cursor-not-allowed opacity-50',
@@ -118,189 +131,326 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
         : 'text-white/85 hover:bg-white/12 hover:text-white'
   )
 
+  // Mobile nav item style
+  const mobileNavItemCls = (active: boolean) => cn(
+    'flex items-center gap-3 rounded-xl px-3 py-3 w-full text-sm font-semibold transition-all duration-150',
+    active
+      ? 'bg-white/20 text-white'
+      : 'text-white/80 hover:bg-white/12 hover:text-white active:bg-white/25'
+  )
+
+  const mobileSubItemCls = (active: boolean) => cn(
+    'flex items-center gap-3 rounded-lg px-3 py-2.5 w-full text-sm font-medium transition-all duration-150',
+    active
+      ? 'bg-white/20 text-white'
+      : 'text-white/70 hover:bg-white/12 hover:text-white active:bg-white/25'
+  )
+
+  const sidebarBg = `linear-gradient(175deg, ${colors.sidebar} 0%, color-mix(in srgb, ${colors.sidebar} 82%, #000) 100%)`
+
   return (
-    <aside
-      className="group/sidebar relative z-20 sticky top-0 shrink-0 flex h-screen flex-col transition-all duration-300 ease-in-out w-[76px] hover:w-[240px] overflow-hidden"
-      style={{ background: `linear-gradient(175deg, ${colors.sidebar} 0%, color-mix(in srgb, ${colors.sidebar} 82%, #000) 100%)` }}
-      onMouseLeave={() => setWarehouseOpen(false)}
-    >
-      {/* Right edge line */}
-      <div className="absolute inset-y-0 right-0 w-px bg-white/10 pointer-events-none" />
+    <>
+      {/* ══════════════════════════════════════════════════
+          DESKTOP: collapsible rail sidebar (md and above)
+          ══════════════════════════════════════════════════ */}
+      <aside
+        className="group/sidebar hidden md:flex relative z-20 sticky top-0 shrink-0 h-dvh flex-col transition-all duration-300 ease-in-out w-[76px] hover:w-[240px] overflow-hidden"
+        style={{ background: sidebarBg }}
+        onMouseLeave={() => setWarehouseOpen(false)}
+      >
+        {/* Right edge line */}
+        <div className="absolute inset-y-0 right-0 w-px bg-white/10 pointer-events-none" />
 
-      {/* ── Logo area ── */}
-      <div className="flex items-center gap-3 px-[10px] pt-4 pb-3" style={{ minHeight: '80px' }}>
-        {/* Logo box — fixed size, always at left edge */}
-        <div
-          className="shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white shadow-md shadow-black/20"
-          style={{ width: '56px', height: '56px', minWidth: '56px' }}
-        >
-          <Image
-            src="/iBookTrack_logoN.png"
-            alt="iBookTrack"
-            width={56}
-            height={56}
-            style={{ width: '56px', height: '56px', objectFit: 'contain', transform: 'scale(1.4)', pointerEvents: 'none' }}
-            priority
-          />
-        </div>
-
-        {/* Brand name — fades in on hover */}
-        <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
-          <p className="leading-tight">
-            <span className="text-[18px] font-black text-white tracking-tight">iBook</span>
-            <span className="text-[18px] font-light text-white/60 tracking-tight">Track</span>
-          </p>
-          <p className="text-[9px] text-white/40 font-semibold tracking-[0.22em] uppercase mt-0.5">
-            Book Management
-          </p>
-        </div>
-      </div>
-
-      {/* Divider */}
-      <div className="mx-3 h-px bg-white/10" />
-
-      {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-[10px] py-3 flex flex-col gap-0.5" role="navigation" aria-label="Main navigation">
-
-        {/* Section: Main */}
-        <SectionLabel first>Main</SectionLabel>
-
-        {/* Dashboard */}
-        <LockedNavButton
-          navigationLocked={navigationLocked}
-          onClick={() => router.push('/Dashboard')}
-          className={navItemCls(isActive('/Dashboard'))}
-          aria-current={isActive('/Dashboard') ? 'page' : undefined}
-          title="Dashboard"
-        >
-          {isActive('/Dashboard') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-          <IconCell><LayoutDashboard className="h-5 w-5" /></IconCell>
-          <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
-            Dashboard
-          </span>
-        </LockedNavButton>
-
-        {/* Section: Operations */}
-        <SectionLabel>Operations</SectionLabel>
-
-        {/* Warehouse & Inventory */}
-        <div>
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => setWarehouseOpen((prev) => !prev)}
-            className={navItemCls(isWarehouseSection)}
-            title="Warehouse & Inventory"
+        {/* ── Logo area ── */}
+        <div className="flex items-center gap-3 px-[10px] pt-4 pb-3" style={{ minHeight: '80px' }}>
+          <div
+            className="shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white shadow-md shadow-black/20"
+            style={{ width: '56px', height: '56px', minWidth: '56px' }}
           >
-            {isWarehouseSection && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-            <IconCell><Package className="h-5 w-5" /></IconCell>
-            <span className="flex-1 text-sm font-semibold text-left truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
-              Warehouse & Inventory
-            </span>
-            <ChevronRight className={cn(
-              'h-3.5 w-3.5 shrink-0 transition-transform duration-200 opacity-0 group-hover/sidebar:opacity-60 mr-2',
-              warehouseOpen && 'rotate-90'
-            )} />
-          </LockedNavButton>
-
-          <div className={cn('overflow-hidden transition-all duration-200', warehouseOpen ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0')}>
-            <div className="ml-5 mt-0.5 mb-0.5 flex flex-col gap-0.5 border-l border-white/15 pl-2">
-              <LockedNavButton
-                navigationLocked={navigationLocked}
-                onClick={() => router.push('/warehouse')}
-                className={subNavItemCls(isActive('/warehouse'))}
-                aria-current={isActive('/warehouse') ? 'page' : undefined}
-              >
-                <Warehouse className="h-4 w-4 shrink-0" />
-                <span className="text-sm font-medium truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse</span>
-              </LockedNavButton>
-              <LockedNavButton
-                navigationLocked={navigationLocked}
-                onClick={() => router.push('/inventory')}
-                className={subNavItemCls(isActive('/inventory'))}
-                aria-current={isActive('/inventory') ? 'page' : undefined}
-              >
-                <Archive className="h-4 w-4 shrink-0" />
-                <span className="text-sm font-medium truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Inventory</span>
-              </LockedNavButton>
-            </div>
+            <Image
+              src="/iBookTrack_logoN.png"
+              alt="iBookTrack"
+              width={56}
+              height={56}
+              style={{ width: '56px', height: '56px', objectFit: 'contain', transform: 'scale(1.4)', pointerEvents: 'none' }}
+              priority
+            />
+          </div>
+          <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap overflow-hidden">
+            <p className="leading-tight">
+              <span className="text-[18px] font-black text-white tracking-tight">iBook</span>
+              <span className="text-[18px] font-light text-white/60 tracking-tight">Track</span>
+            </p>
+            <p className="text-[9px] text-white/40 font-semibold tracking-[0.22em] uppercase mt-0.5">
+              Book Management
+            </p>
           </div>
         </div>
 
-        {/* Station Checkpoints */}
-        <LockedNavButton
-          navigationLocked={navigationLocked}
-          onClick={() => router.push('/checkpoints')}
-          className={navItemCls(isActive('/checkpoints'))}
-          aria-current={isActive('/checkpoints') ? 'page' : undefined}
-          title="Station Checkpoints"
-        >
-          {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-          <IconCell><MapPin className="h-5 w-5" /></IconCell>
-          <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
-        </LockedNavButton>
+        <div className="mx-3 h-px bg-white/10" />
 
-        {/* Book Inspection & Endorsement */}
-        <LockedNavButton
-          navigationLocked={navigationLocked}
-          onClick={() => router.push('/qa')}
-          className={navItemCls(isActive('/qa'))}
-          aria-current={isActive('/qa') ? 'page' : undefined}
-          title="Book Inspection & Endorsement"
-        >
-          {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-          <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
-          <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Book Inspection &amp; Endorsement</span>
-        </LockedNavButton>
+        {/* ── Navigation ── */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-[10px] py-3 flex flex-col gap-0.5" role="navigation" aria-label="Main navigation">
+          <SectionLabel first>Main</SectionLabel>
 
-        {/* Storage Locator */}
-        <LockedNavButton
-          navigationLocked={navigationLocked}
-          onClick={() => router.push('/locator')}
-          className={navItemCls(isActive('/locator'))}
-          aria-current={isActive('/locator') ? 'page' : undefined}
-          title="Storage Locator"
-        >
-          {isActive('/locator') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-          <IconCell><Map className="h-5 w-5" /></IconCell>
-          <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
-        </LockedNavButton>
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/Dashboard')}
+            className={navItemCls(isActive('/Dashboard'))}
+            aria-current={isActive('/Dashboard') ? 'page' : undefined}
+            title="Dashboard"
+          >
+            {isActive('/Dashboard') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><LayoutDashboard className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+              Dashboard
+            </span>
+          </LockedNavButton>
 
-        {/* Section: Analytics */}
-        <SectionLabel>Analytics</SectionLabel>
+          <SectionLabel>Operations</SectionLabel>
 
-        {/* Transmission Monitor */}
-        <LockedNavButton
-          navigationLocked={navigationLocked}
-          onClick={() => router.push('/transmission')}
-          className={navItemCls(isActive('/transmission'))}
-          aria-current={isActive('/transmission') ? 'page' : undefined}
-          title="Transmission Monitor"
-        >
-          {isActive('/transmission') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-          <IconCell><Radio className="h-5 w-5" /></IconCell>
-          <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Transmission Monitor</span>
-        </LockedNavButton>
+          <div>
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => setWarehouseOpen((prev) => !prev)}
+              className={navItemCls(isWarehouseSection)}
+              title="Warehouse & Inventory"
+            >
+              {isWarehouseSection && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+              <IconCell><Package className="h-5 w-5" /></IconCell>
+              <span className="flex-1 text-sm font-semibold text-left truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+                Warehouse & Inventory
+              </span>
+              <ChevronRight className={cn(
+                'h-3.5 w-3.5 shrink-0 transition-transform duration-200 opacity-0 group-hover/sidebar:opacity-60 mr-2',
+                warehouseOpen && 'rotate-90'
+              )} />
+            </LockedNavButton>
 
-        {/* Reports */}
-        <LockedNavButton
-          navigationLocked={navigationLocked}
-          onClick={() => router.push('/reports')}
-          className={navItemCls(isActive('/reports'))}
-          aria-current={isActive('/reports') ? 'page' : undefined}
-          title="Reports"
-        >
-          {isActive('/reports') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-          <IconCell><BarChart3 className="h-5 w-5" /></IconCell>
-          <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Reports</span>
-        </LockedNavButton>
+            <div className={cn('overflow-hidden transition-all duration-200', warehouseOpen ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0')}>
+              <div className="ml-5 mt-0.5 mb-0.5 flex flex-col gap-0.5 border-l border-white/15 pl-2">
+                <LockedNavButton
+                  navigationLocked={navigationLocked}
+                  onClick={() => router.push('/warehouse')}
+                  className={subNavItemCls(isActive('/warehouse'))}
+                  aria-current={isActive('/warehouse') ? 'page' : undefined}
+                >
+                  <Warehouse className="h-4 w-4 shrink-0" />
+                  <span className="text-sm font-medium truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse</span>
+                </LockedNavButton>
+                <LockedNavButton
+                  navigationLocked={navigationLocked}
+                  onClick={() => router.push('/inventory')}
+                  className={subNavItemCls(isActive('/inventory'))}
+                  aria-current={isActive('/inventory') ? 'page' : undefined}
+                >
+                  <Archive className="h-4 w-4 shrink-0" />
+                  <span className="text-sm font-medium truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Inventory</span>
+                </LockedNavButton>
+              </div>
+            </div>
+          </div>
 
-      </nav>
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/checkpoints')}
+            className={navItemCls(isActive('/checkpoints'))}
+            aria-current={isActive('/checkpoints') ? 'page' : undefined}
+            title="Station Checkpoints"
+          >
+            {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><MapPin className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
+          </LockedNavButton>
 
-      {/* ── Footer ── */}
-      <div className="mx-3 h-px bg-white/10 mb-2" />
-      <div className="px-[10px] pb-4">
-        {/* Settings button removed as requested */}
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/qa')}
+            className={navItemCls(isActive('/qa'))}
+            aria-current={isActive('/qa') ? 'page' : undefined}
+            title="Book Inspection & Endorsement"
+          >
+            {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Book Inspection &amp; Endorsement</span>
+          </LockedNavButton>
+
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/locator')}
+            className={navItemCls(isActive('/locator'))}
+            aria-current={isActive('/locator') ? 'page' : undefined}
+            title="Storage Locator"
+          >
+            {isActive('/locator') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><Map className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
+          </LockedNavButton>
+
+          <SectionLabel>Analytics</SectionLabel>
+
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/transmission')}
+            className={navItemCls(isActive('/transmission'))}
+            aria-current={isActive('/transmission') ? 'page' : undefined}
+            title="Transmission Monitor"
+          >
+            {isActive('/transmission') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><Radio className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Transmission Monitor</span>
+          </LockedNavButton>
+
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/reports')}
+            className={navItemCls(isActive('/reports'))}
+            aria-current={isActive('/reports') ? 'page' : undefined}
+            title="Reports"
+          >
+            {isActive('/reports') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><BarChart3 className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Reports</span>
+          </LockedNavButton>
+        </nav>
+
+        <div className="mx-3 h-px bg-white/10 mb-2" />
+        <div className="px-[10px] pb-4" />
+      </aside>
+
+      {/* ══════════════════════════════════════════════════
+          MOBILE: hamburger button (shown in top-bar area)
+          ══════════════════════════════════════════════════ */}
+      <button
+        className="md:hidden fixed top-3 left-3 z-50 flex items-center justify-center w-9 h-9 rounded-xl shadow-lg text-white"
+        style={{ background: colors.sidebar }}
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open navigation"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      {/* ══════════════════════════════════════════════════
+          MOBILE: backdrop
+          ══════════════════════════════════════════════════ */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MOBILE: slide-in drawer
+          ══════════════════════════════════════════════════ */}
+      <div
+        className={cn(
+          'md:hidden fixed inset-y-0 left-0 z-50 w-72 flex flex-col transition-transform duration-300 ease-in-out',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+        style={{ background: sidebarBg }}
+      >
+        {/* Drawer header */}
+        <div className="flex items-center justify-between px-4 pt-5 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white shadow-md shadow-black/20 w-10 h-10">
+              <Image
+                src="/iBookTrack_logoN.png"
+                alt="iBookTrack"
+                width={40}
+                height={40}
+                style={{ width: '40px', height: '40px', objectFit: 'contain', transform: 'scale(1.4)', pointerEvents: 'none' }}
+                priority
+              />
+            </div>
+            <div>
+              <p className="leading-tight">
+                <span className="text-[17px] font-black text-white tracking-tight">iBook</span>
+                <span className="text-[17px] font-light text-white/60 tracking-tight">Track</span>
+              </p>
+              <p className="text-[9px] text-white/40 font-semibold tracking-[0.22em] uppercase">Book Management</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            aria-label="Close navigation"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mx-4 h-px bg-white/10" />
+
+        {/* Drawer nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-0.5" role="navigation" aria-label="Main navigation">
+
+          <MobileSectionLabel first>Main</MobileSectionLabel>
+
+          <button
+            onClick={() => navigate('/Dashboard')}
+            disabled={navigationLocked}
+            className={mobileNavItemCls(isActive('/Dashboard'))}
+          >
+            <LayoutDashboard className="h-5 w-5 shrink-0" />
+            Dashboard
+          </button>
+
+          <MobileSectionLabel>Operations</MobileSectionLabel>
+
+          {/* Warehouse & Inventory accordion */}
+          <button
+            onClick={() => setWarehouseOpen(p => !p)}
+            disabled={navigationLocked}
+            className={mobileNavItemCls(isWarehouseSection)}
+          >
+            <Package className="h-5 w-5 shrink-0" />
+            <span className="flex-1 text-left">Warehouse &amp; Inventory</span>
+            <ChevronRight className={cn('h-4 w-4 shrink-0 transition-transform duration-200 opacity-60', warehouseOpen && 'rotate-90')} />
+          </button>
+
+          <div className={cn('overflow-hidden transition-all duration-200 ml-3 border-l border-white/15 pl-2', warehouseOpen ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0')}>
+            <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileSubItemCls(isActive('/warehouse'))}>
+              <Warehouse className="h-4 w-4 shrink-0" />
+              Warehouse
+            </button>
+            <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileSubItemCls(isActive('/inventory'))}>
+              <Archive className="h-4 w-4 shrink-0" />
+              Inventory
+            </button>
+          </div>
+
+          <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
+            <MapPin className="h-5 w-5 shrink-0" />
+            Station Checkpoints
+          </button>
+
+          <button onClick={() => navigate('/qa')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/qa'))}>
+            <CheckCircle className="h-5 w-5 shrink-0" />
+            Book Inspection &amp; Endorsement
+          </button>
+
+          <button onClick={() => navigate('/locator')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>
+            <Map className="h-5 w-5 shrink-0" />
+            Storage Locator
+          </button>
+
+          <MobileSectionLabel>Analytics</MobileSectionLabel>
+
+          <button onClick={() => navigate('/transmission')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/transmission'))}>
+            <Radio className="h-5 w-5 shrink-0" />
+            Transmission Monitor
+          </button>
+
+          <button onClick={() => navigate('/reports')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/reports'))}>
+            <BarChart3 className="h-5 w-5 shrink-0" />
+            Reports
+          </button>
+
+        </nav>
+
+        <div className="mx-4 h-px bg-white/10 mb-3" />
       </div>
-    </aside>
+    </>
   )
 }
