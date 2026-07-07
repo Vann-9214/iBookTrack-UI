@@ -10,7 +10,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
-import { Barcode, Package, Search, ChevronDown, ChevronRight, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw } from 'lucide-react'
+import { Barcode, Package, Search, ChevronDown, ChevronRight, ChevronUp, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -35,7 +35,7 @@ interface Box {
   books_transmitted: number
   current_stage: string
   created_at: string
-  lot: { lot_number: string; status: string }
+  lot: { lot_number: string; status: string; type?: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
   box_sessions?: { id?: string; status: string; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_send?: string; warehouse_time_received?: string }[]
@@ -137,6 +137,21 @@ export default function InventoryPage() {
   const [printBookType, setPrintBookType] = useState<string>('')
   const [loadingPrint, setLoadingPrint] = useState<string | null>(null)
   const qrRef = useRef<HTMLCanvasElement>(null)
+
+  // --- Outgoing boxes book list ---
+  const [outgoingExpandedBoxId, setOutgoingExpandedBoxId] = useState<string | null>(null)
+  const [outgoingLoadingBooks, setOutgoingLoadingBooks] = useState<string | null>(null)
+
+  // --- Per-book print slip ---
+  const [printBook, setPrintBook] = useState<{ book: BookInBox; box: Box } | null>(null)
+  const [loadingBookPrint, setLoadingBookPrint] = useState<string | null>(null)
+  const bookQrRef = useRef<HTMLCanvasElement>(null)
+
+  // --- Print-completion tracking (per box) ---
+  // printedBoxLabels: set of box IDs whose box label has been printed
+  // printedBookSlips: map of boxId → set of book IDs whose slip has been printed
+  const [printedBoxLabels, setPrintedBoxLabels] = useState<Set<string>>(new Set())
+  const [printedBookSlips, setPrintedBookSlips] = useState<Record<string, Set<string>>>({})
   const printProcessRows = [
     'Inventory & Registration',
     'Cutting',
@@ -303,31 +318,27 @@ export default function InventoryPage() {
     setBoxScanNotFound(false)
     setBoxScanResult(null)
     setScannedBoxModal(null)
+    setLoadingScannedBox(true)
 
-    // Find box by box_number (exact or partial match)
-    const match = boxes.find(b => b.box_number?.toLowerCase() === query.toLowerCase())
-      || boxes.find(b => b.box_number?.toLowerCase().includes(query.toLowerCase()))
-
-    if (match) {
-      setBoxScanResult(match)
-      setExpandedBox(match.id)
-      setBoxSearch(match.box_number)
-      // Fetch books and show modal
-      setLoadingScannedBox(true)
-      try {
-        const res = await authFetch(`${API_URL}/api/boxes/${match.id}`)
-        const data = await res.json()
-        const books = data.box?.books || []
-        setBoxBooks(prev => ({ ...prev, [match.id]: books }))
-        setScannedBoxModal({ box: match, books })
-      } catch {
-        setScannedBoxModal({ box: match, books: [] })
-      } finally {
-        setLoadingScannedBox(false)
+    try {
+      // Look up box directly from backend by box_number
+      const res = await authFetch(`${API_URL}/api/boxes/by-number/${encodeURIComponent(query)}`)
+      const data = await res.json()
+      if (data.box) {
+        const box: Box = data.box
+        const books: BookInBox[] = data.box.books || []
+        setBoxScanResult(box)
+        setBoxBooks(prev => ({ ...prev, [box.id]: books }))
+        setScannedBoxModal({ box, books })
+      } else {
+        setBoxScanNotFound(true)
       }
-    } else {
+    } catch {
       setBoxScanNotFound(true)
+    } finally {
+      setLoadingScannedBox(false)
     }
+
     setBoxScanInput('')
   }
 
@@ -804,6 +815,33 @@ export default function InventoryPage() {
     }
   }
 
+  // ── Outgoing: expand/collapse box to show its books ───────────────────────────
+  const toggleOutgoingBox = async (box: Box) => {
+    if (outgoingExpandedBoxId === box.id) {
+      setOutgoingExpandedBoxId(null)
+      return
+    }
+    setOutgoingExpandedBoxId(box.id)
+    if (!boxBooks[box.id]) {
+      setOutgoingLoadingBooks(box.id)
+      try {
+        const res = await authFetch(`${API_URL}/api/boxes/${box.id}`)
+        const data = await res.json()
+        const books: BookInBox[] = data.box?.books || []
+        setBoxBooks(prev => ({ ...prev, [box.id]: books }))
+      } catch (e) {
+        console.error('Failed to load books for outgoing box:', e)
+      } finally {
+        setOutgoingLoadingBooks(null)
+      }
+    }
+  }
+
+  const handlePrintBookSlip = (book: BookInBox, box: Box) => {
+    setLoadingBookPrint(`${box.id}-${book.id}`)
+    setPrintBook({ book, box })
+  }
+
   const handleMoveToStorage = async (box: Box) => {
     setMovingToStorage(box.id)
     try {
@@ -843,22 +881,29 @@ export default function InventoryPage() {
     if (!printBox) return
 
     const render = () => {
-      // Code128 barcode (readable by standard 1D barcode scanners)
+      // QR code encoding: LOT|BOX|TYPE + per-book ISBN=STATUS lines
       if (qrRef.current) {
         try {
-          qrRef.current.width = 600
-          qrRef.current.height = 120
+          const bookLines = printBooks
+            .map(b => `${b.isbn}=${b.scan_status === 'processable' ? 'P' : 'NP'}`)
+            .join(';')
+          const qrText = [
+            `LOT:${printBox.lot?.lot_number || ''}`,
+            `BOX:${printBox.box_number}`,
+            `TYPE:${printBookType || 'Mustang'}`,
+            bookLines ? `BOOKS:${bookLines}` : '',
+          ].filter(Boolean).join('|')
+
+          qrRef.current.width = 300
+          qrRef.current.height = 300
           bwipjs.toCanvas(qrRef.current, {
-            bcid: 'code128',
-            text: printBox.box_number,
-            scale: 3,
-            height: 18,
-            includetext: false,
-            paddingwidth: 4,
-            paddingheight: 2,
+            bcid: 'qrcode',
+            text: qrText,
+            scale: 4,
+            eclevel: 'M',
           })
         } catch (e) {
-          console.error('Barcode error:', e)
+          console.error('QR code error:', e)
         }
       }
     }
@@ -873,7 +918,12 @@ export default function InventoryPage() {
       }, 100)
     }, 50)
 
-    const onAfterPrint = () => setPrintBox(null)
+    const boxId = printBox.id
+    const onAfterPrint = () => {
+      setPrintBox(null)
+      // Mark this box's label as printed
+      setPrintedBoxLabels(prev => new Set(prev).add(boxId))
+    }
     window.addEventListener('afterprint', onAfterPrint)
 
     return () => {
@@ -882,6 +932,62 @@ export default function InventoryPage() {
       window.removeEventListener('afterprint', onAfterPrint)
     }
   }, [printBox])
+
+  // ── Book slip: render barcode then trigger print ──────────────────────────────
+  useEffect(() => {
+    if (!printBook) return
+
+    const render = () => {
+      if (bookQrRef.current) {
+        try {
+          bookQrRef.current.width = 600
+          bookQrRef.current.height = 120
+          bwipjs.toCanvas(bookQrRef.current, {
+            bcid: 'code128',
+            text: printBook.book.isbn,
+            scale: 3,
+            height: 18,
+            includetext: false,
+            paddingwidth: 4,
+            paddingheight: 2,
+          })
+        } catch (e) {
+          console.error('Book barcode error:', e)
+        }
+      }
+    }
+
+    let printTimer: ReturnType<typeof setTimeout> | null = null
+
+    const timer = setTimeout(() => {
+      render()
+      printTimer = setTimeout(() => {
+        window.print()
+      }, 100)
+    }, 50)
+
+    const snapBoxId = printBook.box.id
+    const snapBookId = printBook.book.id
+    const onAfterPrint = () => {
+      setPrintBook(null)
+      setLoadingBookPrint(null)
+      // Mark this book's slip as printed for its box
+      setPrintedBookSlips(prev => {
+        const next = { ...prev }
+        const existing = next[snapBoxId] ? new Set(next[snapBoxId]) : new Set<string>()
+        existing.add(snapBookId)
+        next[snapBoxId] = existing
+        return next
+      })
+    }
+    window.addEventListener('afterprint', onAfterPrint)
+
+    return () => {
+      clearTimeout(timer)
+      if (printTimer) clearTimeout(printTimer)
+      window.removeEventListener('afterprint', onAfterPrint)
+    }
+  }, [printBook])
 
   // Base search filter (used for All Boxes tab only)
   const searchFilter = (b: Box) => {
@@ -897,26 +1003,40 @@ export default function InventoryPage() {
   // All-boxes tab (existing behaviour, respects lot/stage filters)
   const filteredBoxes = boxes.filter(searchFilter)
 
-  // Incoming Boxes — warehouse stage
+  // Brand filter helper — lot.type must match the active brand toggle
+  const matchesBrand = (b: Box) => !b.lot?.type || b.lot.type === brand
+
+  // Incoming Boxes — warehouse stage, matching brand
   const incomingBoxes = boxes.filter(b => 
     b.current_stage === 'warehouse' && 
-    b.box_sessions?.some(s => s.status === 'completed')
+    b.box_sessions?.some(s => s.status === 'completed') &&
+    matchesBrand(b)
   )
 
-  // Book Verification — inventory stage, not yet verified
+  // Book Verification — inventory stage, not yet verified, matching brand
   const inventoryBoxes = boxes.filter(b => {
     if (b.current_stage !== 'inventory') return false
     if (b.box_sessions?.some(s => s.status === 'completed')) return false
-    // Only hide in_progress boxes from others once we know who the current user is
+    if (!matchesBrand(b)) return false
+    // Only hide in_progress boxes that are locked to a DIFFERENT user.
+    // If inventory_user_send is null/unset, the box is available to everyone.
     if (verifUserId) {
       const inProgressSession = b.box_sessions?.find(s => s.status === 'in_progress')
-      if (inProgressSession && inProgressSession.inventory_user_send !== verifUserId) return false
+      if (
+        inProgressSession &&
+        inProgressSession.inventory_user_send &&
+        inProgressSession.inventory_user_send !== verifUserId
+      ) return false
     }
     return true
   })
 
-  // Outgoing Boxes — inventory stage + verified this session
-  const outgoingBoxes = boxes.filter(b => b.current_stage === 'inventory' && b.box_sessions?.some(s => s.status === 'completed'))
+  // Outgoing Boxes — inventory stage + verified this session, matching brand
+  const outgoingBoxes = boxes.filter(b => 
+    b.current_stage === 'inventory' && 
+    b.box_sessions?.some(s => s.status === 'completed') &&
+    matchesBrand(b)
+  )
 
   // Pagination only used by All Boxes tab
   const pagination = usePagination({ totalItems: filteredBoxes.length, defaultPageSize: 50 })
@@ -1019,25 +1139,25 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/* ── RIGHT: bordered box with 3 sections + barcode below ── */}
+          {/* ── RIGHT: bordered box with Type/Lot/Box + QR code below ── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5mm' }}>
-            {/* 3-section bordered box */}
-            <div style={{ flex: 1, border: '2px solid #111', display: 'flex', flexDirection: 'column' }}>
+            {/* Top bordered box: Type, Lot, Box stacked */}
+            <div style={{ border: '2px solid #111', display: 'flex', flexDirection: 'column', flex: '0 0 auto' }}>
               {/* Section 1: Type */}
-              <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm 2mm', flex: '0 0 auto' }}>
-                <span style={{ fontSize: '26pt', fontWeight: 900, letterSpacing: '-0.5px', textAlign: 'center', lineHeight: 1, textTransform: 'uppercase' }}>
-                  Mustang
+              <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.8mm 2mm' }}>
+                <span style={{ fontSize: '22pt', fontWeight: 900, letterSpacing: '-0.5px', textAlign: 'center', lineHeight: 1, textTransform: 'uppercase' }}>
+                  {printBookType || 'Mustang'}
                 </span>
               </div>
               {/* Section 2: Lot number */}
-              <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm 2mm', flex: 1 }}>
-                <span style={{ fontSize: '18pt', fontWeight: 700, textAlign: 'center', lineHeight: 1.1 }}>
+              <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.8mm 2mm' }}>
+                <span style={{ fontSize: '15pt', fontWeight: 700, textAlign: 'center', lineHeight: 1.1 }}>
                   {printBox.lot?.lot_number || '—'}
                 </span>
               </div>
               {/* Section 3: Box sequence number */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm 2mm', flex: 1 }}>
-                <span style={{ fontSize: '46pt', fontWeight: 900, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.8mm 2mm' }}>
+                <span style={{ fontSize: '34pt', fontWeight: 900, textAlign: 'center', lineHeight: 1, letterSpacing: '-1px' }}>
                   {(() => {
                     const m = printBox.box_number.match(/-0*([1-9]\d*)$/)
                     return m ? m[1] : printBox.box_number
@@ -1045,11 +1165,74 @@ export default function InventoryPage() {
                 </span>
               </div>
             </div>
-            {/* Barcode below the box */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5mm' }}>
-              <canvas ref={qrRef} width={600} height={120} style={{ width: '100%', height: '14mm', imageRendering: 'pixelated', display: 'block' }} />
-              <div style={{ fontSize: '5pt', textAlign: 'center', wordBreak: 'break-all' }}>{printBox.box_number}</div>
+            {/* QR code below — square, fills remaining height */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5mm' }}>
+              <canvas ref={qrRef} width={300} height={300} style={{ width: 'auto', height: '100%', maxHeight: '42mm', imageRendering: 'pixelated', display: 'block' }} />
+              <div style={{ fontSize: '5pt', textAlign: 'center', wordBreak: 'break-all', color: '#555' }}>{printBox.box_number}</div>
             </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ── BOOK SLIP OVERLAY (print-only) A5 portrait ── */}
+    {printBook && (
+      <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-start print:justify-start">
+        <div style={{
+          width: '148mm',
+          minHeight: '105mm',
+          backgroundColor: '#fff',
+          border: '1.5px solid #111',
+          display: 'flex',
+          flexDirection: 'column',
+          fontFamily: 'Arial, Helvetica, sans-serif',
+          color: '#111',
+          boxSizing: 'border-box',
+          padding: '5mm',
+          gap: '3mm',
+        }}>
+          {/* Header */}
+          <div style={{ borderBottom: '1.5px solid #111', paddingBottom: '2mm', marginBottom: '1mm', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '11pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Book Slip</span>
+            <span style={{ fontSize: '8pt', color: '#555' }}>
+              {printBook.box.lot?.lot_number ? `Lot: ${printBook.box.lot.lot_number}` : ''}
+              {printBook.box.lot?.lot_number && printBook.box.box_number ? '  ·  ' : ''}
+              {printBook.box.box_number ? `Box: ${printBook.box.box_number}` : ''}
+            </span>
+          </div>
+
+          {/* Barcode */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1mm' }}>
+            <canvas ref={bookQrRef} width={600} height={120} style={{ width: '100%', maxWidth: '120mm', height: '14mm', imageRendering: 'pixelated', display: 'block' }} />
+            <div style={{ fontSize: '7pt', textAlign: 'center', letterSpacing: '1px' }}>{printBook.book.isbn}</div>
+          </div>
+
+          {/* Book details */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2mm', marginTop: '1mm' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '28mm 1fr', gap: '1mm 2mm', fontSize: '8pt' }}>
+              <span style={{ fontWeight: 700, color: '#555' }}>ISBN</span>
+              <span style={{ fontWeight: 600 }}>{printBook.book.isbn}</span>
+
+              <span style={{ fontWeight: 700, color: '#555' }}>Type</span>
+              <span>{printBook.book.book_type
+                ? printBook.book.book_type.charAt(0).toUpperCase() + printBook.book.book_type.slice(1).toLowerCase()
+                : '—'}</span>
+
+              <span style={{ fontWeight: 700, color: '#555' }}>Status</span>
+              <span style={{ textTransform: 'capitalize' }}>{printBook.book.scan_status?.replace('_', ' ') || '—'}</span>
+
+              <span style={{ fontWeight: 700, color: '#555' }}>Box</span>
+              <span>{printBook.box.box_number}</span>
+
+              <span style={{ fontWeight: 700, color: '#555' }}>Lot</span>
+              <span>{printBook.box.lot?.lot_number || '—'}</span>
+            </div>
+          </div>
+
+          {/* Signature line */}
+          <div style={{ marginTop: 'auto', borderTop: '1px solid #ccc', paddingTop: '2mm', display: 'flex', justifyContent: 'space-between', fontSize: '7pt', color: '#777' }}>
+            <span>Received by: ___________________________</span>
+            <span>Date: _______________</span>
           </div>
         </div>
       </div>
@@ -1068,6 +1251,21 @@ export default function InventoryPage() {
               <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
             </div>
             <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+              {/* Box barcode scan input */}
+              <div className="relative">
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={boxScanInput}
+                  onChange={e => setBoxScanInput(e.target.value)}
+                  onKeyDown={handleBoxScan}
+                  placeholder="Scan box barcode…"
+                  className="pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-52"
+                />
+                {boxScanNotFound && (
+                  <p className="absolute left-0 top-full mt-1 text-[11px] text-destructive whitespace-nowrap">Box not found</p>
+                )}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -1602,42 +1800,182 @@ export default function InventoryPage() {
                       }
                       return box.total_books_expected || 0
                     })()
+                    const isExpanded = outgoingExpandedBoxId === box.id
+                    const booksForBox: BookInBox[] = boxBooks[box.id] || []
+                    // All-printed gate: box label printed AND every book slip printed
+                    const boxLabelPrinted = printedBoxLabels.has(box.id)
+                    const slipsForBox = printedBookSlips[box.id] ?? new Set<string>()
+                    // We can only check book-completeness once books are loaded
+                    const allBooksPrinted = booksForBox.length > 0 && booksForBox.every(b => slipsForBox.has(b.id))
+                    const allPrinted = boxLabelPrinted && allBooksPrinted
                     return (
-                      <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
-                        {/* Icon */}
-                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
-                          <Package className="h-5 w-5 text-emerald-600" />
+                      <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
+                      {/* ── Header row (Full row is now clickable) ── */}
+                      <div 
+                        onClick={() => toggleOutgoingBox(box)}
+                        className="flex items-center px-4 py-3 gap-4 cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                        role="button"
+                        aria-expanded={isExpanded}
+                      >
+                        {/* Visual Expand/Collapse Indicator (No longer its own button) */}
+                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0 text-emerald-600">
+                          {outgoingLoadingBooks === box.id ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : isExpanded ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
                         </div>
+
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Verified</span>
                           </div>
-                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                          <p className="text-xs text-muted-foreground">
+                            LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" />
+                          </p>
                         </div>
-                        {/* Print label button */}
-                        <button
-                          onClick={() => handlePrintLabel(box)}
-                          disabled={loadingPrint === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors shrink-0"
-                        >
-                          {loadingPrint === box.id
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <Printer className="h-4 w-4" />}
-                          {loadingPrint === box.id ? 'Loading…' : 'Print Label'}
-                        </button>
-                        {/* Send button */}
-                        <button
-                          onClick={() => handleSendToCut(box)}
-                          disabled={sendingToCut === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
-                        >
-                          {sendingToCut === box.id
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <Send className="h-4 w-4" />}
-                          {sendingToCut === box.id ? 'Sending…' : 'Send to Cut'}
-                        </button>
+
+                        {/* Print label button + printed checkbox */}
+                        <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevents the row from collapsing/expanding
+                              handlePrintLabel(box);
+                            }}
+                            disabled={loadingPrint === box.id}
+                            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
+                          >
+                            {loadingPrint === box.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Printer className="h-4 w-4" />
+                            )}
+                            {loadingPrint === box.id ? 'Loading…' : 'Print Label'}
+                          </button>
+                          <input
+                            type="checkbox"
+                            checked={boxLabelPrinted}
+                            readOnly
+                            className="h-4 w-4 rounded border-border accent-emerald-600 cursor-default"
+                            title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
+                          />
+                        </div>
+
+                        {/* Send button — only enabled once all book slips + box label are printed */}
+                        <div className="shrink-0 relative group" onClick={e => e.stopPropagation()}>
+                          {/* Invisible hover capture layer — ensures hover works even when button is disabled */}
+                          {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSendToCut(box)
+                            }}
+                            disabled={sendingToCut === box.id || !allPrinted}
+                            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {sendingToCut === box.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                            {sendingToCut === box.id ? 'Sending…' : 'Send to Cut'}
+                          </button>
+                          {!allPrinted && (
+                            <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
+                              <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
+                                {!boxLabelPrinted && !allBooksPrinted
+                                  ? 'Print the box label and all book slips first'
+                                  : !boxLabelPrinted
+                                    ? 'Print the box label first'
+                                    : 'Print all book slips first'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                        {/* ── Expanded book list ── */}
+                        {isExpanded && (
+                          <div className="border-t border-border bg-muted/30">
+                            {outgoingLoadingBooks === box.id ? (
+                              <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" /> Loading books…
+                              </div>
+                            ) : booksForBox.length === 0 ? (
+                              <div className="py-6 text-center text-sm text-muted-foreground">No books found in this box.</div>
+                            ) : (
+                              <div className="divide-y divide-border">
+                                {/* Column header */}
+                                <div className="grid grid-cols-[1fr_80px_120px_48px_40px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
+                                  <span>ISBN / Title</span>
+                                  <span>Type</span>
+                                  <span>Status</span>
+                                  <span className="text-center">Print</span>
+                                  <span>{/* Printed — no header text */}</span>
+                                </div>
+                                {booksForBox.map(book => {
+                                  const isBookPrinted = (printedBookSlips[box.id] ?? new Set<string>()).has(book.id)
+                                  return (
+                                  <div key={book.id} className="grid grid-cols-[1fr_80px_120px_48px_40px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                                    {/* ISBN + title */}
+                                    <div className="min-w-0 pr-3">
+                                      <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
+                                      {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
+                                    </div>
+                                    {/* Book type — plain text */}
+                                    <span className={cn(
+                                      'text-xs font-medium',
+                                      book.book_type?.toLowerCase() === 'jaguar'
+                                        ? 'text-green-700'
+                                        : 'text-blue-700'
+                                    )}>
+                                      {book.book_type
+                                        ? book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase()
+                                        : '—'}
+                                    </span>
+                                    {/* Status badge */}
+                                    <span className={cn(
+                                      'text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap w-fit',
+                                      book.scan_status === 'processable'
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-red-100 text-red-700'
+                                    )}>
+                                      {book.scan_status === 'processable' ? 'Processable' : 'Non-processable'}
+                                    </span>
+                                    {/* Per-book print button */}
+                                    <div className="flex items-center justify-center">
+                                      <button
+                                        onClick={() => handlePrintBookSlip(book, box)}
+                                        disabled={loadingBookPrint === `${box.id}-${book.id}`}
+                                        className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
+                                        title="Print book slip"
+                                      >
+                                        {loadingBookPrint === `${box.id}-${book.id}`
+                                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                          : <Printer className="h-3.5 w-3.5" />}
+                                      </button>
+                                    </div>
+                                    {/* Printed checkbox */}
+                                    <div className="flex items-center justify-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={isBookPrinted}
+                                        readOnly
+                                        className="h-4 w-4 rounded border-border accent-emerald-600 cursor-default"
+                                        title={isBookPrinted ? 'Slip printed' : 'Not yet printed'}
+                                      />
+                                    </div>
+                                  </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -1648,6 +1986,7 @@ export default function InventoryPage() {
 
         </div>
       </main>
+      
       {/* Simflex Check Modal */}
       {simflexModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => !simflexModal.loading && setSimflexModal(null)}>
@@ -1768,27 +2107,46 @@ export default function InventoryPage() {
               </div>
               <button onClick={() => setScannedBoxModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
             </div>
+            {/* Box meta row */}
+            {scannedBoxModal && (
+              <div className="flex gap-6 mb-3 pb-3 border-b border-border text-xs">
+                <span className="text-muted-foreground">Lot: <span className="text-foreground font-semibold">{scannedBoxModal.box.lot?.lot_number || '—'}</span></span>
+                <span className="text-muted-foreground">Box: <span className="text-foreground font-semibold">{scannedBoxModal.box.box_number}</span></span>
+                <span className="text-muted-foreground">Type: <span className={cn('font-semibold capitalize', scannedBoxModal.box.lot?.type === 'jaguar' ? 'text-green-600' : 'text-blue-600')}>{scannedBoxModal.box.lot?.type ? scannedBoxModal.box.lot.type.charAt(0).toUpperCase() + scannedBoxModal.box.lot.type.slice(1).toLowerCase() : '—'}</span></span>
+              </div>
+            )}
             {loadingScannedBox ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Loading contents...</p>
             ) : scannedBoxModal && scannedBoxModal.books.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">No scan records found for this box.</p>
             ) : (
               <div className="overflow-y-auto flex-1">
-                <table className="w-full text-xs">
+                <table className="w-full text-xs table-fixed">
+                  <colgroup>
+                    <col className="w-7" />
+                    <col className="w-[130px]" />
+                    <col />
+                    <col className="w-[70px]" />
+                    <col className="w-[110px]" />
+                  </colgroup>
                   <thead className="sticky top-0 bg-card">
                     <tr className="text-muted-foreground border-b border-border">
-                      <th className="pb-2 text-left font-medium w-6">#</th>
-                      <th className="pb-2 text-left font-medium pr-3">ISBN</th>
-                      <th className="pb-2 text-left font-medium pr-3">Title</th>
+                      <th className="pb-2 text-left font-medium">#</th>
+                      <th className="pb-2 text-left font-medium">ISBN</th>
+                      <th className="pb-2 text-left font-medium">Title</th>
+                      <th className="pb-2 text-left font-medium">Type</th>
                       <th className="pb-2 text-left font-medium">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {scannedBoxModal?.books.map((book, i) => (
                       <tr key={book.id} className="border-b border-border/40 last:border-0">
-                        <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
-                        <td className="py-1.5 pr-3">{book.isbn}</td>
-                        <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>
+                        <td className="py-1.5 text-muted-foreground">{i + 1}</td>
+                        <td className="py-1.5 pr-3 font-mono">{book.isbn}</td>
+                        <td className="py-1.5 pr-3 truncate text-foreground">{book.title || '—'}</td>
+                        <td className={cn('py-1.5 pr-3 font-medium capitalize', book.book_type?.toLowerCase() === 'jaguar' ? 'text-green-700' : 'text-blue-700')}>
+                          {book.book_type ? book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase() : '—'}
+                        </td>
                         <td className="py-1.5">
                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                             book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
