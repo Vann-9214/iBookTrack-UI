@@ -253,61 +253,69 @@ export default function DashboardPage() {
     : 'Not updated yet'
 
   return (
-    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>  
+    <div className={cn("flex h-dvh overflow-hidden bg-background", `theme-${brand}`)}>  
       <DashboardSidebar />
 
       {/* Main Content */}
       <DashboardMain>
         <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-6 p-6 lg:p-8">
+          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
             {/* Page Header */}
-            <header className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  Command Center
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Real-time overview of the 8-step pipeline, transmissions, and warehouse activity.
-                </p>
+            <header className="flex flex-col gap-3">
+              {/* Title row — always visible */}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                    Command Center
+                  </h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Real-time overview of the 8-step pipeline, transmissions, and warehouse activity.
+                  </p>
+                </div>
+                {/* Refresh + timestamp — hidden on mobile */}
+                <div className="hidden sm:flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={refreshAll}
+                    disabled={isRefreshing}
+                    className="gap-1.5"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="relative">
+
+              {/* Controls row — scan + search always on one line */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 min-w-0">
                   <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
                     value={boxScanInput}
                     onChange={e => setBoxScanInput(e.target.value)}
                     onKeyDown={handleBoxScan}
-                    placeholder="Scan box barcode..."
-                    className="pl-9 pr-4 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-52"
+                    placeholder="Scan barcode…"
+                    className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-full sm:w-52"
                   />
                 </div>
                 <Button
                   variant="default"
                   size="default"
                   onClick={() => setSearchOpen(true)}
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shrink-0"
                 >
                   <Search className="h-4 w-4" />
-                  Search ISBN / Lot
+                  <span className="hidden xs:inline">Search ISBN / Lot</span>
+                  <span className="xs:hidden">Search</span>
                 </Button>
-                
-                {/* Visual Action Component Injection Group */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={refreshAll}
-                  disabled={isRefreshing}
-                  className="gap-1.5"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`}  />
-                  Refresh
-                </Button>
-                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+              </div>
 
-                {/* Search Dashboard Modal */}
-                {searchOpen && (
+              {/* Search Dashboard Modal */}
+              {searchOpen && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSearchOpen(false)}>
                     <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                       {/* Header */}
@@ -425,7 +433,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )}
-              </div>
             </header>
 
             {/* Top Stats Bar */}
@@ -610,8 +617,8 @@ export default function DashboardPage() {
             {/* Active Pipeline Flowchart */}
             <ActivePipeline currentLot={displayText} stats={dashboardStats} brand={brand} loading={isRefreshing} />
 
-            {/* Bottom Split: Transmission Queue & Unaccounted Books */}
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+            {/* Bottom Split: Transmission Queue & Unaccounted Books — hidden on mobile */}
+            <div className="hidden sm:grid grid-cols-1 gap-6 xl:grid-cols-12">
               {/* Left Table: Takes up 7 out of 12 columns (~58% width) */}
               <div className="xl:col-span-7 h-full">
                 <TransmissionQueue scans={liveScans} loading={isRefreshing} />

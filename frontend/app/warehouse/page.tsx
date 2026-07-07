@@ -598,11 +598,11 @@ export default function WarehousePage() {
     : 'Not updated yet'
 
   return (
-    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>
+    <div className={cn("flex h-dvh overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={sessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar disableBrandToggle={sessionActive} navigationLocked={sessionActive} />
-        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
+        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
           {/* Confirm Complete Session Modal */}
           {confirmCompleteOpen && (

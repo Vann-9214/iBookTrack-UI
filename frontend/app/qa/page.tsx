@@ -451,12 +451,12 @@ export default function BookInspectionPage() {
     : 'Not updated yet'
 
   return (
-    <div className={cn("flex min-h-screen bg-background", `theme-${brand}`)}>
+    <div className={cn("flex min-h-dvh bg-background", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={inspSessionActive} />
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
         <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
         <div className="flex-1 overflow-y-auto bg-slate-50/50">
-          <div className="flex flex-col gap-6 p-6 lg:p-8">
+          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
