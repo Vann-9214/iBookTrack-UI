@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import {
   Activity,
@@ -15,6 +15,8 @@ import {
   X,
 } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
+import { usePagination } from "@/hooks/usePagination"
+import { Pagination } from "@/components/pagination"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -26,6 +28,10 @@ interface QCFlag {
   remarks: string | null
   flagged_by_name: string | null
   flagged_at: string
+  assigned_box?: {
+    box_number: string
+    lot?: { lot_number: string }
+  }
 }
 
 interface LiveLot {
@@ -40,12 +46,15 @@ interface LiveLot {
 
 interface StatsBarProps {
   stats?: any
+  refreshKey?: number
 }
 
-export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
+export function StatsBar({ stats: dashboardStats, refreshKey }: StatsBarProps) {
   const [flagsOpen, setFlagsOpen] = useState(false)
   const [flags, setFlags] = useState<QCFlag[]>([])
+  const [totalFlags, setTotalFlags] = useState(0)
   const [loadingFlags, setLoadingFlags] = useState(false)
+  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 50 })
 
   const [liveLotsOpen, setLiveLotsOpen] = useState(false)
   const [liveLots, setLiveLots] = useState<LiveLot[]>([])
@@ -68,20 +77,37 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
     }
   }
 
-  const openFlags = async () => {
-    setFlagsOpen(true)
-    if (flags.length > 0) return
+  const fetchFlags = async (page = 1) => {
     setLoadingFlags(true)
     try {
-      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags`)
+      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=50`)
       const data = await res.json()
       setFlags(data.flags || [])
+      setTotalFlags(data.total || 0)
     } catch {
       setFlags([])
+      setTotalFlags(0)
     } finally {
       setLoadingFlags(false)
     }
   }
+
+  const openFlags = async () => {
+    setFlagsOpen(true)
+    flagsPagination.goToPage(1)
+    if (flags.length > 0) return
+    await fetchFlags(1)
+  }
+
+  useEffect(() => {
+    if (refreshKey === undefined || !flagsOpen) return
+    fetchFlags(flagsPagination.currentPage)
+  }, [refreshKey, flagsOpen])
+
+  useEffect(() => {
+    if (!flagsOpen) return
+    fetchFlags(flagsPagination.currentPage)
+  }, [flagsPagination.currentPage])
 
   const ISSUE_LABELS: Record<string, string> = {
     'bent-page': 'Bent Page', 'torn-page': 'Torn Page', 'missing-page': 'Missing Page',
@@ -192,7 +218,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
       {/* QC Flagged Books Modal */}
       {flagsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setFlagsOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
 
             {/* Red header */}
             <div className="px-6 py-5 flex items-center justify-between bg-red-50">
@@ -244,6 +270,7 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide w-10">#</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">ISBN</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot &amp; Box</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Issue</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Flagged By</th>
                     </tr>
@@ -251,9 +278,15 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
                   <tbody className="divide-y divide-gray-50">
                     {flags.map((f, i) => (
                       <tr key={f.scan_id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4 text-xs text-gray-300">{i + 1}</td>
+                        <td className="py-3 px-4 text-xs text-gray-300">{(flagsPagination.currentPage - 1) * flagsPagination.pageSize + i + 1}</td>
                         <td className="py-3 px-4 font-semibold text-gray-800">{f.isbn}</td>
-                        <td className="py-3 px-4 text-gray-500 max-w-[160px] truncate">{f.title || '—'}</td>
+                        <td className="py-3 px-4 text-gray-500 max-w-[200px] truncate">{f.title || '—'}</td>
+                        <td className="text-xs px-4 py-3">
+                          <span className="font-semibold text-blue-600">{f.assigned_box?.lot?.lot_number || '—'}</span>
+                          {f.assigned_box?.box_number && (
+                            <span className="block text-[11px] text-gray-400 mt-0.5">{f.assigned_box.box_number}</span>
+                          )}
+                        </td>
                         <td className="py-3 px-4">
                           <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
                             {ISSUE_LABELS[f.issue] || f.issue}
@@ -265,6 +298,20 @@ export function StatsBar({ stats: dashboardStats }: StatsBarProps) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {flagsPagination.totalPages > 1 && (
+              <div className="border-t border-gray-100 px-4 py-3 shrink-0">
+                <Pagination
+                  currentPage={flagsPagination.currentPage}
+                  totalPages={flagsPagination.totalPages}
+                  pageSize={flagsPagination.pageSize}
+                  onPageChange={flagsPagination.goToPage}
+                  onPageSizeChange={flagsPagination.setPageSize}
+                  canPrevPage={flagsPagination.canPrevPage}
+                  canNextPage={flagsPagination.canNextPage}
+                />
               </div>
             )}
           </div>

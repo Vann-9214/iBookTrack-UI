@@ -60,7 +60,11 @@ function formatTime(val: string) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
-export function TransmissionQueue() {
+interface TransmissionQueueProps {
+  refreshKey?: number
+}
+
+export function TransmissionQueue({ refreshKey }: TransmissionQueueProps) {
   const { brand } = useBrand()
   const [scans, setScans] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -85,12 +89,17 @@ export function TransmissionQueue() {
     fetchLive()
   }, [brand])
 
+  useEffect(() => {
+    if (refreshKey === undefined) return
+    fetchLive()
+  }, [refreshKey])
+
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
-    <Card className="border-border bg-card flex flex-col overflow-hidden p-0">
+    <Card className="border-border bg-card flex flex-col overflow-hidden p-0 h-full">
       {/* Blue header - sticky */}
-      <div className="sticky top-0 z-20 flex items-center justify-between px-5 py-4 bg-blue-50 border-b border-blue-100">
+      <div className="flex items-center justify-between px-5 py-4 bg-blue-50 border-b border-blue-100 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm">
             <Activity className="h-4 w-4" />
@@ -112,40 +121,46 @@ export function TransmissionQueue() {
         </div>
       </div>
 
-      <CardContent className="flex-1 p-0">
+      <CardContent className="flex-1 p-0 min-h-0">
         {loading ? (
-          <div className="px-4 py-8 text-center text-xs text-muted-foreground">Loading...</div>
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
         ) : scans.length === 0 ? (
-          <div className="px-4 py-8 text-center text-xs text-muted-foreground">No scan data for today</div>
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <p className="text-sm text-muted-foreground">No scan data for today</p>
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {scans.map((item, i) => (
-                <TableRow key={i} className="border-border">
-                  <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}</TableCell>
-                  <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
-                  <TableCell className="text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{item.PageCount || '—'}</TableCell>
-                  <TableCell>{getPipelineStatusBadge(item.Status || '')}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{item.MachineName || '—'}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground text-right">{formatTime(item.Updated)}</TableCell>
+          <div className="h-full overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-white">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {scans.map((item, i) => (
+                  <TableRow key={i} className="border-border">
+                    <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}</TableCell>
+                    <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
+                    <TableCell className="text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.PageCount || '—'}</TableCell>
+                    <TableCell>{getPipelineStatusBadge(item.Status || '')}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.MachineName || '—'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground text-right">{formatTime(item.Updated)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>

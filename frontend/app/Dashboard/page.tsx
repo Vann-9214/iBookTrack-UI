@@ -44,6 +44,12 @@ export default function DashboardPage() {
   // New state hooks for tracking background refresh metrics
   const [refreshingStats, setRefreshingStats] = useState(false)
   const [lastStatsUpdate, setLastStatsUpdate] = useState<Date | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const refreshAll = () => {
+    fetchDashboardStats(currentLot || undefined)
+    setRefreshKey(k => k + 1)
+  }
 
   const clearSearch = () => {
     setSearchResult(null)
@@ -52,7 +58,7 @@ export default function DashboardPage() {
     setRangeEnd('')
     setCurrentLot('')
     setDisplayRange(null)
-    fetchDashboardStats()
+    refreshAll()
   }
 
   const [boxScanInput, setBoxScanInput] = useState('')
@@ -271,7 +277,7 @@ export default function DashboardPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => fetchDashboardStats(currentLot || undefined)}
+                  onClick={refreshAll}
                   disabled={refreshingStats}
                   className="gap-1.5"
                 >
@@ -403,7 +409,7 @@ export default function DashboardPage() {
             </header>
 
             {/* Top Stats Bar */}
-            <StatsBar stats={dashboardStats} />
+            <StatsBar stats={dashboardStats} refreshKey={refreshKey} />
 
             {/* Search Results */}
             {searchResult && (
@@ -563,13 +569,13 @@ export default function DashboardPage() {
             {/* Bottom Split: Transmission Queue & Unaccounted Books */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
               {/* Left Table: Takes up 7 out of 12 columns (~58% width) */}
-              <div className="xl:col-span-7">
-                <TransmissionQueue />
+              <div className="xl:col-span-7 h-full">
+                <TransmissionQueue refreshKey={refreshKey} />
               </div>
               
               {/* Right Table: Takes up 5 out of 12 columns (~42% width) */}
-              <div className="xl:col-span-5">
-                <UnaccountedBooks />
+              <div className="xl:col-span-5 h-full">
+                <UnaccountedBooks refreshKey={refreshKey} />
               </div>
             </div>
           </div>

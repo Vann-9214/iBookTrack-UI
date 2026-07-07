@@ -258,23 +258,78 @@ router.get('/open-lots', async (req, res) => {
 router.get('/qc-flags', requireAuth, async (req, res) => {
   try {
     const db = supabaseAdmin || supabase
-    const { data, error } = await db
+    const requestedPage = parseInt(req.query.page || '1', 10)
+    const requestedLimit = parseInt(req.query.limit || '50', 10)
+    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50
+    const start = (page - 1) * limit
+    const end = start + limit - 1
+
+    const { data, error, count } = await db
       .from('user_flags')
-      .select('id, book_activity_id, rejection_reason, notes, warehouse_flag_by, warehouse_flag_at, book_activity(books(isbn, title, box_id))')
+      .select(`
+        id,
+        book_activity_id,
+        rejection_reason,
+        notes,
+        warehouse_flag_by,
+        warehouse_flag_at,
+        inventory_flag_by,
+        inventory_flag_at,
+        endorsement_flag_by,
+        endorsement_flag_at,
+        warehouse_user:profiles!warehouse_flag_by(name),
+        inventory_user:profiles!inventory_flag_by(name),
+        endorsement_user:profiles!endorsement_flag_by(name),
+        book_activity(
+          id,
+          books!inner(
+            isbn,
+            title,
+            box:boxes(
+              box_number,
+              lot:lots(lot_number)
+            )
+          )
+        )
+      `, { count: 'exact' })
       .order('warehouse_flag_at', { ascending: false })
+      .range(start, end)
     if (error) throw error
-    
-    const mappedFlags = (data || []).map(f => ({
-      scan_id: f.id,
-      isbn: f.book_activity?.books?.isbn,
-      title: f.book_activity?.books?.title,
-      box_id: f.book_activity?.books?.box_id,
-      issue: f.rejection_reason,
-      remarks: f.notes,
-      flagged_at: f.warehouse_flag_at
-    }))
-    
-    res.json({ success: true, flags: mappedFlags })
+
+    const firstRel = (rel) => Array.isArray(rel) ? rel[0] : rel
+
+    const mappedFlags = (data || []).map(f => {
+      const ba = firstRel(f.book_activity) || {}
+      const book = firstRel(ba.books) || {}
+      const box = firstRel(book.box) || {}
+      const lot = firstRel(box.lot) || {}
+
+      const flagCandidates = [
+        { at: f.warehouse_flag_at, by: firstRel(f.warehouse_user)?.name },
+        { at: f.inventory_flag_at, by: firstRel(f.inventory_user)?.name },
+        { at: f.endorsement_flag_at, by: firstRel(f.endorsement_user)?.name },
+      ].filter(c => c.at)
+
+      const latestFlag = flagCandidates.sort(
+        (a, b) => new Date(b.at) - new Date(a.at)
+      )[0]
+
+      return {
+        scan_id: f.id,
+        isbn: book.isbn || null,
+        title: book.title || null,
+        issue: f.rejection_reason,
+        remarks: f.notes,
+        flagged_at: latestFlag?.at || f.warehouse_flag_at || null,
+        flagged_by_name: latestFlag?.by || null,
+        assigned_box: box.box_number
+          ? { box_number: box.box_number, lot: lot.lot_number ? { lot_number: lot.lot_number } : null }
+          : null,
+      }
+    })
+
+    res.json({ success: true, flags: mappedFlags, total: count || 0, page, limit })
   } catch (error) {
     console.error('Get QC flags error:', error)
     res.status(500).json({ error: error.message })

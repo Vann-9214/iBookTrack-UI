@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import { usePagination } from "@/hooks/usePagination"
-import { Pagination } from "@/components/pagination"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle } from "lucide-react"
@@ -49,26 +47,34 @@ interface FlaggedBook {
   }
 }
 
-export function UnaccountedBooks() {
+interface UnaccountedBooksProps {
+  refreshKey?: number
+}
+
+export function UnaccountedBooks({ refreshKey }: UnaccountedBooksProps) {
   const [books, setBooks] = useState<FlaggedBook[]>([])
   const [loading, setLoading] = useState(true)
-  const pagination = usePagination({ totalItems: books.length, defaultPageSize: 8 })
-  const paginatedBooks = books.slice(pagination.offset, pagination.offset + pagination.limit)
+
+  const fetchFlagged = async () => {
+    try {
+      const res = await authFetch(`${API_URL}/api/warehouse/rejected-books?today=true&limit=10`)
+      const data = await res.json()
+      if (data.success) setBooks(data.rejectedBooks || [])
+    } catch {
+      // silently fail — widget shouldn't break dashboard
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchFlagged = async () => {
-      try {
-        const res = await authFetch(`${API_URL}/api/warehouse/rejected-books?limit=50`)
-        const data = await res.json()
-        if (data.success) setBooks(data.rejectedBooks || [])
-      } catch {
-        // silently fail — widget shouldn't break dashboard
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchFlagged()
   }, [])
+
+  useEffect(() => {
+    if (refreshKey === undefined) return
+    fetchFlagged()
+  }, [refreshKey])
 
   const issueLabel = (val?: string) => {
     if (!val) return 'Unknown issue'
@@ -76,9 +82,9 @@ export function UnaccountedBooks() {
   }
 
   return (
-    <Card className="border-border bg-card flex flex-col overflow-hidden p-0">
+    <Card className="border-border bg-card flex flex-col overflow-hidden p-0 h-full">
       {/* Red header — sticky */}
-      <div className="sticky top-0 z-20 flex items-center justify-between px-5 py-4 bg-red-50 border-b border-red-100">
+      <div className="flex items-center justify-between px-5 py-4 bg-red-50 border-b border-red-100 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500 text-white">
             <AlertTriangle className="h-4 w-4" />
@@ -96,30 +102,29 @@ export function UnaccountedBooks() {
         </Badge>
       </div>
 
-      <CardContent className="flex-1 p-0">
+      <CardContent className="flex-1 p-0 min-h-0">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
             <p className="text-sm text-muted-foreground">Loading…</p>
           </div>
         ) : books.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <p className="text-sm text-muted-foreground">No flagged books yet.</p>
+            <p className="text-sm text-muted-foreground">No flagged books today.</p>
           </div>
         ) : (
-          <>
-          <div>
+          <div className="h-full overflow-auto">
             <table className="w-full text-sm">
-              <thead className="bg-white">
+              <thead className="bg-white sticky top-0 z-10">
                 <tr className="border-b border-gray-100">
                   <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
                   <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Lot &amp; Box</th>
                   <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Issue</th>
                   <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left hidden sm:table-cell">Reported By</th>
-                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Date</th>
+                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Time</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedBooks.map((item) => (
+                {books.map((item) => (
                   <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                     <td className="text-xs font-semibold text-gray-800 px-4 py-3">{item.isbn}</td>
                     <td className="text-xs px-4 py-3">
@@ -138,7 +143,7 @@ export function UnaccountedBooks() {
                     </td>
                     <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
                       {item.scanned_at
-                        ? new Date(item.scanned_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        ? new Date(item.scanned_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })
                         : '—'}
                     </td>
                   </tr>
@@ -146,21 +151,6 @@ export function UnaccountedBooks() {
               </tbody>
             </table>
           </div>
-
-          {pagination.totalPages > 1 && (
-            <div className="border-t border-gray-100 px-4 py-3">
-              <Pagination
-                currentPage={pagination.currentPage}
-                totalPages={pagination.totalPages}
-                pageSize={pagination.pageSize}
-                onPageChange={pagination.goToPage}
-                onPageSizeChange={pagination.setPageSize}
-                canPrevPage={pagination.canPrevPage}
-                canNextPage={pagination.canNextPage}
-              />
-            </div>
-          )}
-          </>
         )}
       </CardContent>
     </Card>
