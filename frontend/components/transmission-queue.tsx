@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Card,
   CardContent,
@@ -14,9 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { CheckCircle2, XCircle, Loader2, RefreshCw, Activity } from "lucide-react"
+import { CheckCircle2, XCircle, Loader2, Activity } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
 import { useBrand } from "@/hooks/use-brand"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -61,22 +62,27 @@ function formatTime(val: string) {
 }
 
 interface TransmissionQueueProps {
-  refreshKey?: number
+  scans?: any[]
+  loading?: boolean
 }
 
-export function TransmissionQueue({ refreshKey }: TransmissionQueueProps) {
+export function TransmissionQueue({ scans: propScans, loading: propLoading = false }: TransmissionQueueProps) {
   const { brand } = useBrand()
-  const [scans, setScans] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [lastUpdated, setLastUpdated] = useState<string>('')
+  const [fetchedScans, setFetchedScans] = useState<any[]>([])
+  const [loading, setLoading] = useState(!propScans)
+
+  const scans = useMemo(
+    () => (propScans || fetchedScans).slice(0, 10),
+    [propScans, fetchedScans]
+  )
 
   const fetchLive = async () => {
+    setLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/scanning/live?location=${brand}`)
       const data = await res.json()
       if (data.success && data.recentScans) {
-        setScans(data.recentScans.slice(0, 10))
-        setLastUpdated(new Date().toLocaleTimeString())
+        setFetchedScans(data.recentScans)
       }
     } catch (e) {
       console.error('Failed to fetch live scans:', e)
@@ -86,13 +92,9 @@ export function TransmissionQueue({ refreshKey }: TransmissionQueueProps) {
   }
 
   useEffect(() => {
+    if (propScans) return
     fetchLive()
   }, [brand])
-
-  useEffect(() => {
-    if (refreshKey === undefined) return
-    fetchLive()
-  }, [refreshKey])
 
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
@@ -115,16 +117,41 @@ export function TransmissionQueue({ refreshKey }: TransmissionQueueProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="border-blue-300 bg-white text-blue-600 text-[11px] font-semibold px-2.5 whitespace-nowrap">
-            {loading ? '…' : `${scans.length} books`}
-          </Badge>
+          {propLoading || loading ? (
+            <Skeleton className="h-6 w-16 rounded-full bg-muted-foreground/20" />
+          ) : (
+            <Badge variant="outline" className="border-blue-300 bg-white text-blue-600 text-[11px] font-semibold px-2.5 whitespace-nowrap">
+              {`${scans.length} books`}
+            </Badge>
+          )}
         </div>
       </div>
 
       <CardContent className="flex-1 p-0 min-h-0">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <p className="text-sm text-muted-foreground">Loading...</p>
+        {propLoading || loading ? (
+          <div className="h-full overflow-hidden px-4 py-3">
+            <div className="flex gap-3 mb-3">
+              <Skeleton className="h-8 w-28 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-32 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-20 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-28 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-20 rounded bg-muted-foreground/20" />
+            </div>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
+                <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-28 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-36 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-16 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-28 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-20 ml-auto rounded bg-muted-foreground/20" />
+              </div>
+            ))}
           </div>
         ) : scans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">

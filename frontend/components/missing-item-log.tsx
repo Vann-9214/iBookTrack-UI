@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { AlertTriangle } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
 
@@ -49,17 +50,22 @@ interface FlaggedBook {
 
 interface UnaccountedBooksProps {
   refreshKey?: number
+  books?: FlaggedBook[]
+  loading?: boolean
 }
 
-export function UnaccountedBooks({ refreshKey }: UnaccountedBooksProps) {
-  const [books, setBooks] = useState<FlaggedBook[]>([])
-  const [loading, setLoading] = useState(true)
+export function UnaccountedBooks({ refreshKey, books: propBooks, loading: propLoading = false }: UnaccountedBooksProps) {
+  const [fetchedBooks, setFetchedBooks] = useState<FlaggedBook[]>([])
+  const [loading, setLoading] = useState(!propBooks)
+
+  const books = propBooks || fetchedBooks
 
   const fetchFlagged = async () => {
+    setLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/warehouse/rejected-books?today=true&limit=10`)
       const data = await res.json()
-      if (data.success) setBooks(data.rejectedBooks || [])
+      if (data.success) setFetchedBooks(data.rejectedBooks || [])
     } catch {
       // silently fail — widget shouldn't break dashboard
     } finally {
@@ -68,13 +74,9 @@ export function UnaccountedBooks({ refreshKey }: UnaccountedBooksProps) {
   }
 
   useEffect(() => {
+    if (propBooks) return
     fetchFlagged()
-  }, [])
-
-  useEffect(() => {
-    if (refreshKey === undefined) return
-    fetchFlagged()
-  }, [refreshKey])
+  }, [propBooks, refreshKey])
 
   const issueLabel = (val?: string) => {
     if (!val) return 'Unknown issue'
@@ -97,15 +99,34 @@ export function UnaccountedBooks({ refreshKey }: UnaccountedBooksProps) {
             </div>
           </div>
         </div>
-        <Badge variant="outline" className="border-red-300 bg-white text-red-600 text-[11px] font-semibold px-2.5">
-          {loading ? '…' : `${books.length} books`}
-        </Badge>
+        {propLoading || loading ? (
+          <Skeleton className="h-6 w-16 rounded-full bg-muted-foreground/20" />
+        ) : (
+          <Badge variant="outline" className="border-red-300 bg-white text-red-600 text-[11px] font-semibold px-2.5">
+            {`${books.length} books`}
+          </Badge>
+        )}
       </div>
 
       <CardContent className="flex-1 p-0 min-h-0">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-2">
-            <p className="text-sm text-muted-foreground">Loading…</p>
+        {propLoading || loading ? (
+          <div className="h-full overflow-hidden px-4 py-3">
+            <div className="flex gap-3 mb-3">
+              <Skeleton className="h-8 w-28 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-32 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-20 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
+            </div>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
+                <Skeleton className="h-4 w-28 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-20 ml-auto rounded bg-muted-foreground/20" />
+              </div>
+            ))}
           </div>
         ) : books.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">

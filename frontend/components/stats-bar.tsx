@@ -17,6 +17,7 @@ import {
 import { authFetch } from "@/lib/auth-api"
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -47,9 +48,10 @@ interface LiveLot {
 interface StatsBarProps {
   stats?: any
   refreshKey?: number
+  loading?: boolean
 }
 
-export function StatsBar({ stats: dashboardStats, refreshKey }: StatsBarProps) {
+export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }: StatsBarProps) {
   const [flagsOpen, setFlagsOpen] = useState(false)
   const [flags, setFlags] = useState<QCFlag[]>([])
   const [totalFlags, setTotalFlags] = useState(0)
@@ -185,35 +187,50 @@ export function StatsBar({ stats: dashboardStats, refreshKey }: StatsBarProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.title}
-            onClick={stat.onClick}
-            className={cn(
-              "rounded-2xl border p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]",
-              stat.cardBg, stat.hoverBg, stat.border,
-              stat.onClick ? "cursor-pointer" : "cursor-default"
-            )}
-          >
-            {/* Top row: icon + badge */}
-            <div className="flex items-start justify-between mb-3">
-              <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm", stat.iconBg)}>
-                <stat.icon className="h-6 w-6" />
+      {loading || !dashboardStats ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <div className="flex items-start justify-between mb-3">
+                <Skeleton className="h-12 w-12 rounded-2xl bg-muted-foreground/20" />
+                <Skeleton className="h-10 w-16 rounded bg-muted-foreground/20" />
               </div>
-              {/* Value */}
-              <div className={cn("text-4xl font-black mb-0.5", stat.valueColor)}>
-                {stat.value}
-              </div>
+              <Skeleton className="h-5 w-32 mb-1.5 rounded bg-muted-foreground/20" />
+              <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => (
+            <div
+              key={stat.title}
+              onClick={stat.onClick}
+              className={cn(
+                "rounded-2xl border p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]",
+                stat.cardBg, stat.hoverBg, stat.border,
+                stat.onClick ? "cursor-pointer" : "cursor-default"
+              )}
+            >
+              {/* Top row: icon + badge */}
+              <div className="flex items-start justify-between mb-3">
+                <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm", stat.iconBg)}>
+                  <stat.icon className="h-6 w-6" />
+                </div>
+                {/* Value */}
+                <div className={cn("text-4xl font-black mb-0.5", stat.valueColor)}>
+                  {stat.value}
+                </div>
+              </div>
 
-            {/* Title */}
-            <div className="text-sm font-semibold text-gray-700 mb-0.5">{stat.title}</div>
-            {/* Subtext */}
-            <div className={cn("text-xs", stat.subtextColor)}>{stat.subtext}</div>
-          </div>
-        ))}
-      </div>
+              {/* Title */}
+              <div className="text-sm font-semibold text-gray-700 mb-0.5">{stat.title}</div>
+              {/* Subtext */}
+              <div className={cn("text-xs", stat.subtextColor)}>{stat.subtext}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* QC Flagged Books Modal */}
       {flagsOpen && (

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Search, Book, Package, Barcode, X, RefreshCw, CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
@@ -42,13 +43,24 @@ export default function DashboardPage() {
   const { toast } = useToast()
 
   // New state hooks for tracking background refresh metrics
-  const [refreshingStats, setRefreshingStats] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastStatsUpdate, setLastStatsUpdate] = useState<Date | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [liveScans, setLiveScans] = useState<any[]>([])
+  const [flaggedBooks, setFlaggedBooks] = useState<any[]>([])
 
-  const refreshAll = () => {
-    fetchDashboardStats(currentLot || undefined)
-    setRefreshKey(k => k + 1)
+  const refreshAll = async () => {
+    setIsRefreshing(true)
+    try {
+      await Promise.all([
+        fetchDashboardStats(currentLot || undefined),
+        fetchFlagged(),
+      ])
+      if (searchResult) await handleSearch()
+      setRefreshKey(k => k + 1)
+    } finally {
+      setIsRefreshing(false)
+    }
   }
 
   const clearSearch = () => {
@@ -67,11 +79,10 @@ export default function DashboardPage() {
 
   // Fetch dashboard stats on mount and when the brand changes
   useEffect(() => {
-    fetchDashboardStats()
+    refreshAll()
   }, [brand])
 
   const fetchDashboardStats = async (lotNumber?: string) => {
-    setRefreshingStats(true)
     try {
       const statsUrl = lotNumber
         ? `${API_URL}/api/dashboard/stats?lot_number=${encodeURIComponent(lotNumber)}`
@@ -100,6 +111,7 @@ export default function DashboardPage() {
           dailyTransmitted = simflex.summary?.completedTransmissions || 0
           simflexAllTime   = simflex.allTimeTotal || 0
           transmitBooks = simflex.transmitBooks || 0
+          setLiveScans(simflex.recentScans || [])
         }
       } else {
         console.warn('[Dashboard] simflexRes not ok:', simflexRes?.status)
@@ -117,8 +129,16 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)
-    } finally {
-      setRefreshingStats(false)
+    }
+  }
+
+  const fetchFlagged = async () => {
+    try {
+      const res = await authFetch(`${API_URL}/api/warehouse/rejected-books?today=true&limit=10`)
+      const data = await res.json()
+      if (data.success) setFlaggedBooks(data.rejectedBooks || [])
+    } catch (e) {
+      console.error('Failed to fetch flagged books:', e)
     }
   }
 
@@ -278,10 +298,10 @@ export default function DashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={refreshAll}
-                  disabled={refreshingStats}
+                  disabled={isRefreshing}
                   className="gap-1.5"
                 >
-                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`}  />
+                  <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`}  />
                   Refresh
                 </Button>
                 <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
@@ -409,7 +429,7 @@ export default function DashboardPage() {
             </header>
 
             {/* Top Stats Bar */}
-            <StatsBar stats={dashboardStats} refreshKey={refreshKey} />
+            <StatsBar stats={dashboardStats} refreshKey={refreshKey} loading={isRefreshing} />
 
             {/* Search Results */}
             {searchResult && (
@@ -430,7 +450,31 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {searchResult.type === 'isbn' && searchResult.data && (
+                  {loading && (
+                    <div className="space-y-4">
+                      <div className="flex gap-2 mb-6">
+                        <Skeleton className="h-6 w-24 rounded-full bg-muted-foreground/20" />
+                        <Skeleton className="h-6 w-28 rounded-full bg-muted-foreground/20" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="col-span-full space-y-2">
+                          <Skeleton className="h-4 w-16 rounded bg-muted-foreground/20" />
+                          <Skeleton className="h-7 w-48 rounded bg-muted-foreground/20" />
+                        </div>
+                        <div className="col-span-full space-y-2">
+                          <Skeleton className="h-4 w-16 rounded bg-muted-foreground/20" />
+                          <Skeleton className="h-5 w-3/4 rounded bg-muted-foreground/20" />
+                        </div>
+                        {[1, 2, 3, 4].map((i) => (
+                          <div key={i} className="space-y-2">
+                            <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
+                            <Skeleton className="h-7 w-32 rounded bg-muted-foreground/20" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {!loading && searchResult.type === 'isbn' && searchResult.data && (
                     <div className="space-y-4">
                       <div className="flex gap-2">
                         {searchResult.data.in_warehouse && (
@@ -478,7 +522,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
-                  {searchResult.type === 'lot' && searchResult.data && (
+                  {!loading && searchResult.type === 'lot' && searchResult.data && (
                     <div className="space-y-5">
                       {/* Status + progress row */}
                       <div className="flex items-center gap-3">
@@ -564,18 +608,18 @@ export default function DashboardPage() {
             )}
 
             {/* Active Pipeline Flowchart */}
-            <ActivePipeline currentLot={displayText} stats={dashboardStats} brand={brand} />
+            <ActivePipeline currentLot={displayText} stats={dashboardStats} brand={brand} loading={isRefreshing} />
 
             {/* Bottom Split: Transmission Queue & Unaccounted Books */}
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
               {/* Left Table: Takes up 7 out of 12 columns (~58% width) */}
               <div className="xl:col-span-7 h-full">
-                <TransmissionQueue refreshKey={refreshKey} />
+                <TransmissionQueue scans={liveScans} loading={isRefreshing} />
               </div>
               
               {/* Right Table: Takes up 5 out of 12 columns (~42% width) */}
               <div className="xl:col-span-5 h-full">
-                <UnaccountedBooks refreshKey={refreshKey} />
+                <UnaccountedBooks books={flaggedBooks} loading={isRefreshing} refreshKey={refreshKey} />
               </div>
             </div>
           </div>
