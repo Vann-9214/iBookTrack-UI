@@ -81,6 +81,7 @@ export default function WarehousePage() {
   const [lots, setLots] = useState<{ lot_number: string; type?: string; boxes: string[] }[]>([])
   const [lotsLoading, setLotsLoading] = useState(false)
   const [lotsError, setLotsError] = useState<string | null>(null)
+  const [sessionError, setSessionError] = useState<string | null>(null)
   const [selectedBox, setSelectedBox] = useState<string>('')
   const [sessionActive, setSessionActive] = useState(false)
   const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([])
@@ -230,15 +231,19 @@ export default function WarehousePage() {
   const availableBoxes = lots.find(l => l.lot_number === activeLot)?.boxes ?? []
 
   const handleNewSession = async (force: boolean = false) => {
+    setSessionError(null)
+    setLoading(true)
     let formattedLot = activeLot.trim()
-    if (!formattedLot) { alert('Please select a lot first'); return }
+    if (!formattedLot) { setSessionError('Please select a lot first'); setLoading(false); return }
     if (!formattedLot.toLowerCase().startsWith('lot')) {
-      toast({ title: "Invalid Lot Format", description: "The Lot Number must start with the word 'Lot' (e.g. Lot-109).", variant: "destructive" })
+      setSessionError("The Lot Number must start with the word 'Lot' (e.g. Lot-109).")
+      setLoading(false)
       return
     }
-    if (!selectedBox) { alert('Please select a box first'); return }
+    if (!selectedBox) { setSessionError('Please select a box first'); setLoading(false); return }
     if (!selectedBox.includes('/')) {
-      toast({ title: "Invalid Box Format", description: "The Box Number must contain a '/' (e.g. 181/264).", variant: "destructive" })
+      setSessionError("The Box Number must contain a '/' (e.g. 181/264).")
+      setLoading(false)
       return
     }
     
@@ -247,7 +252,8 @@ export default function WarehousePage() {
     const totalNum = parseInt(totalBoxes, 10)
 
     if (isNaN(currentNum) || isNaN(totalNum) || currentNum > totalNum) {
-      toast({ title: "Invalid Box Numbers", description: "The total boxes (right side) must be greater than or equal to the current box (left side). Example: 12/400.", variant: "destructive" })
+      setSessionError('The total boxes (right side) must be greater than or equal to the current box (left side). Example: 12/400.')
+      setLoading(false)
       return
     }
 
@@ -261,15 +267,13 @@ export default function WarehousePage() {
       })
       const checkData = await checkRes.json()
       if (checkRes.ok && checkData.exists) {
-        toast({
-          title: 'Duplicate Box Number',
-          description: `Box ${selectedBox} already exists in ${formattedLot.toLowerCase().startsWith('lot') ? formattedLot : `Lot ${formattedLot}`}. Please use a different box number.`,
-          variant: 'destructive'
-        })
+        setSessionError(`Box ${selectedBox} already exists in ${formattedLot.toLowerCase().startsWith('lot') ? formattedLot : `Lot ${formattedLot}`}. Please use a different box number.`)
+        setLoading(false)
         return
       }
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message || 'Failed to verify box number.', variant: 'destructive' })
+      setSessionError(err.message || 'Failed to verify box number.')
+      setLoading(false)
       return
     }
 
@@ -288,6 +292,7 @@ export default function WarehousePage() {
     setBookCounter(0)
     setCurrentBoxNumber(selectedBox)
     setCurrentBoxBooks(0)
+    setLoading(false)
     toast({ title: 'Session Started', description: `Local session created. Lot will be saved to database upon completion.` })
   }
 
@@ -989,60 +994,97 @@ export default function WarehousePage() {
           )}
 
           {/* Header */}
-          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-0.5">
-              <h1 className="text-xl font-bold tracking-tight text-foreground">Warehouse Receiving</h1>
-              <p className="text-xs text-muted-foreground">Select a lot and box to initialize a new scanning session</p>
+          {lotsLoading ? (
+            <div className="flex items-center justify-end">
+              <Skeleton className="h-9 w-28 bg-muted-foreground/20" />
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefreshStats}
-                disabled={refreshingStats || lotsLoading}
-                className="gap-1.5"
+          ) : (
+            <header className="flex items-center justify-end">
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshStats}
+                  disabled={refreshingStats || lotsLoading}
+                  className="gap-1.5"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
+            </header>
+          )}
+
+          {(sessionError || lotsError) && (
+            <div className="fixed top-6 right-6 z-50 flex items-start gap-3 max-w-md px-5 py-4 rounded-xl bg-destructive text-destructive-foreground text-base font-semibold shadow-lg animate-in fade-in slide-in-from-right-4">
+              <AlertTriangle className="h-6 w-6 shrink-0 mt-0.5" />
+              <span className="leading-snug flex-1">{sessionError || lotsError}</span>
+              <button
+                type="button"
+                onClick={() => { setSessionError(null); setLotsError(null) }}
+                className="p-1.5 rounded-md hover:bg-destructive-foreground/20 transition-colors"
+                aria-label="Dismiss warning"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          </header>
+          )}
 
           {/* Session Control */}
           {!sessionActive ? (
             <div className="flex-1 flex flex-col items-center justify-center py-10 min-h-[500px]">
 
               {lotsLoading ? (
-                <div className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl w-full max-w-2xl overflow-hidden relative">
-                  <Skeleton className="absolute top-0 left-0 right-0 h-1 rounded-none" />
-                  <div className="p-8 md:p-10 space-y-6">
-                    <div className="flex items-center gap-5 mb-2">
-                      <Skeleton className="w-14 h-14 rounded-2xl" />
-                      <div className="space-y-2 flex-1">
-                        <Skeleton className="h-6 w-48" />
-                        <Skeleton className="h-4 w-3/4 max-w-sm" />
+                <div className="flex flex-col items-center w-full max-w-2xl">
+                  <div className="mb-8 text-center space-y-2">
+                    <Skeleton className="h-8 w-56 bg-muted-foreground/20" />
+                    <Skeleton className="h-4 w-72 bg-muted-foreground/20" />
+                  </div>
+                  <div className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl w-full overflow-hidden relative">
+                    <Skeleton className="absolute top-0 left-0 right-0 h-1 rounded-none bg-muted-foreground/20" />
+                    <div className="p-8 md:p-10 space-y-6">
+                      <div className="flex items-center gap-5 mb-2">
+                        <Skeleton className="w-14 h-14 rounded-2xl bg-muted-foreground/20" />
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-6 w-48 bg-muted-foreground/20" />
+                          <Skeleton className="h-4 w-3/4 max-w-sm bg-muted-foreground/20" />
+                        </div>
                       </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 rounded-xl bg-muted/30 border border-border">
+                        <div className="flex flex-col gap-2.5">
+                          <Skeleton className="h-4 w-24 bg-muted-foreground/20" />
+                          <Skeleton className="h-11 w-full rounded-lg bg-muted-foreground/20" />
+                        </div>
+                        <div className="flex flex-col gap-2.5">
+                          <Skeleton className="h-4 w-24 bg-muted-foreground/20" />
+                          <Skeleton className="h-11 w-full rounded-lg bg-muted-foreground/20" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-12 w-full rounded-lg bg-muted-foreground/20" />
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 rounded-xl bg-muted/30 border border-border">
-                      <div className="flex flex-col gap-2.5">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-11 w-full rounded-lg" />
-                      </div>
-                      <div className="flex flex-col gap-2.5">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-11 w-full rounded-lg" />
-                      </div>
-                    </div>
-                    <Skeleton className="h-12 w-full rounded-lg" />
                   </div>
                 </div>
               ) : (
-                <div className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl w-full max-w-2xl overflow-hidden relative">
-                  {/* Accent strip */}
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />
+                <div className="flex flex-col items-center w-full max-w-2xl">
+                  <div className="mb-8 text-center space-y-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Warehouse Receiving</h1>
+                    <p className="text-sm text-muted-foreground">Select a lot and box to initialize a new scanning session</p>
+                  </div>
+                  <div className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl w-full overflow-hidden relative">
+                    {/* Accent strip */}
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />
 
-                  <div className="p-8 md:p-10">
+                    {loading && (
+                      <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-card">
+                        <div className="flex items-center gap-3 px-5 py-4 bg-muted/50 border border-border rounded-xl shadow-lg">
+                          <span className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                          <span className="text-sm font-semibold text-foreground">Starting session...</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-8 md:p-10">
                     <div className="flex items-center gap-5 mb-8">
                       <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 shrink-0">
                         <Package className="h-7 w-7 text-primary" />
@@ -1070,6 +1112,7 @@ export default function WarehousePage() {
                                   onChange={(e) => {
                                     setActiveLot(e.target.value);
                                     setLotOpen(true);
+                                    setSessionError(null);
                                   }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -1112,6 +1155,7 @@ export default function WarehousePage() {
                                         onSelect={(v) => { 
                                           setActiveLot(String(l.lot_number));
                                           setLotOpen(false); 
+                                          setSessionError(null);
                                           setTimeout(() => boxInputRef.current?.focus(), 0);
                                         }} 
                                         className="flex justify-between items-center w-full py-2 cursor-pointer"
@@ -1141,6 +1185,7 @@ export default function WarehousePage() {
                               const val = e.target.value;
                               if (/^[0-9/]*$/.test(val)) {
                                 setSelectedBox(val);
+                                setSessionError(null);
                               }
                             }}
                             disabled={!activeLot}
@@ -1163,9 +1208,6 @@ export default function WarehousePage() {
                           <span>Box {selectedBox}</span>
                         </div>
                       )}
-                      {lotsError && (
-                        <p className="text-xs text-destructive text-center">{lotsError}</p>
-                      )}
 
                       <Button
                         onClick={() => handleNewSession(false)}
@@ -1187,6 +1229,7 @@ export default function WarehousePage() {
                     </div>
                   </div>
                 </div>
+              </div>
             )}
           </div>
           ) : (
