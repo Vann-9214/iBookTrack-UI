@@ -27,7 +27,7 @@ const router = express.Router()
 // Get all boxes (with optional filters)
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { lot_id, current_stage, box_number, exclude_assigned_storage } = req.query
+    const { lot_id, current_stage, box_number, exclude_assigned_storage, box_type } = req.query
 
     const db = supabaseAdmin || supabase
     let query = db
@@ -43,6 +43,7 @@ router.get('/', requireAuth, async (req, res) => {
       .order('created_at', { ascending: false })
 
     if (lot_id) query = query.eq('lot_id', lot_id)
+    if (box_type) query = query.eq('box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     if (current_stage) query = query.eq('current_stage', current_stage)
     if (box_number) query = query.ilike('box_number', `%${box_number}%`)
 

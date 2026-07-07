@@ -65,3 +65,7 @@ lerna-debug.log*
 .turbo/
 turbo.json.local
 .devin/
+
+# Agent & codebase memory (local only)
+AGENTS.md
+.codebase-memory/
