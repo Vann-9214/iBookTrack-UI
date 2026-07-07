@@ -64,3 +64,4 @@ lerna-debug.log*
 # Local development
 .turbo/
 turbo.json.local
+.devin/

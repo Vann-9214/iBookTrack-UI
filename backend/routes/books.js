@@ -18,6 +18,32 @@ import { ilmsApi } from '../services/ilms-api.js'
 
 const router = express.Router()
 
+// Get books (optionally filtered by box_id)
+// Used by the inventory print-label feature to derive the book type for a box.
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const { box_id } = req.query
+    const db = supabaseAdmin
+
+    let query = db
+      .from('books')
+      .select('id, isbn, title, book_type, box_id')
+      .order('title', { ascending: true })
+
+    if (box_id) {
+      query = query.eq('box_id', box_id)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+
+    res.json({ success: true, books: data || [] })
+  } catch (error) {
+    console.error('Get books error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Test iLMS API - Search book by ISBN from client's system
 router.get('/ilms/search/:isbn', requireAuth, async (req, res) => {
   try {
