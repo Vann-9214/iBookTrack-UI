@@ -863,8 +863,24 @@ export default function InventoryPage() {
       }
     }
 
-    const timer = setTimeout(render, 50)
-    return () => clearTimeout(timer)
+    let printTimer: ReturnType<typeof setTimeout> | null = null
+
+    const timer = setTimeout(() => {
+      render()
+      // Wait briefly for the canvas to paint, then open the browser print dialog
+      printTimer = setTimeout(() => {
+        window.print()
+      }, 100)
+    }, 50)
+
+    const onAfterPrint = () => setPrintBox(null)
+    window.addEventListener('afterprint', onAfterPrint)
+
+    return () => {
+      clearTimeout(timer)
+      if (printTimer) clearTimeout(printTimer)
+      window.removeEventListener('afterprint', onAfterPrint)
+    }
   }, [printBox])
 
   // Base search filter (used for All Boxes tab only)
@@ -1600,6 +1616,17 @@ export default function InventoryPage() {
                           </div>
                           <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
+                        {/* Print label button */}
+                        <button
+                          onClick={() => handlePrintLabel(box)}
+                          disabled={loadingPrint === box.id}
+                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors shrink-0"
+                        >
+                          {loadingPrint === box.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Printer className="h-4 w-4" />}
+                          {loadingPrint === box.id ? 'Loading…' : 'Print Label'}
+                        </button>
                         {/* Send button */}
                         <button
                           onClick={() => handleSendToCut(box)}

@@ -422,6 +422,105 @@ router.get('/notifications', requireAuth, async (req, res) => {
   }
 })
 
+// Get enhanced lot details — stage breakdown, book status counts, completion progress
+router.get('/lot-details/:lot_number', requireAuth, async (req, res) => {
+  try {
+    const { lot_number } = req.params
+    const db = supabaseAdmin || supabase
+
+    // Fuzzy lot number resolution (same logic as boxes.js /lot/:lot_number)
+    const raw = lot_number.trim()
+    const num = raw.replace(/^lot[-\s]*/i, '').trim()
+    const candidates = [raw, `Lot-${num}`, `LOT-${num}`, `Lot ${num}`, `lot-${num}`]
+
+    let lot = null
+    for (const candidate of candidates) {
+      const { data } = await db
+        .from('lots')
+        .select('id, lot_number, type')
+        .ilike('lot_number', candidate)
+        .maybeSingle()
+      if (data) { lot = data; break }
+    }
+
+    if (!lot) return res.status(404).json({ success: false, error: 'Lot not found' })
+
+    // Fetch all boxes for this lot (with embedded book count)
+    const { data: boxes, error: boxesError } = await db
+      .from('boxes')
+      .select('id, current_stage, total_books_expected, books:books(count)')
+      .eq('lot_id', lot.id)
+      .order('box_number')
+    if (boxesError) throw boxesError
+
+    const boxIds = (boxes || []).map(b => b.id)
+    const boxById = {}
+    ;(boxes || []).forEach(box => { boxById[box.id] = box })
+
+    // Stage breakdown from boxes
+    const stageBreakdown = {}
+    let totalBooks = 0
+    ;(boxes || []).forEach(box => {
+      stageBreakdown[box.current_stage] = (stageBreakdown[box.current_stage] || 0) + 1
+      totalBooks += (box.books?.[0]?.count || 0)
+    })
+
+    // Book status counts from scans
+    let processable = 0, nonProcessable = 0, transmitted = 0
+    if (boxIds.length > 0) {
+      const { data: activity, error: activityError } = await db
+        .from('book_activity')
+        .select('scan_status, books!inner(box_id)')
+        .in('books.box_id', boxIds)
+
+      if (activityError) throw activityError
+
+      ;(activity || []).forEach(a => {
+        const boxStage = boxById[a.books?.box_id]?.current_stage
+        if (a.scan_status === 'processable') {
+          processable++
+          if (boxStage === 'storage') transmitted++
+        } else if (a.scan_status === 'non_processable') {
+          nonProcessable++
+        }
+      })
+    }
+
+    const totalBoxes = (boxes || []).length
+    const completionProgress = totalBooks > 0
+      ? Math.round((transmitted / totalBooks) * 100)
+      : 0
+
+    const processingStatus = completionProgress === 100
+      ? 'Completed'
+      : completionProgress > 0
+        ? 'In Progress'
+        : 'Not Started'
+
+    res.json({
+      success: true,
+      lotDetails: {
+        lot_number: lot.lot_number,
+        lot_type: lot.type || null,
+        total_boxes: totalBoxes,
+        total_books: totalBooks,
+        completion_progress: completionProgress,
+        processing_status: processingStatus,
+        stage_breakdown: stageBreakdown,
+        books_by_status: {
+          transmitted,
+          pending: totalBooks - transmitted,
+          processable,
+          non_processable: nonProcessable,
+        },
+      },
+    })
+  } catch (error) {
+    console.error('Get lot details error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Get pipeline stage counts
 router.get('/pipeline-stats', async (req, res) => {
   try {
