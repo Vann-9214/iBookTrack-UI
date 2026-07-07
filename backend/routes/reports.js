@@ -36,7 +36,7 @@ router.get('/lot-status', requireAuth, async (req, res) => {
     // 1. Fetch all lots
     const { data: lots, error: lotsError } = await db
       .from('lots')
-      .select('id, lot_number, status, created_at, total_boxes')
+      .select('id, lot_number, type, created_at, total_boxes')
       .order('created_at', { ascending: false })
 
     if (lotsError) throw lotsError
@@ -115,7 +115,7 @@ router.get('/lot-status', requireAuth, async (req, res) => {
       return {
         lot_id: lot.id,
         lot_number: lot.lot_number,
-        lot_status: lot.status,
+        lot_status: lot.type ? lot.type.charAt(0).toUpperCase() + lot.type.slice(1) : null,
         computed_status: computedStatus,
         created_at: lot.created_at,
         total_boxes: totalBoxes,

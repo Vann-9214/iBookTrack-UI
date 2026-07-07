@@ -210,7 +210,7 @@ export default function InventoryPage() {
 
 
 
-  useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter])
+  useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter, brand])
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -230,6 +230,7 @@ export default function InventoryPage() {
       let url = `${API_URL}/api/boxes`
       const params: string[] = []
       if (stageFilter) params.push(`current_stage=${stageFilter}`)
+      if (brand) params.push(`box_type=${brand}`)
       if (params.length) url += '?' + params.join('&')
 
       const res = await authFetch(url)
@@ -1237,7 +1238,7 @@ export default function InventoryPage() {
                       </h3>
                       <button onClick={() => setVerifFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">✕</button>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} — {verifFlagModalBook.title} — {verifFlagModalBook.author}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} — {verifFlagModalBook.title}</p>
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
@@ -1445,8 +1446,7 @@ export default function InventoryPage() {
                         <div className="overflow-y-auto max-h-96">
                           <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
                             <div className="col-span-2">ISBN</div>
-                            <div className="col-span-3">Book Title</div>
-                            <div className="col-span-3">Book Author</div>
+                            <div className="col-span-6">Book Title</div>
                             <div className="col-span-3 text-right">Status</div>
                             <div className="col-span-1"></div>
                           </div>
@@ -1465,11 +1465,8 @@ export default function InventoryPage() {
                                   <div className="col-span-2">
                                     <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                   </div>
-                                  <div className="col-span-3">
+                                  <div className="col-span-6">
                                     <p className="text-[11px] text-foreground truncate">{book.title}</p>
-                                  </div>
-                                  <div className="col-span-3">
-                                    <p className="text-[11px] text-foreground truncate">—</p>
                                   </div>
                                   <div className="col-span-3 flex items-center justify-end">
                                     <span className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
@@ -1505,8 +1502,7 @@ export default function InventoryPage() {
                         <div className="overflow-y-auto max-h-96">
                           <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
                             <div className="col-span-2">ISBN</div>
-                            <div className="col-span-3">Book Title</div>
-                            <div className="col-span-3">Book Author</div>
+                            <div className="col-span-6">Book Title</div>
                             <div className="col-span-3 text-right">Status</div>
                             <div className="col-span-1 text-right">Action</div>
                           </div>
@@ -1523,16 +1519,13 @@ export default function InventoryPage() {
                                   isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
                                 }`}>
                                   <div className="col-span-2">
-                                    <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                                    <p className="text-xs font-mono text-muted-foreground">{book.isbn}</p>
                                   </div>
-                                  <div className="col-span-3">
+                                  <div className="col-span-6">
                                     <p className="text-[11px] text-foreground truncate">{book.title}</p>
                                     {book.flag_issue && (
                                       <p className="text-[10px] text-red-600 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                                     )}
-                                  </div>
-                                  <div className="col-span-3">
-                                    <p className="text-[11px] text-foreground truncate">{book.author}</p>
                                   </div>
                                   <div className="col-span-3 flex items-center justify-end gap-2">
                                     {book.scan_status === 'processable' ? (

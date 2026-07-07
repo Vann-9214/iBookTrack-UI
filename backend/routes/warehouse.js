@@ -52,7 +52,9 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
         .insert({
           lot_number: lot_number,
           total_boxes: 0,
-          type: req.body.type || 'mustang'
+          type: req.body.type
+            ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase()
+            : 'Mustang'
         })
         .select()
         .single()
@@ -257,7 +259,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     if (!session.box_id) {
       // Create the single session box on first scan
-      currentBox = await createBoxIfNeeded('processable', lotNumber)
+      currentBox = await createBoxIfNeeded(book_type || null, lotNumber)
       assignedBoxId = currentBox.id
       await supabaseAdmin
         .from('box_sessions')
@@ -273,7 +275,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
       if (boxData && boxData.is_sealed) {
         // Box is full — create a new one and update session
-        currentBox = await createBoxIfNeeded('processable', lotNumber)
+        currentBox = await createBoxIfNeeded(book_type || null, lotNumber)
         assignedBoxId = currentBox.id
         await supabaseAdmin
           .from('box_sessions')
@@ -317,9 +319,20 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
       scan_status
     };
     
-    if (stage === 'inventory') activityInsert.inventory_scan_by = req.user.id;
-    else if (stage === 'qa' || stage === 'endorsement') activityInsert.endorsement_scan_by = req.user.id;
-    else activityInsert.warehouse_scan_by = req.user.id;
+    if (stage === 'inventory') {
+      activityInsert.inventory_scan_by = req.user.id;
+      activityInsert.inventory_scan_at = new Date().toISOString();
+    }
+    else if (stage === 'qa' || stage === 'endorsement') {
+      activityInsert.endorsement_scan_by = req.user.id;
+      activityInsert.endorsement_scan_at = new Date().toISOString();
+    }
+    else {
+      activityInsert.warehouse_scan_by = req.user.id;
+      // warehouse_scan_at defaults to NOW() in DB usually, but we can set it
+      // actually the DB handles warehouse_scan_at via default value, but just in case:
+      // activityInsert.warehouse_scan_at is handled by DB
+    }
 
     // Create scan log (use admin to bypass RLS)
     const { data: scanLog, error: scanError } = await supabaseAdmin
@@ -388,7 +401,43 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
           .from('boxes')
           .update({ is_sealed: true })
           .eq('id', session.box_id)
-      } else if (total_books_expected) {
+          
+        const { data: booksInBox } = await supabaseAdmin
+          .from('books')
+          .select('id')
+          .eq('box_id', session.box_id)
+          
+        if (booksInBox && booksInBox.length > 0) {
+          const bookIds = booksInBox.map(b => b.id)
+          await supabaseAdmin
+            .from('book_activity')
+            .update({
+              inventory_scan_by: req.user.id,
+              inventory_scan_at: new Date().toISOString()
+            })
+            .in('book_id', bookIds)
+            .is('inventory_scan_by', null)
+        }
+      } else if (stage === 'qa' || stage === 'endorsement') {
+        const { data: booksInBox } = await supabaseAdmin
+          .from('books')
+          .select('id')
+          .eq('box_id', session.box_id)
+          
+        if (booksInBox && booksInBox.length > 0) {
+          const bookIds = booksInBox.map(b => b.id)
+          await supabaseAdmin
+            .from('book_activity')
+            .update({
+              endorsement_scan_by: req.user.id,
+              endorsement_scan_at: new Date().toISOString()
+            })
+            .in('book_id', bookIds)
+            .is('endorsement_scan_by', null)
+        }
+      }
+      
+      if (total_books_expected) {
         await supabaseAdmin
           .from('boxes')
           .update({ total_books_expected: parseInt(total_books_expected) })
@@ -507,16 +556,16 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     }
 
     // 1. Resolve Lot
-    let { data: lot, error: lotError } = await supabaseAdmin
-      .from('lots')
-      .select('id, lot_number')
-      .eq('lot_number', lot_number)
-      .single()
+    let lotQuery = supabaseAdmin.from('lots').select('id, lot_number').eq('lot_number', lot_number);
+    if (book_type) lotQuery = lotQuery.eq('type', book_type);
+    else lotQuery = lotQuery.is('type', null);
+    
+    let { data: lot, error: lotError } = await lotQuery.single()
 
     if (!lot) {
       const { data: newLot, error: createError } = await supabaseAdmin
         .from('lots')
-        .insert({ lot_number, total_boxes: 0 })
+        .insert({ lot_number, type: book_type || null, total_boxes: 0 })
         .select()
         .single()
       if (createError) throw createError;
@@ -527,17 +576,23 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     let assignedBoxId = null;
     let existingBox = null;
     if (box_number) {
-      const { data: box } = await supabaseAdmin.from('boxes').select('id, total_books_expected, current_stage').eq('lot_id', lot.id).eq('box_number', box_number).maybeSingle();
+      let query = supabaseAdmin.from('boxes').select('id, total_books_expected, current_stage').eq('lot_id', lot.id).eq('box_number', box_number);
+      if (book_type) query = query.eq('box_type', book_type);
+      else query = query.is('box_type', null);
+      
+      const { data: box } = await query.maybeSingle();
       if (box) {
-        if (!force && box.total_books_expected > 0) {
-          return res.status(409).json({ error: 'BoxExistsWithBooks' });
+        // A box number must be unique within a lot. If a box with this number
+        // already holds books, reject rather than silently merging into it.
+        if (box.total_books_expected > 0) {
+          return res.status(409).json({ error: `Box ${box_number} already exists in ${lot_number}. Please use a different box number.` });
         }
         assignedBoxId = box.id;
         existingBox = box;
       } else {
         const { data: newBox } = await supabaseAdmin
           .from('boxes')
-          .insert({ box_number, lot_id: lot.id, box_type: 'processable', current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0, is_sealed: false })
+          .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0, is_sealed: false })
           .select()
           .single();
         assignedBoxId = newBox.id;
@@ -565,9 +620,17 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     // 4. Save scanned books
     for (const b of (scanned_books || [])) {
       let bookId = null;
-      const { data: bookData, error: bError } = await supabaseAdmin.from('books').insert({ isbn: b.isbn, title: b.title || 'Unknown Title', box_id: assignedBoxId, book_type: book_type || null }).select('id').single();
-      if (bError) throw bError;
-      if (bookData) bookId = bookData.id;
+      let query = supabaseAdmin.from('books').select('id').eq('isbn', b.isbn);
+      if (book_type) query = query.eq('book_type', book_type);
+      else query = query.is('book_type', null);
+      let { data: bData } = await query.limit(1).maybeSingle();
+      if (bData) {
+        bookId = bData.id;
+      } else {
+        const { data: bookData, error: bError } = await supabaseAdmin.from('books').insert({ isbn: b.isbn, title: b.title || 'Unknown Title', box_id: assignedBoxId, book_type: book_type || null }).select('id').single();
+        if (bError) throw bError;
+        if (bookData) bookId = bookData.id;
+      }
 
       const { data: actData, error: actError } = await supabaseAdmin.from('book_activity').insert({
         book_id: bookId,
@@ -588,7 +651,10 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     // 5. Process issues (missing/extra)
     if (issues && issues.length > 0) {
       for (const issue of issues) {
-        let { data: globalBook } = await supabaseAdmin.from('books').select('id').eq('isbn', issue.isbn).limit(1).maybeSingle();
+        let query = supabaseAdmin.from('books').select('id').eq('isbn', issue.isbn);
+        if (book_type) query = query.eq('book_type', book_type);
+        else query = query.is('book_type', null);
+        let { data: globalBook } = await query.limit(1).maybeSingle();
         let bookId = globalBook?.id;
         if (!bookId) {
            const { data: newBook, error: nbError } = await supabaseAdmin.from('books').insert({ isbn: issue.isbn, title: issue.title || 'Unknown', box_id: assignedBoxId, book_type: book_type || null }).select('id').single();
@@ -796,6 +862,47 @@ router.get('/ilms-lots', requireAuth, async (req, res) => {
   }
 })
 
+// Check whether a box_number already exists within a given lot (and brand/type).
+// Used by the warehouse UI to prevent starting a session with a duplicate box
+// number in the same lot.
+router.get('/box-exists', requireAuth, async (req, res) => {
+  try {
+    let { lot_number, box_number, type } = req.query
+
+    if (!lot_number || !box_number) {
+      return res.status(400).json({ error: 'lot_number and box_number are required' })
+    }
+
+    let book_type = null
+    if (type) {
+      book_type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+    }
+
+    // Resolve the lot (matching the same type-scoping rules as bulk-save)
+    let lotQuery = supabaseAdmin.from('lots').select('id').eq('lot_number', lot_number)
+    if (book_type) lotQuery = lotQuery.eq('type', book_type)
+    else lotQuery = lotQuery.is('type', null)
+
+    const { data: lot } = await lotQuery.maybeSingle()
+
+    // If the lot doesn't exist yet, no boxes can exist inside it.
+    if (!lot) {
+      return res.json({ success: true, exists: false })
+    }
+
+    let boxQuery = supabaseAdmin.from('boxes').select('id').eq('lot_id', lot.id).eq('box_number', box_number)
+    if (book_type) boxQuery = boxQuery.eq('box_type', book_type)
+    else boxQuery = boxQuery.is('box_type', null)
+
+    const { data: box } = await boxQuery.maybeSingle()
+
+    res.json({ success: true, exists: !!box })
+  } catch (error) {
+    console.error('box-exists check error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 // ── SSE: persistent ISBN lookup stream ───────────────────────────────────────
 // Opens one long-lived connection. Client sends ?isbn=<value> to trigger a
 // lookup; the server pushes back a single SSE event with the result.
@@ -840,36 +947,85 @@ router.get('/isbn-stream', requireAuth, async (req, res) => {
   })
 })
 
+
+
 // ISBN lookup triggered over SSE — client POSTs here with { isbn } body
 // and the SSE connection receives the result as an event
 router.post('/isbn-stream/query', requireAuth, async (req, res) => {
-  const { isbn, type } = req.body
+  const { isbn, type, allowExisting } = req.body
   if (!isbn) return res.status(400).json({ error: 'isbn is required' })
 
+  const digits = isbn.replace(/[^0-9]/g, '')
+  if (digits.length !== 10 && digits.length !== 13) {
+    return res.status(400).json({ success: false, error: 'Invalid ISBN. Must be 10 or 13 digits.' })
+  }
+
   try {
+    const { supabaseAdmin } = await import('../config/supabase.js');
+
+    // Only block global duplicates for normal scans. Missing/extra issue entries
+    // are allowed to reference books already scanned in other lots/boxes.
+    if (!allowExisting) {
+      let query = supabaseAdmin
+        .from('books')
+        .select(`
+          id,
+          box:boxes(box_number, box_type, lot:lots(lot_number))
+        `)
+        .eq('isbn', digits)
+      if (type) query = query.eq('book_type', type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
+      else query = query.is('book_type', null);
+
+      const { data: existingBook } = await query.limit(1).maybeSingle();
+      if (existingBook) {
+        const rawLot = existingBook.box?.lot?.lot_number || 'unknown'
+        const lotLabel = rawLot.toLowerCase().startsWith('lot')
+          ? rawLot.charAt(0).toUpperCase() + rawLot.slice(1)
+          : `Lot ${rawLot}`
+        const boxNumber = existingBook.box?.box_number || 'unknown'
+        const boxType = existingBook.box?.box_type || 'unknown'
+        return res.json({
+          success: false,
+          error: `Duplicate ISBN: ${digits} is already scanned in ${lotLabel}, Box ${boxNumber} (${boxType}).`
+        });
+      }
+    }
+
     const { ilmsApi } = await import('../services/ilms-api.js')
     let ilmsResult;
     
     if (type) {
-      const projResult = await ilmsApi.searchByProject(isbn, type)
+      const projResult = await ilmsApi.searchByProject(digits, type)
+      const results = Array.isArray(projResult.data) ? projResult.data : (projResult.data ? [projResult.data] : [])
+      const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9]/g, '') === digits) || null
       ilmsResult = {
-        success: projResult.success,
-        data: Array.isArray(projResult.data) ? projResult.data[0] : projResult.data,
+        success: !!firstHit,
+        data: firstHit,
         source: type.charAt(0).toUpperCase() + type.slice(1)
       }
     } else {
-      ilmsResult = await ilmsApi.searchBookByISBN(isbn)
+      const rawResult = await ilmsApi.searchBookByISBN(digits)
+      let firstHit = rawResult.data
+      if (firstHit && firstHit.ISBN && firstHit.ISBN.replace(/[^0-9]/g, '') !== digits) {
+        // iLMS did a fuzzy search; reject the title match
+        firstHit = null
+      }
+      ilmsResult = {
+        success: !!firstHit,
+        data: firstHit,
+        error: firstHit ? null : (rawResult.error || 'Book not found in iLMS system')
+      }
     }
 
     res.json({
-      isbn,
+      isbn: digits,
       success: ilmsResult.success,
       data: ilmsResult.data || null,
       source: ilmsResult.source || null,
       error: ilmsResult.error || null
     })
   } catch (err) {
-    res.status(500).json({ isbn, success: false, data: null, error: err.message })
+    res.status(500).json({ isbn: digits, success: false, data: null, error: err.message })
   }
 })
 
@@ -980,38 +1136,93 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
 // Get non-processable (flagged) books
 router.get('/rejected-books', requireAuth, async (req, res) => {
   try {
-    const { limit = 50 } = req.query
+    const { limit = 50, today } = req.query
+    const requestedLimit = Math.min(parseInt(limit) || 50, 50)
 
-    const { data: rejectedBooks, error } = await supabaseAdmin
-      .from('book_activity')
+    // Fetch a generous pool so we can filter by today's latest flag and still return 10
+    const fetchLimit = today === 'true' ? requestedLimit * 5 : requestedLimit
+
+    const { data: userFlags, error } = await supabaseAdmin
+      .from('user_flags')
       .select(`
         id,
-        user_flags(rejection_reason),
-        warehouse_scan_at,
-        
-        books(
-          isbn,
-          title,
-          box:boxes(
-            box_number,
-            lot:lots(lot_number)
+        rejection_reason,
+        notes,
+        warehouse_flag_by,
+        warehouse_flag_at,
+        inventory_flag_by,
+        inventory_flag_at,
+        endorsement_flag_by,
+        endorsement_flag_at,
+        warehouse_user:profiles!warehouse_flag_by(name),
+        inventory_user:profiles!inventory_flag_by(name),
+        endorsement_user:profiles!endorsement_flag_by(name),
+        book_activity(
+          id,
+          warehouse_scan_at,
+          books!inner(
+            isbn,
+            title,
+            box:boxes(
+              box_number,
+              lot:lots(lot_number)
+            )
           )
         )
       `)
-      .eq('scan_status', 'non_processable')
-      .order('warehouse_scan_at', { ascending: false })
-      .limit(parseInt(limit))
+      .order('warehouse_flag_at', { ascending: false })
+      .limit(fetchLimit)
 
     if (error) throw error
 
-    const mappedRejectedBooks = (rejectedBooks || []).map(rb => ({
-      id: rb.id,
-      isbn: rb.books?.isbn,
-      title: rb.books?.title,
-      rejection_reason: rb.user_flags?.rejection_reason || null,
-      warehouse_scan_at: rb.warehouse_scan_at,
-      assigned_box: rb.books?.box
-    }))
+    const firstRel = (rel) => Array.isArray(rel) ? rel[0] : rel
+
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const tomorrowStart = new Date(todayStart)
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1)
+
+    let mappedRejectedBooks = (userFlags || []).map(uf => {
+      const ba = firstRel(uf.book_activity) || {}
+      const book = firstRel(ba.books) || {}
+      const box = firstRel(book.box) || {}
+      const lot = firstRel(box.lot) || {}
+
+      // Determine the latest flag among warehouse, inventory, and endorsement
+      const flagCandidates = [
+        { at: uf.warehouse_flag_at, by: firstRel(uf.warehouse_user)?.name },
+        { at: uf.inventory_flag_at, by: firstRel(uf.inventory_user)?.name },
+        { at: uf.endorsement_flag_at, by: firstRel(uf.endorsement_user)?.name },
+      ].filter(c => c.at)
+
+      const latestFlag = flagCandidates.sort(
+        (a, b) => new Date(b.at) - new Date(a.at)
+      )[0]
+
+      return {
+        id: ba.id || uf.id,
+        isbn: book.isbn || null,
+        title: book.title || null,
+        rejection_reason: uf.rejection_reason || null,
+        scanned_at: latestFlag?.at || ba.warehouse_scan_at || null,
+        scanned_by_name: latestFlag?.by || null,
+        assigned_box: box.box_number
+          ? { box_number: box.box_number, lot: lot.lot_number ? { lot_number: lot.lot_number } : null }
+          : null
+      }
+    })
+
+    // Filter to today's latest flag if requested
+    if (today === 'true') {
+      mappedRejectedBooks = mappedRejectedBooks.filter(item => {
+        if (!item.scanned_at) return false
+        const d = new Date(item.scanned_at)
+        return d >= todayStart && d < tomorrowStart
+      })
+    }
+
+    // Return only the most recent N
+    mappedRejectedBooks = mappedRejectedBooks.slice(0, requestedLimit)
 
     res.json({ success: true, rejectedBooks: mappedRejectedBooks })
   } catch (error) {

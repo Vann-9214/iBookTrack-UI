@@ -119,7 +119,7 @@ class ILMSApiService {
 
     return {
       success: false,
-      error: 'Book not found in iLMS system',
+      error: `ISBN ${isbn} not found in iLMS records.`,
       data: null
     }
   }

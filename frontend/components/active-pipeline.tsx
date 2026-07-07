@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 function getStepStatus(count: number, stage: string) {
@@ -49,9 +50,10 @@ interface ActivePipelineProps {
   currentLot?: string
   stats?: any
   brand?: 'mustang' | 'jaguar'
+  loading?: boolean
 }
 
-export function ActivePipeline({ currentLot = "", stats, brand = 'mustang' }: ActivePipelineProps) {
+export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', loading = false }: ActivePipelineProps) {
   const borderColor = brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600'
   const pipelineSteps = [
     { label: "Warehouse",   count: stats?.pipelineStages?.warehouse   || 0, unit: stats?.pipelineStages?.warehouse   === 1 ? "Box"  : "Boxes", stage: "warehouse",   clickable: false },
@@ -62,6 +64,46 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang' }: Ac
     { label: "Transmit",    count: stats?.pipelineStages?.transmit    || 0, unit: stats?.pipelineStages?.transmit    === 1 ? "Book" : "Books", stage: "transmit",    clickable: false },
     { label: "Storage",     count: stats?.pipelineStages?.storage     || 0, unit: stats?.pipelineStages?.storage     === 1 ? "Box"  : "Boxes", stage: "storage",     clickable: false },
   ]
+
+  if (loading || !stats) {
+    return (
+      <Card className={cn("border-border bg-card border-t-2", borderColor)}>
+        <CardHeader className="pb-4">
+          <Skeleton className="h-5 w-40 rounded bg-muted-foreground/20" />
+        </CardHeader>
+        <CardContent>
+          <div className="hidden lg:flex items-start gap-3">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="flex-1 min-w-0 flex flex-col items-center gap-0 rounded-xl">
+                <Skeleton className="h-9 w-9 rounded-full mb-2 bg-muted-foreground/20" />
+                <div className="w-full rounded-xl px-3 pt-3 pb-2 flex flex-col items-center gap-1">
+                  <Skeleton className="h-3.5 w-16 rounded bg-muted-foreground/20" />
+                  <Skeleton className="h-7 w-8 rounded bg-muted-foreground/20 my-1" />
+                  <Skeleton className="h-0.5 w-full rounded-full bg-muted-foreground/20" />
+                  <Skeleton className="h-2.5 w-10 rounded bg-muted-foreground/20" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-3 lg:hidden">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 shrink-0 rounded-full bg-muted-foreground/20" />
+                <div className="flex flex-col text-left gap-1">
+                  <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
+                  <Skeleton className="h-3 w-16 rounded bg-muted-foreground/20" />
+                </div>
+                <div className="ml-auto flex items-center gap-1">
+                  <Skeleton className="h-2 w-2 rounded-full bg-muted-foreground/20" />
+                  <Skeleton className="h-3 w-10 rounded bg-muted-foreground/20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <>

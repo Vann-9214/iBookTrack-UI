@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 
 export type Brand = 'mustang' | 'jaguar'
 
@@ -20,16 +20,8 @@ const BrandContext = createContext<BrandContextValue | null>(null)
 export function BrandProvider({ children }: { children: ReactNode }) {
   const [brand, setBrandState] = useState<Brand>('mustang')
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem('ibooktrack_brand') as Brand | null
-    if (stored === 'mustang' || stored === 'jaguar') {
-      setBrandState(stored)
-    }
-  }, [])
-
   const setBrand = (b: Brand) => {
     setBrandState(b)
-    window.localStorage.setItem('ibooktrack_brand', b)
   }
 
   return (

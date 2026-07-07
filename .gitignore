@@ -64,3 +64,7 @@ lerna-debug.log*
 # Local development
 .turbo/
 turbo.json.local
+
+# Agent & codebase memory (local only)
+AGENTS.md
+.codebase-memory/
