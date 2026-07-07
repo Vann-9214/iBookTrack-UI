@@ -22,7 +22,7 @@ type TokenData = {
   expires_at: number
 }
 
-function getApiBaseUrl() {
+export function getApiBaseUrl() {
   const configuredUrl = process.env.NEXT_PUBLIC_API_URL?.trim()
 
   if (configuredUrl) {

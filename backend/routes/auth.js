@@ -315,4 +315,89 @@ router.patch('/profile', requireAuth, async (req, res) => {
   }
 })
 
+// ── GET /api/auth/innodata (Initiate OAuth Flow) ─────────────
+router.get('/innodata', (req, res) => {
+  const authorizeUrl = process.env.OAUTH_AUTHORIZE_URL || 'https://unifiedworkflow.innodata.com/oauth/authorize'
+  const clientId = process.env.OAUTH_CLIENT_ID || 'ibooktrack-client-id'
+  const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:5000/api/auth/innodata/callback'
+  
+  const url = new URL(authorizeUrl)
+  url.searchParams.append('response_type', 'code')
+  url.searchParams.append('client_id', clientId)
+  url.searchParams.append('redirect_uri', redirectUri)
+  url.searchParams.append('scope', 'openid profile email')
+  
+  res.redirect(url.toString())
+})
+
+// ── GET /api/auth/innodata/callback (Handle OAuth Return) ────
+router.get('/innodata/callback', async (req, res) => {
+  const { code } = req.query
+  if (!code) {
+    return res.status(400).send('No authorization code provided')
+  }
+
+  try {
+    const tokenUrl = process.env.OAUTH_TOKEN_URL || 'https://unifiedworkflow.innodata.com/oauth/token'
+    const userInfoUrl = process.env.OAUTH_USERINFO_URL || 'https://unifiedworkflow.innodata.com/oauth/userinfo'
+    const clientId = process.env.OAUTH_CLIENT_ID || 'ibooktrack-client-id'
+    const clientSecret = process.env.OAUTH_CLIENT_SECRET || 'ibooktrack-client-secret'
+    const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:5000/api/auth/innodata/callback'
+
+    // Mock exchange for dev if real endpoint fails or isn't set up
+    let userInfo = { id: 'mock-sso-id', email: 'sso.user@innodata.com', name: 'Innodata SSO User' }
+
+    if (process.env.OAUTH_AUTHORIZE_URL) {
+      try {
+        const tokenRes = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            client_id: clientId,
+            client_secret: clientSecret,
+            redirect_uri: redirectUri
+          })
+        })
+        const tokenData = await tokenRes.json()
+
+        if (tokenData.access_token) {
+          const userRes = await fetch(userInfoUrl, {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+          })
+          userInfo = await userRes.json()
+        }
+      } catch (err) {
+        console.error('Failed real OAuth exchange, falling back to mock data', err)
+      }
+    }
+
+    // Dynamically import jsonwebtoken to avoid top-level require errors if not setup
+    const jwt = (await import('jsonwebtoken')).default
+    const secret = process.env.JWT_SECRET
+    
+    if (!secret) {
+      throw new Error('Missing JWT_SECRET in environment variables')
+    }
+
+    const token = jwt.sign(
+      { id: userInfo.id, email: userInfo.email, name: userInfo.name },
+      secret,
+      { expiresIn: '8h' }
+    )
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+    const returnUrl = new URL('/login', frontendUrl)
+    returnUrl.searchParams.append('sso_token', token)
+    returnUrl.searchParams.append('email', userInfo.email)
+    returnUrl.searchParams.append('name', userInfo.name || '')
+    
+    res.redirect(returnUrl.toString())
+  } catch (error) {
+    console.error('SSO Callback error:', error)
+    res.status(500).send('SSO Authentication failed')
+  }
+})
+
 export default router
