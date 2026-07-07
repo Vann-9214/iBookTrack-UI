@@ -580,8 +580,10 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
       
       const { data: box } = await query.maybeSingle();
       if (box) {
-        if (!force && box.total_books_expected > 0) {
-          return res.status(409).json({ error: 'BoxExistsWithBooks' });
+        // A box number must be unique within a lot. If a box with this number
+        // already holds books, reject rather than silently merging into it.
+        if (box.total_books_expected > 0) {
+          return res.status(409).json({ error: `Box ${box_number} already exists in ${lot_number}. Please use a different box number.` });
         }
         assignedBoxId = box.id;
         existingBox = box;
@@ -855,6 +857,47 @@ router.get('/ilms-lots', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('fetch historical lots error:', error)
     res.status(500).json({ success: false, error: error.message, lots: [] })
+  }
+})
+
+// Check whether a box_number already exists within a given lot (and brand/type).
+// Used by the warehouse UI to prevent starting a session with a duplicate box
+// number in the same lot.
+router.get('/box-exists', requireAuth, async (req, res) => {
+  try {
+    let { lot_number, box_number, type } = req.query
+
+    if (!lot_number || !box_number) {
+      return res.status(400).json({ error: 'lot_number and box_number are required' })
+    }
+
+    let book_type = null
+    if (type) {
+      book_type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+    }
+
+    // Resolve the lot (matching the same type-scoping rules as bulk-save)
+    let lotQuery = supabaseAdmin.from('lots').select('id').eq('lot_number', lot_number)
+    if (book_type) lotQuery = lotQuery.eq('type', book_type.toLowerCase())
+    else lotQuery = lotQuery.is('type', null)
+
+    const { data: lot } = await lotQuery.maybeSingle()
+
+    // If the lot doesn't exist yet, no boxes can exist inside it.
+    if (!lot) {
+      return res.json({ success: true, exists: false })
+    }
+
+    let boxQuery = supabaseAdmin.from('boxes').select('id').eq('lot_id', lot.id).eq('box_number', box_number)
+    if (book_type) boxQuery = boxQuery.eq('box_type', book_type)
+    else boxQuery = boxQuery.is('box_type', null)
+
+    const { data: box } = await boxQuery.maybeSingle()
+
+    res.json({ success: true, exists: !!box })
+  } catch (error) {
+    console.error('box-exists check error:', error)
+    res.status(500).json({ success: false, error: error.message })
   }
 })
 

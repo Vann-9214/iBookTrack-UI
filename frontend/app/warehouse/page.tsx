@@ -250,6 +250,28 @@ export default function WarehousePage() {
       return
     }
 
+    // Prevent duplicate box numbers within the same lot
+    try {
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Authentication required.')
+      const params = new URLSearchParams({ lot_number: formattedLot, box_number: selectedBox, type: brand })
+      const checkRes = await fetch(`${API_URL}/api/warehouse/box-exists?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const checkData = await checkRes.json()
+      if (checkRes.ok && checkData.exists) {
+        toast({
+          title: 'Duplicate Box Number',
+          description: `Box ${selectedBox} already exists in ${formattedLot.toLowerCase().startsWith('lot') ? formattedLot : `Lot ${formattedLot}`}. Please use a different box number.`,
+          variant: 'destructive'
+        })
+        return
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to verify box number.', variant: 'destructive' })
+      return
+    }
+
     // Bypass Backend: Set up local session only
     // The database Lot and Box will only be created when they actually Complete the session!
     setCurrentSession({ 
