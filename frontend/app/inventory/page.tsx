@@ -225,7 +225,7 @@ export default function InventoryPage() {
 
 
 
-  useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter, brand])
+  useEffect(() => { fetchBoxes() }, [lotFilter, stageFilter])
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -245,7 +245,6 @@ export default function InventoryPage() {
       let url = `${API_URL}/api/boxes`
       const params: string[] = []
       if (stageFilter) params.push(`current_stage=${stageFilter}`)
-      if (brand) params.push(`box_type=${brand}`)
       if (params.length) url += '?' + params.join('&')
 
       const res = await authFetch(url)
@@ -1003,8 +1002,8 @@ export default function InventoryPage() {
   // All-boxes tab (existing behaviour, respects lot/stage filters)
   const filteredBoxes = boxes.filter(searchFilter)
 
-  // Brand filter helper — lot.type must match the active brand toggle
-  const matchesBrand = (b: Box) => !b.lot?.type || b.lot.type === brand
+  // Brand filter helper — lot.type must match the active brand toggle (case-insensitive)
+  const matchesBrand = (b: Box) => !b.lot?.type || b.lot.type.toLowerCase() === brand.toLowerCase()
 
   // Incoming Boxes — warehouse stage, matching brand
   const incomingBoxes = boxes.filter(b => 
@@ -1013,15 +1012,18 @@ export default function InventoryPage() {
     matchesBrand(b)
   )
 
-  // Book Verification — inventory stage, not yet verified, matching brand
+  // Book Verification — inventory stage, session is received/in_progress (not yet fully verified), matching brand
+  // Session lifecycle: completed (warehouse) → received (inventory received) → in_progress (verifying) → completed (verified → outgoing)
   const inventoryBoxes = boxes.filter(b => {
     if (b.current_stage !== 'inventory') return false
-    if (b.box_sessions?.some(s => s.status === 'completed')) return false
     if (!matchesBrand(b)) return false
+    const sessions = b.box_sessions || []
+    // If there's a completed session it has been verified → goes to outgoing tab instead
+    if (sessions.some(s => s.status === 'completed')) return false
     // Only hide in_progress boxes that are locked to a DIFFERENT user.
     // If inventory_user_send is null/unset, the box is available to everyone.
     if (verifUserId) {
-      const inProgressSession = b.box_sessions?.find(s => s.status === 'in_progress')
+      const inProgressSession = sessions.find(s => s.status === 'in_progress')
       if (
         inProgressSession &&
         inProgressSession.inventory_user_send &&
