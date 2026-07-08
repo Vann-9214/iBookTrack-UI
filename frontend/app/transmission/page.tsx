@@ -127,7 +127,9 @@ export default function TransmissionMonitorPage() {
 
   // --- Live feed state ---
   const [historySearch, setHistorySearch] = useState("")
+  const [historySearchOpen, setHistorySearchOpen] = useState(false)
   const [machineSearch, setMachineSearch] = useState("")
+  const [machineSearchOpen, setMachineSearchOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [summary, setSummary] = useState<any>(null)
@@ -514,32 +516,17 @@ export default function TransmissionMonitorPage() {
             {/* Metric Cards — compact 3-col on mobile, full cards on desktop */}
             {/* Mobile */}
             <div className="grid grid-cols-3 gap-2 sm:hidden">
-              <div className="rounded-2xl border border-blue-300 bg-blue-100/60 p-3 flex items-center gap-2 shadow-sm active:scale-[0.97] transition-all">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm shrink-0">
-                  <FileUp className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xl font-black leading-none text-blue-600">{loading ? '…' : totalTransmitted.toLocaleString()}</div>
-                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">Transmitted</div>
-                </div>
+              <div className="rounded-2xl border border-blue-300 bg-blue-100/60 p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition-all text-center">
+                <div className="text-lg font-black leading-none text-blue-600">{loading ? '…' : totalTransmitted.toLocaleString()}</div>
+                <div className="text-[10px] font-medium text-gray-500 mt-0.5 leading-tight">Transmitted</div>
               </div>
-              <div className="rounded-2xl border border-green-300 bg-green-100/60 p-3 flex items-center gap-2 shadow-sm active:scale-[0.97] transition-all">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500 text-white shadow-sm shrink-0">
-                  <CheckCircle2 className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xl font-black leading-none text-green-600">{loading ? '…' : `${passRate}%`}</div>
-                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">Pass Rate</div>
-                </div>
+              <div className="rounded-2xl border border-green-300 bg-green-100/60 p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition-all text-center">
+                <div className="text-lg font-black leading-none text-green-600">{loading ? '…' : `${passRate}%`}</div>
+                <div className="text-[10px] font-medium text-gray-500 mt-0.5 leading-tight">Pass</div>
               </div>
-              <div className="rounded-2xl border border-teal-300 bg-teal-100/60 p-3 flex items-center gap-2 shadow-sm active:scale-[0.97] transition-all">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500 text-white shadow-sm shrink-0">
-                  <Activity className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xl font-black leading-none text-teal-600">{loading ? '…' : (summary?.TotalScans || 0).toLocaleString()}</div>
-                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">Total Books</div>
-                </div>
+              <div className="rounded-2xl border border-teal-300 bg-teal-100/60 p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition-all text-center">
+                <div className="text-lg font-black leading-none text-teal-600">{loading ? '…' : (summary?.TotalScans || 0).toLocaleString()}</div>
+                <div className="text-[10px] font-medium text-gray-500 mt-0.5 leading-tight">Total</div>
               </div>
             </div>
             {/* Desktop */}
@@ -596,22 +583,22 @@ export default function TransmissionMonitorPage() {
                   {ordered.map((s: any) => {
                     const pct = s.Total > 0 ? (s.Completed / s.Total) * 100 : 0
                     return (
-                      <div key={s.Stage} className={cn("rounded-2xl border border-gray-200 bg-white shadow-sm p-3 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-2 sm:gap-3 border-t-2", stageBorderColor)}>
+                      <div key={s.Stage} className={cn("rounded-2xl border border-gray-200 bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-1.5 sm:gap-3 border-t-2", stageBorderColor)}>
                         {/* Stage name + total */}
                         <div className="flex items-start justify-between gap-1">
-                          <p className="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight break-words">{formatPipelineStage(s.Stage)}</p>
-                          <span className="text-lg sm:text-xl font-black text-gray-800 leading-none shrink-0">{s.Total.toLocaleString()}</span>
+                          <p className="text-[9px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight break-words">{formatPipelineStage(s.Stage)}</p>
+                          <span className="text-base sm:text-xl font-black text-gray-800 leading-none shrink-0">{s.Total.toLocaleString()}</span>
                         </div>
 
                         {/* Progress bar */}
                         <Progress value={pct} className="h-1.5" />
 
                         {/* Stat pills */}
-                        <div className="grid grid-cols-3 gap-1">
+                        <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
                           {[
                             { key: 'COMPLETED', label: 'DONE', smLabel: 'COMPLETED', count: s.Completed, bg: 'bg-green-50', border: 'border-green-100', hover: 'hover:bg-green-100', ring: 'ring-green-400', text: 'text-green-500', num: 'text-green-700' },
-                            { key: 'ONGOING', label: 'ONGOING', smLabel: 'ONGOING', count: s.Ongoing, bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:bg-blue-100', ring: 'ring-blue-400', text: 'text-blue-400', num: 'text-blue-600' },
-                            { key: 'FAILED', label: 'FAILED', smLabel: 'FAILED', count: s.Failed, bg: 'bg-red-50', border: 'border-red-100', hover: 'hover:bg-red-100', ring: 'ring-red-400', text: 'text-red-400', num: 'text-red-600' },
+                            { key: 'ONGOING', label: 'ON', smLabel: 'ONGOING', count: s.Ongoing, bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:bg-blue-100', ring: 'ring-blue-400', text: 'text-blue-400', num: 'text-blue-600' },
+                            { key: 'FAILED', label: 'FAIL', smLabel: 'FAILED', count: s.Failed, bg: 'bg-red-50', border: 'border-red-100', hover: 'hover:bg-red-100', ring: 'ring-red-400', text: 'text-red-400', num: 'text-red-600' },
                           ].map((p) => {
                             const isActive = stageFilter?.stage === s.Stage && stageFilter?.category === p.key
                             return (
@@ -619,16 +606,16 @@ export default function TransmissionMonitorPage() {
                                 key={p.key}
                                 onClick={() => setStageFilter(isActive ? null : { stage: s.Stage, category: p.key as any })}
                                 className={cn(
-                                  'flex flex-col items-center rounded-lg border px-0.5 py-1.5 sm:px-1.5 transition-colors focus:outline-none',
+                                  'flex flex-col items-center rounded-lg border px-0.5 py-1 sm:px-1.5 sm:py-1.5 transition-colors focus:outline-none',
                                   p.bg, p.border, p.hover,
                                   isActive && `ring-2 ${p.ring} bg-opacity-100`
                                 )}
                               >
-                                <span className={cn('text-[8px] sm:text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5', p.text)}>
+                                <span className={cn('font-semibold uppercase tracking-wide leading-none mb-0.5 text-[7px] sm:text-[10px]', p.text)}>
                                   <span className="sm:hidden">{p.label}</span>
                                   <span className="hidden sm:inline">{p.smLabel}</span>
                                 </span>
-                                <span className={cn('text-xs sm:text-sm font-black leading-none', p.num)}>{p.count}</span>
+                                <span className={cn('font-black leading-none text-[11px] sm:text-sm', p.num)}>{p.count}</span>
                               </button>
                             )
                           })}
@@ -727,17 +714,38 @@ export default function TransmissionMonitorPage() {
                           <XCircle className="h-3.5 w-3.5 text-gray-400" />
                         </button>
                       )}
-                      <div className="relative">
+                      {/* Desktop search */}
+                      <div className="relative hidden sm:block">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                           placeholder="Search ISBN or box..."
                           value={historySearch}
                           onChange={(e) => setHistorySearch(e.target.value)}
-                          className="w-56 pl-9 h-8 text-sm  bg-white"
+                          className="w-56 pl-9 h-8 text-sm bg-white"
                         />
                       </div>
+                      {/* Mobile search icon */}
+                      <button
+                        className="sm:hidden flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                        onClick={() => setHistorySearchOpen(v => !v)}
+                        aria-label="Search"
+                      >
+                        <Search className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
+                  {/* Mobile search dropdown */}
+                  {historySearchOpen && (
+                    <div className="sm:hidden px-4 py-2 border-b border-blue-100 bg-blue-50/60">
+                      <Input
+                        autoFocus
+                        placeholder="Search ISBN or box..."
+                        value={historySearch}
+                        onChange={(e) => setHistorySearch(e.target.value)}
+                        className="h-8 text-sm bg-white w-full"
+                      />
+                    </div>
+                  )}
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm min-w-[600px]">
@@ -817,7 +825,8 @@ export default function TransmissionMonitorPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="relative">
+                    {/* Desktop search */}
+                    <div className="relative hidden sm:block">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         placeholder="Search machine or user..."
@@ -826,7 +835,27 @@ export default function TransmissionMonitorPage() {
                         className="w-56 pl-9 h-8 text-sm bg-white"
                       />
                     </div>
+                    {/* Mobile search icon */}
+                    <button
+                      className="sm:hidden flex items-center justify-center h-8 w-8 rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 transition-colors"
+                      onClick={() => setMachineSearchOpen(v => !v)}
+                      aria-label="Search"
+                    >
+                      <Search className="h-4 w-4" />
+                    </button>
                   </div>
+                  {/* Mobile search dropdown */}
+                  {machineSearchOpen && (
+                    <div className="sm:hidden px-4 py-2 border-b border-teal-100 bg-teal-50/60">
+                      <Input
+                        autoFocus
+                        placeholder="Search machine or user..."
+                        value={machineSearch}
+                        onChange={(e) => setMachineSearch(e.target.value)}
+                        className="h-8 text-sm bg-white w-full"
+                      />
+                    </div>
+                  )}
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm min-w-[500px]">

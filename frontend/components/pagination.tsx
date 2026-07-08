@@ -30,7 +30,7 @@ export function Pagination({
   const options = pageSizeOptions
 
   return (
-    <div className={cn('flex items-center justify-between py-4 px-4 border-t border-border', className)}>
+    <div className={cn('flex items-center justify-center sm:justify-between py-4 px-4 border-t border-border', className)}>
       <div className="hidden sm:flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Items per page:</span>
         <select
@@ -46,7 +46,7 @@ export function Pagination({
         </select>
       </div>
 
-      <div className="flex items-center gap-2 mx-auto sm:mx-0">
+      <div className="flex items-center gap-2">
         <Button
           size="sm"
           variant="outline"
