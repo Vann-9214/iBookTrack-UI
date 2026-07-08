@@ -103,6 +103,8 @@ export default function ScanQRPage() {
   const [boxResult, setBoxResult] = useState<BoxResult | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [cardVisible, setCardVisible] = useState(false)
+  // Whether the user has tapped "Start Camera" yet
+  const [cameraStarted, setCameraStarted] = useState(false)
 
   // ── Camera helpers ──────────────────────────────────────────────────────────
 
@@ -218,7 +220,13 @@ export default function ScanQRPage() {
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
+  const handleStart = () => {
+    setCameraStarted(true)
+    startCamera(facingMode)
+  }
+
   useEffect(() => {
+    if (!cameraStarted) return
     startCamera(facingMode)
     return () => stopCamera()
   }, [facingMode]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -239,11 +247,14 @@ export default function ScanQRPage() {
     setErrorMsg(null)
     setCardVisible(false)
     setScanState('scanning')
-    startCamera(facingMode)
+    // Re-show the start screen so the user taps Start Camera again
+    setCameraStarted(false)
   }
 
   const handleFlipCamera = () => {
-    setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))
+    const next: 'environment' | 'user' = facingMode === 'environment' ? 'user' : 'environment'
+    setFacingMode(next)
+    if (cameraStarted) startCamera(next)
   }
 
   // ── Derived ─────────────────────────────────────────────────────────────────
@@ -261,6 +272,43 @@ export default function ScanQRPage() {
 
   return (
     <div className="relative w-full h-dvh bg-black overflow-hidden flex flex-col">
+
+      {/* ── Start screen (before permission prompt) ──────────────────────────── */}
+      {!cameraStarted && !cameraError && (
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-background px-8 gap-6">
+          {/* Logo / icon */}
+          <div
+            className="w-24 h-24 rounded-3xl flex items-center justify-center shadow-lg"
+            style={{ backgroundColor: colors.accent }}
+          >
+            <QrCode className="w-12 h-12 text-white" />
+          </div>
+
+          <div className="text-center">
+            <h1 className="text-xl font-bold text-foreground">Scan QR Code</h1>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-snug">
+              Point your camera at a box QR code to look up its details instantly.
+            </p>
+          </div>
+
+          <button
+            onClick={handleStart}
+            className="flex items-center gap-2 px-8 py-3.5 rounded-2xl text-white text-sm font-semibold shadow-md active:scale-95 transition-transform"
+            style={{ backgroundColor: colors.accent }}
+          >
+            <QrCode className="w-4 h-4" />
+            Start Camera
+          </button>
+
+          <button
+            onClick={() => router.back()}
+            className="text-sm text-muted-foreground underline underline-offset-2"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
       {/* ── Camera feed ─────────────────────────────────────────────────────── */}
       <video
         ref={videoRef}
