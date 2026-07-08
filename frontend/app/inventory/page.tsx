@@ -1273,12 +1273,12 @@ export default function InventoryPage() {
                 size="sm"
                 onClick={fetchBoxes}
                 disabled={loadingBoxes}
-                className="gap-1.5"
+                className="gap-1.5 hidden sm:flex"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loadingBoxes ? 'animate-spin' : ''}`}  />
                 Refresh
               </Button>
-              <p className="text-xs text-muted-foreground whitespace-nowrap">{lastInventoryUpdateLabel}</p>
+              <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastInventoryUpdateLabel}</p>
             </div>
           </header>
 

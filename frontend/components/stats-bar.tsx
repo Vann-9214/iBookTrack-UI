@@ -56,7 +56,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [flags, setFlags] = useState<QCFlag[]>([])
   const [totalFlags, setTotalFlags] = useState(0)
   const [loadingFlags, setLoadingFlags] = useState(false)
-  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 50 })
+  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 10 })
 
   const [liveLotsOpen, setLiveLotsOpen] = useState(false)
   const [liveLots, setLiveLots] = useState<LiveLot[]>([])
@@ -82,7 +82,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const fetchFlags = async (page = 1) => {
     setLoadingFlags(true)
     try {
-      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=50`)
+      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10`)
       const data = await res.json()
       setFlags(data.flags || [])
       setTotalFlags(data.total || 0)
@@ -316,13 +316,21 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : (
               <div className="overflow-y-auto flex-1">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-fixed">
+                  <colgroup>
+                    <col className="w-8" />
+                    <col className="w-28" />
+                    <col className="hidden sm:table-column w-40" />
+                    <col className="w-28" />
+                    <col className="w-28" />
+                    <col className="w-28" />
+                  </colgroup>
                   <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
                     <tr>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide w-10">#</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">#</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">ISBN</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot &amp; Box</th>
+                      <th className="hidden sm:table-cell text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Lot &amp; Box</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Issue</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Flagged By</th>
                     </tr>
@@ -331,21 +339,21 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     {flags.map((f, i) => (
                       <tr key={f.scan_id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-xs text-gray-300">{(flagsPagination.currentPage - 1) * flagsPagination.pageSize + i + 1}</td>
-                        <td className="py-3 px-4 font-semibold text-gray-800">{f.isbn}</td>
-                        <td className="py-3 px-4 text-gray-500 max-w-[200px] truncate">{f.title || '—'}</td>
+                        <td className="py-3 px-4 font-semibold text-gray-800 truncate">{f.isbn}</td>
+                        <td className="hidden sm:table-cell py-3 px-4 text-gray-500 truncate">{f.title || '—'}</td>
                         <td className="text-xs px-4 py-3">
                           <span className="font-semibold text-blue-600">{f.assigned_box?.lot?.lot_number || '—'}</span>
                           {f.assigned_box?.box_number && (
-                            <span className="block text-[11px] text-gray-400 mt-0.5">{f.assigned_box.box_number}</span>
+                            <span className="text-gray-400 ml-1">{f.assigned_box.box_number}</span>
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 whitespace-nowrap">
                             {ISSUE_LABELS[f.issue] || f.issue}
                           </span>
-                          {f.remarks && <span className="ml-2 text-xs text-gray-400">{f.remarks}</span>}
+                          {f.remarks && <span className="hidden sm:inline ml-2 text-xs text-gray-400">{f.remarks}</span>}
                         </td>
-                        <td className="py-3 px-4 text-gray-500">{f.flagged_by_name || '—'}</td>
+                        <td className="py-3 px-4 text-gray-500 truncate">{f.flagged_by_name || '—'}</td>
                       </tr>
                     ))}
                   </tbody>

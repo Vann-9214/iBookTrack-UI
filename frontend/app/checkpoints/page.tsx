@@ -1142,12 +1142,12 @@ export default function StationCheckpointsPage() {
                     size="sm"
                     onClick={fetchData}
                     disabled={loading}
-                    className="gap-1.5"
+                    className="gap-1.5 hidden sm:flex"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
-                  <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+                  <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
                 </div>
               </div>
             </header>

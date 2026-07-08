@@ -1014,13 +1014,13 @@ export default function WarehousePage() {
           ) : (
             <header className="flex items-center justify-end">
               <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
+                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleRefreshStats}
                   disabled={refreshingStats || lotsLoading}
-                  className="gap-1.5"
+                  className="gap-1.5 hidden sm:flex"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
                   Refresh

@@ -126,7 +126,7 @@ export default function ReportsPage() {
               size="sm"
               onClick={fetchData}
               disabled={loading}
-              className="gap-1.5"
+              className="gap-1.5 hidden sm:flex"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               Refresh

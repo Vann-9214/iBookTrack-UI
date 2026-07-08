@@ -252,9 +252,7 @@ export default function TransmissionMonitorPage() {
     fetchRanking()
   }
 
-  const handleSearch = () => {
-    fetchLiveData(fromDate, toDate)
-  }
+
 
   useEffect(() => {
     fetchLiveData()
@@ -389,7 +387,7 @@ export default function TransmissionMonitorPage() {
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
             {/* Header */}
-            <header className="flex items-start justify-between">
+            <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Transmission Monitor
@@ -438,9 +436,7 @@ export default function TransmissionMonitorPage() {
                   />
                   <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">New Process Only</span>
                 </label>
-                <Button size="sm" onClick={handleSearch} disabled={loading} className="h-8 gap-1.5">
-                  <Search className="h-3.5 w-3.5" /> Search
-                </Button>
+
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
                   {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   Export
@@ -448,16 +444,47 @@ export default function TransmissionMonitorPage() {
                 <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
                   <Trophy className="h-3.5 w-3.5" /> Ranking
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5">
+                <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5 hidden sm:flex">
                   <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
-                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+                <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
               </div>
             </header>
 
-            {/* Metric Cards */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Metric Cards — compact 3-col on mobile, full cards on desktop */}
+            {/* Mobile */}
+            <div className="grid grid-cols-3 gap-2 sm:hidden">
+              <div className="rounded-2xl border border-blue-300 bg-blue-100/60 p-3 flex items-center gap-2 shadow-sm active:scale-[0.97] transition-all">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm shrink-0">
+                  <FileUp className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl font-black leading-none text-blue-600">{loading ? '…' : totalTransmitted.toLocaleString()}</div>
+                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">Transmitted</div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-green-300 bg-green-100/60 p-3 flex items-center gap-2 shadow-sm active:scale-[0.97] transition-all">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-500 text-white shadow-sm shrink-0">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl font-black leading-none text-green-600">{loading ? '…' : `${passRate}%`}</div>
+                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">Pass Rate</div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-teal-300 bg-teal-100/60 p-3 flex items-center gap-2 shadow-sm active:scale-[0.97] transition-all">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500 text-white shadow-sm shrink-0">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xl font-black leading-none text-teal-600">{loading ? '…' : (summary?.TotalScans || 0).toLocaleString()}</div>
+                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">Total Books</div>
+                </div>
+              </div>
+            </div>
+            {/* Desktop */}
+            <div className="hidden sm:grid grid-cols-3 gap-4">
               <div className="rounded-2xl border border-blue-300 bg-blue-100/60 hover:bg-blue-100 p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-sm">
@@ -471,7 +498,6 @@ export default function TransmissionMonitorPage() {
                 <div className="text-sm font-semibold text-gray-700 mb-0.5">Transmitted Today</div>
                 <div className="text-xs text-blue-500">books sent to archive</div>
               </div>
-
               <div className="rounded-2xl border border-green-300 bg-green-100/60 hover:bg-green-100 p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 text-white shadow-sm">
@@ -485,7 +511,6 @@ export default function TransmissionMonitorPage() {
                 <div className="text-sm font-semibold text-gray-700 mb-0.5">Pass Rate</div>
                 <div className="text-xs text-green-500">transmission success rate</div>
               </div>
-
               <div className="rounded-2xl border border-teal-300 bg-teal-100/60 hover:bg-teal-100 p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500 text-white shadow-sm">
