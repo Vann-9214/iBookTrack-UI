@@ -563,12 +563,12 @@ export default function StationCheckpointsPage() {
   const pipelineBorderColor = brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600'
 
   return (
-    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>
+    <div className={cn("flex h-dvh overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-6 p-6 lg:p-8">
+          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
             {/* Box Details Modal */}
             {(scannedBox || loadingScannedBox) && (
@@ -1142,12 +1142,12 @@ export default function StationCheckpointsPage() {
                     size="sm"
                     onClick={fetchData}
                     disabled={loading}
-                    className="gap-1.5"
+                    className="gap-1.5 hidden sm:flex"
                   >
                     <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                   </Button>
-                  <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+                  <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
                 </div>
               </div>
             </header>

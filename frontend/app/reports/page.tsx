@@ -106,11 +106,11 @@ export default function ReportsPage() {
       sortKey === k && 'text-foreground')
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
-        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
+        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
           {/* Header */}
           <header className="flex items-start justify-between gap-4 flex-wrap">
@@ -126,7 +126,7 @@ export default function ReportsPage() {
               size="sm"
               onClick={fetchData}
               disabled={loading}
-              className="gap-1.5"
+              className="gap-1.5 hidden sm:flex"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
               Refresh

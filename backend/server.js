@@ -138,7 +138,7 @@ app.use('/api/storage',   storageRoutes)
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
 // ── Start server ──────────────────────────────────────────────────────────────
-const server = app.listen(PORT, async () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n🚀 Backend running at http://localhost:${PORT}`)
   // Verify Supabase connection on startup
   await testConnection()

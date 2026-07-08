@@ -598,11 +598,11 @@ export default function WarehousePage() {
     : 'Not updated yet'
 
   return (
-    <div className={cn("flex h-screen overflow-hidden bg-background", `theme-${brand}`)}>
+    <div className={cn("flex h-dvh overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={sessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar disableBrandToggle={sessionActive} navigationLocked={sessionActive} />
-        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8">
+        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
           {/* Confirm Complete Session Modal */}
           {confirmCompleteOpen && (
@@ -1014,13 +1014,13 @@ export default function WarehousePage() {
           ) : (
             <header className="flex items-center justify-end">
               <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
+                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleRefreshStats}
                   disabled={refreshingStats || lotsLoading}
-                  className="gap-1.5"
+                  className="gap-1.5 hidden sm:flex"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
                   Refresh

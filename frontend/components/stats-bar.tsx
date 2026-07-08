@@ -56,7 +56,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [flags, setFlags] = useState<QCFlag[]>([])
   const [totalFlags, setTotalFlags] = useState(0)
   const [loadingFlags, setLoadingFlags] = useState(false)
-  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 50 })
+  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 10 })
 
   const [liveLotsOpen, setLiveLotsOpen] = useState(false)
   const [liveLots, setLiveLots] = useState<LiveLot[]>([])
@@ -82,7 +82,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const fetchFlags = async (page = 1) => {
     setLoadingFlags(true)
     try {
-      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=50`)
+      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10`)
       const data = await res.json()
       setFlags(data.flags || [])
       setTotalFlags(data.total || 0)
@@ -188,48 +188,83 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   return (
     <>
       {loading || !dashboardStats ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div className="flex items-start justify-between mb-3">
-                <Skeleton className="h-12 w-12 rounded-2xl bg-muted-foreground/20" />
-                <Skeleton className="h-10 w-16 rounded bg-muted-foreground/20" />
+        /* ── Skeleton ── */
+        <>
+          {/* Mobile 2×2 skeleton */}
+          <div className="grid grid-cols-2 gap-2 sm:hidden">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="rounded-2xl border border-border bg-card p-3 shadow-sm flex items-center gap-3">
+                <Skeleton className="h-9 w-9 rounded-xl bg-muted-foreground/20 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <Skeleton className="h-5 w-12 mb-1 rounded bg-muted-foreground/20" />
+                  <Skeleton className="h-3 w-16 rounded bg-muted-foreground/20" />
+                </div>
               </div>
-              <Skeleton className="h-5 w-32 mb-1.5 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          {/* Desktop skeleton */}
+          <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <Skeleton className="h-12 w-12 rounded-2xl bg-muted-foreground/20" />
+                  <Skeleton className="h-10 w-16 rounded bg-muted-foreground/20" />
+                </div>
+                <Skeleton className="h-5 w-32 mb-1.5 rounded bg-muted-foreground/20" />
+                <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => (
-            <div
-              key={stat.title}
-              onClick={stat.onClick}
-              className={cn(
-                "rounded-2xl border p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]",
-                stat.cardBg, stat.hoverBg, stat.border,
-                stat.onClick ? "cursor-pointer" : "cursor-default"
-              )}
-            >
-              {/* Top row: icon + badge */}
-              <div className="flex items-start justify-between mb-3">
-                <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm", stat.iconBg)}>
-                  <stat.icon className="h-6 w-6" />
+        <>
+          {/* ── Mobile: compact 2×2 grid ── */}
+          <div className="grid grid-cols-2 gap-2 sm:hidden">
+            {stats.map((stat) => (
+              <div
+                key={stat.title}
+                onClick={stat.onClick}
+                className={cn(
+                  "rounded-2xl border p-3 flex items-center gap-3 transition-all duration-200 shadow-sm active:scale-[0.97]",
+                  stat.cardBg, stat.border,
+                  stat.onClick ? "cursor-pointer" : "cursor-default"
+                )}
+              >
+                <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm shrink-0", stat.iconBg)}>
+                  <stat.icon className="h-4 w-4" />
                 </div>
-                {/* Value */}
-                <div className={cn("text-4xl font-black mb-0.5", stat.valueColor)}>
-                  {stat.value}
+                <div className="min-w-0">
+                  <div className={cn("text-xl font-black leading-none", stat.valueColor)}>{stat.value}</div>
+                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">{stat.title}</div>
                 </div>
               </div>
+            ))}
+          </div>
 
-              {/* Title */}
-              <div className="text-sm font-semibold text-gray-700 mb-0.5">{stat.title}</div>
-              {/* Subtext */}
-              <div className={cn("text-xs", stat.subtextColor)}>{stat.subtext}</div>
-            </div>
-          ))}
-        </div>
+          {/* ── Desktop: full cards ── */}
+          <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4">
+            {stats.map((stat) => (
+              <div
+                key={stat.title}
+                onClick={stat.onClick}
+                className={cn(
+                  "rounded-2xl border p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]",
+                  stat.cardBg, stat.hoverBg, stat.border,
+                  stat.onClick ? "cursor-pointer" : "cursor-default"
+                )}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm", stat.iconBg)}>
+                    <stat.icon className="h-6 w-6" />
+                  </div>
+                  <div className={cn("text-4xl font-black mb-0.5", stat.valueColor)}>{stat.value}</div>
+                </div>
+                <div className="text-sm font-semibold text-gray-700 mb-0.5">{stat.title}</div>
+                <div className={cn("text-xs", stat.subtextColor)}>{stat.subtext}</div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* QC Flagged Books Modal */}
@@ -281,13 +316,21 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : (
               <div className="overflow-y-auto flex-1">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm table-fixed">
+                  <colgroup>
+                    <col className="w-8" />
+                    <col className="w-28" />
+                    <col className="hidden sm:table-column w-40" />
+                    <col className="w-28" />
+                    <col className="w-28" />
+                    <col className="w-28" />
+                  </colgroup>
                   <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
                     <tr>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide w-10">#</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">#</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">ISBN</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot &amp; Box</th>
+                      <th className="hidden sm:table-cell text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Lot &amp; Box</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Issue</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Flagged By</th>
                     </tr>
@@ -296,21 +339,21 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     {flags.map((f, i) => (
                       <tr key={f.scan_id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-xs text-gray-300">{(flagsPagination.currentPage - 1) * flagsPagination.pageSize + i + 1}</td>
-                        <td className="py-3 px-4 font-semibold text-gray-800">{f.isbn}</td>
-                        <td className="py-3 px-4 text-gray-500 max-w-[200px] truncate">{f.title || '—'}</td>
+                        <td className="py-3 px-4 font-semibold text-gray-800 truncate">{f.isbn}</td>
+                        <td className="hidden sm:table-cell py-3 px-4 text-gray-500 truncate">{f.title || '—'}</td>
                         <td className="text-xs px-4 py-3">
                           <span className="font-semibold text-blue-600">{f.assigned_box?.lot?.lot_number || '—'}</span>
                           {f.assigned_box?.box_number && (
-                            <span className="block text-[11px] text-gray-400 mt-0.5">{f.assigned_box.box_number}</span>
+                            <span className="text-gray-400 ml-1">{f.assigned_box.box_number}</span>
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 whitespace-nowrap">
                             {ISSUE_LABELS[f.issue] || f.issue}
                           </span>
-                          {f.remarks && <span className="ml-2 text-xs text-gray-400">{f.remarks}</span>}
+                          {f.remarks && <span className="hidden sm:inline ml-2 text-xs text-gray-400">{f.remarks}</span>}
                         </td>
-                        <td className="py-3 px-4 text-gray-500">{f.flagged_by_name || '—'}</td>
+                        <td className="py-3 px-4 text-gray-500 truncate">{f.flagged_by_name || '—'}</td>
                       </tr>
                     ))}
                   </tbody>

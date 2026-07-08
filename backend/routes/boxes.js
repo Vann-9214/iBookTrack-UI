@@ -111,6 +111,46 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   }
 })
 
+// Look up a single box by its box_number (for barcode scanning)
+// GET /api/boxes/by-number/:box_number
+router.get('/by-number/:box_number', requireAuth, async (req, res) => {
+  try {
+    const { box_number } = req.params
+    const db = supabaseAdmin || supabase
+
+    // Find box by exact box_number (case-insensitive)
+    const { data: box, error: boxError } = await db
+      .from('boxes')
+      .select(`*, lot:lots(lot_number, shipment_id, type)`)
+      .ilike('box_number', box_number.trim())
+      .maybeSingle()
+
+    if (boxError) throw boxError
+    if (!box) return res.status(404).json({ error: 'Box not found' })
+
+    // Pull scanned books from book_activity for this box
+    const { data: scans } = await db
+      .from('book_activity')
+      .select('id, scan_status, warehouse_scan_at, books!inner(isbn, title, box_id, book_type)')
+      .eq('books.box_id', box.id)
+      .order('warehouse_scan_at', { ascending: true })
+
+    const books = (scans || []).map(s => ({
+      id: s.id,
+      isbn: s.books?.isbn,
+      title: s.books?.title,
+      book_type: s.books?.book_type,
+      scan_status: s.scan_status,
+      scanned_at: s.warehouse_scan_at,
+    }))
+
+    res.json({ box: { ...box, books } })
+  } catch (error) {
+    console.error('Get box by number error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Get single box by ID with all scanned books
 router.get('/:id', requireAuth, async (req, res) => {
   try {

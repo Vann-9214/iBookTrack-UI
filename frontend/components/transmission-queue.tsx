@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { CheckCircle2, XCircle, Loader2, Activity } from "lucide-react"
+import { CheckCircle2, XCircle, Loader2, Activity, ChevronLeft, ChevronRight } from "lucide-react"
 import { authFetch } from "@/lib/auth-api"
 import { useBrand } from "@/hooks/use-brand"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -66,10 +66,13 @@ interface TransmissionQueueProps {
   loading?: boolean
 }
 
+const MOBILE_PAGE_SIZE = 5
+
 export function TransmissionQueue({ scans: propScans, loading: propLoading = false }: TransmissionQueueProps) {
   const { brand } = useBrand()
   const [fetchedScans, setFetchedScans] = useState<any[]>([])
   const [loading, setLoading] = useState(!propScans)
+  const [mobilePage, setMobilePage] = useState(0)
 
   const scans = useMemo(
     () => (propScans || fetchedScans).slice(0, 10),
@@ -157,38 +160,77 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           <div className="flex flex-col items-center justify-center py-12 gap-2">
             <p className="text-sm text-muted-foreground">No scan data for today</p>
           </div>
-        ) : (
-          <div className="h-full overflow-auto">
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-white">
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {scans.map((item, i) => (
-                  <TableRow key={i} className="border-border">
-                    <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}</TableCell>
-                    <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
-                    <TableCell className="text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{item.PageCount || '—'}</TableCell>
-                    <TableCell>{getPipelineStatusBadge(item.Status || '')}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{item.MachineName || '—'}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground text-right">{formatTime(item.Updated)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        ) : (() => {
+          const totalPages = Math.ceil(scans.length / MOBILE_PAGE_SIZE)
+          const mobileRows = scans.slice(mobilePage * MOBILE_PAGE_SIZE, (mobilePage + 1) * MOBILE_PAGE_SIZE)
+          const tableHead = (
+            <TableHeader className="sticky top-0 z-10 bg-white">
+              <TableRow className="border-border hover:bg-transparent">
+                <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
+              </TableRow>
+            </TableHeader>
+          )
+          const renderRows = (rows: any[]) => rows.map((item, i) => (
+            <TableRow key={i} className="border-border">
+              <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}</TableCell>
+              <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
+              <TableCell className="text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{item.PageCount || '—'}</TableCell>
+              <TableCell>{getPipelineStatusBadge(item.Status || '')}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{item.MachineName || '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground text-right">{formatTime(item.Updated)}</TableCell>
+            </TableRow>
+          ))
+          return (
+            <>
+              {/* Mobile: 5 rows + prev/next */}
+              <div className="sm:hidden flex flex-col">
+                <div className="overflow-auto">
+                  <Table>
+                    {tableHead}
+                    <TableBody>{renderRows(mobileRows)}</TableBody>
+                  </Table>
+                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-white">
+                    <button
+                      onClick={() => setMobilePage(p => Math.max(0, p - 1))}
+                      disabled={mobilePage === 0}
+                      className="flex items-center gap-1 text-xs text-muted-foreground disabled:opacity-30 hover:text-foreground transition-colors"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" /> Prev
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      {mobilePage + 1} / {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setMobilePage(p => Math.min(totalPages - 1, p + 1))}
+                      disabled={mobilePage >= totalPages - 1}
+                      className="flex items-center gap-1 text-xs text-muted-foreground disabled:opacity-30 hover:text-foreground transition-colors"
+                    >
+                      Next <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              {/* Desktop: full scroll */}
+              <div className="hidden sm:block h-full overflow-auto">
+                <Table>
+                  {tableHead}
+                  <TableBody>{renderRows(scans)}</TableBody>
+                </Table>
+              </div>
+            </>
+          )
+        })()}
       </CardContent>
     </Card>
   )
