@@ -31,7 +31,7 @@ export function Pagination({
 
   return (
     <div className={cn('flex items-center justify-between py-4 px-4 border-t border-border', className)}>
-      <div className="flex items-center gap-2">
+      <div className="hidden sm:flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Items per page:</span>
         <select
           value={pageSize}
@@ -46,7 +46,7 @@ export function Pagination({
         </select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 mx-auto sm:mx-0">
         <Button
           size="sm"
           variant="outline"
@@ -129,7 +129,7 @@ export function Pagination({
         </Button>
       </div>
 
-      <span className="text-xs text-muted-foreground">
+      <span className="hidden sm:inline text-xs text-muted-foreground">
         Page {currentPage} of {totalPages}
       </span>
     </div>
