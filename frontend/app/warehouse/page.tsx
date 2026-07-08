@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
+import { RefreshControl } from "@/components/refresh-control"
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
-import { AlertTriangle, Package, PackagePlus, PackageMinus, Trash2, Check, ChevronsUpDown, ScanBarcode, CircleCheck, CircleX, BookOpen, Activity, X, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Package, PackagePlus, PackageMinus, Trash2, Check, ChevronsUpDown, ScanBarcode, CircleCheck, CircleX, BookOpen, Activity, X, RefreshCw, Loader2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
@@ -92,6 +93,7 @@ export default function WarehousePage() {
   const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([])
   const [currentSession, setCurrentSession] = useState<WarehouseSession | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isbnLoading, setIsbnLoading] = useState(false)
   const [currentBoxNumber, setCurrentBoxNumber] = useState('')
   const [currentBoxBooks, setCurrentBoxBooks] = useState(0)
   const [bookCounter, setBookCounter] = useState(0)
@@ -493,7 +495,7 @@ export default function WarehousePage() {
       return
     }
 
-    setLoading(true)
+    setIsbnLoading(true)
     try {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Authentication required.')
@@ -518,7 +520,7 @@ export default function WarehousePage() {
       )
     } catch (error) {
       setSessionError('Failed to verify ISBN. Please try again.')
-    } finally { setLoading(false) }
+    } finally { setIsbnLoading(false) }
   }
 
   const saveBookToLocal = (bookData: any, scan_status: 'processable' | 'non_processable', flag_issue: string | null, flag_remarks: string | null) => {
@@ -1013,19 +1015,7 @@ export default function WarehousePage() {
             </div>
           ) : (
             <header className="flex items-center justify-end">
-              <div className="flex items-center gap-3">
-                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefreshStats}
-                  disabled={refreshingStats || lotsLoading}
-                  className="gap-1.5 hidden sm:flex"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
+              <RefreshControl onRefresh={handleRefreshStats} refreshing={refreshingStats || lotsLoading} storageKey="warehouse" className="hidden sm:flex" />
             </header>
           ))}
 
@@ -1252,6 +1242,17 @@ export default function WarehousePage() {
                   <div className="flex items-center gap-3 px-5 py-4 bg-muted/50 border border-border rounded-xl shadow-lg">
                     <span className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
                     <span className="text-sm font-semibold text-foreground">Completing session...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* ISBN lookup loading card */}
+              {isbnLoading && (
+                <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-card border border-primary/30 rounded-xl shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-200">
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Adding ISBN...</p>
+                    <p className="text-xs text-muted-foreground">Verifying with iLMS</p>
                   </div>
                 </div>
               )}

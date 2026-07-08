@@ -244,6 +244,43 @@ export async function getDailyOutputCount(date, location = 'mustang') {
   }
 }
 
+export async function getDailyOutputRows(date, location = 'mustang', newProcessOnly = false) {
+  try {
+    const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
+    const reworkFilter = newProcessOnly ? "AND IsRework = 'False'" : ""
+
+    // Match the dashboard card count: latest status per ISBN added today is
+    // Transmission_Archive COMPLETED, with optional New Process Only filter.
+    const rows = await query(
+      `SELECT t.ISBN, t.Updated, t.ScanUser, t.BoxNumber, t.PageCount, t.ScanDate
+       FROM zeusz_IsbnStatus t
+       INNER JOIN (
+         SELECT ISBN, MAX(Updated) AS MaxUpdated
+         FROM zeusz_IsbnStatus
+         WHERE CAST(DateAdded AS DATE) = '${d}' ${reworkFilter}
+         GROUP BY ISBN
+       ) latest ON t.ISBN = latest.ISBN AND t.Updated = latest.MaxUpdated
+       WHERE t.Status = 'Transmission_Archive COMPLETED'
+         ${reworkFilter}
+         AND CAST(DateAdded AS DATE) = '${d}'
+       ORDER BY t.Updated DESC`,
+      location
+    )
+    const data = Array.isArray(rows) ? rows : []
+    return { success: true, rows: data.map(r => ({
+      isbn: r.ISBN,
+      updated: r.Updated,
+      scan_user: r.ScanUser,
+      box_number: r.BoxNumber,
+      page_count: r.PageCount,
+      scan_date: r.ScanDate,
+    })) }
+  } catch (error) {
+    console.error('Error fetching daily output rows:', error)
+    return { success: false, rows: [] }
+  }
+}
+
 export async function getTodayScanningSummary(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
@@ -550,7 +587,7 @@ export async function getScanStageBoxes(startDate, endDate, location = 'mustang'
  * @param {string} [startDate]
  * @param {string} [endDate]
  */
-export async function getTransmitStageBoxes(startDate, endDate) {
+export async function getTransmitStageBoxes(startDate, endDate, location = 'mustang') {
   try {
     const today = new Date().toISOString().split('T')[0]
     const dateFilter = startDate && endDate
@@ -563,7 +600,8 @@ export async function getTransmitStageBoxes(startDate, endDate) {
        FROM zeusz_IsbnStatus
        WHERE ${dateFilter}
          AND BoxNumber IS NOT NULL AND BoxNumber <> ''
-         AND Status = 'Transmission_Archive ONGOING'`
+         AND Status = 'Transmission_Archive ONGOING'`,
+      location
     )
     const count = (Array.isArray(countRows) ? countRows : [])[0]?.cnt || 0
 
@@ -578,7 +616,8 @@ export async function getTransmitStageBoxes(startDate, endDate) {
            SELECT MAX(Updated) FROM zeusz_IsbnStatus
            WHERE ISBN = s.ISBN AND ${dateFilter}
          )
-       ORDER BY Updated DESC`
+       ORDER BY Updated DESC`,
+      location
     )
 
     const data = Array.isArray(rows) ? rows : []
@@ -821,6 +860,7 @@ export async function getTransmitStageRows(location = 'mustang') {
 
 export default {
   getDailyOutputCount,
+  getDailyOutputRows,
   getTodayScanningSummary,
   getScanningData,
   getScanningByMachine,

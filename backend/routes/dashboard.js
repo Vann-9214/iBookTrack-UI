@@ -132,11 +132,20 @@ router.get('/stats', requireAuth, async (req, res) => {
     const { count } = await transmittedQuery
     transmittedBooks = count || 0 */
 
+    // Today UTC range
+    const now = new Date()
+    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0))
+    const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0))
+    const startIso = startOfDay.toISOString()
+    const endIso = endOfDay.toISOString()
+
     // Get flagged books count from user_flags (always use admin to bypass RLS)
+    // Count only flags that were created/updated today
     const adminDb = supabaseAdmin || db
     const { count: unaccountedBooks, error: flagCountError } = await adminDb
       .from('user_flags')
       .select('id', { count: 'exact', head: true })
+      .or(`and(warehouse_flag_at.gte.${startIso},warehouse_flag_at.lt.${endIso}),and(inventory_flag_at.gte.${startIso},inventory_flag_at.lt.${endIso}),and(endorsement_flag_at.gte.${startIso},endorsement_flag_at.lt.${endIso})`)
     if (flagCountError) console.warn('user_flags count error:', flagCountError.message)
 
     // Get active lots count
@@ -260,12 +269,13 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
     const db = supabaseAdmin || supabase
     const requestedPage = parseInt(req.query.page || '1', 10)
     const requestedLimit = parseInt(req.query.limit || '50', 10)
+    const todayOnly = req.query.today === 'true'
     const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50
     const start = (page - 1) * limit
     const end = start + limit - 1
 
-    const { data, error, count } = await db
+    let query = db
       .from('user_flags')
       .select(`
         id,
@@ -293,6 +303,17 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
           )
         )
       `, { count: 'exact' })
+
+    if (todayOnly) {
+      const now = new Date()
+      const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0))
+      const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0))
+      const startIso = startOfDay.toISOString()
+      const endIso = endOfDay.toISOString()
+      query = query.or(`and(warehouse_flag_at.gte.${startIso},warehouse_flag_at.lt.${endIso}),and(inventory_flag_at.gte.${startIso},inventory_flag_at.lt.${endIso}),and(endorsement_flag_at.gte.${startIso},endorsement_flag_at.lt.${endIso})`)
+    }
+
+    const { data, error, count } = await query
       .order('warehouse_flag_at', { ascending: false })
       .range(start, end)
     if (error) throw error
@@ -332,6 +353,67 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
     res.json({ success: true, flags: mappedFlags, total: count || 0, page, limit })
   } catch (error) {
     console.error('Get QC flags error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Get today's completed transmissions (Daily Output list)
+router.get('/daily-output', requireAuth, async (req, res) => {
+  try {
+    const db = supabaseAdmin || supabase
+    const requestedPage = parseInt(req.query.page || '1', 10)
+    const requestedLimit = parseInt(req.query.limit || '50', 10)
+    const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1
+    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50
+
+    const userBrand = req.query.brand === 'jaguar' ? 'jaguar' : req.user?.user_metadata?.brand === 'jaguar' ? 'jaguar' : 'mustang'
+    const location = userBrand
+
+    const { success, rows: simflexRows } = await simflexDb.getDailyOutputRows(undefined, location, true)
+    if (!success) {
+      return res.status(502).json({ error: 'Failed to fetch daily output from Simflex' })
+    }
+
+    // Enrich Simflex rows with local book data (title + lot/box via books -> boxes -> lots)
+    const isbns = (simflexRows || []).map(r => r.isbn).filter(Boolean)
+    let booksByIsbn = {}
+    if (isbns.length > 0) {
+      const { data: books } = await db
+        .from('books')
+        .select('isbn, title, box:boxes(box_number, lot:lots(lot_number))')
+        .in('isbn', isbns)
+      const firstRel = (rel) => Array.isArray(rel) ? rel[0] : rel
+      ;(books || []).forEach(b => {
+        const box = firstRel(b.box) || {}
+        const lot = firstRel(box.lot) || {}
+        booksByIsbn[b.isbn] = {
+          title: b.title || null,
+          box_number: box.box_number || null,
+          lot_number: lot.lot_number || null,
+        }
+      })
+    }
+
+    const enrichedRows = (simflexRows || []).map(r => {
+      const local = booksByIsbn[r.isbn] || {}
+      return {
+        isbn: r.isbn,
+        title: local.title || null,
+        box_number: local.box_number || r.box_number || '—',
+        lot_number: local.lot_number || '—',
+        scan_user: r.scan_user || '—',
+        page_count: r.page_count || 0,
+        completed_at: r.updated,
+      }
+    })
+
+    const total = enrichedRows.length
+    const start = (page - 1) * limit
+    const paginatedRows = enrichedRows.slice(start, start + limit)
+
+    res.json({ success: true, rows: paginatedRows, total, page, limit })
+  } catch (error) {
+    console.error('Get daily output error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -576,10 +658,11 @@ router.get('/lot-details/:lot_number', requireAuth, async (req, res) => {
   }
 })
 
-// Get pipeline stage counts
+// Get pipeline stage counts (today only, grouped by box_type)
 router.get('/pipeline-stats', async (req, res) => {
   try {
-    const { lot_number } = req.query
+    const { lot_number, brand } = req.query
+    const selectedBrand = (brand === 'jaguar' || brand === 'mustang') ? brand : null
     const db = supabaseAdmin || supabase
 
     let lotId = null
@@ -593,7 +676,19 @@ router.get('/pipeline-stats', async (req, res) => {
       if (lot) lotId = lot.id
     }
 
-    let query = db.from('boxes').select('id, current_stage')
+    // Today range in UTC
+    const now = new Date()
+    const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0))
+    const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0))
+    const startIso = startOfDay.toISOString()
+    const endIso = endOfDay.toISOString()
+
+    // Active Pipeline reflects boxes CREATED today and their CURRENT stage.
+    let query = db
+      .from('boxes')
+      .select('id, current_stage, box_type')
+      .gte('created_at', startIso)
+      .lt('created_at', endIso)
     if (lotId) query = query.eq('lot_id', lotId)
 
     const { data: boxes, error: boxesError } = await query
@@ -609,28 +704,41 @@ router.get('/pipeline-stats', async (req, res) => {
 
     const assignedBoxIds = new Set((assignedBoxes || []).map(a => a.box_id))
 
-    const stageCounts = {
-      warehouse: 0,
-      inventory: 0,
-      cut: 0,
-      endorsement: 0,
-      scan: 0,
-      transmit: 0,
-      storage: 0
+    const stageCountsByType = {
+      warehouse:   { mustang: 0, jaguar: 0, total: 0 },
+      inventory:   { mustang: 0, jaguar: 0, total: 0 },
+      cut:         { mustang: 0, jaguar: 0, total: 0 },
+      endorsement: { mustang: 0, jaguar: 0, total: 0 },
+      storage:     { mustang: 0, jaguar: 0, total: 0 }
     }
 
     ;(boxes || []).forEach(box => {
-      if (stageCounts[box.current_stage] === undefined) return
-      // Exclude boxes that reached storage but are already assigned to a location
-      if (box.current_stage === 'storage' && assignedBoxIds.has(box.id)) return
-      stageCounts[box.current_stage]++
+      const stage = box.current_stage
+      if (!stageCountsByType[stage]) return
+      if (stage === 'storage' && assignedBoxIds.has(box.id)) return
+      const type = (box.box_type || '').toString().toLowerCase()
+      const normalizedType = type === 'jaguar' ? 'jaguar' : 'mustang'
+      stageCountsByType[stage][normalizedType]++
+      stageCountsByType[stage].total++
     })
 
-    // Scan and Transmit stages are driven by live Simflex status (default Mustang), not Supabase.
+    // Flat totals filtered by the selected brand when provided
+    const stageCounts = {
+      warehouse:   selectedBrand ? stageCountsByType.warehouse[selectedBrand] : stageCountsByType.warehouse.total,
+      inventory:   selectedBrand ? stageCountsByType.inventory[selectedBrand] : stageCountsByType.inventory.total,
+      cut:         selectedBrand ? stageCountsByType.cut[selectedBrand] : stageCountsByType.cut.total,
+      endorsement: selectedBrand ? stageCountsByType.endorsement[selectedBrand] : stageCountsByType.endorsement.total,
+      storage:     selectedBrand ? stageCountsByType.storage[selectedBrand] : stageCountsByType.storage.total,
+      scan:        0,
+      transmit:    0
+    }
+
+    // Scan and Transmit stages are driven by live Simflex status, filtered by brand/location
     try {
+      const location = selectedBrand || 'mustang'
       const [scanResult, transmitResult] = await Promise.all([
-        simflexDb.getScanStageBoxes(),
-        simflexDb.getTransmitStageBoxes(),
+        simflexDb.getScanStageBoxes(undefined, undefined, location),
+        simflexDb.getTransmitStageBoxes(undefined, undefined, location),
       ])
       stageCounts.scan = scanResult.success ? scanResult.count : 0
       stageCounts.transmit = transmitResult.success ? transmitResult.count : 0
@@ -640,7 +748,7 @@ router.get('/pipeline-stats', async (req, res) => {
       stageCounts.transmit = 0
     }
 
-    res.json({ stageCounts })
+    res.json({ stageCounts, stageCountsByType, today: startIso.split('T')[0] })
   } catch (error) {
     console.error('Get pipeline stats error:', error)
     res.status(500).json({ error: error.message })

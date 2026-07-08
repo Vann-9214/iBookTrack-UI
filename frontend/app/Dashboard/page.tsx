@@ -6,7 +6,6 @@ import { DashboardNavbar } from "@/components/top-bar"
 import { StatsBar } from "@/components/stats-bar"
 import { ActivePipeline } from "@/components/active-pipeline"
 import { TransmissionQueue } from "@/components/transmission-queue"
-import { UnaccountedBooks } from "@/components/missing-item-log"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +15,7 @@ import { cn } from "@/lib/utils"
 import { Search, Book, Package, Barcode, X, RefreshCw, CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
+import { RefreshControl } from "@/components/refresh-control"
 import { useBrand } from "@/hooks/use-brand"
 import { authFetch } from "@/lib/auth-api"
 
@@ -47,14 +47,12 @@ export default function DashboardPage() {
   const [lastStatsUpdate, setLastStatsUpdate] = useState<Date | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const [liveScans, setLiveScans] = useState<any[]>([])
-  const [flaggedBooks, setFlaggedBooks] = useState<any[]>([])
 
   const refreshAll = async () => {
     setIsRefreshing(true)
     try {
       await Promise.all([
         fetchDashboardStats(currentLot || undefined),
-        fetchFlagged(),
       ])
       if (searchResult) await handleSearch()
       setRefreshKey(k => k + 1)
@@ -129,16 +127,6 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error)
-    }
-  }
-
-  const fetchFlagged = async () => {
-    try {
-      const res = await authFetch(`${API_URL}/api/warehouse/rejected-books?today=true&limit=10`)
-      const data = await res.json()
-      if (data.success) setFlaggedBooks(data.rejectedBooks || [])
-    } catch (e) {
-      console.error('Failed to fetch flagged books:', e)
     }
   }
 
@@ -274,19 +262,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 {/* Refresh + timestamp — hidden on mobile */}
-                <div className="hidden sm:flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={refreshAll}
-                    disabled={isRefreshing}
-                    className="gap-1.5"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                  <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
-                </div>
+                <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} storageKey="dashboard" className="hidden sm:flex" />
               </div>
 
               {/* Controls row — scan + search always on one line */}
@@ -617,17 +593,9 @@ export default function DashboardPage() {
             {/* Active Pipeline Flowchart */}
             <ActivePipeline currentLot={displayText} stats={dashboardStats} brand={brand} loading={isRefreshing} />
 
-            {/* Bottom Split: Transmission Queue & Unaccounted Books — hidden on mobile */}
-            <div className="hidden sm:grid grid-cols-1 gap-6 xl:grid-cols-12">
-              {/* Left Table: Takes up 7 out of 12 columns (~58% width) */}
-              <div className="xl:col-span-7 h-full">
-                <TransmissionQueue scans={liveScans} loading={isRefreshing} />
-              </div>
-              
-              {/* Right Table: Takes up 5 out of 12 columns (~42% width) */}
-              <div className="xl:col-span-5 h-full">
-                <UnaccountedBooks books={flaggedBooks} loading={isRefreshing} refreshKey={refreshKey} />
-              </div>
+            {/* Transmission Queue - Full Width */}
+            <div className="flex-1 w-full flex flex-col min-h-0">
+              <TransmissionQueue scans={liveScans} loading={isRefreshing} />
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -18,6 +18,7 @@ import { authFetch } from "@/lib/auth-api"
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useBrand } from "@/hooks/use-brand"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -45,6 +46,16 @@ interface LiveLot {
   completion_progress: number
 }
 
+interface DailyOutputRow {
+  isbn: string
+  title: string | null
+  lot_number: string
+  box_number: string
+  scan_user: string
+  page_count: number
+  completed_at: string
+}
+
 interface StatsBarProps {
   stats?: any
   refreshKey?: number
@@ -52,6 +63,7 @@ interface StatsBarProps {
 }
 
 export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }: StatsBarProps) {
+  const { brand } = useBrand()
   const [flagsOpen, setFlagsOpen] = useState(false)
   const [flags, setFlags] = useState<QCFlag[]>([])
   const [totalFlags, setTotalFlags] = useState(0)
@@ -62,6 +74,12 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [liveLots, setLiveLots] = useState<LiveLot[]>([])
   const [loadingLiveLots, setLoadingLiveLots] = useState(false)
   const [selectedLot, setSelectedLot] = useState<LiveLot | null>(null)
+
+  const [dailyOutputOpen, setDailyOutputOpen] = useState(false)
+  const [dailyOutputRows, setDailyOutputRows] = useState<DailyOutputRow[]>([])
+  const [totalDailyOutput, setTotalDailyOutput] = useState(0)
+  const [loadingDailyOutput, setLoadingDailyOutput] = useState(false)
+  const dailyOutputPagination = usePagination({ totalItems: totalDailyOutput, defaultPageSize: 50 })
 
   const openLiveLots = async () => {
     setLiveLotsOpen(true)
@@ -82,7 +100,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const fetchFlags = async (page = 1) => {
     setLoadingFlags(true)
     try {
-      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10`)
+      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10&today=true`)
       const data = await res.json()
       setFlags(data.flags || [])
       setTotalFlags(data.total || 0)
@@ -101,6 +119,28 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     await fetchFlags(1)
   }
 
+  const fetchDailyOutput = async (page = 1) => {
+    setLoadingDailyOutput(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/dashboard/daily-output?page=${page}&limit=${dailyOutputPagination.pageSize}&brand=${brand}`)
+      const data = await res.json()
+      setDailyOutputRows(data.rows || [])
+      setTotalDailyOutput(data.total || 0)
+    } catch {
+      setDailyOutputRows([])
+      setTotalDailyOutput(0)
+    } finally {
+      setLoadingDailyOutput(false)
+    }
+  }
+
+  const openDailyOutput = async () => {
+    setDailyOutputOpen(true)
+    dailyOutputPagination.goToPage(1)
+    if (dailyOutputRows.length > 0) return
+    await fetchDailyOutput(1)
+  }
+
   useEffect(() => {
     if (refreshKey === undefined || !flagsOpen) return
     fetchFlags(flagsPagination.currentPage)
@@ -110,6 +150,16 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     if (!flagsOpen) return
     fetchFlags(flagsPagination.currentPage)
   }, [flagsPagination.currentPage])
+
+  useEffect(() => {
+    if (refreshKey === undefined || !dailyOutputOpen) return
+    fetchDailyOutput(dailyOutputPagination.currentPage)
+  }, [refreshKey, dailyOutputOpen])
+
+  useEffect(() => {
+    if (!dailyOutputOpen) return
+    fetchDailyOutput(dailyOutputPagination.currentPage)
+  }, [dailyOutputPagination.currentPage])
 
   const ISSUE_LABELS: Record<string, string> = {
     'bent-page': 'Bent Page', 'torn-page': 'Torn Page', 'missing-page': 'Missing Page',
@@ -166,7 +216,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       border: "border-green-300",
       valueColor: "text-green-600",
       subtextColor: "text-green-500",
-      onClick: undefined,
+      onClick: openDailyOutput,
     },
     {
       title: "Total Books",
@@ -188,9 +238,9 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   return (
     <>
       {loading || !dashboardStats ? (
-        /* ── Skeleton ── */
+        /* ΓöÇΓöÇ Skeleton ΓöÇΓöÇ */
         <>
-          {/* Mobile 2×2 skeleton */}
+          {/* Mobile 2├ù2 skeleton */}
           <div className="grid grid-cols-2 gap-2 sm:hidden">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="rounded-2xl border border-border bg-card p-3 shadow-sm flex items-center gap-3">
@@ -218,7 +268,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         </>
       ) : (
         <>
-          {/* ── Mobile: compact 2×2 grid ── */}
+          {/* ΓöÇΓöÇ Mobile: compact 2├ù2 grid ΓöÇΓöÇ */}
           <div className="grid grid-cols-2 gap-2 sm:hidden">
             {stats.map((stat) => (
               <div
@@ -241,7 +291,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
             ))}
           </div>
 
-          {/* ── Desktop: full cards ── */}
+          {/* ΓöÇΓöÇ Desktop: full cards ΓöÇΓöÇ */}
           <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4">
             {stats.map((stat) => (
               <div
@@ -554,6 +604,120 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Daily Output Modal */}
+      {dailyOutputOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setDailyOutputOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[85vh] flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 flex items-center justify-between bg-green-50">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500 text-white">
+                  <FileOutput className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-800">Daily Output</h3>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-xs text-gray-500">Books transmitted today</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setDailyOutputOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Summary strip */}
+            {!loadingDailyOutput && dailyOutputRows.length > 0 && (
+              <div className="flex items-center gap-6 px-6 py-3 bg-gray-50 border-b border-gray-100">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">Books Transmitted</span>
+                  <span className="text-sm font-bold text-green-600">{totalDailyOutput}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">Total Pages</span>
+                  <span className="text-sm font-bold text-green-600">
+                    {dailyOutputRows.reduce((sum, r) => sum + (r.page_count || 0), 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Content */}
+            {loadingDailyOutput ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                <span className="text-sm text-gray-400">Loading daily output...</span>
+              </div>
+            ) : dailyOutputRows.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-2">
+                <span className="text-sm font-medium text-gray-500">No books transmitted today</span>
+              </div>
+            ) : (
+              <div className="overflow-y-auto flex-1">
+                <table className="w-full text-sm table-fixed">
+                  <colgroup>
+                    <col className="w-10" />
+                    <col className="w-36" />
+                    <col />
+                    <col className="w-28" />
+                    <col className="w-28" />
+                    <col className="w-32" />
+                  </colgroup>
+                  <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
+                    <tr>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">#</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">ISBN</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Box</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Completed</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {dailyOutputRows.map((row, i) => (
+                      <tr key={row.isbn} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4 text-xs text-gray-300">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
+                        <td className="py-3 px-4 font-mono text-xs text-gray-800 truncate">{row.isbn}</td>
+                        <td className="py-3 px-4 text-gray-600 truncate">{row.title || '—'}</td>
+                        <td className="py-3 px-4 font-semibold text-gray-800 truncate">{row.lot_number}</td>
+                        <td className="py-3 px-4 text-gray-500 truncate">{row.box_number}</td>
+                        <td className="py-3 px-4 text-xs text-gray-500">
+                          {row.completed_at ? new Date(row.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {dailyOutputPagination.totalPages > 1 && (
+              <div className="border-t border-gray-100 px-4 py-3 shrink-0">
+                <Pagination
+                  currentPage={dailyOutputPagination.currentPage}
+                  totalPages={dailyOutputPagination.totalPages}
+                  pageSize={dailyOutputPagination.pageSize}
+                  onPageChange={dailyOutputPagination.goToPage}
+                  onPageSizeChange={dailyOutputPagination.setPageSize}
+                  canPrevPage={dailyOutputPagination.canPrevPage}
+                  canNextPage={dailyOutputPagination.canNextPage}
+                />
               </div>
             )}
           </div>
