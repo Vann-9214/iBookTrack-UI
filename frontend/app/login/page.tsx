@@ -1,12 +1,12 @@
-﻿'use client'
+'use client'
 
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import '../landing-page/landing_page.css'
 import { HeaderSection } from '../landing-page/components'
-import { authRequest, storeTokenData } from '@/lib/auth-api'
+import { authRequest, storeTokenData, getApiBaseUrl } from '@/lib/auth-api'
 
 function getDisplayNameFromEmail(email: string) {
   const localPart = email.split('@')[0] || ''
@@ -30,10 +30,37 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [leaving, setLeaving] = useState(false)
 
+  useEffect(() => {
+    // Handle SSO token callback
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const ssoToken = params.get('sso_token')
+      const ssoEmail = params.get('email')
+      const ssoName = params.get('name')
 
+      if (ssoToken) {
+        setLoading(true)
+        // For Innodata SSO, we use the JWT for both access and refresh token placeholders
+        const expiresAt = Math.floor(Date.now() / 1000) + 8 * 3600 // 8 hours
+        storeTokenData(ssoToken, ssoToken, expiresAt)
+        
+        const emailToUse = ssoEmail || 'user@innodata.com'
+        localStorage.setItem(
+          'ibooktrack_user',
+          JSON.stringify({
+            email: emailToUse,
+            name: ssoName || getDisplayNameFromEmail(emailToUse),
+          })
+        )
+        toast.success('Innodata SSO Login successful!')
+        setLeaving(true)
+        sessionStorage.setItem('from_login', '1')
+        setTimeout(() => router.push('/Dashboard'), 300)
+      }
+    }
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
-
     e.preventDefault()
 
     setError('')
@@ -142,6 +169,22 @@ export default function LoginPage() {
             <p className="text-center text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6 leading-relaxed">
               Log in to your iBookTrack account to continue.
             </p>
+
+            <div className="mb-6 flex flex-col gap-3">
+              <button type="button" onClick={() => window.location.href = `${getApiBaseUrl()}/api/auth/innodata`}
+                className="flex items-center justify-center gap-2 h-9 sm:h-10 lg:h-11 w-full rounded-xl border-2 border-[#1a3460] bg-white text-[#1a3460] text-sm lg:text-base font-bold transition hover:bg-gray-50 active:scale-[0.98]">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+                </svg>
+                Log in with Innodata SSO
+              </button>
+              
+              <div className="relative flex items-center">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium uppercase tracking-wider">or regular login</span>
+                <div className="flex-grow border-t border-gray-200"></div>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 sm:gap-3.5" noValidate>
 

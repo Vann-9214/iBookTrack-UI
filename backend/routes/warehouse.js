@@ -126,12 +126,15 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       }
     }
 
-    // Create warehouse session — use selected box if provided, otherwise create on first scan
+    if (!assignedBoxId) {
+      return res.status(400).json({ error: 'A valid box is required to start a session.' })
+    }
+
+    // Create warehouse session
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('box_sessions')
       .insert({
-        box_id: assignedBoxId, // null means box will be created on first scan
-        lot_id: lot.id,
+        box_id: assignedBoxId,
         warehouse_user_received: req.user.id,
         status: 'completed' // User requested to auto-complete session instead of in_progress
       })
@@ -144,7 +147,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
       session,
       lot_id: lot.id,
       lot_number: lot.lot_number,
-      message: assignedBoxId ? 'Session started with selected box.' : 'Session started. Boxes will be created as you scan books.'
+      message: 'Session started with selected box.'
     })
   } catch (error) {
     console.error('Start warehouse session error:', error)
@@ -182,11 +185,21 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 
     // Removed the 'in_progress' check here because sessions are now auto-completed upon start.
 
-    // Get lot_id and lot_number from session
-    const lotId = session.lot_id
+    // Get lot_id and lot_number from the box
+    if (!session.box_id) {
+      return res.status(400).json({ error: 'Session does not have a box assigned' })
+    }
+
+    const { data: boxDetails } = await supabaseAdmin
+      .from('boxes')
+      .select('lot_id')
+      .eq('id', session.box_id)
+      .single()
+
+    const lotId = boxDetails?.lot_id
     
     if (!lotId) {
-      return res.status(400).json({ error: 'Session does not have a lot assigned' })
+      return res.status(400).json({ error: 'Box does not have a lot assigned' })
     }
     
     // Get lot details
@@ -573,31 +586,32 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     }
 
     // 2. Resolve Box
+    if (!box_number) {
+      return res.status(400).json({ error: 'box_number is required' });
+    }
     let assignedBoxId = null;
     let existingBox = null;
-    if (box_number) {
-      let query = supabaseAdmin.from('boxes').select('id, total_books_expected, current_stage').eq('lot_id', lot.id).eq('box_number', box_number);
-      if (book_type) query = query.eq('box_type', book_type);
-      else query = query.is('box_type', null);
-      
-      const { data: box } = await query.maybeSingle();
-      if (box) {
-        // A box number must be unique within a lot. If a box with this number
-        // already holds books, reject rather than silently merging into it.
-        if (box.total_books_expected > 0) {
-          return res.status(409).json({ error: `Box ${box_number} already exists in ${lot_number}. Please use a different box number.` });
-        }
-        assignedBoxId = box.id;
-        existingBox = box;
-      } else {
-        const { data: newBox } = await supabaseAdmin
-          .from('boxes')
-          .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0, is_sealed: false })
-          .select()
-          .single();
-        assignedBoxId = newBox.id;
-        existingBox = newBox;
+    let query = supabaseAdmin.from('boxes').select('id, total_books_expected, current_stage').eq('lot_id', lot.id).eq('box_number', box_number);
+    if (book_type) query = query.eq('box_type', book_type);
+    else query = query.is('box_type', null);
+    
+    const { data: box } = await query.maybeSingle();
+    if (box) {
+      // A box number must be unique within a lot. If a box with this number
+      // already holds books, reject rather than silently merging into it.
+      if (box.total_books_expected > 0) {
+        return res.status(409).json({ error: `Box ${box_number} already exists in ${lot_number}. Please use a different box number.` });
       }
+      assignedBoxId = box.id;
+      existingBox = box;
+    } else {
+      const { data: newBox } = await supabaseAdmin
+        .from('boxes')
+        .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0, is_sealed: false })
+        .select()
+        .single();
+      assignedBoxId = newBox.id;
+      existingBox = newBox;
     }
 
     // 3. Create Session
@@ -605,7 +619,6 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
       .from('box_sessions')
       .insert({
         box_id: assignedBoxId,
-        lot_id: lot.id,
         warehouse_user_received: req.user.id,
         warehouse_time_received: new Date().toISOString(),
         status: 'completed',
@@ -717,7 +730,6 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
         .from('box_sessions')
         .insert({
           box_id: box_id,
-          lot_id: box.lot_id,
           warehouse_user_received: req.user.id,
           status: 'in_progress'
         })
@@ -786,7 +798,7 @@ router.delete('/sessions/:session_id', requireAuth, async (req, res) => {
 
     const { data: session } = await supabaseAdmin
       .from('box_sessions')
-      .select('box_id, lot_id')
+      .select('box_id')
       .eq('id', session_id)
       .single()
 

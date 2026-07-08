@@ -44,7 +44,18 @@ export const requireAuth = async (req, res, next) => {
   const { data: { user }, error } = await supabase.auth.getUser(token)
 
   if (error || !user) {
-    return res.status(401).json({ error: 'Invalid or expired token.' })
+    // Try checking if it's a custom Innodata JWT
+    try {
+      const jwt = (await import('jsonwebtoken')).default
+      const secret = process.env.JWT_SECRET
+      if (!secret) throw new Error('Missing JWT_SECRET in environment variables')
+      
+      const decoded = jwt.verify(token, secret)
+      req.user = decoded
+      return next()
+    } catch (jwtError) {
+      return res.status(401).json({ error: 'Invalid or expired token.' })
+    }
   }
 
   // Attach the verified user to the request so downstream handlers can use it
