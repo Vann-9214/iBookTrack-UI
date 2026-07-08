@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { Package, Search, ChevronDown, ChevronRight, ChevronUp, X, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw } from 'lucide-react'
+import { RefreshControl } from '@/components/refresh-control'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -233,8 +234,8 @@ export default function InventoryPage() {
   }, [])
 
 
-  const fetchBoxes = async () => {
-    setLoadingBoxes(true)
+  const fetchBoxes = async (options?: { silent?: boolean }) => {
+    if (!options?.silent) setLoadingBoxes(true)
     try {
       let url = `${API_URL}/api/boxes`
       const params: string[] = []
@@ -256,7 +257,18 @@ export default function InventoryPage() {
     } catch (e) {
       console.error('Failed to fetch boxes:', e)
     } finally {
-      setLoadingBoxes(false)
+      if (!options?.silent) setLoadingBoxes(false)
+    }
+  }
+
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false)
+
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true)
+    try {
+      await fetchBoxes({ silent: true })
+    } finally {
+      setIsManualRefreshing(false)
     }
   }
 
@@ -391,9 +403,6 @@ export default function InventoryPage() {
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
 
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
-  const lastInventoryUpdateLabel = lastInventoryUpdate
-    ? `Updated ${lastInventoryUpdate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
-    : 'Not updated yet'
 
   // ── Fetch Warehouse Books for Comparison ───────────────────────────────────
   const fetchWarehouseBooks = async (boxId: string) => {
@@ -763,7 +772,7 @@ export default function InventoryPage() {
   const handleSendToCut = async (box: Box) => {
     setSendingToCut(box.id)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/advance`, {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-to-cut`, {
         method: 'POST',
         body: JSON.stringify({ notes: 'Sent to Cut from Inventory Outgoing' }),
       })
@@ -1044,8 +1053,8 @@ export default function InventoryPage() {
     {printBox && (
       <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-start print:justify-start">
         {/*
-          A6 landscape = 148mm × 105mm.
-          At 96dpi: 148mm ≈ 559px, 105mm ≈ 397px.
+          A6 landscape = 148mm ├ù 105mm.
+          At 96dpi: 148mm Γëê 559px, 105mm Γëê 397px.
           We use mm units via inline style for accurate print sizing.
         */}
         <div
@@ -1072,7 +1081,7 @@ export default function InventoryPage() {
               <div style={{ borderRight: '1px solid #111', padding: '1mm' }}></div>
               <div style={{ padding: '1mm', lineHeight: 1.1 }}>No. of<br />Books</div>
             </div>
-            {/* Row 1 – empty circle + book count */}
+            {/* Row 1 ΓÇô empty circle + book count */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
               <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>Inventory &amp; Registration</div>
               <div style={{ borderRight: '1px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1080,7 +1089,7 @@ export default function InventoryPage() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books_expected || '—'}</div>
             </div>
-            {/* Rows 2-5 – empty circle, no book count (filled manually) */}
+            {/* Rows 2-5 ΓÇô empty circle, no book count (filled manually) */}
             {printProcessRows.slice(1).map((label) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
                 <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>{label}</div>
@@ -1214,17 +1223,7 @@ export default function InventoryPage() {
               <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
             </div>
             <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchBoxes}
-                disabled={loadingBoxes}
-                className="gap-1.5 hidden sm:flex"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${loadingBoxes ? 'animate-spin' : ''}`}  />
-                Refresh
-              </Button>
-              <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastInventoryUpdateLabel}</p>
+              <RefreshControl onRefresh={fetchBoxes} refreshing={loadingBoxes} storageKey="inventory" className="hidden sm:flex" />
             </div>
           </header>
 
@@ -1306,9 +1305,9 @@ export default function InventoryPage() {
             ))}
           </div>
 
-          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {/* TAB: INCOMING BOXES                                              */}
-          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {inventoryTab === 'incoming' && (
             <div className="flex flex-col gap-3 min-h-0 flex-1">
               <p className="text-xs text-muted-foreground">
@@ -1442,9 +1441,9 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {/* TAB: BOOK VERIFICATION                                           */}
-          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {inventoryTab === 'verification' && (
             <div className="flex flex-col gap-3 min-h-0 flex-1">
 
@@ -1857,9 +1856,9 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {/* TAB: OUTGOING BOXES                                              */}
-          {/* ══════════════════════════════════════════════════════════════════ */}
+          {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {inventoryTab === 'outgoing' && (
             <div className="flex flex-col gap-3 min-h-0 flex-1">
               <p className="text-xs text-muted-foreground">

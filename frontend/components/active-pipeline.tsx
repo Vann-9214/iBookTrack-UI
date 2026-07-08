@@ -55,14 +55,32 @@ interface ActivePipelineProps {
 
 export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', loading = false }: ActivePipelineProps) {
   const borderColor = brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600'
+  const todayLabel = stats?.pipelineToday
+    ? `Today · ${new Date(stats.pipelineToday).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+    : 'Today'
+
+  const boxStages = ['warehouse', 'inventory', 'cut', 'endorsement', 'storage']
+  const stageData = (stage: string) => {
+    const raw = stats?.pipelineStages?.[stage]
+    if (raw && typeof raw === 'object' && 'total' in raw) {
+      return {
+        count: raw.total || 0,
+        mustang: raw.mustang || 0,
+        jaguar: raw.jaguar || 0,
+        isBookStage: false,
+      }
+    }
+    return { count: typeof raw === 'number' ? raw : 0, mustang: 0, jaguar: 0, isBookStage: false }
+  }
+
   const pipelineSteps = [
-    { label: "Warehouse",   count: stats?.pipelineStages?.warehouse   || 0, unit: stats?.pipelineStages?.warehouse   === 1 ? "Box"  : "Boxes", stage: "warehouse",   clickable: false },
-    { label: "Inventory",   count: stats?.pipelineStages?.inventory   || 0, unit: stats?.pipelineStages?.inventory   === 1 ? "Box"  : "Boxes", stage: "inventory",   clickable: false },
-    { label: "Cut",         count: stats?.pipelineStages?.cut         || 0, unit: stats?.pipelineStages?.cut         === 1 ? "Box"  : "Boxes", stage: "cut",         clickable: false },
-    { label: "Endorsement", count: stats?.pipelineStages?.endorsement || 0, unit: stats?.pipelineStages?.endorsement === 1 ? "Box"  : "Boxes", stage: "endorsement", clickable: false },
-    { label: "Scan",        count: stats?.pipelineStages?.scan        || 0, unit: stats?.pipelineStages?.scan        === 1 ? "Book" : "Books", stage: "scan",        clickable: false },
-    { label: "Transmit",    count: stats?.pipelineStages?.transmit    || 0, unit: stats?.pipelineStages?.transmit    === 1 ? "Book" : "Books", stage: "transmit",    clickable: false },
-    { label: "Storage",     count: stats?.pipelineStages?.storage     || 0, unit: stats?.pipelineStages?.storage     === 1 ? "Box"  : "Boxes", stage: "storage",     clickable: false },
+    { label: "Warehouse",   ...stageData('warehouse'),   stage: "warehouse",   clickable: false },
+    { label: "Inventory",   ...stageData('inventory'),   stage: "inventory",   clickable: false },
+    { label: "Cut",         ...stageData('cut'),         stage: "cut",         clickable: false },
+    { label: "Endorsement", ...stageData('endorsement'), stage: "endorsement", clickable: false },
+    { label: "Scan",        count: stats?.pipelineStages?.scan     || 0, mustang: 0, jaguar: 0, isBookStage: true, stage: "scan",        clickable: false },
+    { label: "Transmit",    count: stats?.pipelineStages?.transmit || 0, mustang: 0, jaguar: 0, isBookStage: true, stage: "transmit",    clickable: false },
+    { label: "Storage",     ...stageData('storage'),     stage: "storage",     clickable: false },
   ]
 
   if (loading || !stats) {
@@ -111,6 +129,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold text-card-foreground">
             Active Pipeline {currentLot && <span className="text-muted-foreground">| {currentLot}</span>}
+            <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{todayLabel}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -134,6 +153,11 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                       <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
                       <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
                     </div>
+                    {!step.isBookStage && step.jaguar > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium" title="Jaguar">J {step.jaguar}</span>
+                      </div>
+                    )}
                   </div>
                 </>
               )
@@ -180,7 +204,12 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-sm font-medium text-card-foreground">{step.label}</span>
-                    <span className="text-xs text-muted-foreground">{step.count} {step.unit}</span>
+                    <span className="text-xs text-muted-foreground">{step.count} {step.isBookStage ? (step.count === 1 ? 'Book' : 'Books') : (step.count === 1 ? 'Box' : 'Boxes')}</span>
+                    {!step.isBookStage && step.jaguar > 0 && (
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">J {step.jaguar}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="ml-auto flex items-center gap-1">
                     <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />

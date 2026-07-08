@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 import { Search, Book, Package, Barcode, X, RefreshCw, CheckCircle2, Clock, AlertCircle } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
+import { RefreshControl } from "@/components/refresh-control"
 import { useBrand } from "@/hooks/use-brand"
 import { authFetch } from "@/lib/auth-api"
 
@@ -274,19 +275,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 {/* Refresh + timestamp — hidden on mobile */}
-                <div className="hidden sm:flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={refreshAll}
-                    disabled={isRefreshing}
-                    className="gap-1.5"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                  <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
-                </div>
+                <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} storageKey="dashboard" className="hidden sm:flex" />
               </div>
 
               {/* Controls row — scan + search always on one line */}

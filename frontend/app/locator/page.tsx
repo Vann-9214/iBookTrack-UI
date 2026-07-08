@@ -5,7 +5,8 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, RefreshCw, AlertTriangle, LayoutGrid, Pencil, Check } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check } from "lucide-react"
+import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
 import { DashboardNavbar } from "@/components/top-bar"
@@ -553,19 +554,7 @@ export default function WarehouseLocatorPage() {
                   Assign incoming boxes to rack slots. Search by ISBN or box number to find their location.
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchLocations}
-                  disabled={loadingLocations}
-                  className="gap-1.5 hidden sm:flex"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${loadingLocations ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
-              </div>
+              <RefreshControl onRefresh={fetchLocations} refreshing={loadingLocations} storageKey="locator" className="hidden sm:flex" />
             </header>
 
             {/* Search */}

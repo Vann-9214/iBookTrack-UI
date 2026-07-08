@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Package, BookOpen, ChevronUp, ChevronDown } from 'lucide-react'
+import { RefreshControl } from "@/components/refresh-control"
 import { cn } from '@/lib/utils'
 import { authFetch } from '@/lib/auth-api'
 import { Button } from '@/components/ui/button'
@@ -123,16 +124,7 @@ export default function ReportsPage() {
                 {timestamp && <span className="ml-2">· Updated {timestamp}</span>}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchData}
-              disabled={loading}
-              className="gap-1.5 hidden sm:flex"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <RefreshControl onRefresh={fetchData} refreshing={loading} storageKey="reports" className="hidden sm:flex" />
           </header>
 
           {/* Summary cards */}

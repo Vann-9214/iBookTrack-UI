@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
+import { RefreshControl } from "@/components/refresh-control"
 import { usePagination } from "@/hooks/usePagination"
 import { Pagination } from "@/components/pagination"
 import { Button } from "@/components/ui/button"
@@ -496,18 +497,16 @@ export default function TransmissionMonitorPage() {
                   />
                   <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">New Process Only</span>
                 </label>
-                <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
-                  {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                  Export
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
-                  <Trophy className="h-3.5 w-3.5" /> Ranking
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5">
-                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+                <div className="flex items-center gap-1.5">
+                  <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
+                    {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    Export
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
+                    <Trophy className="h-3.5 w-3.5" /> Ranking
+                  </Button>
+                  <RefreshControl onRefresh={() => fetchLiveData()} refreshing={loading} storageKey="transmission" className="hidden sm:flex" />
+                </div>
               </div>
             </header>
 

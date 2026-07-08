@@ -209,47 +209,33 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <SectionLabel>Operations</SectionLabel>
 
-          <div>
-            <LockedNavButton
-              navigationLocked={navigationLocked}
-              onClick={() => setWarehouseOpen((prev) => !prev)}
-              className={navItemCls(isWarehouseSection)}
-              title="Warehouse & Inventory"
-            >
-              {isWarehouseSection && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-              <IconCell><Package className="h-5 w-5" /></IconCell>
-              <span className="flex-1 text-sm font-semibold text-left truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
-                Warehouse & Inventory
-              </span>
-              <ChevronRight className={cn(
-                'h-3.5 w-3.5 shrink-0 transition-transform duration-200 opacity-0 group-hover/sidebar:opacity-60 mr-2',
-                warehouseOpen && 'rotate-90'
-              )} />
-            </LockedNavButton>
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/warehouse')}
+            className={navItemCls(isActive('/warehouse'))}
+            aria-current={isActive('/warehouse') ? 'page' : undefined}
+            title="Warehouse"
+          >
+            {isActive('/warehouse') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><Warehouse className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+              Warehouse
+            </span>
+          </LockedNavButton>
 
-            <div className={cn('overflow-hidden transition-all duration-200', warehouseOpen ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0')}>
-              <div className="ml-5 mt-0.5 mb-0.5 flex flex-col gap-0.5 border-l border-white/15 pl-2">
-                <LockedNavButton
-                  navigationLocked={navigationLocked}
-                  onClick={() => router.push('/warehouse')}
-                  className={subNavItemCls(isActive('/warehouse'))}
-                  aria-current={isActive('/warehouse') ? 'page' : undefined}
-                >
-                  <Warehouse className="h-4 w-4 shrink-0" />
-                  <span className="text-sm font-medium truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Warehouse</span>
-                </LockedNavButton>
-                <LockedNavButton
-                  navigationLocked={navigationLocked}
-                  onClick={() => router.push('/inventory')}
-                  className={subNavItemCls(isActive('/inventory'))}
-                  aria-current={isActive('/inventory') ? 'page' : undefined}
-                >
-                  <Archive className="h-4 w-4 shrink-0" />
-                  <span className="text-sm font-medium truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Inventory</span>
-                </LockedNavButton>
-              </div>
-            </div>
-          </div>
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/inventory')}
+            className={navItemCls(isActive('/inventory'))}
+            aria-current={isActive('/inventory') ? 'page' : undefined}
+            title="Inventory"
+          >
+            {isActive('/inventory') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><Archive className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+              Inventory
+            </span>
+          </LockedNavButton>
 
           <LockedNavButton
             navigationLocked={navigationLocked}
@@ -268,11 +254,11 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             onClick={() => router.push('/qa')}
             className={navItemCls(isActive('/qa'))}
             aria-current={isActive('/qa') ? 'page' : undefined}
-            title="Book Inspection & Endorsement"
+            title="Endorsement"
           >
             {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
             <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Book Inspection &amp; Endorsement</span>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
           </LockedNavButton>
 
           <LockedNavButton
@@ -398,27 +384,15 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <MobileSectionLabel>Operations</MobileSectionLabel>
 
-          {/* Warehouse & Inventory accordion */}
-          <button
-            onClick={() => setWarehouseOpen(p => !p)}
-            disabled={navigationLocked}
-            className={mobileNavItemCls(isWarehouseSection)}
-          >
-            <Package className="h-5 w-5 shrink-0" />
-            <span className="flex-1 text-left">Warehouse &amp; Inventory</span>
-            <ChevronRight className={cn('h-4 w-4 shrink-0 transition-transform duration-200 opacity-60', warehouseOpen && 'rotate-90')} />
+          <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
+            <Warehouse className="h-5 w-5 shrink-0" />
+            Warehouse
           </button>
 
-          <div className={cn('overflow-hidden transition-all duration-200 ml-3 border-l border-white/15 pl-2', warehouseOpen ? 'max-h-32 opacity-100' : 'max-h-0 opacity-0')}>
-            <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileSubItemCls(isActive('/warehouse'))}>
-              <Warehouse className="h-4 w-4 shrink-0" />
-              Warehouse
-            </button>
-            <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileSubItemCls(isActive('/inventory'))}>
-              <Archive className="h-4 w-4 shrink-0" />
-              Inventory
-            </button>
-          </div>
+          <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
+            <Archive className="h-5 w-5 shrink-0" />
+            Inventory
+          </button>
 
           <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
             <MapPin className="h-5 w-5 shrink-0" />
@@ -427,7 +401,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <button onClick={() => navigate('/qa')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/qa'))}>
             <CheckCircle className="h-5 w-5 shrink-0" />
-            Book Inspection &amp; Endorsement
+            Endorsement
           </button>
 
           <button onClick={() => navigate('/locator')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>

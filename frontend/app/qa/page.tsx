@@ -14,6 +14,7 @@ import {
   AlertTriangle, ChevronDown, ChevronRight, RefreshCw, CheckCircle2,
   Inbox, ClipboardCheck, Send, Package, BookOpen, Loader2, Trash2, ClipboardList,
 } from "lucide-react"
+import { RefreshControl } from "@/components/refresh-control"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -466,19 +467,7 @@ export default function BookInspectionPage() {
                   Receive boxes from Cut, inspect and scan books, then send to Scan.
                 </p>
               </div>
-              <div className="flex items-center gap-3 self-start sm:self-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { fetchIncoming(); fetchEndorsementBoxes() }}
-                  disabled={loadingIncoming || loadingEndorsement}
-                  className="gap-1.5 hidden sm:flex"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${(loadingIncoming || loadingEndorsement) ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
-              </div>
+              <RefreshControl onRefresh={() => { fetchIncoming(); fetchEndorsementBoxes() }} refreshing={loadingIncoming || loadingEndorsement} storageKey="qa" className="hidden sm:flex" />
             </header>
 
             {/* ── Tab Navigation ── */}

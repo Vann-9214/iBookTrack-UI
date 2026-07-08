@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
+import { RefreshControl } from "@/components/refresh-control"
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
@@ -1014,19 +1015,7 @@ export default function WarehousePage() {
             </div>
           ) : (
             <header className="flex items-center justify-end">
-              <div className="flex items-center gap-3">
-                <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefreshStats}
-                  disabled={refreshingStats || lotsLoading}
-                  className="gap-1.5 hidden sm:flex"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingStats ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
+              <RefreshControl onRefresh={handleRefreshStats} refreshing={refreshingStats || lotsLoading} storageKey="warehouse" className="hidden sm:flex" />
             </header>
           ))}
 

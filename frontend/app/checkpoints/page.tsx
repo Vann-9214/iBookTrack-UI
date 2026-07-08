@@ -20,6 +20,7 @@ import {
   Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
   Loader2, Zap,
 } from "lucide-react"
+import { RefreshControl } from "@/components/refresh-control"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -1136,19 +1137,7 @@ export default function StationCheckpointsPage() {
                     className="w-56 pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={fetchData}
-                    disabled={loading}
-                    className="gap-1.5 hidden sm:flex"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                  <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
-                </div>
+                <RefreshControl onRefresh={fetchData} refreshing={loading} storageKey="checkpoints" className="hidden sm:flex" />
               </div>
             </header>
 
