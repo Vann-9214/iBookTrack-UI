@@ -145,8 +145,10 @@ export default function TransmissionMonitorPage() {
   const [exporting, setExporting] = useState(false)
   const [fromDate, setFromDate] = useState(todayStr())
   const [toDate, setToDate] = useState(todayStr())
-  const [fromDateOpen, setFromDateOpen] = useState(false)
-  const [toDateOpen, setToDateOpen] = useState(false)
+  const [fromDateOpenMobile, setFromDateOpenMobile] = useState(false)
+  const [fromDateOpenDesktop, setFromDateOpenDesktop] = useState(false)
+  const [toDateOpenMobile, setToDateOpenMobile] = useState(false)
+  const [toDateOpenDesktop, setToDateOpenDesktop] = useState(false)
   const [newProcessOnly, setNewProcessOnly] = useState(false)
 
   // --- LOT visibility state ---
@@ -189,7 +191,7 @@ export default function TransmissionMonitorPage() {
     m.User?.toLowerCase().includes(machineSearch.toLowerCase()) ||
     m.MachineID?.toLowerCase().includes(machineSearch.toLowerCase())
   )
-  const machinesPagination = usePagination({ totalItems: filteredByMachine.length, defaultPageSize: 50 })
+  const machinesPagination = usePagination({ totalItems: filteredByMachine.length, defaultPageSize: 10 })
   const paginatedByMachine = filteredByMachine.slice(machinesPagination.offset, machinesPagination.offset + machinesPagination.limit)
 
   const fetchLiveData = useCallback(async (from?: string, to?: string) => {
@@ -344,7 +346,7 @@ export default function TransmissionMonitorPage() {
     return stage === stageFilter.stage && state === stageFilter.category
   })
 
-  const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 50 })
+  const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 10 })
   const paginatedRecentScans = filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit)
 
   // Reset to page 1 when filters change
@@ -396,10 +398,68 @@ export default function TransmissionMonitorPage() {
                   Live scanning data from Simflex WMS — updates every 60 seconds.
                 </p>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
+              {/* Mobile layout: left col = From/To, right col = icons + checkbox */}
+              <div className="flex gap-3 sm:hidden justify-between">
+                {/* Left: From + To stacked — own Popover instances for mobile */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground w-7 shrink-0">From</span>
+                    <Popover open={fromDateOpenMobile} onOpenChange={setFromDateOpenMobile} modal>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {fromDate ? format(new Date(fromDate), 'MMM dd, yyyy') : 'Pick date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+                        <Calendar mode="single" selected={fromDate ? new Date(fromDate) : undefined}
+                          onSelect={date => { setFromDate(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpenMobile(false) }} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground w-7 shrink-0">To</span>
+                    <Popover open={toDateOpenMobile} onOpenChange={setToDateOpenMobile} modal>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                          <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {toDate ? format(new Date(toDate), 'MMM dd, yyyy') : 'Pick date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+                        <Calendar mode="single" selected={toDate ? new Date(toDate) : undefined}
+                          onSelect={date => { setToDate(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpenMobile(false) }} initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                {/* Right: Export + Ranking icons on top, checkbox below */}
+                <div className="flex flex-col gap-1.5 items-end justify-between shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="h-8 w-8 p-0">
+                      {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleOpenRanking} className="h-8 w-8 p-0">
+                      <Trophy className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={newProcessOnly}
+                      onChange={e => setNewProcessOnly(e.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-gray-300 accent-primary cursor-pointer"
+                    />
+                    <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">New Process Only</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Desktop layout: all inline — own Popover instances for desktop */}
+              <div className="hidden sm:flex items-center gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground">From</span>
-                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                  <Popover open={fromDateOpenDesktop} onOpenChange={setFromDateOpenDesktop}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
                         <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
@@ -408,13 +468,13 @@ export default function TransmissionMonitorPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar mode="single" selected={fromDate ? new Date(fromDate) : undefined}
-                        onSelect={date => { setFromDate(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }} initialFocus />
+                        onSelect={date => { setFromDate(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpenDesktop(false) }} initialFocus />
                     </PopoverContent>
                   </Popover>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground">To</span>
-                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                  <Popover open={toDateOpenDesktop} onOpenChange={setToDateOpenDesktop}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
                         <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
@@ -423,7 +483,7 @@ export default function TransmissionMonitorPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar mode="single" selected={toDate ? new Date(toDate) : undefined}
-                        onSelect={date => { setToDate(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }} initialFocus />
+                        onSelect={date => { setToDate(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpenDesktop(false) }} initialFocus />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -436,7 +496,6 @@ export default function TransmissionMonitorPage() {
                   />
                   <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">New Process Only</span>
                 </label>
-
                 <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
                   {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   Export
@@ -444,11 +503,11 @@ export default function TransmissionMonitorPage() {
                 <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
                   <Trophy className="h-3.5 w-3.5" /> Ranking
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5 hidden sm:flex">
+                <Button variant="outline" size="sm" onClick={() => fetchLiveData()} disabled={loading} className="gap-1.5">
                   <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
-                <p className="hidden sm:block text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
+                <p className="text-xs text-muted-foreground whitespace-nowrap">{lastUpdateLabel}</p>
               </div>
             </header>
 
@@ -537,22 +596,22 @@ export default function TransmissionMonitorPage() {
                   {ordered.map((s: any) => {
                     const pct = s.Total > 0 ? (s.Completed / s.Total) * 100 : 0
                     return (
-                      <div key={s.Stage} className={cn("rounded-2xl border border-gray-200 bg-white shadow-sm p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-3 border-t-2", stageBorderColor)}>
+                      <div key={s.Stage} className={cn("rounded-2xl border border-gray-200 bg-white shadow-sm p-3 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-2 sm:gap-3 border-t-2", stageBorderColor)}>
                         {/* Stage name + total */}
                         <div className="flex items-start justify-between gap-1">
-                          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight">{formatPipelineStage(s.Stage)}</p>
-                          <span className="text-xl font-black text-gray-800 leading-none shrink-0">{s.Total.toLocaleString()}</span>
+                          <p className="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight break-words">{formatPipelineStage(s.Stage)}</p>
+                          <span className="text-lg sm:text-xl font-black text-gray-800 leading-none shrink-0">{s.Total.toLocaleString()}</span>
                         </div>
 
                         {/* Progress bar */}
                         <Progress value={pct} className="h-1.5" />
 
                         {/* Stat pills */}
-                        <div className="grid grid-cols-3 gap-1.5">
+                        <div className="grid grid-cols-3 gap-1">
                           {[
-                            { key: 'COMPLETED', label: 'COMPLETED', count: s.Completed, bg: 'bg-green-50', border: 'border-green-100', hover: 'hover:bg-green-100', ring: 'ring-green-400', text: 'text-green-500', num: 'text-green-700' },
-                            { key: 'ONGOING', label: 'ONGOING', count: s.Ongoing, bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:bg-blue-100', ring: 'ring-blue-400', text: 'text-blue-400', num: 'text-blue-600' },
-                            { key: 'FAILED', label: 'FAILED', count: s.Failed, bg: 'bg-red-50', border: 'border-red-100', hover: 'hover:bg-red-100', ring: 'ring-red-400', text: 'text-red-400', num: 'text-red-600' },
+                            { key: 'COMPLETED', label: 'DONE', smLabel: 'COMPLETED', count: s.Completed, bg: 'bg-green-50', border: 'border-green-100', hover: 'hover:bg-green-100', ring: 'ring-green-400', text: 'text-green-500', num: 'text-green-700' },
+                            { key: 'ONGOING', label: 'ONGOING', smLabel: 'ONGOING', count: s.Ongoing, bg: 'bg-blue-50', border: 'border-blue-100', hover: 'hover:bg-blue-100', ring: 'ring-blue-400', text: 'text-blue-400', num: 'text-blue-600' },
+                            { key: 'FAILED', label: 'FAILED', smLabel: 'FAILED', count: s.Failed, bg: 'bg-red-50', border: 'border-red-100', hover: 'hover:bg-red-100', ring: 'ring-red-400', text: 'text-red-400', num: 'text-red-600' },
                           ].map((p) => {
                             const isActive = stageFilter?.stage === s.Stage && stageFilter?.category === p.key
                             return (
@@ -560,13 +619,16 @@ export default function TransmissionMonitorPage() {
                                 key={p.key}
                                 onClick={() => setStageFilter(isActive ? null : { stage: s.Stage, category: p.key as any })}
                                 className={cn(
-                                  'flex flex-col items-center rounded-lg border px-1.5 py-1.5 transition-colors focus:outline-none',
+                                  'flex flex-col items-center rounded-lg border px-0.5 py-1.5 sm:px-1.5 transition-colors focus:outline-none',
                                   p.bg, p.border, p.hover,
                                   isActive && `ring-2 ${p.ring} bg-opacity-100`
                                 )}
                               >
-                                <span className={cn('text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5', p.text)}>{p.label}</span>
-                                <span className={cn('text-sm font-black leading-none', p.num)}>{p.count}</span>
+                                <span className={cn('text-[8px] sm:text-[10px] font-semibold uppercase tracking-wide leading-none mb-0.5', p.text)}>
+                                  <span className="sm:hidden">{p.label}</span>
+                                  <span className="hidden sm:inline">{p.smLabel}</span>
+                                </span>
+                                <span className={cn('text-xs sm:text-sm font-black leading-none', p.num)}>{p.count}</span>
                               </button>
                             )
                           })}
@@ -581,19 +643,21 @@ export default function TransmissionMonitorPage() {
             {/* Tabs */}
             <Tabs defaultValue="queue" className="w-full">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <TabsList>
-                  <TabsTrigger value="queue">Live Scan Feed</TabsTrigger>
-                  <TabsTrigger value="machine">By Machine</TabsTrigger>
-                  <TabsTrigger value="lot">
-                    <Package className="h-3.5 w-3.5 mr-1.5" />LOT Visibility
-                  </TabsTrigger>
-                  <TabsTrigger value="box">
-                    <Box className="h-3.5 w-3.5 mr-1.5" />Box Visibility
-                  </TabsTrigger>
-                  <TabsTrigger value="isbn">
-                    <Tag className="h-3.5 w-3.5 mr-1.5" />ISBN Management
-                  </TabsTrigger>
-                </TabsList>
+                <div className="overflow-x-auto w-full sm:w-auto">
+                  <TabsList className="flex w-max min-w-full sm:min-w-0 sm:w-auto">
+                    <TabsTrigger value="queue" className="text-xs sm:text-sm px-2 sm:px-3">Live Scan Feed</TabsTrigger>
+                    <TabsTrigger value="machine" className="text-xs sm:text-sm px-2 sm:px-3">By Machine</TabsTrigger>
+                    <TabsTrigger value="lot" className="text-xs sm:text-sm px-2 sm:px-3">
+                      <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />LOT
+                    </TabsTrigger>
+                    <TabsTrigger value="box" className="text-xs sm:text-sm px-2 sm:px-3">
+                      <Box className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />Box
+                    </TabsTrigger>
+                    <TabsTrigger value="isbn" className="text-xs sm:text-sm px-2 sm:px-3">
+                      <Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />ISBN
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
 
                 {/* Books / WIP toggle */}
                 <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100 p-0.5">
@@ -634,12 +698,15 @@ export default function TransmissionMonitorPage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-gray-800">
-                          {tableView === 'wip' ? 'Work In Progress' : 'All Books'} — {fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`}
+                          {tableView === 'wip' ? 'Work In Progress' : 'All Books'}
+                          <span className="hidden sm:inline"> — {fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`}</span>
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={cn('h-1.5 w-1.5 rounded-full', tableView === 'wip' ? 'bg-red-500' : 'bg-blue-500')} />
-                          <span className="text-xs text-gray-500">
-                            {tableView === 'wip' ? `${filteredScans.length} books not yet transmitted` : `${filteredScans.length} books total`}
+                          <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', tableView === 'wip' ? 'bg-red-500' : 'bg-blue-500')} />
+                          <span className="text-xs text-gray-500 whitespace-nowrap">
+                            {tableView === 'wip'
+                              ? <><span className="sm:hidden">{filteredScans.length} not transmitted</span><span className="hidden sm:inline">{filteredScans.length} books not yet transmitted</span></>
+                              : `${filteredScans.length} books total`}
                           </span>
                         </div>
                       </div>
@@ -672,47 +739,49 @@ export default function TransmissionMonitorPage() {
                     </div>
                   </div>
                   <CardContent className="p-0">
-                    <table className="w-full text-sm">
-                      <thead className="bg-white">
-                        <tr className="border-b border-gray-100">
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Status</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loading ? (
-                          <tr><td colSpan={6} className="text-center py-12">
-                            <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                          </td></tr>
-                        ) : filteredScans.length === 0 ? (
-                          <tr><td colSpan={6} className="text-center py-12 text-gray-400">No scans found</td></tr>
-                        ) : paginatedRecentScans.map((item: any, i: number) => {
-                          const isOngoing = item.Status?.includes('ONGOING')
-                          const isWip = item.isWip
-                          const rowCls = isOngoing
-                            ? tableView === 'wip'
-                              ? 'border-b border-red-100 bg-red-50/60 hover:bg-red-50'
-                              : 'border-b border-blue-100 bg-blue-50/50 hover:bg-blue-50'
-                            : 'border-b border-gray-50 hover:bg-gray-50'
-                          return (
-                            <tr key={i} className={`${rowCls} transition-colors`}>
-                              <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
-                              <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
-                              <td className="px-4 py-3">{getPipelineStatusBadge(item.Status || '')}</td>
-                              <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
-                              <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
-                              <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
-                                {item.Updated ? format(new Date(item.Updated), 'MMM d, HH:mm') : item.ScanDate ? format(new Date(item.ScanDate), 'MMM d') : '—'}
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[600px]">
+                        <thead className="bg-white">
+                          <tr className="border-b border-gray-100">
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Status</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loading ? (
+                            <tr><td colSpan={6} className="text-center py-12">
+                              <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                            </td></tr>
+                          ) : filteredScans.length === 0 ? (
+                            <tr><td colSpan={6} className="text-center py-12 text-gray-400">No scans found</td></tr>
+                          ) : paginatedRecentScans.map((item: any, i: number) => {
+                            const isOngoing = item.Status?.includes('ONGOING')
+                            const isWip = item.isWip
+                            const rowCls = isOngoing
+                              ? tableView === 'wip'
+                                ? 'border-b border-red-100 bg-red-50/60 hover:bg-red-50'
+                                : 'border-b border-blue-100 bg-blue-50/50 hover:bg-blue-50'
+                              : 'border-b border-gray-50 hover:bg-gray-50'
+                            return (
+                              <tr key={i} className={`${rowCls} transition-colors`}>
+                                <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
+                                <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
+                                <td className="px-4 py-3">{getPipelineStatusBadge(item.Status || '')}</td>
+                                <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
+                                <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
+                                <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
+                                  {item.Updated ? format(new Date(item.Updated), 'MMM d, HH:mm') : item.ScanDate ? format(new Date(item.ScanDate), 'MMM d') : '—'}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                     {filteredScans.length > 0 && recentScansPagination.totalPages > 1 && (
                       <Pagination
                         currentPage={recentScansPagination.currentPage}
@@ -722,6 +791,7 @@ export default function TransmissionMonitorPage() {
                         onPageSizeChange={recentScansPagination.setPageSize}
                         canPrevPage={recentScansPagination.canPrevPage}
                         canNextPage={recentScansPagination.canNextPage}
+                        pageSizeOptions={[10]}
                       />
                     )}
                   </CardContent>
@@ -738,7 +808,8 @@ export default function TransmissionMonitorPage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-gray-800">
-                          {fromDate === toDate ? `Scans by Machine — ${fromDate}` : `Scans by Machine — ${fromDate} to ${toDate}`}
+                          Scans by Machine
+                          <span className="hidden sm:inline"> — {fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`}</span>
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
@@ -757,37 +828,39 @@ export default function TransmissionMonitorPage() {
                     </div>
                   </div>
                   <CardContent className="p-0">
-                    <table className="w-full text-sm">
-                      <thead className="bg-white">
-                        <tr className="border-b border-gray-100">
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine Name</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine ID</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left w-48">Activity</th>
-                          <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Total Scans</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loading ? (
-                          <tr><td colSpan={5} className="text-center py-12">
-                            <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
-                          </td></tr>
-                        ) : filteredByMachine.length === 0 ? (
-                          <tr><td colSpan={5} className="text-center py-12 text-gray-400">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</td></tr>
-                        ) : paginatedByMachine.map((m: any, i: number) => {
-                          const maxScans = filteredByMachine[0]?.TotalScans || 1
-                          return (
-                            <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                              <td className="font-semibold text-xs text-gray-800 px-4 py-3">{m.MachineName}</td>
-                              <td className="text-xs text-gray-500 px-4 py-3">{m.MachineID}</td>
-                              <td className="text-xs text-gray-700 px-4 py-3">{m.User}</td>
-                              <td className="px-4 py-3"><Progress value={(m.TotalScans / maxScans) * 100} className="h-2" /></td>
-                              <td className="text-xs font-bold text-right text-gray-800 px-4 py-3">{m.TotalScans.toLocaleString()}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm min-w-[500px]">
+                        <thead className="bg-white">
+                          <tr className="border-b border-gray-100">
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine Name</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine ID</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left w-48">Activity</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Total Scans</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loading ? (
+                            <tr><td colSpan={5} className="text-center py-12">
+                              <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
+                            </td></tr>
+                          ) : filteredByMachine.length === 0 ? (
+                            <tr><td colSpan={5} className="text-center py-12 text-gray-400">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</td></tr>
+                          ) : paginatedByMachine.map((m: any, i: number) => {
+                            const maxScans = filteredByMachine[0]?.TotalScans || 1
+                            return (
+                              <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                <td className="font-semibold text-xs text-gray-800 px-4 py-3">{m.MachineName}</td>
+                                <td className="text-xs text-gray-500 px-4 py-3">{m.MachineID}</td>
+                                <td className="text-xs text-gray-700 px-4 py-3">{m.User}</td>
+                                <td className="px-4 py-3"><Progress value={(m.TotalScans / maxScans) * 100} className="h-2" /></td>
+                                <td className="text-xs font-bold text-right text-gray-800 px-4 py-3">{m.TotalScans.toLocaleString()}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                     {filteredByMachine.length > 0 && machinesPagination.totalPages > 1 && (
                       <Pagination
                         currentPage={machinesPagination.currentPage}
@@ -797,6 +870,7 @@ export default function TransmissionMonitorPage() {
                         onPageSizeChange={machinesPagination.setPageSize}
                         canPrevPage={machinesPagination.canPrevPage}
                         canNextPage={machinesPagination.canNextPage}
+                        pageSizeOptions={[10]}
                       />
                     )}
                   </CardContent>
