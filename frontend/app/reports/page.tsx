@@ -7,6 +7,7 @@ import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Package, BookOpen
 import { cn } from '@/lib/utils'
 import { authFetch } from '@/lib/auth-api'
 import { Button } from '@/components/ui/button'
+import { useBrand } from '@/hooks/use-brand'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -38,6 +39,7 @@ const STATUS_META: Record<ComputedStatus, { label: string; color: string; bg: st
 }
 
 export default function ReportsPage() {
+  const { brand } = useBrand()
   const [lots, setLots] = useState<LotStatusRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,7 +53,7 @@ export default function ReportsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await authFetch(`${API_URL}/api/reports/lot-status`)
+      const res = await authFetch(`${API_URL}/api/reports/lot-status?type=${brand}`)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to fetch')
       setLots(data.lots || [])
@@ -61,7 +63,7 @@ export default function ReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [brand])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -106,7 +108,7 @@ export default function ReportsPage() {
       sortKey === k && 'text-foreground')
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className={cn('flex h-dvh overflow-hidden bg-background', `theme-${brand}`)}>
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
@@ -238,8 +240,8 @@ export default function ReportsPage() {
                         <tr key={lot.lot_id} className="hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-3 font-semibold text-foreground">{lot.lot_number}</td>
                           <td className="px-4 py-3">
-                            <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold', meta.bg, meta.color)}>
-                              <Icon className="h-3.5 w-3.5" />
+                            <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap', meta.bg, meta.color)}>
+                              <Icon className="h-3.5 w-3.5 shrink-0" />
                               {meta.label}
                             </span>
                           </td>
