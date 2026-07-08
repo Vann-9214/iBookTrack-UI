@@ -32,12 +32,21 @@ const router = express.Router()
 router.get('/lot-status', requireAuth, async (req, res) => {
   try {
     const db = supabaseAdmin
+    const { type } = req.query
 
-    // 1. Fetch all lots
-    const { data: lots, error: lotsError } = await db
+    // Normalize brand/type to match database storage (e.g. mustang -> Mustang)
+    const brandType = type
+      ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
+      : null
+
+    // 1. Fetch lots, optionally filtered by brand/type
+    let lotsQuery = db
       .from('lots')
       .select('id, lot_number, type, created_at, total_boxes')
       .order('created_at', { ascending: false })
+    if (brandType) lotsQuery = lotsQuery.eq('type', brandType)
+    const { data: lots, error: lotsError } = await lotsQuery
+
 
     if (lotsError) throw lotsError
 
