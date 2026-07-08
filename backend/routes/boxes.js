@@ -445,6 +445,69 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
   }
 })
 
+// Mark a verified inventory box as sent to Cut.
+// Keeps boxes.current_stage as 'inventory' and sets the active box_session status to 'sent'.
+router.post('/:id/send-to-cut', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { notes } = req.body
+    const db = supabaseAdmin || supabase
+
+    const { data: box, error: boxError } = await db
+      .from('boxes')
+      .select('*, lot:lots(lot_number)')
+      .eq('id', id)
+      .single()
+
+    if (boxError || !box) return res.status(404).json({ error: 'Box not found', detail: boxError?.message })
+
+    if (box.current_stage !== 'inventory') {
+      return res.status(400).json({ error: 'Box must be in inventory to send to cut' })
+    }
+
+    // Find the latest completed session for this box
+    const { data: session, error: sessionError } = await db
+      .from('box_sessions')
+      .select('id, status')
+      .eq('box_id', id)
+      .eq('status', 'completed')
+      .order('inventory_time_received', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (sessionError) throw sessionError
+    if (!session) return res.status(400).json({ error: 'No verified session found for this box' })
+
+    // Mark the session as sent without changing boxes.current_stage
+    const { error: updateError } = await db
+      .from('box_sessions')
+      .update({
+        status: 'sent',
+        inventory_user_send: req.user.id,
+        inventory_time_send: new Date().toISOString()
+      })
+      .eq('id', session.id)
+
+    if (updateError) throw updateError
+
+    // Log the pipeline event for audit
+    await db.from('pipeline_events').insert({
+      box_id: id,
+      lot_id: box.lot_id,
+      from_stage: 'inventory',
+      to_stage: 'cut',
+      moved_by: req.user.id,
+      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
+      notes: notes || 'Sent to Cut from Inventory Outgoing'
+    })
+
+    res.json({ success: true, box, session_status: 'sent', current_stage: 'inventory' })
+  } catch (error) {
+    console.error('Send to cut error:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // Rollback box to previous stage (undo accidental advance)
 router.post('/:id/rollback', requireAuth, async (req, res) => {
   try {
