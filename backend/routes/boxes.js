@@ -27,9 +27,20 @@ const router = express.Router()
 // Get all boxes (with optional filters)
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { lot_id, current_stage, box_number, exclude_assigned_storage, box_type } = req.query
+    const { lot_id, current_stage, box_number, exclude_assigned_storage, box_type, isbn } = req.query
 
     const db = supabaseAdmin || supabase
+
+    // ISBN search: find boxes whose books match the ISBN first
+    let isbnBoxIds = null
+    if (isbn && isbn.trim()) {
+      const { data: matchingBooks } = await db
+        .from('books')
+        .select('box_id')
+        .ilike('isbn', `%${isbn.trim()}%`)
+      isbnBoxIds = [...new Set((matchingBooks || []).map(b => b.box_id).filter(Boolean))]
+    }
+
     let query = db
       .from('boxes')
       .select(`
@@ -46,6 +57,10 @@ router.get('/', requireAuth, async (req, res) => {
     if (box_type) query = query.eq('box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     if (current_stage) query = query.eq('current_stage', current_stage)
     if (box_number) query = query.ilike('box_number', `%${box_number}%`)
+    if (isbnBoxIds) {
+      if (isbnBoxIds.length === 0) return res.json({ boxes: [] })
+      query = query.in('id', isbnBoxIds)
+    }
 
     const { data, error } = await query
     if (error) throw error
