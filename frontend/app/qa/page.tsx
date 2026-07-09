@@ -165,11 +165,11 @@ export default function BookInspectionPage() {
   }, [fetchIncoming, fetchEndorsementBoxes])
 
   // ── Outgoing Boxes (endorsed → send to Scan) ────────────────────────────────
-  const [outgoingReadyIds, setOutgoingReadyIds] = useState<Set<string>>(new Set())
+  // Derived from session status (not in-memory state), so it survives page refresh
   const [sendingToScan, setSendingToScan] = useState<string | null>(null)
 
-  const outgoingBoxes = endorsementBoxes.filter(b => outgoingReadyIds.has(b.id))
-  const inspectionBoxes = endorsementBoxes.filter(b => !outgoingReadyIds.has(b.id))
+  const outgoingBoxes = endorsementBoxes.filter(b => b.box_sessions?.some(s => s.status === 'completed'))
+  const inspectionBoxes = endorsementBoxes.filter(b => !b.box_sessions?.some(s => s.status === 'completed'))
 
   const handleSendToScan = async (box: BoxEntry) => {
     setSendingToScan(box.id)
@@ -180,7 +180,6 @@ export default function BookInspectionPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send to scan')
-      setOutgoingReadyIds(prev => { const next = new Set(prev); next.delete(box.id); return next })
       fetchEndorsementBoxes()
       toast.success(`${box.box_number} sent to Scan`)
     } catch (e) {
@@ -445,8 +444,8 @@ export default function BookInspectionPage() {
           issues: [],
         }),
       })
-      // Mark box as ready to send → outgoing tab
-      setOutgoingReadyIds(prev => new Set([...prev, inspBox.id]))
+      // Refresh from DB so the box moves to outgoing tab based on real session status
+      fetchEndorsementBoxes()
       setInspSessionActive(false)
       setInspBox(null)
       setInspCurrentSession(null)
