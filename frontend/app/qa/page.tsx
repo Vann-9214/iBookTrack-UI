@@ -48,7 +48,8 @@ interface BoxEntry {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
+  latest_endorsement_scan_at?: string | null
+  box_sessions?: { updated_at?: string, warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
 }
 
 interface BoxBookEntry {
@@ -987,13 +988,13 @@ export default function BookInspectionPage() {
                               </div>
                               <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                             </div>
-                            {box.latest_endorsement_scan_at && (
-                              <div className="shrink-0 hidden sm:flex flex-col items-end gap-0.5 mr-2">
+                            {(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at) && (
+                              <div className="shrink-0 flex flex-col items-end gap-0.5 mr-2">
                                 <span className="text-xs text-muted-foreground">
-                                  {new Date(box.latest_endorsement_scan_at).toLocaleDateString()}
+                                  {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleDateString()}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground/80">
-                                  {new Date(box.latest_endorsement_scan_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                  {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                                 </span>
                               </div>
                             )}
