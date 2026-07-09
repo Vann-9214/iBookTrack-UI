@@ -304,6 +304,13 @@ export default function ScanQrPage() {
   const { colors } = useBrand()
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
 
+  // Fetch title + location for a single ISBN from the backend
+  const fetchIsbnDetails = async (isbn: string) => {
+    const res = await authFetch(`${getApiBaseUrl()}/api/warehouse/search/isbn/${isbn}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return res.json()
+  }
+
   const handleScan = async (text: string, format: ScanFormat) => {
     if (format === 'barcode') {
       const isbn = text.replace(/[^0-9]/g, '')
@@ -324,19 +331,21 @@ export default function ScanQrPage() {
 
       // Fetch details from the backend
       try {
-        const res = await authFetch(`${getApiBaseUrl()}/api/warehouse/search/isbn/${isbn}`)
-        const json = await res.json()
+        const json = await fetchIsbnDetails(isbn)
 
         if (json.success && json.book) {
           const b = json.book
+          // scan_status lives on currentLocation (the books table row)
+          const rawStatus = json.currentLocation?.scan_status ?? ''
+          const status = rawStatus === 'processable' ? 'P' : rawStatus === 'non_processable' ? 'NP' : ''
           setScanResult({
             kind:     'barcode',
             isbn,
-            title:    b.title || '—',
+            title:    b.title && b.title !== 'Unknown' ? b.title : '—',
             lot:      b.lot_number || '—',
             box:      b.box_number || '—',
             type:     b.current_stage || '—',
-            status:   '',           // /search/isbn doesn't return scan_status — left blank
+            status,
             loading:  false,
             notFound: false,
           })
@@ -344,19 +353,39 @@ export default function ScanQrPage() {
           setScanResult((prev) => prev?.kind === 'barcode'
             ? { ...prev, loading: false, notFound: true }
             : prev)
-          toast.error('ISBN not found', { description: isbn })
+          toast.error('ISBN not found', { description: json.message || isbn })
         }
-      } catch {
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
         setScanResult((prev) => prev?.kind === 'barcode'
           ? { ...prev, loading: false, notFound: true }
           : prev)
-        toast.error('Failed to look up ISBN')
+        toast.error('Lookup failed', { description: msg })
       }
     } else {
-      // QR = pipe-delimited box label
+      // QR = pipe-delimited box label — show immediately, then fill titles in background
       const data = parseQr(text)
       setScanResult(data)
       toast.success('QR code scanned', { description: `Box ${data.box} · Lot ${data.lot}` })
+
+      // Fetch titles for every ISBN in the QR in parallel
+      if (data.books.length > 0) {
+        const results = await Promise.allSettled(
+          data.books.map((book) => fetchIsbnDetails(book.isbn))
+        )
+        setScanResult((prev) => {
+          if (!prev || prev.kind !== 'qr') return prev
+          const updatedBooks = prev.books.map((book, i) => {
+            const result = results[i]
+            if (result.status === 'fulfilled' && result.value?.success && result.value?.book?.title) {
+              const t = result.value.book.title
+              return { ...book, title: t !== 'Unknown' ? t : '—' }
+            }
+            return book
+          })
+          return { ...prev, books: updatedBooks }
+        })
+      }
     }
   }
 
