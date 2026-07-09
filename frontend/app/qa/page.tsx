@@ -135,7 +135,10 @@ export default function BookInspectionPage() {
       const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
       const data = await res.json()
       if (data.boxes) {
-        setEndorsementBoxes(data.boxes)
+        const filteredEndorsement = data.boxes.filter((b: BoxEntry) => {
+          return !b.box_sessions?.some(s => s.status === 'sent')
+        })
+        setEndorsementBoxes(filteredEndorsement)
       }
       setLastUpdated(new Date())
     } catch (e) {

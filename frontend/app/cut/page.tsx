@@ -49,10 +49,13 @@ export default function CutPage() {
       
       setIncomingBoxes(filteredIncoming)
 
-      // Fetch outgoing: current stage is 'cut'
+      // Fetch outgoing: current stage is 'cut', but NOT sent to endorsement yet
       const resOutgoing = await authFetch(`${API_URL}/api/boxes?current_stage=cut`)
       const outgoingData = await resOutgoing.json()
-      setOutgoingBoxes(outgoingData.boxes || [])
+      const filteredOutgoing = (outgoingData.boxes || []).filter((b: BoxEntry) => {
+         return !b.box_sessions?.some(s => s.status === 'sent')
+      })
+      setOutgoingBoxes(filteredOutgoing)
 
       setLastUpdated(new Date())
     } catch (e) {
