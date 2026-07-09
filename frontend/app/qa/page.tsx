@@ -49,7 +49,14 @@ interface BoxEntry {
 
   lot: { lot_number: string } | null
   latest_endorsement_scan_at?: string | null
-  box_sessions?: { status: string; total_scanned?: number; updated_at?: string, warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
+  box_sessions?: { 
+    warehouse_time_received?: string
+    cut_time_send?: string
+    endorsement_time_received?: string
+    status?: string
+    total_scanned?: number
+    updated_at?: string
+  }[]
 }
 
 interface BoxBookEntry {
