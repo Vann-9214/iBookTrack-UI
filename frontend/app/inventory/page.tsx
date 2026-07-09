@@ -1924,12 +1924,10 @@ export default function InventoryPage() {
                         const isExpanded = outgoingExpandedBoxId === box.id
                         const booksForBox: BookInBox[] = boxBooks[box.id] || []
                         const created = box.created_at ? new Date(box.created_at) : null
-                        // All-printed gate: box label printed AND every book slip printed
+                        // All-printed gate: box label printed (book slips are optional)
                         const boxLabelPrinted = printedBoxLabels.has(box.id)
                         const slipsForBox = printedBookSlips[box.id] ?? new Set<string>()
-                        // We can only check book-completeness once books are loaded
-                        const allBooksPrinted = booksForBox.length > 0 && booksForBox.every(b => slipsForBox.has(b.id))
-                        const allPrinted = boxLabelPrinted && allBooksPrinted
+                        const allPrinted = boxLabelPrinted
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                             {/* ── Header row (Full row is now clickable) ── */}
@@ -2019,11 +2017,7 @@ export default function InventoryPage() {
                                 {!allPrinted && (
                                   <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
                                     <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
-                                      {!boxLabelPrinted && !allBooksPrinted
-                                        ? 'Print the box label and all book slips first'
-                                        : !boxLabelPrinted
-                                          ? 'Print the box label first'
-                                          : 'Print all book slips first'}
+                                      Print the box label first
                                     </div>
                                   </div>
                                 )}
