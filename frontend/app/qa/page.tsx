@@ -194,6 +194,28 @@ export default function BookInspectionPage() {
   const [inspRowBooks, setInspRowBooks] = useState<Record<string, BoxBookEntry[]>>({})
   const [loadingInspRowBooks, setLoadingInspRowBooks] = useState<string | null>(null)
 
+  // ── Incoming and Outgoing Expandable Rows ─────────────────────────────
+  const [expandedBoxId, setExpandedBoxId] = useState<string | null>(null)
+  const [boxBooks, setBoxBooks] = useState<Record<string, BoxBookEntry[]>>({})
+  const [loadingBoxBooks, setLoadingBoxBooks] = useState<string | null>(null)
+
+  const toggleBox = async (boxId: string) => {
+    if (expandedBoxId === boxId) { setExpandedBoxId(null); return }
+    setExpandedBoxId(boxId)
+    if (!boxBooks[boxId]) {
+      setLoadingBoxBooks(boxId)
+      try {
+        const res = await authFetch(`${API_URL}/api/boxes/${boxId}`)
+        const data = await res.json()
+        setBoxBooks(prev => ({ ...prev, [boxId]: data.box?.books || [] }))
+      } catch {
+        setBoxBooks(prev => ({ ...prev, [boxId]: [] }))
+      } finally {
+        setLoadingBoxBooks(null)
+      }
+    }
+  }
+
   const toggleInspRow = async (boxId: string) => {
     if (inspExpandedBoxId === boxId) { setInspExpandedBoxId(null); return }
     setInspExpandedBoxId(boxId)
@@ -555,28 +577,73 @@ export default function BookInspectionPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {incomingBoxes.map(box => (
-                      <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
-                        <div className="bg-orange-50 rounded-lg p-2 shrink-0">
-                          <Package className="h-5 w-5 text-orange-600" />
+                    {incomingBoxes.map(box => {
+                      const isExpanded = expandedBoxId === box.id
+                      const rowBooks = boxBooks[box.id] || []
+                      const isLoadingBooks = loadingBoxBooks === box.id
+                      const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                      return (
+                        <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                          <div className="flex items-center px-4 py-3 gap-4">
+                            <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            </button>
+                            <div className="bg-orange-50 rounded-lg p-2 shrink-0">
+                              <Package className="h-5 w-5 text-orange-600" />
+                            </div>
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                              <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                              <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                            </div>
+                            {box.box_sessions?.[0]?.cut_time_send && (
+                              <div className="shrink-0 hidden sm:block text-right mr-2">
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(box.box_sessions[0].cut_time_send).toLocaleDateString()}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground/80">
+                                  {new Date(box.box_sessions[0].cut_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                              disabled={receivingBox === box.id}
+                              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-60 transition-colors shrink-0"
+                            >
+                              {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              {receivingBox === box.id ? 'Receiving…' : 'Received'}
+                            </button>
+                          </div>
+                          {isExpanded && (
+                            <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                              {isLoadingBooks ? (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                </div>
+                              ) : rowBooks.length === 0 ? (
+                                <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                              ) : (
+                                <div className="flex flex-col gap-1 border-l-2 border-orange-200 pl-3">
+                                  {rowBooks.map(book => (
+                                    <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                        {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                      </div>
+                                      <div className="flex gap-2 items-center">
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                        </div>
-                        <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                          {box.box_sessions?.[0]?.cut_time_send ? new Date(box.box_sessions[0].cut_time_send).toLocaleString() : ''}
-                        </span>
-                        <button
-                          onClick={() => handleReceiveBox(box)}
-                          disabled={receivingBox === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-60 transition-colors shrink-0"
-                        >
-                          {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                          {receivingBox === box.id ? 'Receiving…' : 'Received'}
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -990,36 +1057,76 @@ export default function BookInspectionPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {outgoingBoxes.map(box => (
-                      <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
-                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
-                          <Package className="h-5 w-5 text-emerald-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
+                    {outgoingBoxes.map(box => {
+                      const isExpanded = expandedBoxId === box.id
+                      const rowBooks = boxBooks[box.id] || []
+                      const isLoadingBooks = loadingBoxBooks === box.id
+                      const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                      return (
+                        <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                          <div className="flex items-center px-4 py-3 gap-4">
+                            <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            </button>
+                            <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
+                              <Package className="h-5 w-5 text-emerald-600" />
+                            </div>
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                            </div>
+                            {box.latest_endorsement_scan_at && (
+                              <div className="shrink-0 hidden sm:flex flex-col items-end gap-0.5 mr-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(box.latest_endorsement_scan_at).toLocaleDateString()}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground/80">
+                                  {new Date(box.latest_endorsement_scan_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleSendToScan(box) }}
+                              disabled={sendingToScan === box.id}
+                              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
+                            >
+                              {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                              {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
+                            </button>
                           </div>
-                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                          {isExpanded && (
+                            <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                              {isLoadingBooks ? (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                </div>
+                              ) : rowBooks.length === 0 ? (
+                                <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                              ) : (
+                                <div className="flex flex-col gap-1 border-l-2 border-emerald-200 pl-3">
+                                  {rowBooks.map(book => (
+                                    <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                        {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                      </div>
+                                      <div className="flex gap-2 items-center">
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="shrink-0 hidden sm:flex flex-col items-end gap-0.5 mr-2">
-                          <span className="text-xs text-muted-foreground">
-                            {box.latest_endorsement_scan_at ? new Date(box.latest_endorsement_scan_at).toLocaleDateString() : ''}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/80">
-                            {box.latest_endorsement_scan_at ? new Date(box.latest_endorsement_scan_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => handleSendToScan(box)}
-                          disabled={sendingToScan === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
-                        >
-                          {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                          {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
