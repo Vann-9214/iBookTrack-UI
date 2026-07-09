@@ -181,6 +181,11 @@ export default function CutPage() {
                             <div>
                               <p className="text-sm font-bold text-foreground">BOX: {box.box_number}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">LOT: {box.lot?.lot_number}</p>
+                              {box.latest_inventory_scan_at && (
+                                <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+                                  {new Date(box.latest_inventory_scan_at).toLocaleString()}
+                                </p>
+                              )}
                             </div>
                             <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-medium">Sent from Inventory</span>
                           </div>
@@ -214,6 +219,11 @@ export default function CutPage() {
                             <div>
                               <p className="text-sm font-bold text-foreground">BOX: {box.box_number}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">LOT: {box.lot?.lot_number}</p>
+                              {box.box_sessions?.[0]?.cut_time_received && (
+                                <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+                                  {new Date(box.box_sessions[0].cut_time_received).toLocaleString()}
+                                </p>
+                              )}
                             </div>
                             <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-medium">Ready to Send</span>
                           </div>
