@@ -1573,7 +1573,6 @@ export default function InventoryPage() {
                             const isLoadingBooks = loadingVerifRowBooks === box.id
                             const activeSession = box.box_sessions?.[0]
                             const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
-                            const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_send === verifUserId)
                             const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
                             const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
                             return (
@@ -1588,8 +1587,8 @@ export default function InventoryPage() {
                                     {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                   </button>
                                   {/* Icon */}
-                                  <div className={`${stuckSession ? 'bg-orange-50' : 'bg-amber-50'} rounded-lg p-2 shrink-0`}>
-                                    <Package className={`h-5 w-5 ${stuckSession ? 'text-orange-500' : 'text-amber-600'}`} />
+                                  <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                    <Package className="h-5 w-5 text-amber-600" />
                                   </div>
                                   {/* Info — clickable to expand */}
                                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
@@ -1604,11 +1603,6 @@ export default function InventoryPage() {
                                     <span className="text-[10px] text-muted-foreground/80">
                                       {created ? created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
                                     </span>
-                                    {stuckSession && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 border border-orange-200">
-                                        In Progress Stuck
-                                      </span>
-                                    )}
                                   </div>
                                   {/* Start Session button */}
                                   <button

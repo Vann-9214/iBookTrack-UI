@@ -56,6 +56,7 @@ interface BoxBookEntry {
   isbn: string
   title: string | null
   scan_status: string
+  flag?: { issue: string; remarks: string }
 }
 
 interface InspScannedBook {
@@ -67,6 +68,15 @@ interface InspScannedBook {
   flag_issue?: string
   flag_remarks?: string
   timestamp: Date
+}
+
+interface WarehouseBook {
+  id: string
+  isbn: string
+  title: string
+  scan_status: string
+  rejection_reason: string | null
+  warehouse_scan_at: string
 }
 
 interface InspSession {
@@ -205,6 +215,7 @@ export default function BookInspectionPage() {
   const [inspSessionActive, setInspSessionActive] = useState(false)
   const [inspBox, setInspBox] = useState<BoxEntry | null>(null)
   const [inspUserName, setInspUserName] = useState('')
+  const [inspUserId, setInspUserId] = useState('')
   const [inspCurrentSession, setInspCurrentSession] = useState<InspSession | null>(null)
   const [inspScannedBooks, setInspScannedBooks] = useState<InspScannedBook[]>([])
   const [inspBookCounter, setInspBookCounter] = useState(0)
@@ -221,10 +232,34 @@ export default function BookInspectionPage() {
   const [inspFlagRemarks, setInspFlagRemarks] = useState('')
   const [inspFlagSaving, setInspFlagSaving] = useState(false)
 
+  const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
+  const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
+
+  const fetchWarehouseBooks = async (boxId: string) => {
+    setLoadingWarehouseBooks(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/warehouse/boxes/${boxId}/scans`)
+      const data = await res.json()
+      
+      if (res.ok && data.success) {
+        setWarehouseBooks(data.warehouse_books || [])
+      } else {
+        console.error('Failed to fetch warehouse books:', data.error)
+        setWarehouseBooks([])
+      }
+    } catch (e) {
+      console.error('Error fetching warehouse books:', e)
+      setWarehouseBooks([])
+    } finally {
+      setLoadingWarehouseBooks(false)
+    }
+  }
+
   useEffect(() => {
     const loadProfile = async () => {
       const profile = await fetchUserProfile()
       if (profile?.name) setInspUserName(profile.name)
+      if (profile?.id) setInspUserId(profile.id)
     }
     loadProfile()
   }, [])
@@ -234,13 +269,8 @@ export default function BookInspectionPage() {
     if (!box) return
     setLoadingInspSession(true)
     try {
-      const res = await authFetch(`${API_URL}/api/warehouse/sessions/start`, {
-        method: 'POST',
-        body: JSON.stringify({
-          lot_number: box.lot?.lot_number || '',
-          box_id: box.id,
-          box_number: box.box_number,
-        }),
+      const res = await authFetch(`${API_URL}/api/warehouse/boxes/${box.id}/resume-session`, {
+        method: 'POST'
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start session')
@@ -253,6 +283,7 @@ export default function BookInspectionPage() {
       setInspIssueIsbn('')
       setInspIssues([])
       setInspSessionActive(true)
+      fetchWarehouseBooks(box.id)
       toast.success(`Session started for ${box.box_number}`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to start inspection session')
@@ -468,7 +499,7 @@ export default function BookInspectionPage() {
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Book Inspection &amp; Endorsement</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Endorsement</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Receive boxes from Cut, inspect and scan books, then send to Scan.
                 </p>
@@ -480,7 +511,7 @@ export default function BookInspectionPage() {
             <div className="flex items-center gap-1 p-1 bg-muted rounded-xl w-fit">
               {([
                 { key: 'incoming',   label: 'Incoming Boxes',  icon: Inbox,          count: incomingBoxes.length,   activeColor: 'bg-orange-100 text-orange-700' },
-                { key: 'inspection', label: 'Book Inspection', icon: ClipboardCheck, count: inspectionBoxes.length, activeColor: 'bg-amber-100 text-amber-700' },
+                { key: 'inspection', label: 'Endorsement', icon: ClipboardCheck, count: inspectionBoxes.length, activeColor: 'bg-amber-100 text-amber-700' },
                 { key: 'outgoing',   label: 'Outgoing Boxes',  icon: Send,           count: outgoingBoxes.length,   activeColor: 'bg-emerald-100 text-emerald-700' },
               ] as const).map(({ key, label, icon: Icon, count, activeColor }) => (
                 <button
@@ -727,7 +758,7 @@ export default function BookInspectionPage() {
                                   disabled={loadingInspSession}
                                   className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
                                 >
-                                  {loadingInspSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                                  {loadingInspSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
                                   {loadingInspSession ? 'Starting…' : 'Start Session'}
                                 </button>
                               </div>
@@ -748,7 +779,7 @@ export default function BookInspectionPage() {
                                           <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
                                           <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
                                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {book.scan_status}
+                                            {book.scan_status === 'processable' ? 'Processable' : (book.flag?.issue ? `Non-Processable (${book.flag.issue})` : 'Non-Processable')}
                                           </span>
                                         </div>
                                       ))}
@@ -812,54 +843,131 @@ export default function BookInspectionPage() {
                     {/* ── Scanner ── */}
                     <ScannerInput onScan={handleInspScan} />
 
-                    {/* ── Scan log ── */}
-                    <div className="bg-card border border-border rounded-xl p-5">
-                      <h3 className="text-sm font-semibold text-foreground mb-3">Scan Log</h3>
-                      {inspScannedBooks.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
-                            <div className="col-span-2">ISBN</div>
-                            <div className="col-span-6">Book Title</div>
-                            <div className="col-span-3 text-right">Status</div>
-                            <div className="col-span-1 text-right">Action</div>
+                    {/* ── Side-by-Side Warehouse and Endorsement Tables ── */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Warehouse Table (Left) - Read Only */}
+                      <div className="bg-card border border-border rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Package className="h-4 w-4 text-blue-600" />
+                          <h3 className="text-sm font-semibold text-blue-600">Previous Scans (Inventory)</h3>
+                          {loadingWarehouseBooks ? (
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">({warehouseBooks.length} books)</span>
+                          )}
+                        </div>
+                        
+                        {loadingWarehouseBooks ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
-                          <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                            {inspScannedBooks.map((book, idx) => (
-                              <div key={`${book.id}-${idx}`} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
-                                <div className="col-span-2">
-                                  <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
-                                </div>
-                                <div className="col-span-6">
-                                  <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
-                                  {book.flag_issue && (
-                                    <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
-                                  )}
-                                </div>
-                                <div className="col-span-3 flex items-center justify-end gap-2">
-                                  {book.scan_status === 'processable' ? (
-                                    <>
-                                      <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Processable</span>
-                                      <button onClick={() => openInspFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Flag</button>
-                                    </>
-                                  ) : (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700">
-                                      <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="col-span-1 flex items-center justify-end">
-                                  <button onClick={() => handleRemoveInspBook(book.id)}
-                                    className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors" title="Remove">
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                        ) : warehouseBooks.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-6 text-center">No previous scans found for this box.</p>
+                        ) : (
+                          <div className="overflow-y-auto max-h-96">
+                            <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
+                              <div className="col-span-2">ISBN</div>
+                              <div className="col-span-6">Book Title</div>
+                              <div className="col-span-3 text-right">Status</div>
+                              <div className="col-span-1"></div>
+                            </div>
+                            <div className="space-y-1.5">
+                              {warehouseBooks
+                                .map((book) => {
+                                  const endorsementBook = inspScannedBooks.find(ib => ib.isbn === book.isbn)
+                                  const isMissing = book.rejection_reason === 'missing'
+                                  const isMatch = isMissing || (endorsementBook && endorsementBook.scan_status === book.scan_status)
+                                  return { book, isMatch, isMissing }
+                                })
+                                .sort((a, b) => {
+                                  if (a.isMissing && !b.isMissing) return 1;
+                                  if (!a.isMissing && b.isMissing) return -1;
+                                  return (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1)
+                                })
+                                .map(({ book, isMatch, isMissing }, i) => (
+                                  <div key={i} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
+                                    isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
+                                  }`}>
+                                    <div className="col-span-2">
+                                      <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                                    </div>
+                                    <div className="col-span-6">
+                                      <p className="text-[11px] text-foreground truncate">{book.title}</p>
+                                    </div>
+                                    <div className="col-span-3 flex items-center justify-end">
+                                      <span className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
+                                        book.scan_status === 'processable' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                                      }`}>
+                                        {book.scan_status === 'processable' ? 'Processable' : (book.rejection_reason === 'missing' || book.rejection_reason === 'extra') ? `Non-Processable (${book.rejection_reason.charAt(0).toUpperCase() + book.rejection_reason.slice(1)})` : 'Non-Processable'}
+                                      </span>
+                                    </div>
+                                    <div className="col-span-1"></div>
+                                  </div>
+                                ))}
+                            </div>
                           </div>
-                        </>
-                      )}
+                        )}
+                      </div>
+
+                      {/* Endorsement Table (Right) - Editable */}
+                      <div className="bg-card border-2 border-green-500 rounded-xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <ClipboardCheck className="h-4 w-4 text-green-600" />
+                            <h3 className="text-sm font-semibold text-green-600">Endorsement Scans</h3>
+                            <span className="text-xs text-muted-foreground">({inspScannedBooks.length} books)</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium border border-green-200">
+                            Currently Endorsing
+                          </span>
+                        </div>
+                        
+                        {inspScannedBooks.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
+                              <div className="col-span-3">ISBN</div>
+                              <div className="col-span-5">Book Title</div>
+                              <div className="col-span-3 text-right">Status</div>
+                              <div className="col-span-1 text-right"></div>
+                            </div>
+                            <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                              {inspScannedBooks.map((book, idx) => (
+                                <div key={`${book.id}-${idx}`} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
+                                  <div className="col-span-3">
+                                    <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                                  </div>
+                                  <div className="col-span-5">
+                                    <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
+                                    {book.flag_issue && (
+                                      <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
+                                    )}
+                                  </div>
+                                  <div className="col-span-3 flex flex-col items-end gap-1">
+                                    {book.scan_status === 'processable' ? (
+                                      <>
+                                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Processable</span>
+                                        <button onClick={() => openInspFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Flag Issue</button>
+                                      </>
+                                    ) : (
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700 text-right">
+                                        <AlertTriangle className="h-2.5 w-2.5 shrink-0" /> Non-Processable
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="col-span-1 flex items-center justify-end">
+                                    <button onClick={() => handleRemoveInspBook(book.id)}
+                                      className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors" title="Remove">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}

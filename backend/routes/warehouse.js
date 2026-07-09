@@ -731,7 +731,7 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
         .insert({
           box_id: box_id,
           warehouse_user_received: req.user.id,
-          status: 'in_progress'
+          status: 'completed'
         })
         .select()
         .single()
@@ -743,7 +743,7 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
     const { data, error } = await supabaseAdmin
       .from('box_sessions')
       .update({ 
-        status: 'in_progress'
+        status: 'completed'
       })
       .eq('id', session.id)
       .select()
