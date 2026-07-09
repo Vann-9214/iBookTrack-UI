@@ -46,9 +46,6 @@ router.get('/', requireAuth, async (req, res) => {
       .select(`
         *,
         lot:lots(lot_number, shipment_id, type),
-        books:books(
-          scans:book_activity(inventory_scan_at, endorsement_scan_at)
-        ),
         box_sessions:box_sessions(id, status, updated_at, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received, inventory_time_received, inventory_time_send, cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received)
       `)
       .order('created_at', { ascending: false })
@@ -65,37 +62,47 @@ router.get('/', requireAuth, async (req, res) => {
     const { data, error } = await query
     if (error) throw error
 
-    let boxes = (data || []).map(b => {
-      let maxInventoryScan = null
-      let maxEndorsementScan = null
-      let totalScans = 0
+    let boxes = data || []
 
-      for (const bk of (b.books || [])) {
-        for (const scan of (bk.scans || [])) {
-          totalScans++
-          if (scan.inventory_scan_at) {
-            const scanTime = new Date(scan.inventory_scan_at).getTime()
-            if (!maxInventoryScan || scanTime > maxInventoryScan) {
-              maxInventoryScan = scanTime
-            }
-          }
-          if (scan.endorsement_scan_at) {
-            const scanTime = new Date(scan.endorsement_scan_at).getTime()
-            if (!maxEndorsementScan || scanTime > maxEndorsementScan) {
-              maxEndorsementScan = scanTime
-            }
-          }
+    // Get the latest inventory_scan_at and endorsement_scan_at per box.
+    // Two targeted queries ordered DESC — we take the first row seen per box (= the latest).
+    // This replaces fetching all books + all scan rows, which was very wasteful.
+    if (boxes.length > 0) {
+      const boxIds = boxes.map(b => b.id)
+      const scanTimeMap = {}
+
+      const [{ data: invRows }, { data: endRows }] = await Promise.all([
+        db.from('book_activity')
+          .select('inventory_scan_at, book:books!inner(box_id)')
+          .in('book.box_id', boxIds)
+          .not('inventory_scan_at', 'is', null)
+          .order('inventory_scan_at', { ascending: false }),
+        db.from('book_activity')
+          .select('endorsement_scan_at, book:books!inner(box_id)')
+          .in('book.box_id', boxIds)
+          .not('endorsement_scan_at', 'is', null)
+          .order('endorsement_scan_at', { ascending: false }),
+      ])
+
+      for (const row of (invRows || [])) {
+        const id = row.book?.box_id
+        if (id && !scanTimeMap[id]?.latest_inventory_scan_at) {
+          scanTimeMap[id] = { ...scanTimeMap[id], latest_inventory_scan_at: row.inventory_scan_at }
+        }
+      }
+      for (const row of (endRows || [])) {
+        const id = row.book?.box_id
+        if (id && !scanTimeMap[id]?.latest_endorsement_scan_at) {
+          scanTimeMap[id] = { ...scanTimeMap[id], latest_endorsement_scan_at: row.endorsement_scan_at }
         }
       }
 
-      const { books, ...rest } = b
-      return {
-        ...rest,
-        scans: [{ count: totalScans }],
-        latest_inventory_scan_at: maxInventoryScan ? new Date(maxInventoryScan).toISOString() : null,
-        latest_endorsement_scan_at: maxEndorsementScan ? new Date(maxEndorsementScan).toISOString() : null
-      }
-    })
+      boxes = boxes.map(b => ({
+        ...b,
+        latest_inventory_scan_at: scanTimeMap[b.id]?.latest_inventory_scan_at || null,
+        latest_endorsement_scan_at: scanTimeMap[b.id]?.latest_endorsement_scan_at || null,
+      }))
+    }
 
     // Exclude storage-stage boxes that are already placed in a storage slot
     if (exclude_assigned_storage === 'true') {
@@ -112,6 +119,7 @@ router.get('/', requireAuth, async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 })
+
 
 // Get recent pipeline transitions (for Checkpoint Monitor logs)
 router.get('/pipeline-transitions', requireAuth, async (req, res) => {
