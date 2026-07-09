@@ -194,9 +194,10 @@ router.get('/:id', requireAuth, async (req, res) => {
     const books = (scans || []).map(s => {
       let flag = null;
       if (s.user_flags || s.scan_status === 'non_processable') {
+        const flagRec = Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags;
         flag = {
-          issue: s.user_flags?.rejection_reason || 'non-processable',
-          remarks: s.user_flags?.notes || '',
+          issue: flagRec?.rejection_reason || 'non-processable',
+          remarks: flagRec?.notes || '',
           flagged_at: s.warehouse_scan_at,
           flagged_by_name: 'Warehouse scan',
           source: 'scan_status',
@@ -617,7 +618,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
         isbn: isbn,
         title: s.books?.title || null,
         scan_status: s.scan_status,
-        rejection_reason: s.user_flags?.rejection_reason || null,
+        rejection_reason: (Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags)?.rejection_reason || null,
         warehouse_scan_at: s.warehouse_scan_at,
         simflex_status: sf.latestStatus || null,
         transmission_completed: sf.transmissionCompleted || false,

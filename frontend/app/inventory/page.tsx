@@ -26,6 +26,10 @@ interface BookInBox {
   scan_status: string
   scanned_at: string
   book_type?: string
+  flag?: {
+    issue: string
+    remarks: string
+  }
 }
 
 interface Box {
@@ -1407,15 +1411,22 @@ export default function InventoryPage() {
                                         </div>
                                         <span className={cn(
                                           'text-xs font-medium',
-                                          book.book_type?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
+                                          (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
                                         )}>
-                                          {book.book_type ? book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase() : '—'}
+                                          {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                         </span>
-                                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
-                                          book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                        }`}>
-                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-                                        </span>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
+                                            book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                          }`}>
+                                            {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                          </span>
+                                          {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
+                                            <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">
+                                              {book.flag.issue}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
@@ -1615,18 +1626,41 @@ export default function InventoryPage() {
                                     ) : rowBooks.length === 0 ? (
                                       <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
                                     ) : (
-                                      <div className="flex flex-col gap-0">
+                                      <div className="flex flex-col gap-2">
                                         <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
-                                        {rowBooks.map((book, idx) => (
-                                          <div key={book.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/40 last:border-0">
-                                            <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}</span>
-                                            <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
-                                            <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                              {book.scan_status}
-                                            </span>
+                                        <div className="divide-y divide-border border border-border/50 rounded-lg overflow-hidden">
+                                          <div className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
+                                            <span>ISBN / Title</span>
+                                            <span>Type</span>
+                                            <span>Status</span>
                                           </div>
-                                        ))}
+                                          {rowBooks.map(book => (
+                                            <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors bg-card">
+                                              <div className="min-w-0 pr-3">
+                                                <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
+                                                {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
+                                              </div>
+                                              <span className={cn(
+                                                'text-xs font-medium',
+                                                (book.book_type || verifBox.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
+                                              )}>
+                                                {(book.book_type || verifBox.lot?.type) ? (book.book_type || verifBox.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || verifBox.lot?.type)!.slice(1).toLowerCase() : '—'}
+                                              </span>
+                                              <div className="flex flex-col gap-0.5">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
+                                                  book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                  {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                                </span>
+                                                {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
+                                                  <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">
+                                                    {book.flag.issue}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
                                     )}
                                   </div>
@@ -2027,23 +2061,30 @@ export default function InventoryPage() {
                                         {/* Book type — plain text */}
                                         <span className={cn(
                                           'text-xs font-medium',
-                                          book.book_type?.toLowerCase() === 'jaguar'
-                                            ? 'text-green-700'
-                                            : 'text-blue-700'
+                                          (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar'
+                                            ? 'text-green-600'
+                                            : 'text-blue-600'
                                         )}>
-                                          {book.book_type
-                                            ? book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase()
+                                          {(book.book_type || box.lot?.type)
+                                            ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase()
                                             : '—'}
                                         </span>
                                         {/* Status badge */}
-                                        <span className={cn(
-                                          'text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap w-fit',
-                                          book.scan_status === 'processable'
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : 'bg-red-100 text-red-700'
-                                        )}>
-                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-processable'}
-                                        </span>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className={cn(
+                                            'text-[10px] px-2 py-0.5 rounded font-medium whitespace-nowrap w-fit',
+                                            book.scan_status === 'processable'
+                                              ? 'bg-green-100 text-green-700'
+                                              : 'bg-red-100 text-red-700'
+                                          )}>
+                                            {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                          </span>
+                                          {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
+                                            <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">
+                                              {book.flag.issue}
+                                            </span>
+                                          )}
+                                        </div>
                                         {/* Per-book print button */}
                                         <div className="flex items-center justify-center">
                                           <button
