@@ -2,7 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { QrScanner } from '@/components/QrScanner'
+import dynamic from 'next/dynamic'
+
+const QrScanner = dynamic(() => import('@/components/QrScanner').then(mod => mod.QrScanner), { ssr: false })
+
 import { useBrand } from '@/hooks/use-brand'
 import { cn } from '@/lib/utils'
 import { ArrowLeft, ScanLine, X } from 'lucide-react'

@@ -1575,7 +1575,7 @@ export default function InventoryPage() {
                             const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                             const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
                             const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
-                            const stuckSession = activeSession?.status === 'in_progress'
+                            
                             return (
                               <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                                 {/* Row header — same style as Incoming Boxes */}
@@ -1609,12 +1609,12 @@ export default function InventoryPage() {
                                   <button
                                     onClick={() => handleStartVerifSession(box.id)}
                                     disabled={loadingVerifBooks}
-                                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60 transition-colors shrink-0 ${stuckSession ? 'bg-orange-500 hover:bg-orange-600' : 'bg-amber-600 hover:bg-amber-700'}`}
+                                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
                                   >
                                     {loadingVerifBooks
                                       ? <Loader2 className="h-4 w-4 animate-spin" />
                                       : <ClipboardList className="h-4 w-4" />}
-                                    {loadingVerifBooks ? 'Starting…' : stuckSession ? 'Resume Session' : 'Start Session'}
+                                    {loadingVerifBooks ? 'Starting…' : 'Start Session'}
                                   </button>
                                 </div>
                                 {/* Expandable books list */}
