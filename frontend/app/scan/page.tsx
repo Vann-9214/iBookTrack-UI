@@ -8,7 +8,7 @@ import { useBrand } from "@/hooks/use-brand"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import {
-  Inbox, ScanBarcode, Loader2, RefreshCw
+  Inbox, ScanBarcode, Loader2, Package, Clock, BookOpen
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 
@@ -19,7 +19,20 @@ interface BoxEntry {
   box_number: string
   total_books_expected: number
   lot: { lot_number: string } | null
-  box_sessions?: { status: string }[]
+  box_sessions?: {
+    status: string
+    endorsement_time_send?: string
+    scan_time_received?: string
+  }[]
+}
+
+function formatDateTime(iso?: string | null) {
+  if (!iso) return null
+  const d = new Date(iso)
+  return {
+    date: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }),
+    time: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+  }
 }
 
 export default function ScanPage() {
@@ -102,7 +115,7 @@ export default function ScanPage() {
               </button>
               
               <div className="ml-auto">
-                <RefreshControl onRefresh={fetchBoxes} isRefreshing={loading} lastUpdated={lastUpdated} />
+                <RefreshControl onRefresh={fetchBoxes} refreshing={loading} lastUpdated={lastUpdated} />
               </div>
             </div>
 
@@ -121,26 +134,54 @@ export default function ScanPage() {
                       <p className="text-sm">Boxes sent from Endorsement will appear here.</p>
                     </div>
                   ) : (
-                    incomingBoxes.map(box => (
-                      <div key={box.id} className="bg-white border border-border p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-sm font-bold text-foreground">BOX: {box.box_number}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">LOT: {box.lot?.lot_number}</p>
+                    incomingBoxes.map(box => {
+                      const sentSession = box.box_sessions?.find(s => s.status === 'sent')
+                      const sentTime = formatDateTime(sentSession?.endorsement_time_send)
+                      const bookCount = box.total_books_expected ?? 0
+
+                      return (
+                        <div key={box.id} className="bg-white border border-border rounded-xl shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                          {/* Header */}
+                          <div className="p-4 flex items-start gap-3">
+                            <div className="bg-amber-50 rounded-lg p-2 shrink-0 mt-0.5">
+                              <Package className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-bold text-foreground">BOX: {box.box_number}</p>
+                                <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-medium">Sent from Endorsement</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                LOT: {box.lot?.lot_number || '—'} · <BookOpen className="inline h-3 w-3 mr-0.5" />{bookCount} books
+                              </p>
+                            </div>
                           </div>
-                          <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-medium">Sent from Endorsement</span>
+
+                          {/* Sent time */}
+                          {sentTime && (
+                            <div className="mx-4 mb-3 flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
+                              <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <div>
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Sent by Endorsement</p>
+                                <p className="text-xs font-semibold text-foreground">{sentTime.date} · {sentTime.time}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Receive button */}
+                          <div className="p-4 pt-0 mt-auto">
+                            <button
+                              onClick={() => handleReceiveBox(box)}
+                              disabled={receivingBox === box.id}
+                              className="w-full flex justify-center items-center gap-2 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                            >
+                              {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
+                              {receivingBox === box.id ? 'Receiving...' : 'Receive Box'}
+                            </button>
+                          </div>
                         </div>
-                        
-                        <button
-                          onClick={() => handleReceiveBox(box)}
-                          disabled={receivingBox === box.id}
-                          className="mt-4 w-full flex justify-center items-center gap-2 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                        >
-                          {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
-                          {receivingBox === box.id ? 'Receiving...' : 'Receive Box'}
-                        </button>
-                      </div>
-                    ))
+                      )
+                    })
                   )}
                 </div>
               </div>
