@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -39,7 +39,6 @@ interface QCFlag {
 interface LiveLot {
   id: string
   lot_number: string
-  shipment_code: string | null
   total_boxes: number
   total_books: number
   status: string
@@ -487,16 +486,11 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
                     <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
                       <Package className="h-4 w-4" />
-                      LOT / Shipment Number
+                      Lot Number
                     </div>
                     <p className="text-lg font-bold text-gray-800">
                       {selectedLot.lot_number}
                     </p>
-                    {selectedLot.shipment_code && (
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Shipment: {selectedLot.shipment_code}
-                      </p>
-                    )}
                   </div>
 
                   <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
@@ -562,7 +556,6 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
                     <tr>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot Number</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Shipment</th>
                       <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Boxes</th>
                       <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Books</th>
                       <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
@@ -578,7 +571,6 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                         className="hover:bg-blue-50/50 transition-colors cursor-pointer"
                       >
                         <td className="py-3 px-4 font-semibold text-gray-800">{lot.lot_number}</td>
-                        <td className="py-3 px-4 text-gray-500">{lot.shipment_code || '—'}</td>
                         <td className="py-3 px-4 text-right text-gray-700">{lot.total_boxes.toLocaleString()}</td>
                         <td className="py-3 px-4 text-right text-gray-700">{lot.total_books.toLocaleString()}</td>
                         <td className="py-3 px-4">

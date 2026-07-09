@@ -1,13 +1,16 @@
 /**
  * routes/dashboard.js
  *
- * Provides aggregated statistics and live notifications for the main dashboard.
+ * Provides aggregated statistics for the main dashboard.
  *
  * Endpoints:
- *   GET /api/dashboard/stats         — Summary counts: boxes, books, transmitted, QC flags, active lots
- *                                      Supports optional filtering by lot_number or lot range
- *   GET /api/dashboard/qc-flags      — List of all open QC flags (books flagged for issues)
- *   GET /api/dashboard/notifications — Live feed of recent transmission, pipeline, scan, and unaccounted events
+ *   GET /api/dashboard/stats          — Summary counts: boxes, books, transmitted, QC flags, active lots
+ *                                       Supports optional filtering by lot_number or lot range
+ *   GET /api/dashboard/open-lots      — Open lots with box/book stats and completion progress
+ *   GET /api/dashboard/qc-flags       — List of all open QC flags (books flagged for issues)
+ *   GET /api/dashboard/daily-output   — Today's completed transmissions from Simflex
+ *   GET /api/dashboard/lot-details/:lot_number — Stage breakdown and book status counts for a lot
+ *   GET /api/dashboard/pipeline-stats — Pipeline stage counts grouped by box type
  *
  * All routes require authentication (requireAuth middleware).
  */
@@ -32,41 +35,6 @@ function formatStageLabel(stage) {
   }
 
   return labels[stage] || stage || 'Unknown stage'
-}
-
-function formatRelativeTime(value) {
-  if (!value) return 'just now'
-
-  try {
-    const timestamp = new Date(value).getTime()
-    if (Number.isNaN(timestamp)) return 'just now'
-
-    const elapsedSeconds = Math.round((Date.now() - timestamp) / 1000)
-
-    if (elapsedSeconds < 60) return 'just now'
-
-    const elapsedMinutes = Math.round(elapsedSeconds / 60)
-    if (elapsedMinutes < 60) return `${elapsedMinutes} minute${elapsedMinutes === 1 ? '' : 's'} ago`
-
-    const elapsedHours = Math.round(elapsedMinutes / 60)
-    if (elapsedHours < 24) return `${elapsedHours} hour${elapsedHours === 1 ? '' : 's'} ago`
-
-    const elapsedDays = Math.round(elapsedHours / 24)
-    return `${elapsedDays} day${elapsedDays === 1 ? '' : 's'} ago`
-  } catch {
-    return 'just now'
-  }
-}
-
-function buildNotificationId(source, id) {
-  return `${source}:${id}`
-}
-
-function buildNotification(payload) {
-  return {
-    ...payload,
-    timestamp: formatRelativeTime(payload.created_at),
-  }
 }
 
 // Get dashboard stats
@@ -185,12 +153,7 @@ router.get('/open-lots', async (req, res) => {
     // Fetch lots that are not yet fully stored (status != 'storage')
     const { data: lots, error: lotsError } = await db
       .from('lots')
-      .select(`
-        id,
-        lot_number,
-        status,
-        shipment:shipments(shipment_code)
-      `)
+      .select('id, lot_number, status')
       .neq('status', 'storage')
       .order('created_at', { ascending: false })
 
@@ -248,7 +211,6 @@ router.get('/open-lots', async (req, res) => {
       return {
         id: lot.id,
         lot_number: lot.lot_number,
-        shipment_code: lot.shipment?.shipment_code || null,
         total_boxes: totalBoxes,
         total_books: totalBooks,
         status: formatStageLabel(lot.status),
@@ -418,146 +380,6 @@ router.get('/daily-output', requireAuth, async (req, res) => {
   }
 })
 
-// Get live notifications
-router.get('/notifications', requireAuth, async (req, res) => {
-  try {
-    const requestedLimit = parseInt(req.query.limit || '20', 10)
-    const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20
-    const db = supabaseAdmin || supabase
-
-    const [transmissionResult, unaccountedResult, scanResult, pipelineResult] = await Promise.all([
-      db
-        .from('transmission_queue')
-        .select(`
-          id,
-          status,
-          books_received,
-          books_transmitted,
-          error_message,
-          created_at,
-          completed_at,
-          lot:lots(lot_number),
-          box:boxes(box_number)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(limit),
-      db
-        .from('unaccounted_books')
-        .select('id, isbn, lot_number, stage_detected, reported_by_name, notes, created_at')
-        .eq('resolved', false)
-        .order('created_at', { ascending: false })
-        .limit(limit),
-      db
-        .from('scan_history')
-        .select('id, isbn, title, box_number, lot_number, slip_printed, created_at')
-        .order('created_at', { ascending: false })
-        .limit(limit),
-      db
-        .from('pipeline_events')
-        .select(`
-          id,
-          from_stage,
-          to_stage,
-          moved_by_name,
-          notes,
-          created_at,
-          box:boxes(box_number, lot:lots(lot_number))
-        `)
-        .order('created_at', { ascending: false })
-        .limit(limit),
-    ])
-
-    if (transmissionResult.error) throw transmissionResult.error
-    if (unaccountedResult.error) throw unaccountedResult.error
-    if (scanResult.error) throw scanResult.error
-    if (pipelineResult.error) throw pipelineResult.error
-
-    const notifications = [
-      ...(transmissionResult.data || []).map((entry) => {
-        const status = entry.status || 'pending'
-        const type = status === 'completed'
-          ? 'success'
-          : status === 'failed'
-            ? 'error'
-            : status === 'in_progress'
-              ? 'info'
-              : 'warning'
-
-        const statusLabels = {
-          pending: 'Transmission Queued',
-          in_progress: 'Transmission In Progress',
-          completed: 'Transmission Completed',
-          failed: 'Transmission Failed',
-        }
-
-        const lotNumber = entry.lot?.lot_number || 'Unknown lot'
-        const boxNumber = entry.box?.box_number ? ` | ${entry.box.box_number}` : ''
-        const totals = `${entry.books_transmitted || 0}/${entry.books_received || 0} books`
-        const details = entry.error_message
-          ? `${totals} · ${entry.error_message}`
-          : totals
-
-        return buildNotification({
-          id: buildNotificationId('transmission', entry.id),
-          source: 'transmission',
-          type,
-          title: statusLabels[status] || 'Transmission Update',
-          message: `${lotNumber}${boxNumber} · ${details}`,
-          read: status === 'completed',
-          created_at: entry.warehouse_time_received || entry.created_at,
-        })
-      }),
-      ...(unaccountedResult.data || []).map((entry) => buildNotification({
-        id: buildNotificationId('unaccounted', entry.id),
-        source: 'unaccounted',
-        type: 'error',
-        title: 'Unaccounted Book Detected',
-        message: `${entry.isbn} · ${entry.lot_number} · ${entry.stage_detected}${entry.reported_by_name ? ` · ${entry.reported_by_name}` : ''}${entry.notes ? ` · ${entry.notes}` : ''}`,
-        read: false,
-        created_at: entry.created_at,
-      })),
-      ...(scanResult.data || []).map((entry) => buildNotification({
-        id: buildNotificationId('scan', entry.id),
-        source: 'scan',
-        type: entry.slip_printed ? 'success' : 'info',
-        title: entry.slip_printed ? 'Scan Slip Printed' : 'Book Scan Recorded',
-        message: `${entry.isbn}${entry.title ? ` · ${entry.title}` : ''}${entry.box_number ? ` · Box ${entry.box_number}` : ''}${entry.lot_number ? ` · Lot ${entry.lot_number}` : ''}`,
-        read: true,
-        created_at: entry.created_at,
-      })),
-      ...(pipelineResult.data || []).map((entry) => {
-        const toStage = entry.to_stage || 'unknown'
-        const type = toStage === 'transmit' || toStage === 'storage'
-          ? 'success'
-          : toStage === 'validation' || toStage === 'cut' || toStage === 'inspection'
-            ? 'warning'
-            : 'info'
-
-        return buildNotification({
-          id: buildNotificationId('pipeline', entry.id),
-          source: 'pipeline',
-          type,
-          title: `${entry.box?.box_number || 'Box'} moved to ${formatStageLabel(toStage)}`,
-          message: `${entry.box?.lot?.lot_number || 'Unknown lot'}${entry.from_stage ? ` · ${formatStageLabel(entry.from_stage)} → ${formatStageLabel(toStage)}` : ` · ${formatStageLabel(toStage)}`}${entry.moved_by_name ? ` · ${entry.moved_by_name}` : ''}${entry.notes ? ` · ${entry.notes}` : ''}`,
-          read: toStage === 'storage',
-          created_at: entry.created_at,
-        })
-      }),
-    ]
-      .filter((notification) => notification.created_at)
-      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime())
-      .slice(0, limit)
-
-    res.json({
-      success: true,
-      notifications,
-      unreadCount: notifications.filter((notification) => !notification.read).length,
-    })
-  } catch (error) {
-    console.error('Get notifications error:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
 
 // Get enhanced lot details — stage breakdown, book status counts, completion progress
 router.get('/lot-details/:lot_number', requireAuth, async (req, res) => {
