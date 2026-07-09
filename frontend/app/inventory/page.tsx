@@ -1637,9 +1637,9 @@ export default function InventoryPage() {
                                               </div>
                                               <span className={cn(
                                                 'text-xs font-medium',
-                                                (book.book_type || verifBox.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
+                                                (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
                                               )}>
-                                                {(book.book_type || verifBox.lot?.type) ? (book.book_type || verifBox.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || verifBox.lot?.type)!.slice(1).toLowerCase() : '—'}
+                                                {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                               </span>
                                               <div className="flex flex-col gap-0.5">
                                                 <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
