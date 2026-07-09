@@ -90,29 +90,22 @@ function BodyCell({ children, className }: { children: React.ReactNode; classNam
 
 function ScanResultCard({
   scan,
-  index,
-  total,
   onRemove,
 }: {
   scan: { id: number; data: ParsedQr }
-  index: number
-  total: number
   onRemove: () => void
 }) {
   const { data } = scan
-  const isLatest = index === 0
 
   return (
     <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
       {/* Card header */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
         <span className="text-xs font-semibold text-foreground flex items-center gap-2">
-          Scan #{total - index}
-          {isLatest && (
-            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-600 text-white">
-              Latest
-            </span>
-          )}
+          Scan Result
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-600 text-white">
+            Latest
+          </span>
         </span>
         <button
           type="button"
@@ -149,8 +142,8 @@ function ScanResultCard({
       {/* Section 2 — BOOK DETAILS */}
       {data.books.length > 0 && (
         <>
-          <div className="text-center py-2 border-y border-border bg-green-50">
-            <span className="text-xs font-bold text-green-800 uppercase tracking-wide">Book Details</span>
+          <div className="text-center py-2 border border-green-900 bg-green-900/90">
+            <span className="text-xs font-bold text-green-100 uppercase tracking-wide">Book Details</span>
           </div>
           <div className="overflow-x-auto">
             <Table className="min-w-full border-collapse">
@@ -190,17 +183,20 @@ function ScanResultCard({
 export default function ScanQrPage() {
   const router = useRouter()
   const { colors } = useBrand()
-  const [scanHistory, setScanHistory] = useState<{ id: number; data: ParsedQr }[]>([])
-  const [nextId, setNextId] = useState(1)
+  const [scan, setScan] = useState<{ id: number; data: ParsedQr } | null>(null)
+  const [scanCount, setScanCount] = useState(0)
 
   const handleScan = (text: string) => {
     const data = parseQrData(text)
-    setScanHistory((prev) => [{ id: nextId, data }, ...prev])
-    setNextId((n) => n + 1)
+    setScan({ id: scanCount + 1, data })
+    setScanCount((c) => c + 1)
     toast.success('QR code scanned', { description: `Box ${data.box} · Lot ${data.lot}` })
   }
 
-  const removeScan = (id: number) => setScanHistory((prev) => prev.filter((s) => s.id !== id))
+  const clearScan = () => {
+    setScan(null)
+    setScanCount(0)
+  }
 
   return (
     // Full-screen, no sidebar, no top navbar / brand toggle — clean mobile scanner view
@@ -234,16 +230,14 @@ export default function ScanQrPage() {
           <QrScanner onScan={handleScan} accentColor={colors.accent} />
         </div>
 
-        {/* Scan history */}
-        {scanHistory.map((scan, idx) => (
+        {/* Latest scan result (only one table shown at a time) */}
+        {scan && (
           <ScanResultCard
             key={scan.id}
             scan={scan}
-            index={idx}
-            total={scanHistory.length}
-            onRemove={() => removeScan(scan.id)}
+            onRemove={clearScan}
           />
-        ))}
+        )}
       </main>
     </div>
   )
