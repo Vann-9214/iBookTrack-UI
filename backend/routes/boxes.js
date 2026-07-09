@@ -449,6 +449,29 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
       }
     }
 
+    // If advancing from endorsement/qa to scan, record scan user received
+    if ((box.current_stage === 'endorsement' || box.current_stage === 'qa') && nextStage === 'scan') {
+      const { data: session } = await db
+        .from('box_sessions')
+        .select('id, status')
+        .eq('box_id', id)
+        .order('warehouse_time_received', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (session) {
+        let updates = {
+          scan_user_received: req.user.id,
+          scan_time_received: new Date().toISOString()
+        }
+        if (session.status === 'sent') updates.status = 'received'
+        await db
+          .from('box_sessions')
+          .update(updates)
+          .eq('id', session.id)
+      }
+    }
+
     // If advancing from scan to transmit, record scan user received
     if (box.current_stage === 'scan' && nextStage === 'transmit') {
       const { data: session } = await db
