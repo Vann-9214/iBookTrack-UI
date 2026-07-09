@@ -475,10 +475,17 @@ export default function InventoryPage() {
       return
     }
 
-    if (verifScannedBooks.length >= warehouseBooks.length) {
+    const warehouseBook = warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase());
+    if (warehouseBook?.rejection_reason === 'missing') {
+      toast({ title: 'Cannot Scan Missing Book', description: 'This book was marked as missing by the warehouse and cannot be verified.', variant: 'destructive' })
+      return
+    }
+
+    const expectedWarehouseBooksCount = warehouseBooks.filter(wb => wb.rejection_reason !== 'missing').length;
+    if (verifScannedBooks.length >= expectedWarehouseBooksCount) {
       toast({ 
         title: 'Scan Limit Reached', 
-        description: `You cannot scan more than the expected number of books (${warehouseBooks.length}).`, 
+        description: `You cannot scan more than the expected number of books (${expectedWarehouseBooksCount}).`, 
         variant: 'destructive' 
       })
       return
