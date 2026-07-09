@@ -48,7 +48,8 @@ interface BoxEntry {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
+  latest_endorsement_scan_at?: string | null
+  box_sessions?: { status: string; total_scanned?: number; updated_at?: string, warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
 }
 
 interface BoxBookEntry {
@@ -56,6 +57,7 @@ interface BoxBookEntry {
   isbn: string
   title: string | null
   scan_status: string
+  flag?: { issue: string; remarks: string }
 }
 
 interface InspScannedBook {
@@ -67,6 +69,15 @@ interface InspScannedBook {
   flag_issue?: string
   flag_remarks?: string
   timestamp: Date
+}
+
+interface WarehouseBook {
+  id: string
+  isbn: string
+  title: string
+  scan_status: string
+  rejection_reason: string | null
+  warehouse_scan_at: string
 }
 
 interface InspSession {
@@ -154,11 +165,11 @@ export default function BookInspectionPage() {
   }, [fetchIncoming, fetchEndorsementBoxes])
 
   // ── Outgoing Boxes (endorsed → send to Scan) ────────────────────────────────
-  const [outgoingReadyIds, setOutgoingReadyIds] = useState<Set<string>>(new Set())
+  // Derived from session status (not in-memory state), so it survives page refresh
   const [sendingToScan, setSendingToScan] = useState<string | null>(null)
 
-  const outgoingBoxes = endorsementBoxes.filter(b => outgoingReadyIds.has(b.id))
-  const inspectionBoxes = endorsementBoxes.filter(b => !outgoingReadyIds.has(b.id))
+  const outgoingBoxes = endorsementBoxes.filter(b => b.box_sessions?.some(s => s.status === 'completed'))
+  const inspectionBoxes = endorsementBoxes.filter(b => !b.box_sessions?.some(s => s.status === 'completed'))
 
   const handleSendToScan = async (box: BoxEntry) => {
     setSendingToScan(box.id)
@@ -169,7 +180,6 @@ export default function BookInspectionPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send to scan')
-      setOutgoingReadyIds(prev => { const next = new Set(prev); next.delete(box.id); return next })
       fetchEndorsementBoxes()
       toast.success(`${box.box_number} sent to Scan`)
     } catch (e) {
@@ -183,6 +193,28 @@ export default function BookInspectionPage() {
   const [inspExpandedBoxId, setInspExpandedBoxId] = useState<string | null>(null)
   const [inspRowBooks, setInspRowBooks] = useState<Record<string, BoxBookEntry[]>>({})
   const [loadingInspRowBooks, setLoadingInspRowBooks] = useState<string | null>(null)
+
+  // ── Incoming and Outgoing Expandable Rows ─────────────────────────────
+  const [expandedBoxId, setExpandedBoxId] = useState<string | null>(null)
+  const [boxBooks, setBoxBooks] = useState<Record<string, BoxBookEntry[]>>({})
+  const [loadingBoxBooks, setLoadingBoxBooks] = useState<string | null>(null)
+
+  const toggleBox = async (boxId: string) => {
+    if (expandedBoxId === boxId) { setExpandedBoxId(null); return }
+    setExpandedBoxId(boxId)
+    if (!boxBooks[boxId]) {
+      setLoadingBoxBooks(boxId)
+      try {
+        const res = await authFetch(`${API_URL}/api/boxes/${boxId}`)
+        const data = await res.json()
+        setBoxBooks(prev => ({ ...prev, [boxId]: data.box?.books || [] }))
+      } catch {
+        setBoxBooks(prev => ({ ...prev, [boxId]: [] }))
+      } finally {
+        setLoadingBoxBooks(null)
+      }
+    }
+  }
 
   const toggleInspRow = async (boxId: string) => {
     if (inspExpandedBoxId === boxId) { setInspExpandedBoxId(null); return }
@@ -205,26 +237,46 @@ export default function BookInspectionPage() {
   const [inspSessionActive, setInspSessionActive] = useState(false)
   const [inspBox, setInspBox] = useState<BoxEntry | null>(null)
   const [inspUserName, setInspUserName] = useState('')
+  const [inspUserId, setInspUserId] = useState('')
   const [inspCurrentSession, setInspCurrentSession] = useState<InspSession | null>(null)
   const [inspScannedBooks, setInspScannedBooks] = useState<InspScannedBook[]>([])
   const [inspBookCounter, setInspBookCounter] = useState(0)
   const [inspCurrentBoxBooks, setInspCurrentBoxBooks] = useState(0)
   const [loadingInspSession, setLoadingInspSession] = useState(false)
   const [inspConfirmComplete, setInspConfirmComplete] = useState(false)
-  const [inspTotalBooksExpected, setInspTotalBooksExpected] = useState('')
-  const [inspIssueIsbn, setInspIssueIsbn] = useState('')
-  const [inspIssueType, setInspIssueType] = useState<'missing' | 'extra'>('missing')
-  const [inspIssues, setInspIssues] = useState<Array<{ isbn: string; type: 'missing' | 'extra'; title?: string; author?: string }>>([])
-  const [inspFetchingIssueBook, setInspFetchingIssueBook] = useState(false)
   const [inspFlagModalBook, setInspFlagModalBook] = useState<InspScannedBook | null>(null)
   const [inspFlagIssue, setInspFlagIssue] = useState('')
   const [inspFlagRemarks, setInspFlagRemarks] = useState('')
   const [inspFlagSaving, setInspFlagSaving] = useState(false)
 
+  const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
+  const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
+
+  const fetchWarehouseBooks = async (boxId: string) => {
+    setLoadingWarehouseBooks(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/warehouse/boxes/${boxId}/scans`)
+      const data = await res.json()
+      
+      if (res.ok && data.success) {
+        setWarehouseBooks(data.warehouse_books || [])
+      } else {
+        console.error('Failed to fetch warehouse books:', data.error)
+        setWarehouseBooks([])
+      }
+    } catch (e) {
+      console.error('Error fetching warehouse books:', e)
+      setWarehouseBooks([])
+    } finally {
+      setLoadingWarehouseBooks(false)
+    }
+  }
+
   useEffect(() => {
     const loadProfile = async () => {
       const profile = await fetchUserProfile()
       if (profile?.name) setInspUserName(profile.name)
+      if (profile?.id) setInspUserId(profile.id)
     }
     loadProfile()
   }, [])
@@ -234,25 +286,18 @@ export default function BookInspectionPage() {
     if (!box) return
     setLoadingInspSession(true)
     try {
-      const res = await authFetch(`${API_URL}/api/warehouse/sessions/start`, {
-        method: 'POST',
-        body: JSON.stringify({
-          lot_number: box.lot?.lot_number || '',
-          box_id: box.id,
-          box_number: box.box_number,
-        }),
+      const res = await authFetch(`${API_URL}/api/warehouse/boxes/${box.id}/resume-session`, {
+        method: 'POST'
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start session')
-      setInspCurrentSession({ ...data.session, total_processable: 0, total_non_processable: 0 })
+      setInspCurrentSession({ ...data.session, total_scanned: 0, total_processable: 0, total_non_processable: 0 })
       setInspBox(box)
       setInspScannedBooks([])
       setInspBookCounter(0)
       setInspCurrentBoxBooks(0)
-      setInspTotalBooksExpected('')
-      setInspIssueIsbn('')
-      setInspIssues([])
       setInspSessionActive(true)
+      fetchWarehouseBooks(box.id)
       toast.success(`Session started for ${box.box_number}`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to start inspection session')
@@ -263,18 +308,27 @@ export default function BookInspectionPage() {
 
   const handleInspScan = async (isbn: string) => {
     if (!inspCurrentSession) return
+
+    const cleanedIsbn = isbn.trim()
+    if (inspScannedBooks.some(b => b.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())) {
+      toast.error('This book has already been scanned in this session.')
+      return
+    }
+
+    const prevStatus = (warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())?.scan_status ?? 'processable') as 'processable' | 'non_processable'
+
     setLoadingInspSession(true)
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await res.json()
       if (data.success && data.data && !data.data.Message) {
-        addInspBookLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, 'processable')
+        addInspBookLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, prevStatus)
       } else {
-        addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, 'processable')
+        addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, prevStatus)
         toast.warning('ISBN not found in iLMS — added to log anyway.')
       }
     } catch {
-      addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, 'processable')
+      addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, prevStatus)
       toast.error('API error — added to log anyway.')
     } finally {
       setLoadingInspSession(false)
@@ -357,40 +411,6 @@ export default function BookInspectionPage() {
     setInspFlagSaving(false)
   }
 
-  const handleAddInspIssue = async () => {
-    if (!inspIssueIsbn.trim()) return
-
-    if (inspScannedBooks.some(b => b.isbn === inspIssueIsbn.trim())) {
-      toast.error('This book was already scanned successfully in this session.')
-      setInspIssueIsbn('')
-      return
-    }
-    
-    if (inspIssues.some(i => i.isbn === inspIssueIsbn.trim())) {
-      toast.error('This issue has already been added.')
-      setInspIssueIsbn('')
-      return
-    }
-
-    setInspFetchingIssueBook(true)
-    try {
-      const res = await authFetch(`${API_URL}/api/books/ilms/search/${inspIssueIsbn}`)
-      const data = await res.json()
-      setInspIssues(prev => [...prev, {
-        isbn: inspIssueIsbn,
-        type: inspIssueType,
-        title: data.success && data.data && !data.data.Message ? data.data.Title : `Book ${inspBookCounter + 1}`,
-        author: data.success && data.data && !data.data.Message ? data.data.Author : '',
-      }])
-      setInspIssueIsbn('')
-    } catch {
-      setInspIssues(prev => [...prev, { isbn: inspIssueIsbn, type: inspIssueType }])
-      setInspIssueIsbn('')
-    } finally {
-      setInspFetchingIssueBook(false)
-    }
-  }
-
   const handleResetInspSession = () => {
     if (!inspCurrentSession) return
     setInspSessionActive(false)
@@ -399,9 +419,6 @@ export default function BookInspectionPage() {
     setInspScannedBooks([])
     setInspBookCounter(0)
     setInspCurrentBoxBooks(0)
-    setInspTotalBooksExpected('')
-    setInspIssueIsbn('')
-    setInspIssues([])
     setInspConfirmComplete(false)
     toast.success('Session reset — scanned data was not saved.')
   }
@@ -409,16 +426,11 @@ export default function BookInspectionPage() {
   const handleOpenInspComplete = () => {
     if (!inspCurrentSession) return
     if (inspScannedBooks.length === 0) { toast.error('Scan at least one book before completing.'); return }
-    setInspTotalBooksExpected('')
-    setInspIssueIsbn('')
-    setInspIssueType('missing')
-    setInspIssues([])
     setInspConfirmComplete(true)
   }
 
   const handleCompleteInspSession = async () => {
     if (!inspCurrentSession || !inspBox) return
-    if (!inspTotalBooksExpected.trim()) { toast.error('Enter the total books expected.'); return }
     setLoadingInspSession(true)
     try {
       for (const book of inspScannedBooks) {
@@ -427,22 +439,19 @@ export default function BookInspectionPage() {
       await authFetch(`${API_URL}/api/warehouse/sessions/${inspCurrentSession.id}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          expected: parseInt(inspTotalBooksExpected),
+          expected: inspScannedBooks.length,
           stage: 'qa',
-          issues: inspIssues,
+          issues: [],
         }),
       })
-      // Mark box as ready to send → outgoing tab
-      setOutgoingReadyIds(prev => new Set([...prev, inspBox.id]))
+      // Refresh from DB so the box moves to outgoing tab based on real session status
+      fetchEndorsementBoxes()
       setInspSessionActive(false)
       setInspBox(null)
       setInspCurrentSession(null)
       setInspScannedBooks([])
       setInspBookCounter(0)
       setInspCurrentBoxBooks(0)
-      setInspTotalBooksExpected('')
-      setInspIssueIsbn('')
-      setInspIssues([])
       setInspConfirmComplete(false)
       setActiveTab('outgoing')
       toast.success('Inspection session completed.')
@@ -468,7 +477,7 @@ export default function BookInspectionPage() {
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Book Inspection &amp; Endorsement</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Endorsement</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Receive boxes from Cut, inspect and scan books, then send to Scan.
                 </p>
@@ -480,7 +489,7 @@ export default function BookInspectionPage() {
             <div className="flex items-center gap-1 p-1 bg-muted rounded-xl w-fit">
               {([
                 { key: 'incoming',   label: 'Incoming Boxes',  icon: Inbox,          count: incomingBoxes.length,   activeColor: 'bg-orange-100 text-orange-700' },
-                { key: 'inspection', label: 'Book Inspection', icon: ClipboardCheck, count: inspectionBoxes.length, activeColor: 'bg-amber-100 text-amber-700' },
+                { key: 'inspection', label: 'Endorsement', icon: ClipboardCheck, count: inspectionBoxes.length, activeColor: 'bg-amber-100 text-amber-700' },
                 { key: 'outgoing',   label: 'Outgoing Boxes',  icon: Send,           count: outgoingBoxes.length,   activeColor: 'bg-emerald-100 text-emerald-700' },
               ] as const).map(({ key, label, icon: Icon, count, activeColor }) => (
                 <button
@@ -524,28 +533,73 @@ export default function BookInspectionPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {incomingBoxes.map(box => (
-                      <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
-                        <div className="bg-orange-50 rounded-lg p-2 shrink-0">
-                          <Package className="h-5 w-5 text-orange-600" />
+                    {incomingBoxes.map(box => {
+                      const isExpanded = expandedBoxId === box.id
+                      const rowBooks = boxBooks[box.id] || []
+                      const isLoadingBooks = loadingBoxBooks === box.id
+                      const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                      return (
+                        <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                          <div className="flex items-center px-4 py-3 gap-4">
+                            <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            </button>
+                            <div className="bg-orange-50 rounded-lg p-2 shrink-0">
+                              <Package className="h-5 w-5 text-orange-600" />
+                            </div>
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                              <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                              <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                            </div>
+                            {box.box_sessions?.[0]?.cut_time_send && (
+                              <div className="shrink-0 hidden sm:block text-right mr-2">
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(box.box_sessions[0].cut_time_send).toLocaleDateString()}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground/80">
+                                  {new Date(box.box_sessions[0].cut_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                              disabled={receivingBox === box.id}
+                              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-60 transition-colors shrink-0"
+                            >
+                              {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              {receivingBox === box.id ? 'Receiving…' : 'Received'}
+                            </button>
+                          </div>
+                          {isExpanded && (
+                            <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                              {isLoadingBooks ? (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                </div>
+                              ) : rowBooks.length === 0 ? (
+                                <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                              ) : (
+                                <div className="flex flex-col gap-1 border-l-2 border-orange-200 pl-3">
+                                  {rowBooks.map(book => (
+                                    <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                        {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                      </div>
+                                      <div className="flex gap-2 items-center">
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                        </div>
-                        <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                          {box.box_sessions?.[0]?.cut_time_send ? new Date(box.box_sessions[0].cut_time_send).toLocaleString() : ''}
-                        </span>
-                        <button
-                          onClick={() => handleReceiveBox(box)}
-                          disabled={receivingBox === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-60 transition-colors shrink-0"
-                        >
-                          {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                          {receivingBox === box.id ? 'Receiving…' : 'Received'}
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -563,79 +617,32 @@ export default function BookInspectionPage() {
                     <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                       <h3 className="text-base font-semibold text-foreground mb-4">Complete Inspection</h3>
 
-                      {/* Total Books Expected */}
+                      {/* Scan Log Summary */}
                       <div className="mb-4">
-                        <div className="flex items-center gap-1 mb-1">
-                          <label className="text-sm font-medium text-foreground">Total Books Expected</label>
-                          <span className="text-sm font-medium text-red-500">*</span>
-                        </div>
-                        <input
-                          type="number"
-                          value={inspTotalBooksExpected}
-                          onChange={e => setInspTotalBooksExpected(e.target.value)}
-                          placeholder="Enter expected total count"
-                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                      </div>
-
-                      {/* Discrepancies */}
-                      <div className="mb-4">
-                        <label className="text-sm font-medium text-foreground mb-2 block">Discrepancies (Missing/Extra Books)</label>
-                        <div className="flex gap-2 mb-3">
-                          <Select value={inspIssueType} onValueChange={v => setInspIssueType(v as 'missing' | 'extra')}>
-                            <SelectTrigger className="w-28 h-9"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="missing">Missing</SelectItem>
-                              <SelectItem value="extra">Extra</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <input
-                            type="text"
-                            value={inspIssueIsbn}
-                            onChange={e => setInspIssueIsbn(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && inspIssueIsbn.trim()) handleAddInspIssue() }}
-                            placeholder="Scan or Input ISBN — book details will auto-fetch"
-                            className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                          />
-                          <button
-                            onClick={handleAddInspIssue}
-                            disabled={!inspIssueIsbn.trim() || inspFetchingIssueBook}
-                            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50"
-                          >
-                            {inspFetchingIssueBook ? 'Adding…' : 'Add'}
-                          </button>
-                        </div>
-                        {inspIssues.length > 0 && (
-                          <div className="space-y-1.5 mb-3">
-                            {inspIssues.map((issue, idx) => (
-                              <div key={`${issue.isbn}-${idx}`} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                    {issue.type === 'missing' ? 'Missing' : 'Extra'}
-                                  </span>
-                                  <span className="text-xs font-medium text-foreground">{issue.isbn}</span>
-                                  <span className="text-[11px] text-muted-foreground">{issue.title}</span>
-                                </div>
-                                <button onClick={() => setInspIssues(prev => prev.filter(i => i.isbn !== issue.isbn))} className="text-[10px] text-muted-foreground hover:text-destructive underline">Remove</button>
+                        <label className="text-sm font-medium text-foreground mb-2 block">Scanned Books Summary</label>
+                        <div className="max-h-80 overflow-y-auto border border-border rounded-lg bg-card divide-y divide-border">
+                          {inspScannedBooks.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-muted-foreground">No books scanned.</div>
+                          ) : (
+                            inspScannedBooks.map((book, idx) => (
+                              <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
+                                <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
+                                <span className="text-[11px] truncate flex-1">{book.title}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Summary */}
-                      <div className="mb-4 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-                        <span className="font-medium">Expected:</span> {inspTotalBooksExpected || 0} books
-                        <span className="ml-3"><span className="font-medium">Scanned:</span> {inspCurrentSession?.total_scanned || 0} books</span>
-                        {inspIssues.length > 0 && (
-                          <span className="ml-3"><span className="font-medium">Issues:</span> {inspIssues.length} ({inspIssues.filter(i => i.type === 'missing').length} missing, {inspIssues.filter(i => i.type === 'extra').length} extra)</span>
-                        )}
-                        <p className="text-[10px] mt-1">* All scanned books will be saved when you confirm.</p>
+                            ))
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          * Total {inspScannedBooks.length} scanned books will be saved to the database when you confirm.
+                        </p>
                       </div>
 
                       {/* Actions */}
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => { setInspConfirmComplete(false); setInspTotalBooksExpected(''); setInspIssueIsbn(''); setInspIssues([]) }}
+                        <button onClick={() => { setInspConfirmComplete(false) }}
                           className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
                         <button onClick={handleCompleteInspSession} disabled={loadingInspSession}
                           className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50">
@@ -727,7 +734,7 @@ export default function BookInspectionPage() {
                                   disabled={loadingInspSession}
                                   className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
                                 >
-                                  {loadingInspSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                                  {loadingInspSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
                                   {loadingInspSession ? 'Starting…' : 'Start Session'}
                                 </button>
                               </div>
@@ -748,7 +755,7 @@ export default function BookInspectionPage() {
                                           <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
                                           <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
                                           <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {book.scan_status}
+                                            {book.scan_status === 'processable' ? 'Processable' : (book.flag?.issue ? `Non-Processable (${book.flag.issue})` : 'Non-Processable')}
                                           </span>
                                         </div>
                                       ))}
@@ -812,54 +819,131 @@ export default function BookInspectionPage() {
                     {/* ── Scanner ── */}
                     <ScannerInput onScan={handleInspScan} />
 
-                    {/* ── Scan log ── */}
-                    <div className="bg-card border border-border rounded-xl p-5">
-                      <h3 className="text-sm font-semibold text-foreground mb-3">Scan Log</h3>
-                      {inspScannedBooks.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
-                            <div className="col-span-2">ISBN</div>
-                            <div className="col-span-6">Book Title</div>
-                            <div className="col-span-3 text-right">Status</div>
-                            <div className="col-span-1 text-right">Action</div>
+                    {/* ── Side-by-Side Warehouse and Endorsement Tables ── */}
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Warehouse Table (Left) - Read Only */}
+                      <div className="bg-card border border-border rounded-xl p-5">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Package className="h-4 w-4 text-blue-600" />
+                          <h3 className="text-sm font-semibold text-blue-600">Previous Scans (Inventory)</h3>
+                          {loadingWarehouseBooks ? (
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">({warehouseBooks.length} books)</span>
+                          )}
+                        </div>
+                        
+                        {loadingWarehouseBooks ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                           </div>
-                          <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                            {inspScannedBooks.map((book, idx) => (
-                              <div key={`${book.id}-${idx}`} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
-                                <div className="col-span-2">
-                                  <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
-                                </div>
-                                <div className="col-span-6">
-                                  <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
-                                  {book.flag_issue && (
-                                    <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
-                                  )}
-                                </div>
-                                <div className="col-span-3 flex items-center justify-end gap-2">
-                                  {book.scan_status === 'processable' ? (
-                                    <>
-                                      <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Processable</span>
-                                      <button onClick={() => openInspFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Flag</button>
-                                    </>
-                                  ) : (
-                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700">
-                                      <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="col-span-1 flex items-center justify-end">
-                                  <button onClick={() => handleRemoveInspBook(book.id)}
-                                    className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors" title="Remove">
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                        ) : warehouseBooks.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-6 text-center">No previous scans found for this box.</p>
+                        ) : (
+                          <div className="overflow-y-auto max-h-96">
+                            <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
+                              <div className="col-span-2">ISBN</div>
+                              <div className="col-span-6">Book Title</div>
+                              <div className="col-span-3 text-right">Status</div>
+                              <div className="col-span-1"></div>
+                            </div>
+                            <div className="space-y-1.5">
+                              {warehouseBooks
+                                .map((book) => {
+                                  const endorsementBook = inspScannedBooks.find(ib => ib.isbn.trim().toLowerCase() === (book.isbn || '').trim().toLowerCase())
+                                  const isMissing = book.rejection_reason === 'missing'
+                                  const isMatch = isMissing || (endorsementBook && endorsementBook.scan_status === book.scan_status)
+                                  return { book, isMatch, isMissing }
+                                })
+                                .sort((a, b) => {
+                                  if (a.isMissing && !b.isMissing) return 1;
+                                  if (!a.isMissing && b.isMissing) return -1;
+                                  return (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1)
+                                })
+                                .map(({ book, isMatch, isMissing }, i) => (
+                                  <div key={i} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
+                                    isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
+                                  }`}>
+                                    <div className="col-span-2">
+                                      <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                                    </div>
+                                    <div className="col-span-6">
+                                      <p className="text-[11px] text-foreground truncate">{book.title}</p>
+                                    </div>
+                                    <div className="col-span-3 flex items-center justify-end">
+                                      <span className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
+                                        book.scan_status === 'processable' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                                      }`}>
+                                        {book.scan_status === 'processable' ? 'Processable' : (book.rejection_reason === 'missing' || book.rejection_reason === 'extra') ? `Non-Processable (${book.rejection_reason.charAt(0).toUpperCase() + book.rejection_reason.slice(1)})` : 'Non-Processable'}
+                                      </span>
+                                    </div>
+                                    <div className="col-span-1"></div>
+                                  </div>
+                                ))}
+                            </div>
                           </div>
-                        </>
-                      )}
+                        )}
+                      </div>
+
+                      {/* Endorsement Table (Right) - Editable */}
+                      <div className="bg-card border-2 border-green-500 rounded-xl p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <ClipboardCheck className="h-4 w-4 text-green-600" />
+                            <h3 className="text-sm font-semibold text-green-600">Endorsement Scans</h3>
+                            <span className="text-xs text-muted-foreground">({inspScannedBooks.length} books)</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium border border-green-200">
+                            Currently Endorsing
+                          </span>
+                        </div>
+                        
+                        {inspScannedBooks.length === 0 ? (
+                          <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-12 gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border mb-2">
+                              <div className="col-span-3">ISBN</div>
+                              <div className="col-span-5">Book Title</div>
+                              <div className="col-span-3 text-right">Status</div>
+                              <div className="col-span-1 text-right"></div>
+                            </div>
+                            <div className="space-y-1.5 max-h-96 overflow-y-auto">
+                              {inspScannedBooks.map((book, idx) => (
+                                <div key={`${book.id}-${idx}`} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
+                                  <div className="col-span-3">
+                                    <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                                  </div>
+                                  <div className="col-span-5">
+                                    <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
+                                    {book.flag_issue && (
+                                      <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
+                                    )}
+                                  </div>
+                                  <div className="col-span-3 flex flex-row items-center justify-end gap-2">
+                                    {book.scan_status === 'processable' ? (
+                                      <>
+                                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700 whitespace-nowrap">Processable</span>
+                                        <button onClick={() => openInspFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline whitespace-nowrap">Flag Issue</button>
+                                      </>
+                                    ) : (
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700 text-right whitespace-nowrap">
+                                        <AlertTriangle className="h-2.5 w-2.5 shrink-0" /> Non-Processable
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="col-span-1 flex items-center justify-end">
+                                    <button onClick={() => handleRemoveInspBook(book.id)}
+                                      className="p-1 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600 transition-colors" title="Remove">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -882,28 +966,76 @@ export default function BookInspectionPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {outgoingBoxes.map(box => (
-                      <div key={box.id} className="border border-border rounded-xl bg-card flex items-center px-4 py-3 gap-4">
-                        <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
-                          <Package className="h-5 w-5 text-emerald-600" />
-                        </div>
-                            <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
+                    {outgoingBoxes.map(box => {
+                      const isExpanded = expandedBoxId === box.id
+                      const rowBooks = boxBooks[box.id] || []
+                      const isLoadingBooks = loadingBoxBooks === box.id
+                      const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                      return (
+                        <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                          <div className="flex items-center px-4 py-3 gap-4">
+                            <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            </button>
+                            <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
+                              <Package className="h-5 w-5 text-emerald-600" />
+                            </div>
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                            </div>
+                            {(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at) && (
+                              <div className="shrink-0 flex flex-col items-end gap-0.5 mr-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleDateString()}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground/80">
+                                  {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleSendToScan(box) }}
+                              disabled={sendingToScan === box.id}
+                              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
+                            >
+                              {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                              {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
+                            </button>
                           </div>
-                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                          {isExpanded && (
+                            <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                              {isLoadingBooks ? (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                </div>
+                              ) : rowBooks.length === 0 ? (
+                                <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                              ) : (
+                                <div className="flex flex-col gap-1 border-l-2 border-emerald-200 pl-3">
+                                  {rowBooks.map(book => (
+                                    <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+                                      <div className="flex flex-col">
+                                        <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                        {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                      </div>
+                                      <div className="flex gap-2 items-center">
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <button
-                          onClick={() => handleSendToScan(box)}
-                          disabled={sendingToScan === box.id}
-                          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
-                        >
-                          {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                          {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

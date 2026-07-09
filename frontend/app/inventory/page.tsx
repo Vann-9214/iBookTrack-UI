@@ -43,7 +43,8 @@ interface Box {
   lot: { lot_number: string; status: string; type?: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
-  box_sessions?: { id?: string; status: string; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_send?: string; warehouse_time_received?: string }[]
+  box_sessions?: { id?: string; status: string; total_scanned?: number; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_send?: string; warehouse_time_received?: string; inventory_time_received?: string }[]
+  latest_inventory_scan_at?: string | null
 }
 
 interface VerifScannedBook {
@@ -1573,9 +1574,9 @@ export default function InventoryPage() {
                             const isLoadingBooks = loadingVerifRowBooks === box.id
                             const activeSession = box.box_sessions?.[0]
                             const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
-                            const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_send === verifUserId)
                             const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
                             const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
+                            
                             return (
                               <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                                 {/* Row header — same style as Incoming Boxes */}
@@ -1588,8 +1589,8 @@ export default function InventoryPage() {
                                     {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                   </button>
                                   {/* Icon */}
-                                  <div className={`${stuckSession ? 'bg-orange-50' : 'bg-amber-50'} rounded-lg p-2 shrink-0`}>
-                                    <Package className={`h-5 w-5 ${stuckSession ? 'text-orange-500' : 'text-amber-600'}`} />
+                                  <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                    <Package className="h-5 w-5 text-amber-600" />
                                   </div>
                                   {/* Info — clickable to expand */}
                                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
@@ -1604,22 +1605,17 @@ export default function InventoryPage() {
                                     <span className="text-[10px] text-muted-foreground/80">
                                       {created ? created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
                                     </span>
-                                    {stuckSession && (
-                                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-600 border border-orange-200">
-                                        In Progress Stuck
-                                      </span>
-                                    )}
                                   </div>
                                   {/* Start Session button */}
                                   <button
                                     onClick={() => handleStartVerifSession(box.id)}
                                     disabled={loadingVerifBooks}
-                                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60 transition-colors shrink-0 ${stuckSession ? 'bg-orange-500 hover:bg-orange-600' : 'bg-amber-600 hover:bg-amber-700'}`}
+                                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
                                   >
                                     {loadingVerifBooks
                                       ? <Loader2 className="h-4 w-4 animate-spin" />
                                       : <ClipboardList className="h-4 w-4" />}
-                                    {loadingVerifBooks ? 'Starting…' : stuckSession ? 'Resume Session' : 'Start Session'}
+                                    {loadingVerifBooks ? 'Starting…' : 'Start Session'}
                                   </button>
                                 </div>
                                 {/* Expandable books list */}
@@ -1928,8 +1924,8 @@ export default function InventoryPage() {
                         const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = outgoingExpandedBoxId === box.id
                         const booksForBox: BookInBox[] = boxBooks[box.id] || []
-                        const warehouseTime = box.box_sessions?.[0]?.inventory_time_send
-                        const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
+                        const verifiedTime = box.latest_inventory_scan_at
+                        const created = verifiedTime ? new Date(verifiedTime) : (box.created_at ? new Date(box.created_at) : null)
                         // All-printed gate: box label printed (book slips are optional)
                         const boxLabelPrinted = printedBoxLabels.has(box.id)
                         const slipsForBox = printedBookSlips[box.id] ?? new Set<string>()
