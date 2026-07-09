@@ -83,7 +83,15 @@ const isPrivateHost = (hostname) => {
 const isDevBrowserOriginAllowed = (origin) => {
   try {
     const url = new URL(origin)
-    return url.protocol === 'http:' && isPrivateHost(url.hostname)
+    // Allow all private LAN http:// origins (dev machines on the same Wi-Fi)
+    if (url.protocol === 'http:' && isPrivateHost(url.hostname)) return true
+    // Allow Cloudflare dev tunnels (trycloudflare.com) in non-production environments
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      url.protocol === 'https:' &&
+      url.hostname.endsWith('.trycloudflare.com')
+    ) return true
+    return false
   } catch {
     return false
   }
