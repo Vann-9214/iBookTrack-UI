@@ -18,6 +18,16 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* QR scanner line animation */
+@keyframes scanLine {
+  0%   { top: 8px; }
+  50%  { top: calc(100% - 8px); }
+  100% { top: 8px; }
+}
+.animate-scan-line {
+  animation: scanLine 2.4s ease-in-out infinite;
+}
+
 :root {
   --background: oklch(98.35% 0.008 253.85);
   --foreground: oklch(0.145 0 0);
