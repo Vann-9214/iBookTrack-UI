@@ -373,21 +373,33 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
         .eq('box_id', id)
         .eq('status', 'completed')
     }
-    // If advancing FROM inventory TO cut (or endorsement), record the inventory send user
+    // If advancing FROM inventory TO cut (or endorsement)
     if (box.current_stage === 'inventory' && (nextStage === 'cut' || nextStage === 'endorsement' || nextStage === 'qa')) {
       const { data: session } = await db
         .from('box_sessions')
-        .select('id')
+        .select('id, status')
         .eq('box_id', id)
         .order('warehouse_time_received', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       if (session) {
-        await db
-          .from('box_sessions')
-          .update({ inventory_user_send: req.user.id, inventory_time_send: new Date().toISOString() })
-          .eq('id', session.id)
+        // If it was 'sent', now it's received.
+        // We don't overwrite inventory_user_send because the sender already set it during /send-to-cut.
+        let updates = {}
+        if (session.status === 'sent') {
+          updates.status = 'received'
+        }
+        if (nextStage === 'cut') {
+          updates.cut_user_received = req.user.id
+          updates.cut_time_received = new Date().toISOString()
+        }
+        if (Object.keys(updates).length > 0) {
+          await db
+            .from('box_sessions')
+            .update(updates)
+            .eq('id', session.id)
+        }
       }
     }
 
@@ -403,9 +415,17 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
         .maybeSingle()
 
       if (session) {
+        let updates = {
+          endorsement_user_received: req.user.id,
+          endorsement_time_received: new Date().toISOString()
+        }
+        if (box.current_stage === 'cut') {
+          updates.cut_user_send = req.user.id
+          updates.cut_time_send = new Date().toISOString()
+        }
         await db
           .from('box_sessions')
-          .update({ endorsement_user_received: req.user.id, endorsement_time_received: new Date().toISOString() })
+          .update(updates)
           .eq('id', session.id)
       }
     }
@@ -424,6 +444,24 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
         await db
           .from('box_sessions')
           .update({ endorsement_user_send: req.user.id, endorsement_time_send: new Date().toISOString() })
+          .eq('id', session.id)
+      }
+    }
+
+    // If advancing from scan to transmit, record scan user received
+    if (box.current_stage === 'scan' && nextStage === 'transmit') {
+      const { data: session } = await db
+        .from('box_sessions')
+        .select('id')
+        .eq('box_id', id)
+        .order('warehouse_time_received', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (session) {
+        await db
+          .from('box_sessions')
+          .update({ scan_user_received: req.user.id, scan_time_received: new Date().toISOString() })
           .eq('id', session.id)
       }
     }
