@@ -244,11 +244,6 @@ export default function BookInspectionPage() {
   const [inspCurrentBoxBooks, setInspCurrentBoxBooks] = useState(0)
   const [loadingInspSession, setLoadingInspSession] = useState(false)
   const [inspConfirmComplete, setInspConfirmComplete] = useState(false)
-  const [inspTotalBooksExpected, setInspTotalBooksExpected] = useState('')
-  const [inspIssueIsbn, setInspIssueIsbn] = useState('')
-  const [inspIssueType, setInspIssueType] = useState<'missing' | 'extra'>('missing')
-  const [inspIssues, setInspIssues] = useState<Array<{ isbn: string; type: 'missing' | 'extra'; title?: string; author?: string }>>([])
-  const [inspFetchingIssueBook, setInspFetchingIssueBook] = useState(false)
   const [inspFlagModalBook, setInspFlagModalBook] = useState<InspScannedBook | null>(null)
   const [inspFlagIssue, setInspFlagIssue] = useState('')
   const [inspFlagRemarks, setInspFlagRemarks] = useState('')
@@ -296,14 +291,11 @@ export default function BookInspectionPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start session')
-      setInspCurrentSession({ ...data.session, total_processable: 0, total_non_processable: 0 })
+      setInspCurrentSession({ ...data.session, total_scanned: 0, total_processable: 0, total_non_processable: 0 })
       setInspBox(box)
       setInspScannedBooks([])
       setInspBookCounter(0)
       setInspCurrentBoxBooks(0)
-      setInspTotalBooksExpected('')
-      setInspIssueIsbn('')
-      setInspIssues([])
       setInspSessionActive(true)
       fetchWarehouseBooks(box.id)
       toast.success(`Session started for ${box.box_number}`)
@@ -316,18 +308,27 @@ export default function BookInspectionPage() {
 
   const handleInspScan = async (isbn: string) => {
     if (!inspCurrentSession) return
+
+    const cleanedIsbn = isbn.trim()
+    if (inspScannedBooks.some(b => b.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())) {
+      toast.error('This book has already been scanned in this session.')
+      return
+    }
+
+    const prevStatus = warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())?.scan_status ?? 'processable'
+
     setLoadingInspSession(true)
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await res.json()
       if (data.success && data.data && !data.data.Message) {
-        addInspBookLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, 'processable')
+        addInspBookLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, prevStatus)
       } else {
-        addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, 'processable')
+        addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, prevStatus)
         toast.warning('ISBN not found in iLMS — added to log anyway.')
       }
     } catch {
-      addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, 'processable')
+      addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, prevStatus)
       toast.error('API error — added to log anyway.')
     } finally {
       setLoadingInspSession(false)
@@ -410,40 +411,6 @@ export default function BookInspectionPage() {
     setInspFlagSaving(false)
   }
 
-  const handleAddInspIssue = async () => {
-    if (!inspIssueIsbn.trim()) return
-
-    if (inspScannedBooks.some(b => b.isbn === inspIssueIsbn.trim())) {
-      toast.error('This book was already scanned successfully in this session.')
-      setInspIssueIsbn('')
-      return
-    }
-    
-    if (inspIssues.some(i => i.isbn === inspIssueIsbn.trim())) {
-      toast.error('This issue has already been added.')
-      setInspIssueIsbn('')
-      return
-    }
-
-    setInspFetchingIssueBook(true)
-    try {
-      const res = await authFetch(`${API_URL}/api/books/ilms/search/${inspIssueIsbn}`)
-      const data = await res.json()
-      setInspIssues(prev => [...prev, {
-        isbn: inspIssueIsbn,
-        type: inspIssueType,
-        title: data.success && data.data && !data.data.Message ? data.data.Title : `Book ${inspBookCounter + 1}`,
-        author: data.success && data.data && !data.data.Message ? data.data.Author : '',
-      }])
-      setInspIssueIsbn('')
-    } catch {
-      setInspIssues(prev => [...prev, { isbn: inspIssueIsbn, type: inspIssueType }])
-      setInspIssueIsbn('')
-    } finally {
-      setInspFetchingIssueBook(false)
-    }
-  }
-
   const handleResetInspSession = () => {
     if (!inspCurrentSession) return
     setInspSessionActive(false)
@@ -452,9 +419,6 @@ export default function BookInspectionPage() {
     setInspScannedBooks([])
     setInspBookCounter(0)
     setInspCurrentBoxBooks(0)
-    setInspTotalBooksExpected('')
-    setInspIssueIsbn('')
-    setInspIssues([])
     setInspConfirmComplete(false)
     toast.success('Session reset — scanned data was not saved.')
   }
@@ -462,16 +426,11 @@ export default function BookInspectionPage() {
   const handleOpenInspComplete = () => {
     if (!inspCurrentSession) return
     if (inspScannedBooks.length === 0) { toast.error('Scan at least one book before completing.'); return }
-    setInspTotalBooksExpected('')
-    setInspIssueIsbn('')
-    setInspIssueType('missing')
-    setInspIssues([])
     setInspConfirmComplete(true)
   }
 
   const handleCompleteInspSession = async () => {
     if (!inspCurrentSession || !inspBox) return
-    if (!inspTotalBooksExpected.trim()) { toast.error('Enter the total books expected.'); return }
     setLoadingInspSession(true)
     try {
       for (const book of inspScannedBooks) {
@@ -480,9 +439,9 @@ export default function BookInspectionPage() {
       await authFetch(`${API_URL}/api/warehouse/sessions/${inspCurrentSession.id}/complete`, {
         method: 'POST',
         body: JSON.stringify({
-          expected: parseInt(inspTotalBooksExpected),
+          expected: inspScannedBooks.length,
           stage: 'qa',
-          issues: inspIssues,
+          issues: [],
         }),
       })
       // Mark box as ready to send → outgoing tab
@@ -493,9 +452,6 @@ export default function BookInspectionPage() {
       setInspScannedBooks([])
       setInspBookCounter(0)
       setInspCurrentBoxBooks(0)
-      setInspTotalBooksExpected('')
-      setInspIssueIsbn('')
-      setInspIssues([])
       setInspConfirmComplete(false)
       setActiveTab('outgoing')
       toast.success('Inspection session completed.')
@@ -661,79 +617,32 @@ export default function BookInspectionPage() {
                     <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                       <h3 className="text-base font-semibold text-foreground mb-4">Complete Inspection</h3>
 
-                      {/* Total Books Expected */}
+                      {/* Scan Log Summary */}
                       <div className="mb-4">
-                        <div className="flex items-center gap-1 mb-1">
-                          <label className="text-sm font-medium text-foreground">Total Books Expected</label>
-                          <span className="text-sm font-medium text-red-500">*</span>
-                        </div>
-                        <input
-                          type="number"
-                          value={inspTotalBooksExpected}
-                          onChange={e => setInspTotalBooksExpected(e.target.value)}
-                          placeholder="Enter expected total count"
-                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        />
-                      </div>
-
-                      {/* Discrepancies */}
-                      <div className="mb-4">
-                        <label className="text-sm font-medium text-foreground mb-2 block">Discrepancies (Missing/Extra Books)</label>
-                        <div className="flex gap-2 mb-3">
-                          <Select value={inspIssueType} onValueChange={v => setInspIssueType(v as 'missing' | 'extra')}>
-                            <SelectTrigger className="w-28 h-9"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="missing">Missing</SelectItem>
-                              <SelectItem value="extra">Extra</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <input
-                            type="text"
-                            value={inspIssueIsbn}
-                            onChange={e => setInspIssueIsbn(e.target.value)}
-                            onKeyDown={e => { if (e.key === 'Enter' && inspIssueIsbn.trim()) handleAddInspIssue() }}
-                            placeholder="Scan or Input ISBN — book details will auto-fetch"
-                            className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                          />
-                          <button
-                            onClick={handleAddInspIssue}
-                            disabled={!inspIssueIsbn.trim() || inspFetchingIssueBook}
-                            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-sm disabled:opacity-50"
-                          >
-                            {inspFetchingIssueBook ? 'Adding…' : 'Add'}
-                          </button>
-                        </div>
-                        {inspIssues.length > 0 && (
-                          <div className="space-y-1.5 mb-3">
-                            {inspIssues.map((issue, idx) => (
-                              <div key={`${issue.isbn}-${idx}`} className="flex items-center justify-between px-3 py-2 rounded-lg border border-border bg-muted/30">
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${issue.type === 'missing' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                                    {issue.type === 'missing' ? 'Missing' : 'Extra'}
-                                  </span>
-                                  <span className="text-xs font-medium text-foreground">{issue.isbn}</span>
-                                  <span className="text-[11px] text-muted-foreground">{issue.title}</span>
-                                </div>
-                                <button onClick={() => setInspIssues(prev => prev.filter(i => i.isbn !== issue.isbn))} className="text-[10px] text-muted-foreground hover:text-destructive underline">Remove</button>
+                        <label className="text-sm font-medium text-foreground mb-2 block">Scanned Books Summary</label>
+                        <div className="max-h-80 overflow-y-auto border border-border rounded-lg bg-card divide-y divide-border">
+                          {inspScannedBooks.length === 0 ? (
+                            <div className="p-4 text-center text-xs text-muted-foreground">No books scanned.</div>
+                          ) : (
+                            inspScannedBooks.map((book, idx) => (
+                              <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
+                                <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
+                                <span className="text-[11px] truncate flex-1">{book.title}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                </span>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Summary */}
-                      <div className="mb-4 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-                        <span className="font-medium">Expected:</span> {inspTotalBooksExpected || 0} books
-                        <span className="ml-3"><span className="font-medium">Scanned:</span> {inspCurrentSession?.total_scanned || 0} books</span>
-                        {inspIssues.length > 0 && (
-                          <span className="ml-3"><span className="font-medium">Issues:</span> {inspIssues.length} ({inspIssues.filter(i => i.type === 'missing').length} missing, {inspIssues.filter(i => i.type === 'extra').length} extra)</span>
-                        )}
-                        <p className="text-[10px] mt-1">* All scanned books will be saved when you confirm.</p>
+                            ))
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          * Total {inspScannedBooks.length} scanned books will be saved to the database when you confirm.
+                        </p>
                       </div>
 
                       {/* Actions */}
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => { setInspConfirmComplete(false); setInspTotalBooksExpected(''); setInspIssueIsbn(''); setInspIssues([]) }}
+                        <button onClick={() => { setInspConfirmComplete(false) }}
                           className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
                         <button onClick={handleCompleteInspSession} disabled={loadingInspSession}
                           className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50">
@@ -941,7 +850,7 @@ export default function BookInspectionPage() {
                             <div className="space-y-1.5">
                               {warehouseBooks
                                 .map((book) => {
-                                  const endorsementBook = inspScannedBooks.find(ib => ib.isbn === book.isbn)
+                                  const endorsementBook = inspScannedBooks.find(ib => ib.isbn.trim().toLowerCase() === (book.isbn || '').trim().toLowerCase())
                                   const isMissing = book.rejection_reason === 'missing'
                                   const isMatch = isMissing || (endorsementBook && endorsementBook.scan_status === book.scan_status)
                                   return { book, isMatch, isMissing }
@@ -1011,14 +920,14 @@ export default function BookInspectionPage() {
                                       <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                                     )}
                                   </div>
-                                  <div className="col-span-3 flex flex-col items-end gap-1">
+                                  <div className="col-span-3 flex flex-row items-center justify-end gap-2">
                                     {book.scan_status === 'processable' ? (
                                       <>
-                                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Processable</span>
-                                        <button onClick={() => openInspFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline">Flag Issue</button>
+                                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700 whitespace-nowrap">Processable</span>
+                                        <button onClick={() => openInspFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-destructive underline whitespace-nowrap">Flag Issue</button>
                                       </>
                                     ) : (
-                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700 text-right">
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-700 text-right whitespace-nowrap">
                                         <AlertTriangle className="h-2.5 w-2.5 shrink-0" /> Non-Processable
                                       </span>
                                     )}
