@@ -776,7 +776,7 @@ export default function InventoryPage() {
   const handleSendToCut = async (box: Box) => {
     setSendingToCut(box.id)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-to-cut`, {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-forward`, {
         method: 'POST',
         body: JSON.stringify({ notes: 'Sent to Cut from Inventory Outgoing' }),
       })
@@ -980,8 +980,8 @@ export default function InventoryPage() {
     if (b.current_stage !== 'inventory') return false
     if (!matchesBrand(b)) return false
     const sessions = b.box_sessions || []
-    // If there's a completed session it has been verified → goes to outgoing tab instead
-    if (sessions.some(s => s.status === 'completed')) return false
+    // If there's a completed or sent session it has been verified → goes to outgoing or cut tab instead
+    if (sessions.some(s => s.status === 'completed' || s.status === 'sent')) return false
     // Only hide in_progress boxes that are locked to a DIFFERENT user.
     // If inventory_user_send is null/unset, the box is available to everyone.
     if (verifUserId) {

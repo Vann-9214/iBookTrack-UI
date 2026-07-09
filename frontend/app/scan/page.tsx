@@ -35,10 +35,13 @@ export default function ScanPage() {
   const fetchBoxes = useCallback(async () => {
     setLoading(true)
     try {
-      // Fetch incoming: current stage is 'scan'
-      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=scan`)
+      // Fetch incoming: current stage is 'endorsement' but session is 'sent'
+      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
       const incomingData = await resIncoming.json()
-      setIncomingBoxes(incomingData.boxes || [])
+      const filteredIncoming = (incomingData.boxes || []).filter((b: BoxEntry) => {
+         return b.box_sessions?.some(s => s.status === 'sent')
+      })
+      setIncomingBoxes(filteredIncoming)
       setLastUpdated(new Date())
     } catch (e) {
       console.error('Failed to fetch boxes:', e)

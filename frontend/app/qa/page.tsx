@@ -96,7 +96,10 @@ export default function BookInspectionPage() {
     try {
       const res = await authFetch(`${API_URL}/api/boxes?current_stage=cut`)
       const data = await res.json()
-      setIncomingBoxes(data.boxes || [])
+      const filteredIncoming = (data.boxes || []).filter((b: BoxEntry) => {
+         return b.box_sessions?.some(s => s.status === 'sent')
+      })
+      setIncomingBoxes(filteredIncoming)
     } catch (e) {
       console.error('Failed to fetch incoming boxes:', e)
     } finally {
@@ -157,7 +160,7 @@ export default function BookInspectionPage() {
   const handleSendToScan = async (box: BoxEntry) => {
     setSendingToScan(box.id)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/advance`, {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-forward`, {
         method: 'POST',
         body: JSON.stringify({ notes: 'Sent to Scan from Book Inspection & Endorsement' }),
       })

@@ -87,7 +87,7 @@ export default function CutPage() {
   const handleSendBox = async (box: BoxEntry) => {
     setSendingBox(box.id)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/advance`, {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-forward`, {
         method: 'POST',
         body: JSON.stringify({ notes: 'Sent to Endorsement from Cut' }),
       })
