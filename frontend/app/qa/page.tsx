@@ -48,7 +48,7 @@ interface BoxEntry {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { warehouse_time_received?: string }[]
+  box_sessions?: { warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
 }
 
 interface BoxBookEntry {
@@ -96,7 +96,10 @@ export default function BookInspectionPage() {
     try {
       const res = await authFetch(`${API_URL}/api/boxes?current_stage=cut`)
       const data = await res.json()
-      setIncomingBoxes(data.boxes || [])
+      const filteredIncoming = (data.boxes || []).filter((b: BoxEntry) => {
+         return b.box_sessions?.some(s => s.status === 'sent')
+      })
+      setIncomingBoxes(filteredIncoming)
     } catch (e) {
       console.error('Failed to fetch incoming boxes:', e)
     } finally {
@@ -132,7 +135,10 @@ export default function BookInspectionPage() {
       const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
       const data = await res.json()
       if (data.boxes) {
-        setEndorsementBoxes(data.boxes)
+        const filteredEndorsement = data.boxes.filter((b: BoxEntry) => {
+          return !b.box_sessions?.some(s => s.status === 'sent')
+        })
+        setEndorsementBoxes(filteredEndorsement)
       }
       setLastUpdated(new Date())
     } catch (e) {
@@ -157,7 +163,7 @@ export default function BookInspectionPage() {
   const handleSendToScan = async (box: BoxEntry) => {
     setSendingToScan(box.id)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/advance`, {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-forward`, {
         method: 'POST',
         body: JSON.stringify({ notes: 'Sent to Scan from Book Inspection & Endorsement' }),
       })
@@ -525,10 +531,10 @@ export default function BookInspectionPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                          {box.box_sessions?.[0]?.warehouse_time_received ? new Date(box.box_sessions[0].warehouse_time_received).toLocaleDateString() : ''}
+                          {box.box_sessions?.[0]?.cut_time_send ? new Date(box.box_sessions[0].cut_time_send).toLocaleString() : ''}
                         </span>
                         <button
                           onClick={() => handleReceiveBox(box)}
@@ -711,10 +717,10 @@ export default function BookInspectionPage() {
                                 </div>
                                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleInspRow(box.id)}>
                                   <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
                                 <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                                  {box.box_sessions?.[0]?.warehouse_time_received ? new Date(box.box_sessions[0].warehouse_time_received).toLocaleDateString() : ''}
+                                  {box.box_sessions?.[0]?.endorsement_time_received ? new Date(box.box_sessions[0].endorsement_time_received).toLocaleString() : ''}
                                 </span>
                                 <button
                                   onClick={() => handleStartInspSession(box.id)}
@@ -886,7 +892,7 @@ export default function BookInspectionPage() {
                             <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
                           </div>
-                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.total_books_expected || 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                          <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         <button
                           onClick={() => handleSendToScan(box)}

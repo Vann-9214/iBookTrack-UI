@@ -49,7 +49,7 @@ router.get('/', requireAuth, async (req, res) => {
         books:books(
           scans:book_activity(count)
         ),
-        box_sessions:box_sessions(id, status, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received)
+        box_sessions:box_sessions(id, status, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received, inventory_time_received, inventory_time_send, cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received)
       `)
       .order('created_at', { ascending: false })
 
@@ -194,9 +194,10 @@ router.get('/:id', requireAuth, async (req, res) => {
     const books = (scans || []).map(s => {
       let flag = null;
       if (s.user_flags || s.scan_status === 'non_processable') {
+        const flagRec = Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags;
         flag = {
-          issue: s.user_flags?.rejection_reason || 'non-processable',
-          remarks: s.user_flags?.notes || '',
+          issue: flagRec?.rejection_reason || 'non-processable',
+          remarks: flagRec?.notes || '',
           flagged_at: s.warehouse_scan_at,
           flagged_by_name: 'Warehouse scan',
           source: 'scan_status',
@@ -372,57 +373,79 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
         .eq('box_id', id)
         .eq('status', 'completed')
     }
-    // If advancing FROM inventory TO cut (or endorsement), record the inventory send user
+    // If advancing FROM inventory TO cut (or endorsement)
     if (box.current_stage === 'inventory' && (nextStage === 'cut' || nextStage === 'endorsement' || nextStage === 'qa')) {
       const { data: session } = await db
         .from('box_sessions')
-        .select('id')
+        .select('id, status')
         .eq('box_id', id)
         .order('warehouse_time_received', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       if (session) {
-        await db
-          .from('box_sessions')
-          .update({ inventory_user_send: req.user.id, inventory_time_send: new Date().toISOString() })
-          .eq('id', session.id)
+        // If it was 'sent', now it's received.
+        // We don't overwrite inventory_user_send because the sender already set it during /send-to-cut.
+        let updates = {}
+        if (session.status === 'sent') {
+          updates.status = 'received'
+        }
+        if (nextStage === 'cut') {
+          updates.cut_user_received = req.user.id
+          updates.cut_time_received = new Date().toISOString()
+        }
+        if (Object.keys(updates).length > 0) {
+          await db
+            .from('box_sessions')
+            .update(updates)
+            .eq('id', session.id)
+        }
       }
     }
 
-    // If advancing from inventory to endorsement (qa), record the endorsement user
+    // If advancing to endorsement (qa), record the endorsement user
     if ((box.current_stage === 'inventory' || box.current_stage === 'cut') && (nextStage === 'endorsement' || nextStage === 'qa')) {
       // Get the latest session to update
       const { data: session } = await db
         .from('box_sessions')
-        .select('id')
+        .select('id, status')
         .eq('box_id', id)
         .order('warehouse_time_received', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       if (session) {
+        let updates = {
+          endorsement_user_received: req.user.id,
+          endorsement_time_received: new Date().toISOString()
+        }
+        if (session.status === 'sent') updates.status = 'received'
         await db
           .from('box_sessions')
-          .update({ endorsement_user_received: req.user.id, endorsement_time_received: new Date().toISOString() })
+          .update(updates)
           .eq('id', session.id)
       }
     }
 
-    // If advancing from endorsement to scan, record the endorsement send user
-    if ((box.current_stage === 'endorsement' || box.current_stage === 'qa') && nextStage === 'scan') {
+    // If advancing from scan to transmit, record scan user received
+    if (box.current_stage === 'scan' && nextStage === 'transmit') {
       const { data: session } = await db
         .from('box_sessions')
-        .select('id')
+        .select('id, status')
         .eq('box_id', id)
         .order('warehouse_time_received', { ascending: false })
         .limit(1)
         .maybeSingle()
 
       if (session) {
+        let updates = {
+          scan_user_received: req.user.id,
+          scan_time_received: new Date().toISOString()
+        }
+        if (session.status === 'sent') updates.status = 'received'
         await db
           .from('box_sessions')
-          .update({ endorsement_user_send: req.user.id, endorsement_time_send: new Date().toISOString() })
+          .update(updates)
           .eq('id', session.id)
       }
     }
@@ -445,9 +468,10 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
   }
 })
 
-// Mark a verified inventory box as sent to Cut.
-// Keeps boxes.current_stage as 'inventory' and sets the active box_session status to 'sent'.
-router.post('/:id/send-to-cut', requireAuth, async (req, res) => {
+// Mark a box as sent to the next stage.
+// Keeps boxes.current_stage unchanged, but sets the active box_session status to 'sent'
+// and records the appropriate *_user_send and *_time_send fields.
+router.post('/:id/send-forward', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
     const { notes } = req.body
@@ -461,31 +485,44 @@ router.post('/:id/send-to-cut', requireAuth, async (req, res) => {
 
     if (boxError || !box) return res.status(404).json({ error: 'Box not found', detail: boxError?.message })
 
-    if (box.current_stage !== 'inventory') {
-      return res.status(400).json({ error: 'Box must be in inventory to send to cut' })
+    if (!['inventory', 'cut', 'endorsement', 'qa'].includes(box.current_stage)) {
+      return res.status(400).json({ error: 'Box cannot be sent forward from this stage' })
     }
 
-    // Find the latest completed session for this box
+    // Find the latest active session for this box
     const { data: session, error: sessionError } = await db
       .from('box_sessions')
       .select('id, status')
       .eq('box_id', id)
-      .eq('status', 'completed')
-      .order('inventory_time_received', { ascending: false })
+      .in('status', ['completed', 'received'])
+      .order('warehouse_time_received', { ascending: false })
       .limit(1)
       .maybeSingle()
 
     if (sessionError) throw sessionError
-    if (!session) return res.status(400).json({ error: 'No verified session found for this box' })
+    if (!session) return res.status(400).json({ error: 'No active session found for this box to send' })
 
-    // Mark the session as sent without changing boxes.current_stage
+    let updates = { status: 'sent' }
+    let nextStage = ''
+
+    if (box.current_stage === 'inventory') {
+      updates.inventory_user_send = req.user.id
+      updates.inventory_time_send = new Date().toISOString()
+      nextStage = 'cut'
+    } else if (box.current_stage === 'cut') {
+      updates.cut_user_send = req.user.id
+      updates.cut_time_send = new Date().toISOString()
+      nextStage = 'endorsement'
+    } else if (box.current_stage === 'endorsement' || box.current_stage === 'qa') {
+      updates.endorsement_user_send = req.user.id
+      updates.endorsement_time_send = new Date().toISOString()
+      nextStage = 'scan'
+    }
+
+    // Mark the session as sent
     const { error: updateError } = await db
       .from('box_sessions')
-      .update({
-        status: 'sent',
-        inventory_user_send: req.user.id,
-        inventory_time_send: new Date().toISOString()
-      })
+      .update(updates)
       .eq('id', session.id)
 
     if (updateError) throw updateError
@@ -494,14 +531,14 @@ router.post('/:id/send-to-cut', requireAuth, async (req, res) => {
     await db.from('pipeline_events').insert({
       box_id: id,
       lot_id: box.lot_id,
-      from_stage: 'inventory',
-      to_stage: 'cut',
+      from_stage: box.current_stage,
+      to_stage: nextStage,
       moved_by: req.user.id,
       moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: notes || 'Sent to Cut from Inventory Outgoing'
+      notes: notes || `Sent to ${nextStage} from ${box.current_stage}`
     })
 
-    res.json({ success: true, box, session_status: 'sent', current_stage: 'inventory' })
+    res.json({ success: true, box, session_status: 'sent', current_stage: box.current_stage })
   } catch (error) {
     console.error('Send to cut error:', error)
     res.status(500).json({ error: error.message })
@@ -617,7 +654,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
         isbn: isbn,
         title: s.books?.title || null,
         scan_status: s.scan_status,
-        rejection_reason: s.user_flags?.rejection_reason || null,
+        rejection_reason: (Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags)?.rejection_reason || null,
         warehouse_scan_at: s.warehouse_scan_at,
         simflex_status: sf.latestStatus || null,
         transmission_completed: sf.transmissionCompleted || false,

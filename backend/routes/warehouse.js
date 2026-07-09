@@ -1344,7 +1344,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
     // Fetch the scan to verify it exists and get its session_id
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from('book_activity')
-      .select('id, scan_status, session_id, books(isbn)')
+      .select('id, scan_status, session_id, book_id, books(isbn)')
       .eq('id', scan_id)
       .single()
 
@@ -1452,7 +1452,7 @@ router.get('/boxes/:box_id/scans', requireAuth, async (req, res) => {
       isbn: scan.books?.isbn,
       title: scan.books?.title,
       scan_status: scan.scan_status,
-      rejection_reason: scan.user_flags?.rejection_reason || null,
+      rejection_reason: (Array.isArray(scan.user_flags) ? scan.user_flags[0] : scan.user_flags)?.rejection_reason || null,
       warehouse_scan_at: scan.warehouse_scan_at
     }))
 

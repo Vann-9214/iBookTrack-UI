@@ -549,7 +549,7 @@ export default function StationCheckpointsPage() {
     if (diff < 60) return `${diff}s ago`
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-    return d.toLocaleDateString()
+    return d.toLocaleString()
   }
 
   const STAGE_LABELS: Record<string, string> = {
@@ -924,7 +924,7 @@ export default function StationCheckpointsPage() {
                                       return (
                                         <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
                                           <td className="px-4 py-1.5 text-muted-foreground whitespace-nowrap w-12">{rowNumber}</td>
-                                          <td className="px-4 py-1.5 text-muted-foreground whitespace-nowrap">{row.ScanDate ? new Date(row.ScanDate).toLocaleDateString() : '—'}</td>
+                                          <td className="px-4 py-1.5 text-muted-foreground whitespace-nowrap">{row.ScanDate ? new Date(row.ScanDate).toLocaleString() : '—'}</td>
                                           <td className="px-4 py-1.5 text-foreground">{row.ScanUser || '—'}</td>
                                           <td className="px-4 py-1.5 text-foreground font-medium">{row.BoxNumber || '—'}</td>
                                           <td className="px-4 py-1.5 text-foreground">{row.ISBN || '—'}</td>

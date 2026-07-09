@@ -26,6 +26,10 @@ interface BookInBox {
   scan_status: string
   scanned_at: string
   book_type?: string
+  flag?: {
+    issue: string
+    remarks: string
+  }
 }
 
 interface Box {
@@ -471,10 +475,17 @@ export default function InventoryPage() {
       return
     }
 
-    if (verifScannedBooks.length >= warehouseBooks.length) {
+    const warehouseBook = warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase());
+    if (warehouseBook?.rejection_reason === 'missing') {
+      toast({ title: 'Cannot Scan Missing Book', description: 'This book was marked as missing by the warehouse and cannot be verified.', variant: 'destructive' })
+      return
+    }
+
+    const expectedWarehouseBooksCount = warehouseBooks.filter(wb => wb.rejection_reason !== 'missing').length;
+    if (verifScannedBooks.length >= expectedWarehouseBooksCount) {
       toast({ 
         title: 'Scan Limit Reached', 
-        description: `You cannot scan more than the expected number of books (${warehouseBooks.length}).`, 
+        description: `You cannot scan more than the expected number of books (${expectedWarehouseBooksCount}).`, 
         variant: 'destructive' 
       })
       return
@@ -675,8 +686,10 @@ export default function InventoryPage() {
       return
     }
 
-    const isFullyMatched = warehouseBooks.length === verifScannedBooks.length &&
-      warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn));
+    const expectedWarehouseBooks = warehouseBooks.filter(wb => wb.rejection_reason !== 'missing');
+    
+    const isFullyMatched = expectedWarehouseBooks.length === verifScannedBooks.length &&
+      expectedWarehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn));
       
     if (!isFullyMatched) {
       toast({ title: 'Discrepancy Detected', description: 'Your scans must perfectly match the Warehouse guide before you can complete the session.', variant: 'destructive' })
@@ -772,7 +785,7 @@ export default function InventoryPage() {
   const handleSendToCut = async (box: Box) => {
     setSendingToCut(box.id)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-to-cut`, {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-forward`, {
         method: 'POST',
         body: JSON.stringify({ notes: 'Sent to Cut from Inventory Outgoing' }),
       })
@@ -976,8 +989,8 @@ export default function InventoryPage() {
     if (b.current_stage !== 'inventory') return false
     if (!matchesBrand(b)) return false
     const sessions = b.box_sessions || []
-    // If there's a completed session it has been verified → goes to outgoing tab instead
-    if (sessions.some(s => s.status === 'completed')) return false
+    // If there's a completed or sent session it has been verified → goes to outgoing or cut tab instead
+    if (sessions.some(s => s.status === 'completed' || s.status === 'sent')) return false
     // Only hide in_progress boxes that are locked to a DIFFERENT user.
     // If inventory_user_send is null/unset, the box is available to everyone.
     if (verifUserId) {
@@ -1328,17 +1341,12 @@ export default function InventoryPage() {
                   <div className="flex-1 overflow-y-auto pr-1">
                     <div className="flex flex-col gap-2 pb-2">
                       {paginatedIncomingBoxes.map(box => {
-                        const rawScans = box.scans as any[]
-                        const bookCount = (() => {
-                          if (Array.isArray(rawScans) && rawScans.length > 0) {
-                            const first = rawScans[0]
-                            if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
-                          }
-                          return box.total_books_expected || 0
-                        })()
+                        const activeSession = box.box_sessions?.[0]
+                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = expandedBox === box.id
                         const booksForBox = boxBooks[box.id] || []
-                        const created = box.created_at ? new Date(box.created_at) : null
+                        const warehouseTime = box.box_sessions?.[0]?.warehouse_time_received
+                        const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
                             <div
@@ -1407,15 +1415,22 @@ export default function InventoryPage() {
                                         </div>
                                         <span className={cn(
                                           'text-xs font-medium',
-                                          book.book_type?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
+                                          (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
                                         )}>
-                                          {book.book_type ? book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase() : '—'}
+                                          {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                         </span>
-                                        <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
-                                          book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                        }`}>
-                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-                                        </span>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
+                                            book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                          }`}>
+                                            {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                          </span>
+                                          {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
+                                            <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">
+                                              {book.flag.issue}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                     ))}
                                   </div>
@@ -1556,9 +1571,11 @@ export default function InventoryPage() {
                             const isExpanded = verifExpandedBoxId === box.id
                             const rowBooks = verifRowBooks[box.id] || []
                             const isLoadingBooks = loadingVerifRowBooks === box.id
-                            const bookCount = box.total_books_expected || 0
+                            const activeSession = box.box_sessions?.[0]
+                            const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                             const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_send === verifUserId)
-                            const created = box.created_at ? new Date(box.created_at) : null
+                            const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
+                            const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
                             return (
                               <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                                 {/* Row header — same style as Incoming Boxes */}
@@ -1607,24 +1624,44 @@ export default function InventoryPage() {
                                 </div>
                                 {/* Expandable books list */}
                                 {isExpanded && (
-                                  <div className="border-t border-border px-5 py-3 bg-muted/30">
+                                  <div className="border-t border-border bg-muted/30">
                                     {isLoadingBooks ? (
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                      <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" /> Loading books…
                                       </div>
                                     ) : rowBooks.length === 0 ? (
-                                      <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                                      <div className="py-6 text-center text-sm text-muted-foreground">No books found in this box.</div>
                                     ) : (
-                                      <div className="flex flex-col gap-0">
-                                        <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
-                                        {rowBooks.map((book, idx) => (
-                                          <div key={book.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/40 last:border-0">
-                                            <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}</span>
-                                            <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
-                                            <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                              {book.scan_status}
+                                      <div className="divide-y divide-border">
+                                        <div className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
+                                          <span>ISBN / Title</span>
+                                          <span>Type</span>
+                                          <span>Status</span>
+                                        </div>
+                                        {rowBooks.map(book => (
+                                          <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                                            <div className="min-w-0 pr-3">
+                                              <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
+                                              {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
+                                            </div>
+                                            <span className={cn(
+                                              'text-xs font-medium',
+                                              (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
+                                            )}>
+                                              {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                             </span>
+                                            <div className="flex flex-col gap-0.5">
+                                              <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
+                                                book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                              }`}>
+                                                {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                              </span>
+                                              {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
+                                                <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">
+                                                  {book.flag.issue}
+                                                </span>
+                                              )}
+                                            </div>
                                           </div>
                                         ))}
                                       </div>
@@ -1677,8 +1714,8 @@ export default function InventoryPage() {
                       <button onClick={handleOpenVerifComplete} disabled={
                           loadingVerifBooks || 
                           verifScannedBooks.length === 0 ||
-                          verifScannedBooks.length !== warehouseBooks.length ||
-                          !warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn))
+                          verifScannedBooks.length !== warehouseBooks.filter(wb => wb.rejection_reason !== 'missing').length ||
+                          !warehouseBooks.filter(wb => wb.rejection_reason !== 'missing').every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn))
                         }
                         className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Complete Session
@@ -1737,13 +1774,18 @@ export default function InventoryPage() {
                             {warehouseBooks
                               .map((book) => {
                                 const inventoryBook = verifScannedBooks.find(ib => ib.isbn === book.isbn)
-                                const isMatch = inventoryBook && inventoryBook.scan_status === book.scan_status
-                                return { book, isMatch }
+                                const isMissing = book.rejection_reason === 'missing'
+                                const isMatch = isMissing || (inventoryBook && inventoryBook.scan_status === book.scan_status)
+                                return { book, isMatch, isMissing }
                               })
-                              .sort((a, b) => (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1))
-                              .map(({ book, isMatch }, i) => (
+                              .sort((a, b) => {
+                                if (a.isMissing && !b.isMissing) return 1;
+                                if (!a.isMissing && b.isMissing) return -1;
+                                return (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1)
+                              })
+                              .map(({ book, isMatch, isMissing }, i) => (
                                 <div key={i} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
-                                  isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
+                                  isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
                                 }`}>
                                   <div className="col-span-2">
                                     <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
@@ -1821,7 +1863,6 @@ export default function InventoryPage() {
                                         <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-200 text-red-800 whitespace-nowrap">
                                           <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
                                         </span>
-                                        <button onClick={() => openVerifFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-blue-600 underline whitespace-nowrap">Edit</button>
                                       </>
                                     )}
                                   </div>
@@ -1847,7 +1888,11 @@ export default function InventoryPage() {
                       </span>
                       <span className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
-                        <span className="text-muted-foreground">Mismatch (Different status or missing)</span>
+                        <span className="text-muted-foreground">Mismatch (Different status)</span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded"></div>
+                        <span className="text-muted-foreground">Missing (Not Required)</span>
                       </span>
                     </div>
                   </div>
@@ -1879,23 +1924,16 @@ export default function InventoryPage() {
                   <div className="flex-1 overflow-y-auto pr-1">
                     <div className="flex flex-col gap-2 pb-2">
                       {paginatedOutgoingBoxes.map(box => {
-                        const rawScans = box.scans as any[]
-                        const bookCount = (() => {
-                          if (Array.isArray(rawScans) && rawScans.length > 0) {
-                            const first = rawScans[0]
-                            if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
-                          }
-                          return box.total_books_expected || 0
-                        })()
+                        const activeSession = box.box_sessions?.[0]
+                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = outgoingExpandedBoxId === box.id
                         const booksForBox: BookInBox[] = boxBooks[box.id] || []
-                        const created = box.created_at ? new Date(box.created_at) : null
-                        // All-printed gate: box label printed AND every book slip printed
+                        const warehouseTime = box.box_sessions?.[0]?.inventory_time_send
+                        const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
+                        // All-printed gate: box label printed (book slips are optional)
                         const boxLabelPrinted = printedBoxLabels.has(box.id)
                         const slipsForBox = printedBookSlips[box.id] ?? new Set<string>()
-                        // We can only check book-completeness once books are loaded
-                        const allBooksPrinted = booksForBox.length > 0 && booksForBox.every(b => slipsForBox.has(b.id))
-                        const allPrinted = boxLabelPrinted && allBooksPrinted
+                        const allPrinted = boxLabelPrinted
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                             {/* ── Header row (Full row is now clickable) ── */}
@@ -1985,11 +2023,7 @@ export default function InventoryPage() {
                                 {!allPrinted && (
                                   <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
                                     <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
-                                      {!boxLabelPrinted && !allBooksPrinted
-                                        ? 'Print the box label and all book slips first'
-                                        : !boxLabelPrinted
-                                          ? 'Print the box label first'
-                                          : 'Print all book slips first'}
+                                      Print the box label first
                                     </div>
                                   </div>
                                 )}
@@ -2027,23 +2061,30 @@ export default function InventoryPage() {
                                         {/* Book type — plain text */}
                                         <span className={cn(
                                           'text-xs font-medium',
-                                          book.book_type?.toLowerCase() === 'jaguar'
-                                            ? 'text-green-700'
-                                            : 'text-blue-700'
+                                          (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar'
+                                            ? 'text-green-600'
+                                            : 'text-blue-600'
                                         )}>
-                                          {book.book_type
-                                            ? book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase()
+                                          {(book.book_type || box.lot?.type)
+                                            ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase()
                                             : '—'}
                                         </span>
                                         {/* Status badge */}
-                                        <span className={cn(
-                                          'text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap w-fit',
-                                          book.scan_status === 'processable'
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : 'bg-red-100 text-red-700'
-                                        )}>
-                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-processable'}
-                                        </span>
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className={cn(
+                                            'text-[10px] px-2 py-0.5 rounded font-medium whitespace-nowrap w-fit',
+                                            book.scan_status === 'processable'
+                                              ? 'bg-green-100 text-green-700'
+                                              : 'bg-red-100 text-red-700'
+                                          )}>
+                                            {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                          </span>
+                                          {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
+                                            <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">
+                                              {book.flag.issue}
+                                            </span>
+                                          )}
+                                        </div>
                                         {/* Per-book print button */}
                                         <div className="flex items-center justify-center">
                                           <button
