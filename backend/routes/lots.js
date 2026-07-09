@@ -1,12 +1,12 @@
 /**
  * routes/lots.js
  *
- * Manages Lots — named groupings of boxes that arrive together in a shipment.
+ * Manages Lots — named groupings of boxes.
  * A Lot contains many Boxes; each Box contains many Books.
  *
  * Endpoints:
- *   GET  /api/lots             — List all lots (filterable by status, shipment_id)
- *   GET  /api/lots/:lot_number — Get a single lot with its shipment and all boxes
+ *   GET  /api/lots             — List all lots (filterable by status)
+ *   GET  /api/lots/:lot_number — Get a single lot with all its boxes
  *   GET  /api/lots/:lot_number/transmission-summary — Lot transmission status from Simflex
  *
  * All routes require authentication (requireAuth middleware).
@@ -21,19 +21,17 @@ const router = express.Router()
 // Get all lots
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { status, shipment_id } = req.query
+    const { status } = req.query
 
     let query = supabase
       .from('lots')
       .select(`
         *,
-        shipment:shipments(shipment_code, status),
         boxes:boxes(count)
       `)
       .order('created_at', { ascending: false })
 
     if (status) query = query.eq('status', status)
-    if (shipment_id) query = query.eq('shipment_id', shipment_id)
 
     const { data, error } = await query
 
@@ -178,7 +176,6 @@ router.get('/:lot_number', requireAuth, async (req, res) => {
       .from('lots')
       .select(`
         *,
-        shipment:shipments(*),
         boxes:boxes(*)
       `)
       .eq('lot_number', lot_number)
