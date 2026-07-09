@@ -1,11 +1,26 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { cn } from '@/lib/utils'
 
+// All formats we want to detect: QR codes + common 1-D barcodes (ISBN EAN-13, CODE-128, etc.)
+const SUPPORTED_FORMATS = [
+  Html5QrcodeSupportedFormats.QR_CODE,
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.DATA_MATRIX,
+  Html5QrcodeSupportedFormats.PDF_417,
+]
+
+export type ScanFormat = 'qr' | 'barcode'
+
 interface QrScannerProps {
-  onScan: (decodedText: string) => void
+  onScan: (decodedText: string, format: ScanFormat) => void
   accentColor?: string
 }
 
@@ -18,8 +33,10 @@ export function QrScanner({ onScan, accentColor }: QrScannerProps) {
   const hasScannedRef = useRef(false)
 
   useEffect(() => {
-    // Instantiate once; the DOM element must exist before this runs
-    scannerRef.current = new Html5Qrcode(CONTAINER_ID, { verbose: false })
+    scannerRef.current = new Html5Qrcode(CONTAINER_ID, {
+      verbose: false,
+      formatsToSupport: SUPPORTED_FORMATS,
+    })
 
     return () => {
       const scanner = scannerRef.current
@@ -45,10 +62,14 @@ export function QrScanner({ onScan, accentColor }: QrScannerProps) {
       await scanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
+        (decodedText, result) => {
           if (hasScannedRef.current) return
           hasScannedRef.current = true
-          onScan(decodedText)
+          // Determine format from the result — QR_CODE = 0
+          const fmt = result?.result?.format?.format === Html5QrcodeSupportedFormats.QR_CODE
+            ? 'qr'
+            : 'barcode'
+          onScan(decodedText, fmt as ScanFormat)
           stop()
         },
         () => {
