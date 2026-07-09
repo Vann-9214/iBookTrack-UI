@@ -79,7 +79,8 @@ async function queryILMS(url, text = '') {
     // Filter out iLMS "not found" message objects
     const valid = rows.filter(r => r && !r.Message)
     return { success: valid.length > 0, data: valid }
-  } catch {
+  } catch (err) {
+    console.error(`iLMS Query Failed [${url}]:`, err.message || err);
     return { success: false, data: [] }
   }
 }
