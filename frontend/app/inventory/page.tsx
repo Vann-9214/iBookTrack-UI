@@ -10,7 +10,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
-import { Package, Search, ChevronDown, ChevronRight, ChevronUp, X, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw } from 'lucide-react'
+import { Package, Search, ChevronDown, ChevronRight, ChevronUp, X, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw, ScanBarcode, CircleCheck, CircleX } from 'lucide-react'
 import { RefreshControl } from '@/components/refresh-control'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -43,7 +43,18 @@ interface Box {
   lot: { lot_number: string; status: string; type?: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
-  box_sessions?: { id?: string; status: string; total_scanned?: number; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_send?: string; warehouse_time_received?: string; inventory_time_received?: string }[]
+  box_sessions?: { 
+    id?: string; 
+    status: string; 
+    warehouse_user_received?: string; 
+    inventory_user_received?: string; 
+    endorsement_user_received?: string; 
+    inventory_user_send?: string; 
+    warehouse_time_received?: string;
+    total_scanned?: number;
+    inventory_time_received?: string;
+    inventory_time_send?: string;
+  }[]
   latest_inventory_scan_at?: string | null
 }
 
@@ -1487,41 +1498,32 @@ export default function InventoryPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
+                            <ScanBarcode className="h-4 w-4 text-primary" />
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Processable</p>
-                            <p className="text-lg font-bold text-foreground leading-none mt-0.5">{verifProcessableBooks.length}</p>
+                            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
+                            <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifScannedBooks.length}</p>
                           </div>
                         </div>
-                        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
-                            <XCircle className="h-4 w-4 text-destructive" />
+                        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
+                            <CircleCheck className="h-4 w-4 text-emerald-500" />
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Non-Processable</p>
-                            <p className="text-lg font-bold text-foreground leading-none mt-0.5">{verifBlockedBooks.length}</p>
+                            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
+                            <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifProcessableBooks.length}</p>
                           </div>
                         </div>
-                        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-500/10 flex items-center justify-center shrink-0">
-                            <AlertTriangle className="h-4 w-4 text-slate-600" />
+                        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
+                            <CircleX className="h-4 w-4 text-destructive" />
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Missing</p>
-                            <p className="text-lg font-bold text-foreground leading-none mt-0.5">{verifMissingBooks.length}</p>
-                          </div>
-                        </div>
-                        <div className="bg-card border border-border rounded-xl p-3 flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <BookOpen className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Total Scanned</p>
-                            <p className="text-lg font-bold text-foreground leading-none mt-0.5">{verifScannedBooks.length}</p>
+                            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
+                            <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifBlockedBooks.length + verifMissingBooks.length}</p>
                           </div>
                         </div>
                       </div>
@@ -1556,7 +1558,7 @@ export default function InventoryPage() {
                           <div className="px-4 py-3 border-b border-border bg-muted/30 flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <p className="text-sm font-semibold text-foreground">Non-Processable and Missing ISBNs</p>
-                              <p className="text-[11px] text-muted-foreground">These are the ISBNs that can't be updated in iLMS.</p>
+                              <p className="text-[11px] text-muted-foreground">These are the ISBNs that can't be updated or edited in iLMS.</p>
                             </div>
                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold uppercase tracking-wide">Blocked from iLMS</span>
                           </div>
@@ -1823,17 +1825,32 @@ export default function InventoryPage() {
 
                   {/* ── Book count stats ── */}
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                      <p className="text-xs text-blue-600 font-medium">Total Scanned</p>
-                      <p className="text-2xl font-bold text-blue-900">{verifCurrentSession?.total_scanned || 0}</p>
+                    <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
+                        <ScanBarcode className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
+                        <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifScannedBooks.length}</p>
+                      </div>
                     </div>
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-xs text-green-600 font-medium">Processable</p>
-                      <p className="text-2xl font-bold text-green-900">{verifCurrentSession?.total_processable || 0}</p>
+                    <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
+                        <CircleCheck className="h-4 w-4 text-emerald-500" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
+                        <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifProcessableBooks.length}</p>
+                      </div>
                     </div>
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                      <p className="text-xs text-red-600 font-medium">Non-Processable</p>
-                      <p className="text-2xl font-bold text-red-900">{verifCurrentSession?.total_non_processable || 0}</p>
+                    <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                      <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
+                        <CircleX className="h-4 w-4 text-destructive" />
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
+                        <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifBlockedBooks.length + verifMissingBooks.length}</p>
+                      </div>
                     </div>
                   </div>
 
