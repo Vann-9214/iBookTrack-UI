@@ -1575,6 +1575,7 @@ export default function InventoryPage() {
                             const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                             const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
                             const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
+                            const stuckSession = activeSession?.status === 'in_progress'
                             return (
                               <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                                 {/* Row header — same style as Incoming Boxes */}
