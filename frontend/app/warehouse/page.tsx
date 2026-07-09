@@ -448,7 +448,7 @@ export default function WarehousePage() {
       const data = await response.json()
 
       if (!response.ok || !data.success) {
-        setSessionError(`ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`)
+        setSessionError(data.error || `ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`)
         setIssueIsbn('')
         return
       }

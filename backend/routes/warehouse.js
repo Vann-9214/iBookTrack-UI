@@ -1005,15 +1005,33 @@ router.post('/isbn-stream/query', requireAuth, async (req, res) => {
 
     const { ilmsApi } = await import('../services/ilms-api.js')
     let ilmsResult;
+    const projectLabel = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'iLMS'
     
     if (type) {
       const projResult = await ilmsApi.searchByProject(digits, type)
       const results = Array.isArray(projResult.data) ? projResult.data : (projResult.data ? [projResult.data] : [])
       const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9]/g, '') === digits) || null
+      let error = null
+
+      if (!firstHit) {
+        if (results.length > 0) {
+          error = `ISBN ${digits} was not found in ${projectLabel} records. The ${projectLabel} iLMS search returned results, but none matched that exact ISBN.`
+        } else {
+          const otherProject = type.toLowerCase() === 'mustang' ? 'Jaguar' : 'Mustang'
+          const otherLookup = await ilmsApi.searchByProject(digits, otherProject.toLowerCase())
+          if (otherLookup.success) {
+            error = `ISBN ${digits} was not found in ${projectLabel} records. It does appear in ${otherProject} records, so this session may be using the wrong project.`
+          } else {
+            error = `ISBN ${digits} was not found in ${projectLabel} records. No exact match was returned by the ${projectLabel} iLMS endpoint.`
+          }
+        }
+      }
+
       ilmsResult = {
         success: !!firstHit,
         data: firstHit,
-        source: type.charAt(0).toUpperCase() + type.slice(1)
+        source: projectLabel,
+        error
       }
     } else {
       const rawResult = await ilmsApi.searchBookByISBN(digits)
@@ -1025,7 +1043,7 @@ router.post('/isbn-stream/query', requireAuth, async (req, res) => {
       ilmsResult = {
         success: !!firstHit,
         data: firstHit,
-        error: firstHit ? null : (rawResult.error || 'Book not found in iLMS system')
+        error: firstHit ? null : (rawResult.error || `ISBN ${digits} was not found in Mustang or Jaguar iLMS records.`)
       }
     }
 
