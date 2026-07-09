@@ -241,14 +241,14 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/checkpoints')}
-            className={navItemCls(isActive('/checkpoints'))}
-            aria-current={isActive('/checkpoints') ? 'page' : undefined}
-            title="Station Checkpoints"
+            onClick={() => router.push('/cut')}
+            className={navItemCls(isActive('/cut'))}
+            aria-current={isActive('/cut') ? 'page' : undefined}
+            title="Cut"
           >
-            {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-            <IconCell><MapPin className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
+            {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><Scissors className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
           </LockedNavButton>
 
           <LockedNavButton
@@ -265,18 +265,6 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/cut')}
-            className={navItemCls(isActive('/cut'))}
-            aria-current={isActive('/cut') ? 'page' : undefined}
-            title="Cut"
-          >
-            {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
-            <IconCell><Scissors className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
-          </LockedNavButton>
-
-          <LockedNavButton
-            navigationLocked={navigationLocked}
             onClick={() => router.push('/scan')}
             className={navItemCls(isActive('/scan'))}
             aria-current={isActive('/scan') ? 'page' : undefined}
@@ -285,6 +273,18 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             {isActive('/scan') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
             <IconCell><ScanBarcode className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Scan</span>
+          </LockedNavButton>
+
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => router.push('/checkpoints')}
+            className={navItemCls(isActive('/checkpoints'))}
+            aria-current={isActive('/checkpoints') ? 'page' : undefined}
+            title="Station Checkpoints"
+          >
+            {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            <IconCell><MapPin className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
           </LockedNavButton>
 
           <LockedNavButton
@@ -420,9 +420,9 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             Inventory
           </button>
 
-          <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
-            <MapPin className="h-5 w-5 shrink-0" />
-            Station Checkpoints
+          <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
+            <Scissors className="h-5 w-5 shrink-0" />
+            Cut
           </button>
 
           <button onClick={() => navigate('/qa')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/qa'))}>
@@ -430,14 +430,14 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             Endorsement
           </button>
 
-          <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
-            <Scissors className="h-5 w-5 shrink-0" />
-            Cut
-          </button>
-
           <button onClick={() => navigate('/scan')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
             <ScanBarcode className="h-5 w-5 shrink-0" />
             Scan
+          </button>
+
+          <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
+            <MapPin className="h-5 w-5 shrink-0" />
+            Station Checkpoints
           </button>
 
           <button onClick={() => navigate('/locator')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>

@@ -179,7 +179,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           )
           const renderRows = (rows: any[]) => rows.map((item, i) => (
             <TableRow key={i} className="border-border">
-              <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleDateString() : '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
               <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
               <TableCell className="text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>

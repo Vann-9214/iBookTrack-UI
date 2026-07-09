@@ -48,7 +48,7 @@ interface BoxEntry {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { warehouse_time_received?: string }[]
+  box_sessions?: { warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
 }
 
 interface BoxBookEntry {
@@ -534,7 +534,7 @@ export default function BookInspectionPage() {
                           <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                         </div>
                         <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                          {box.box_sessions?.[0]?.warehouse_time_received ? new Date(box.box_sessions[0].warehouse_time_received).toLocaleDateString() : ''}
+                          {box.box_sessions?.[0]?.cut_time_send ? new Date(box.box_sessions[0].cut_time_send).toLocaleString() : ''}
                         </span>
                         <button
                           onClick={() => handleReceiveBox(box)}
@@ -720,7 +720,7 @@ export default function BookInspectionPage() {
                                   <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
                                 <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                                  {box.box_sessions?.[0]?.warehouse_time_received ? new Date(box.box_sessions[0].warehouse_time_received).toLocaleDateString() : ''}
+                                  {box.box_sessions?.[0]?.endorsement_time_received ? new Date(box.box_sessions[0].endorsement_time_received).toLocaleString() : ''}
                                 </span>
                                 <button
                                   onClick={() => handleStartInspSession(box.id)}
