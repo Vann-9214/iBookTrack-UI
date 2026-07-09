@@ -1110,14 +1110,16 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
       ilmsLotNo = ilmsData.LotNo
     }
 
-    // Search in warehouse scan logs
+    // Search in warehouse scan logs (include user_flags for rejection_reason)
     const { data: scans, error: scanError } = await supabaseAdmin
       .from('book_activity')
       .select(`
         *,
+        user_flags(rejection_reason),
         books!inner(
           isbn,
           title,
+          book_type,
           box:boxes(
             box_number,
             current_stage,
@@ -1178,6 +1180,9 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
         box_number: boxNumber || ilmsBoxNo || 'Not in warehouse yet',
         lot_number: lotNumber || ilmsLotNo || 'Unknown',
         current_stage: scans?.[0]?.books?.box?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
+        scan_status: scans?.[0]?.scan_status || null,
+        rejection_reason: (Array.isArray(scans?.[0]?.user_flags) ? scans[0].user_flags[0] : scans?.[0]?.user_flags)?.rejection_reason || null,
+        book_type: scans?.[0]?.books?.book_type || book?.book_type || null,
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
         in_warehouse: inWarehouse,
