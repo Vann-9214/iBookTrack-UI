@@ -1861,7 +1861,6 @@ export default function InventoryPage() {
                                         <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-200 text-red-800 whitespace-nowrap">
                                           <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
                                         </span>
-                                        <button onClick={() => openVerifFlagModal(book)} className="text-[10px] text-muted-foreground hover:text-blue-600 underline whitespace-nowrap">Edit</button>
                                       </>
                                     )}
                                   </div>
