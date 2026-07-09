@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   XCircle,
   AlertCircle,
+  ScanLine,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -189,6 +190,16 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
           )
         ))}
       </div>
+
+      {/* Scan QR button — mobile only */}
+      <button
+        onClick={() => router.push('/scan-qr')}
+        className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-border bg-background hover:bg-muted transition"
+        aria-label="Scan QR"
+        style={{ color: colors.accent }}
+      >
+        <ScanLine className="w-5 h-5" />
+      </button>
 
       {/* Spacer */}
       <div className="flex-1" />
