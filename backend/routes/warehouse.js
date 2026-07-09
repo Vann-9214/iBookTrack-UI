@@ -476,6 +476,8 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
           
         if (booksInBox && booksInBox.length > 0) {
           const bookIds = booksInBox.map(b => b.id)
+          // Only stamp books that have not been individually scanned yet
+          // (preserve the per-scan timestamp for books already scanned via /scan)
           await supabaseAdmin
             .from('book_activity')
             .update({
@@ -483,6 +485,7 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
               endorsement_scan_at: new Date().toISOString()
             })
             .in('book_id', bookIds)
+            .is('endorsement_scan_at', null)
         }
       }
       
