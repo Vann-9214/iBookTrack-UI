@@ -20,7 +20,7 @@ interface BoxEntry {
   box_number: string
   total_books_expected: number
   lot: { lot_number: string } | null
-  box_sessions?: { status: string, inventory_time_send?: string }[]
+  box_sessions?: { status: string, inventory_time_send?: string, cut_time_received?: string }[]
 }
 
 export default function CutPage() {
@@ -181,9 +181,9 @@ export default function CutPage() {
                             <div>
                               <p className="text-sm font-bold text-foreground">BOX: {box.box_number}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">LOT: {box.lot?.lot_number}</p>
-                              {box.latest_inventory_scan_at && (
+                              {box.box_sessions?.[0]?.inventory_time_send && (
                                 <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                                  {new Date(box.latest_inventory_scan_at).toLocaleString()}
+                                  {new Date(box.box_sessions[0].inventory_time_send).toLocaleString()}
                                 </p>
                               )}
                             </div>
