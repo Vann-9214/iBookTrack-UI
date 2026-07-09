@@ -24,6 +24,7 @@ interface BookEntry {
   isbn: string
   title: string
   status: string
+  rejectionReason?: string
 }
 
 // Result from a QR scan (pipe-delimited box label)
@@ -43,8 +44,9 @@ interface BarcodeResult {
   title: string
   lot: string
   box: string
-  type: string
-  status: string  // 'P' | 'NP' | ''
+  bookType: string      // 'Mustang' | 'Jaguar' | '—'
+  status: string        // 'P' | 'NP' | ''
+  rejectionReason: string
   loading: boolean
   notFound: boolean
 }
@@ -104,20 +106,57 @@ function BodyCell({ children, className }: { children: React.ReactNode; classNam
   )
 }
 
-function StatusBadge({ status }: { status: string }) {
+// Maps raw rejection_reason slugs to readable labels
+const REJECTION_LABELS: Record<string, string> = {
+  'bleed-through':        'Bleed-through on page',
+  'brittle':              'Brittle on page',
+  'cannot-detach-sticky': 'Cannot be detached / sticky pages',
+  'cd-only':              'CD only, no text content',
+  'map-spanning':         'Contains a map spanning the entire book',
+  'split-pages':          'Contains split pages',
+  'cutoff-text':          'Cutoff text on page',
+  'illegible-text':       'Illegible text',
+  'inverted-contrast':    'Inverted contrast',
+  'missing-pages':        'Missing page/s',
+  'no-content':           'No content or body text',
+  'obscured-highlight':   'Obscured text (highlight marker)',
+  'obscured-watermark':   'Obscured text (watermark)',
+  'oversized':            'Oversized',
+  'pen-marks':            'Pen marks on page',
+  'pop-up-book':          'Pop-up book',
+  'postcard-only':        'Postcard only',
+  'stained-dirty':        'Stained or dirty page',
+  'stamp-mark':           'Stamp mark on page',
+  'thick-cardboard':      'Thick / cardboard pages',
+  'torn-pages':           'Torn pages',
+  'missing':              'Missing',
+  'extra':                'Extra',
+}
+
+function StatusBadge({ status, rejectionReason }: { status: string; rejectionReason?: string }) {
   const isPass = status === 'P'
+  const reasonLabel = rejectionReason
+    ? (REJECTION_LABELS[rejectionReason] ?? rejectionReason)
+    : null
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        'text-[10px] font-normal border whitespace-nowrap',
-        isPass
-          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-          : 'bg-red-50 text-red-700 border-red-300',
+    <div className="flex flex-col items-center gap-0.5">
+      <Badge
+        variant="outline"
+        className={cn(
+          'text-[10px] font-normal border whitespace-nowrap',
+          isPass
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+            : 'bg-red-50 text-red-700 border-red-300',
+        )}
+      >
+        {isPass ? 'Processable' : 'Non-Processable'}
+      </Badge>
+      {!isPass && reasonLabel && (
+        <span className="text-[9px] text-red-500 text-center leading-tight max-w-[100px] break-words">
+          {reasonLabel}
+        </span>
       )}
-    >
-      {isPass ? 'Processable' : 'Non-Processable'}
-    </Badge>
+    </div>
   )
 }
 
@@ -165,15 +204,15 @@ function BarcodeResultCard({
         ) : result.notFound ? (
           <p className="text-sm font-semibold text-red-300">ISBN not found in system</p>
         ) : (
-          <>
-            {/* Title — wraps naturally, no truncation */}
-            <p className="text-sm font-bold leading-snug break-words">
-              {result.title}
-            </p>
-          </>
+          /* Title — wraps naturally, no truncation */
+          <p className="text-sm font-bold leading-snug break-words">
+            {result.title}
+          </p>
         )}
-        {/* ISBN — always shown */}
-        <p className="text-base font-bold font-mono tracking-wide">
+        {/* Separator — emphasises the ISBN number below */}
+        <hr className="border-green-700 my-1.5" />
+        {/* ISBN — always shown, large mono */}
+        <p className="text-lg font-bold font-mono tracking-wide">
           {result.isbn}
         </p>
         <p className="text-[10px] text-green-200 uppercase tracking-widest mt-1">
@@ -197,10 +236,10 @@ function BarcodeResultCard({
               <TableRow className="hover:bg-muted/30">
                 <BodyCell>{result.lot}</BodyCell>
                 <BodyCell>{result.box}</BodyCell>
-                <BodyCell>{result.type}</BodyCell>
+                <BodyCell>{result.bookType}</BodyCell>
                 <BodyCell>
                   {result.status
-                    ? <StatusBadge status={result.status} />
+                    ? <StatusBadge status={result.status} rejectionReason={result.rejectionReason} />
                     : <span className="text-xs text-muted-foreground">—</span>}
                 </BodyCell>
               </TableRow>
@@ -286,7 +325,7 @@ function QrResultCard({
                     <BodyCell className="break-words min-w-[80px]">{book.title}</BodyCell>
                     <BodyCell>
                       {book.status
-                        ? <StatusBadge status={book.status} />
+                        ? <StatusBadge status={book.status} rejectionReason={book.rejectionReason} />
                         : <span className="text-xs text-muted-foreground">—</span>}
                     </BodyCell>
                   </TableRow>
@@ -321,15 +360,16 @@ export default function ScanQrPage() {
 
       // Show card immediately in loading state
       setScanResult({
-        kind:     'barcode',
+        kind:            'barcode',
         isbn,
-        title:    '—',
-        lot:      '—',
-        box:      '—',
-        type:     '—',
-        status:   '',
-        loading:  true,
-        notFound: false,
+        title:           '—',
+        lot:             '—',
+        box:             '—',
+        bookType:        '—',
+        status:          '',
+        rejectionReason: '',
+        loading:         true,
+        notFound:        false,
       })
       toast.success('Barcode scanned', { description: isbn })
 
@@ -339,19 +379,20 @@ export default function ScanQrPage() {
 
         if (json.success && json.book) {
           const b = json.book
-          // scan_status lives on currentLocation (the books table row)
-          const rawStatus = json.currentLocation?.scan_status ?? ''
+          // scan_status is now included directly in json.book (sourced from book_activity)
+          const rawStatus = b.scan_status ?? ''
           const status = rawStatus === 'processable' ? 'P' : rawStatus === 'non_processable' ? 'NP' : ''
           setScanResult({
-            kind:     'barcode',
+            kind:            'barcode',
             isbn,
-            title:    b.title && b.title !== 'Unknown' ? b.title : '—',
-            lot:      b.lot_number || '—',
-            box:      b.box_number || '—',
-            type:     b.current_stage || '—',
+            title:           b.title && b.title !== 'Unknown' ? b.title : '—',
+            lot:             b.lot_number || '—',
+            box:             b.box_number || '—',
+            bookType:        b.book_type || '—',
             status,
-            loading:  false,
-            notFound: false,
+            rejectionReason: b.rejection_reason || '',
+            loading:         false,
+            notFound:        false,
           })
         } else {
           setScanResult((prev) => prev?.kind === 'barcode'
@@ -380,10 +421,14 @@ export default function ScanQrPage() {
         setScanResult((prev) => {
           if (!prev || prev.kind !== 'qr') return prev
           const updatedBooks = prev.books.map((book, i) => {
-            const result = results[i]
-            if (result.status === 'fulfilled' && result.value?.success && result.value?.book?.title) {
-              const t = result.value.book.title
-              return { ...book, title: t !== 'Unknown' ? t : '—' }
+            const res = results[i]
+            if (res.status === 'fulfilled' && res.value?.success && res.value?.book) {
+              const b = res.value.book
+              return {
+                ...book,
+                title:           b.title && b.title !== 'Unknown' ? b.title : '—',
+                rejectionReason: b.rejection_reason || '',
+              }
             }
             return book
           })

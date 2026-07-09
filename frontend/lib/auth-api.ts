@@ -107,7 +107,12 @@ export async function refreshAccessToken(): Promise<boolean> {
     return false
   } catch (error) {
     console.error('Token refresh failed:', error)
-    clearTokenData()
+    // Only clear token data on auth failures, not network errors.
+    // A network error (e.g. backend unreachable) should not wipe a still-valid token.
+    const isNetworkError = error instanceof TypeError && (error.message === 'Failed to fetch' || error.message.includes('NetworkError'))
+    if (!isNetworkError) {
+      clearTokenData()
+    }
     return false
   }
 }
