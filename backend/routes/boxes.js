@@ -49,7 +49,7 @@ router.get('/', requireAuth, async (req, res) => {
         books:books(
           scans:book_activity(count)
         ),
-        box_sessions:box_sessions(id, status, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received)
+        box_sessions:box_sessions(id, status, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received)
       `)
       .order('created_at', { ascending: false })
 

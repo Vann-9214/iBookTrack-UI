@@ -1332,14 +1332,8 @@ export default function InventoryPage() {
                   <div className="flex-1 overflow-y-auto pr-1">
                     <div className="flex flex-col gap-2 pb-2">
                       {paginatedIncomingBoxes.map(box => {
-                        const rawScans = box.scans as any[]
-                        const bookCount = (() => {
-                          if (Array.isArray(rawScans) && rawScans.length > 0) {
-                            const first = rawScans[0]
-                            if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
-                          }
-                          return box.total_books_expected || 0
-                        })()
+                        const activeSession = box.box_sessions?.[0]
+                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = expandedBox === box.id
                         const booksForBox = boxBooks[box.id] || []
                         const created = box.created_at ? new Date(box.created_at) : null
@@ -1567,7 +1561,8 @@ export default function InventoryPage() {
                             const isExpanded = verifExpandedBoxId === box.id
                             const rowBooks = verifRowBooks[box.id] || []
                             const isLoadingBooks = loadingVerifRowBooks === box.id
-                            const bookCount = box.total_books_expected || 0
+                            const activeSession = box.box_sessions?.[0]
+                            const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                             const stuckSession = box.box_sessions?.find(s => s.status === 'in_progress' && s.inventory_user_send === verifUserId)
                             const created = box.created_at ? new Date(box.created_at) : null
                             return (
@@ -1913,14 +1908,8 @@ export default function InventoryPage() {
                   <div className="flex-1 overflow-y-auto pr-1">
                     <div className="flex flex-col gap-2 pb-2">
                       {paginatedOutgoingBoxes.map(box => {
-                        const rawScans = box.scans as any[]
-                        const bookCount = (() => {
-                          if (Array.isArray(rawScans) && rawScans.length > 0) {
-                            const first = rawScans[0]
-                            if (typeof first?.count !== 'undefined') return parseInt(first.count) || 0
-                          }
-                          return box.total_books_expected || 0
-                        })()
+                        const activeSession = box.box_sessions?.[0]
+                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = outgoingExpandedBoxId === box.id
                         const booksForBox: BookInBox[] = boxBooks[box.id] || []
                         const created = box.created_at ? new Date(box.created_at) : null
