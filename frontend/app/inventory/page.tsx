@@ -1712,8 +1712,8 @@ export default function InventoryPage() {
                       <button onClick={handleOpenVerifComplete} disabled={
                           loadingVerifBooks || 
                           verifScannedBooks.length === 0 ||
-                          verifScannedBooks.length !== warehouseBooks.length ||
-                          !warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn))
+                          verifScannedBooks.length !== warehouseBooks.filter(wb => wb.rejection_reason !== 'missing').length ||
+                          !warehouseBooks.filter(wb => wb.rejection_reason !== 'missing').every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn))
                         }
                         className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                         Complete Session
