@@ -49,7 +49,7 @@ interface BoxEntry {
 
   lot: { lot_number: string } | null
   latest_endorsement_scan_at?: string | null
-  box_sessions?: { updated_at?: string, warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
+  box_sessions?: { status: string; total_scanned?: number; updated_at?: string, warehouse_time_received?: string, cut_time_send?: string, endorsement_time_received?: string }[]
 }
 
 interface BoxBookEntry {
@@ -316,7 +316,7 @@ export default function BookInspectionPage() {
       return
     }
 
-    const prevStatus = warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())?.scan_status ?? 'processable'
+    const prevStatus = (warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())?.scan_status ?? 'processable') as 'processable' | 'non_processable'
 
     setLoadingInspSession(true)
     try {

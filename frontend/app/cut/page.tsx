@@ -191,7 +191,7 @@ export default function CutPage() {
               </button>
               
               <div className="ml-auto">
-                <RefreshControl onRefresh={fetchBoxes} isRefreshing={loading} lastUpdated={lastUpdated} />
+                <RefreshControl onRefresh={fetchBoxes} refreshing={loading} lastUpdated={lastUpdated} />
               </div>
             </div>
 

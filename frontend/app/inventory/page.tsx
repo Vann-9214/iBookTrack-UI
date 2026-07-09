@@ -43,7 +43,8 @@ interface Box {
   lot: { lot_number: string; status: string; type?: string }
   books: BookInBox[] | { count: number }[]
   scans: { count: number }[]
-  box_sessions?: { id?: string; status: string; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_send?: string; warehouse_time_received?: string }[]
+  box_sessions?: { id?: string; status: string; total_scanned?: number; warehouse_user_received?: string; inventory_user_received?: string; endorsement_user_received?: string; inventory_user_send?: string; warehouse_time_received?: string; inventory_time_received?: string }[]
+  latest_inventory_scan_at?: string | null
 }
 
 interface VerifScannedBook {
