@@ -679,8 +679,10 @@ export default function InventoryPage() {
       return
     }
 
-    const isFullyMatched = warehouseBooks.length === verifScannedBooks.length &&
-      warehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn));
+    const expectedWarehouseBooks = warehouseBooks.filter(wb => wb.rejection_reason !== 'missing');
+    
+    const isFullyMatched = expectedWarehouseBooks.length === verifScannedBooks.length &&
+      expectedWarehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn));
       
     if (!isFullyMatched) {
       toast({ title: 'Discrepancy Detected', description: 'Your scans must perfectly match the Warehouse guide before you can complete the session.', variant: 'destructive' })
@@ -1763,13 +1765,18 @@ export default function InventoryPage() {
                             {warehouseBooks
                               .map((book) => {
                                 const inventoryBook = verifScannedBooks.find(ib => ib.isbn === book.isbn)
-                                const isMatch = inventoryBook && inventoryBook.scan_status === book.scan_status
-                                return { book, isMatch }
+                                const isMissing = book.rejection_reason === 'missing'
+                                const isMatch = isMissing || (inventoryBook && inventoryBook.scan_status === book.scan_status)
+                                return { book, isMatch, isMissing }
                               })
-                              .sort((a, b) => (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1))
-                              .map(({ book, isMatch }, i) => (
+                              .sort((a, b) => {
+                                if (a.isMissing && !b.isMissing) return 1;
+                                if (!a.isMissing && b.isMissing) return -1;
+                                return (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1)
+                              })
+                              .map(({ book, isMatch, isMissing }, i) => (
                                 <div key={i} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
-                                  isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
+                                  isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
                                 }`}>
                                   <div className="col-span-2">
                                     <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
@@ -1873,7 +1880,11 @@ export default function InventoryPage() {
                       </span>
                       <span className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
-                        <span className="text-muted-foreground">Mismatch (Different status or missing)</span>
+                        <span className="text-muted-foreground">Mismatch (Different status)</span>
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded"></div>
+                        <span className="text-muted-foreground">Missing (Not Required)</span>
                       </span>
                     </div>
                   </div>
