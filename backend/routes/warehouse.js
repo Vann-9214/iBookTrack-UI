@@ -756,7 +756,7 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
     if (fetchErr) throw fetchErr
 
     if (!session) {
-      // Create a fallback session if none exists
+      // Create a fallback session if none exists (box was received without a proper session)
       const { data: box } = await supabaseAdmin.from('boxes').select('lot_id').eq('id', box_id).single()
       if (!box) throw new Error('Box not found')
 
@@ -764,8 +764,9 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
         .from('box_sessions')
         .insert({
           box_id: box_id,
-          warehouse_user_received: req.user.id,
-          status: 'completed'
+          inventory_user_received: req.user.id,
+          inventory_time_received: new Date().toISOString(),
+          status: 'received'
         })
         .select()
         .single()
@@ -774,18 +775,8 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
       return res.json({ session: newSession })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('box_sessions')
-      .update({ 
-        status: 'completed'
-      })
-      .eq('id', session.id)
-      .select()
-      .single()
-
-    if (error) throw error
-
-    res.json({ session: data })
+    // Just return the existing session — do NOT change its status
+    res.json({ session })
   } catch (error) {
     console.error('Resume session error:', error)
     res.status(500).json({ error: error.message })
