@@ -9,18 +9,30 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import {
   Inbox, Send, Package, CheckCircle2,
-  Loader2, RefreshCw
+  Loader2, RefreshCw, ChevronDown, ChevronRight, BookOpen
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+interface BookInBox {
+  id: string
+  isbn: string
+  title: string | null
+  scan_status: string
+  scanned_at: string
+  book_type?: string
+  flag?: {
+    issue: string
+  }
+}
 
 interface BoxEntry {
   id: string
   box_number: string
   total_books_expected: number
   lot: { lot_number: string } | null
-  box_sessions?: { status: string, inventory_time_send?: string, cut_time_received?: string }[]
+  box_sessions?: { status: string, inventory_time_send?: string, cut_time_received?: string, total_scanned?: number }[]
 }
 
 export default function CutPage() {
@@ -35,6 +47,30 @@ export default function CutPage() {
 
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
   const [sendingBox, setSendingBox] = useState<string | null>(null)
+
+  const [expandedBoxId, setExpandedBoxId] = useState<string | null>(null)
+  const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
+  const [loadingBoxBooks, setLoadingBoxBooks] = useState<string | null>(null)
+
+  const toggleBox = async (boxId: string) => {
+    if (expandedBoxId === boxId) {
+      setExpandedBoxId(null)
+      return
+    }
+    setExpandedBoxId(boxId)
+    if (!boxBooks[boxId]) {
+      setLoadingBoxBooks(boxId)
+      try {
+        const res = await authFetch(`${API_URL}/api/boxes/${boxId}`)
+        const data = await res.json()
+        setBoxBooks(prev => ({ ...prev, [boxId]: data.box?.books || [] }))
+      } catch (e) {
+        setBoxBooks(prev => ({ ...prev, [boxId]: [] }))
+      } finally {
+        setLoadingBoxBooks(null)
+      }
+    }
+  }
 
   const fetchBoxes = useCallback(async () => {
     setLoading(true)
@@ -167,77 +203,191 @@ export default function CutPage() {
             ) : (
               <div className="flex-1 flex flex-col">
                 {activeTab === 'incoming' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-2">
                     {incomingBoxes.length === 0 ? (
-                      <div className="col-span-full py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                      <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
                         <Inbox className="h-10 w-10 mb-3 text-muted-foreground/30" />
                         <p className="font-semibold text-foreground">No incoming boxes</p>
                         <p className="text-sm">Boxes sent from Inventory will appear here.</p>
                       </div>
                     ) : (
-                      incomingBoxes.map(box => (
-                        <div key={box.id} className="bg-white border border-border p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="text-sm font-bold text-foreground">BOX: {box.box_number}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">LOT: {box.lot?.lot_number}</p>
+                      incomingBoxes.map(box => {
+                        const isExpanded = expandedBoxId === box.id
+                        const rowBooks = boxBooks[box.id] || []
+                        const isLoadingBooks = loadingBoxBooks === box.id
+                        const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                        return (
+                          <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                            <div className="flex items-center px-4 py-3 gap-4">
+                              <button
+                                onClick={() => toggleBox(box.id)}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-amber-600" />
+                              </div>
+                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Sent from Inventory</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                              </div>
                               {box.box_sessions?.[0]?.inventory_time_send && (
-                                <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                                  {new Date(box.box_sessions[0].inventory_time_send).toLocaleString()}
-                                </p>
+                                <div className="shrink-0 hidden sm:block text-right mr-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(box.box_sessions[0].inventory_time_send).toLocaleDateString()}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground/80">
+                                    {new Date(box.box_sessions[0].inventory_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                  </p>
+                                </div>
                               )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                                disabled={receivingBox === box.id}
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
+                              >
+                                {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
+                                {receivingBox === box.id ? 'Receiving...' : 'Receive Box'}
+                              </button>
                             </div>
-                            <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-medium">Sent from Inventory</span>
+                            
+                            {isExpanded && (
+                              <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                                {isLoadingBooks ? (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                  </div>
+                                ) : rowBooks.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                                ) : (
+                                  <div className="flex flex-col">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
+                                    <div className="flex flex-col gap-1 border-l-2 border-amber-200 pl-3">
+                                      {rowBooks.map(book => (
+                                        <div key={book.id} className="flex justify-between items-center py-1">
+                                          <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                          </div>
+                                          <div className="flex gap-2 items-center">
+                                            {book.book_type && (
+                                              <span className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded', book.book_type.toLowerCase() === 'jaguar' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700')}>
+                                                {book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase()}
+                                              </span>
+                                            )}
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                              {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          
-                          <button
-                            onClick={() => handleReceiveBox(box)}
-                            disabled={receivingBox === box.id}
-                            className="mt-4 w-full flex justify-center items-center gap-2 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                          >
-                            {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
-                            {receivingBox === box.id ? 'Receiving...' : 'Receive Box'}
-                          </button>
-                        </div>
-                      ))
+                        )
+                      })
                     )}
                   </div>
                 )}
                 
                 {activeTab === 'outgoing' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-2">
                     {outgoingBoxes.length === 0 ? (
-                      <div className="col-span-full py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                      <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
                         <Send className="h-10 w-10 mb-3 text-muted-foreground/30" />
                         <p className="font-semibold text-foreground">No outgoing boxes</p>
                         <p className="text-sm">Received boxes will appear here.</p>
                       </div>
                     ) : (
-                      outgoingBoxes.map(box => (
-                        <div key={box.id} className="bg-white border border-border p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="text-sm font-bold text-foreground">BOX: {box.box_number}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">LOT: {box.lot?.lot_number}</p>
+                      outgoingBoxes.map(box => {
+                        const isExpanded = expandedBoxId === box.id
+                        const rowBooks = boxBooks[box.id] || []
+                        const isLoadingBooks = loadingBoxBooks === box.id
+                        const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                        return (
+                          <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                            <div className="flex items-center px-4 py-3 gap-4">
+                              <button
+                                onClick={() => toggleBox(box.id)}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                              <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-emerald-600" />
+                              </div>
+                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-medium">Ready to Send</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                              </div>
                               {box.box_sessions?.[0]?.cut_time_received && (
-                                <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                                  {new Date(box.box_sessions[0].cut_time_received).toLocaleString()}
-                                </p>
+                                <div className="shrink-0 hidden sm:block text-right mr-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(box.box_sessions[0].cut_time_received).toLocaleDateString()}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground/80">
+                                    {new Date(box.box_sessions[0].cut_time_received).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                  </p>
+                                </div>
                               )}
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleSendBox(box) }}
+                                disabled={sendingBox === box.id}
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 transition-colors shrink-0"
+                              >
+                                {sendingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                {sendingBox === box.id ? 'Sending...' : 'Send to Endorsement'}
+                              </button>
                             </div>
-                            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-medium">Ready to Send</span>
+                            
+                            {isExpanded && (
+                              <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                                {isLoadingBooks ? (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                                  </div>
+                                ) : rowBooks.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                                ) : (
+                                  <div className="flex flex-col">
+                                    <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
+                                    <div className="flex flex-col gap-1 border-l-2 border-emerald-200 pl-3">
+                                      {rowBooks.map(book => (
+                                        <div key={book.id} className="flex justify-between items-center py-1">
+                                          <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                          </div>
+                                          <div className="flex gap-2 items-center">
+                                            {book.book_type && (
+                                              <span className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded', book.book_type.toLowerCase() === 'jaguar' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700')}>
+                                                {book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase()}
+                                              </span>
+                                            )}
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                              {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          
-                          <button
-                            onClick={() => handleSendBox(box)}
-                            disabled={sendingBox === box.id}
-                            className="mt-4 w-full flex justify-center items-center gap-2 py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
-                          >
-                            {sendingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                            {sendingBox === box.id ? 'Sending...' : 'Send to Endorsement'}
-                          </button>
-                        </div>
-                      ))
+                        )
+                      })
                     )}
                   </div>
                 )}
