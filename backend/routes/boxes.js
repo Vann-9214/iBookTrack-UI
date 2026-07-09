@@ -47,9 +47,9 @@ router.get('/', requireAuth, async (req, res) => {
         *,
         lot:lots(lot_number, shipment_id, type),
         books:books(
-          scans:book_activity(count)
+          scans:book_activity(inventory_scan_at, endorsement_scan_at)
         ),
-        box_sessions:box_sessions(id, status, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received, inventory_time_received, inventory_time_send, cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received)
+        box_sessions:box_sessions(id, status, updated_at, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received, inventory_time_received, inventory_time_send, cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received)
       `)
       .order('created_at', { ascending: false })
 
@@ -66,12 +66,34 @@ router.get('/', requireAuth, async (req, res) => {
     if (error) throw error
 
     let boxes = (data || []).map(b => {
-      // Calculate total scans from books
-      const totalScans = (b.books || []).reduce((sum, bk) => sum + (bk.scans?.[0]?.count || 0), 0)
+      let maxInventoryScan = null
+      let maxEndorsementScan = null
+      let totalScans = 0
+
+      for (const bk of (b.books || [])) {
+        for (const scan of (bk.scans || [])) {
+          totalScans++
+          if (scan.inventory_scan_at) {
+            const scanTime = new Date(scan.inventory_scan_at).getTime()
+            if (!maxInventoryScan || scanTime > maxInventoryScan) {
+              maxInventoryScan = scanTime
+            }
+          }
+          if (scan.endorsement_scan_at) {
+            const scanTime = new Date(scan.endorsement_scan_at).getTime()
+            if (!maxEndorsementScan || scanTime > maxEndorsementScan) {
+              maxEndorsementScan = scanTime
+            }
+          }
+        }
+      }
+
       const { books, ...rest } = b
       return {
         ...rest,
-        scans: [{ count: totalScans }]
+        scans: [{ count: totalScans }],
+        latest_inventory_scan_at: maxInventoryScan ? new Date(maxInventoryScan).toISOString() : null,
+        latest_endorsement_scan_at: maxEndorsementScan ? new Date(maxEndorsementScan).toISOString() : null
       }
     })
 

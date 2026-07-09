@@ -995,12 +995,20 @@ export default function BookInspectionPage() {
                         <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
                           <Package className="h-5 w-5 text-emerald-600" />
                         </div>
-                            <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
                           </div>
                           <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                        </div>
+                        <div className="shrink-0 hidden sm:flex flex-col items-end gap-0.5 mr-2">
+                          <span className="text-xs text-muted-foreground">
+                            {box.latest_endorsement_scan_at ? new Date(box.latest_endorsement_scan_at).toLocaleDateString() : ''}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/80">
+                            {box.latest_endorsement_scan_at ? new Date(box.latest_endorsement_scan_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
+                          </span>
                         </div>
                         <button
                           onClick={() => handleSendToScan(box)}

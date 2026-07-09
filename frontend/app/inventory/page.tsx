@@ -1923,8 +1923,8 @@ export default function InventoryPage() {
                         const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = outgoingExpandedBoxId === box.id
                         const booksForBox: BookInBox[] = boxBooks[box.id] || []
-                        const warehouseTime = box.box_sessions?.[0]?.inventory_time_send
-                        const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
+                        const verifiedTime = box.latest_inventory_scan_at
+                        const created = verifiedTime ? new Date(verifiedTime) : (box.created_at ? new Date(box.created_at) : null)
                         // All-printed gate: box label printed (book slips are optional)
                         const boxLabelPrinted = printedBoxLabels.has(box.id)
                         const slipsForBox = printedBookSlips[box.id] ?? new Set<string>()
