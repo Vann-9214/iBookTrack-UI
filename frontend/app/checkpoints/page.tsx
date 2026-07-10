@@ -1071,19 +1071,7 @@ export default function StationCheckpointsPage() {
                                                 </tr>
                                               </thead>
                                               <tbody>
-                                                {details.books.filter(book => {
-                                                  const status = details.simflex?.[book.isbn] || book.transmission_status || '';
-                                                  if (selectedStage === 'scan') {
-                                                    return ['Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Jaguar Validate ONGOING', 'Jaguar Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED'].includes(status);
-                                                  }
-                                                  if (selectedStage === 'transmit') {
-                                                    return status.includes('Transmission_Archive') || status === 'COMPLETED';
-                                                  }
-                                                  return true;
-                                                }).map((book) => {
-                                                  const simflexStatus = details.simflex?.[book.isbn] || book.transmission_status || 'Not found';
-                                                  const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
-                                                  return (
+                                                {details.books.map((book) => (
                                                   <tr key={book.id} className="border-b border-border/40 last:border-0">
                                                     <td className="py-1.5 pr-3 text-foreground">{book.isbn}</td>
                                                     <td className="py-1.5 pr-3 max-w-[160px] truncate text-foreground">{book.title || '—'}</td>
@@ -1093,18 +1081,12 @@ export default function StationCheckpointsPage() {
                                                       </span>
                                                     </td>
                                                     <td className="py-1.5 pr-3">
-                                                      {isTransmissionCompleted ? (
-                                                        <span className="flex items-center gap-1 text-[10px] font-medium text-green-700">
-                                                          <CheckCircle className="h-3 w-3" /> Done
-                                                        </span>
-                                                      ) : (
-                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
-                                                          {simflexStatus}
-                                                        </span>
-                                                      )}
+                                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
+                                                        {box.current_stage || '—'}
+                                                      </span>
                                                     </td>
                                                   </tr>
-                                                )})}
+                                                ))}
                                               </tbody>
                                             </table>
                                           </div>
