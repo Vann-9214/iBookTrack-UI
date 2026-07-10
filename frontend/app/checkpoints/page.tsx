@@ -1247,6 +1247,7 @@ export default function StationCheckpointsPage() {
                     canPrevPage={transitionsPagination.canPrevPage}
                     canNextPage={transitionsPagination.canNextPage}
                     pageSizeOptions={[]}
+                    showPageInfo={false}
                   />
                 )}
               </CardContent>
