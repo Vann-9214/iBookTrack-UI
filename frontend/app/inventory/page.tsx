@@ -10,7 +10,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
-import { Package, Search, ChevronDown, ChevronRight, ChevronUp, X, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw, ScanBarcode, CircleCheck, CircleX } from 'lucide-react'
+import { Package, Search, ChevronDown, ChevronRight, X, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw, ScanBarcode, CircleCheck, CircleX } from 'lucide-react'
 import { RefreshControl } from '@/components/refresh-control'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -128,7 +128,7 @@ const FLAG_ISSUES = [
 ]
 
 export default function InventoryPage() {
-  const { brand } = useBrand()
+  const { brand, colors } = useBrand()
   const { toast } = useToast()
   const [lastInventoryUpdate, setLastInventoryUpdate] = useState<Date | null>(null)
 
@@ -1244,27 +1244,26 @@ export default function InventoryPage() {
       </div>
     )}
 
-    <div className={cn("flex h-dvh overflow-hidden bg-background print:hidden", `theme-${brand}`)}>
+    <div className={cn("flex h-screen bg-background font-sans print:hidden", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={verifSessionActive} />
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar disableBrandToggle={verifSessionActive} navigationLocked={verifSessionActive} />
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+        <main className="flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
+          <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
 
-          {/* Header */}
-          <header className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Inventory</h1>
-              <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-              <RefreshControl onRefresh={fetchBoxes} refreshing={loadingBoxes} lastUpdated={lastInventoryUpdate} storageKey="inventory" className="hidden sm:flex" />
-            </div>
-          </header>
+          <div className="flex flex-col gap-2 mb-6">
+            <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+              Inventory
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Browse all boxes and their contents
+            </p>
+          </div>
 
           {/* Search bar */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-6">
             <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
-              <SelectTrigger className="w-[130px] shrink-0">
+              <SelectTrigger className="w-[130px] shrink-0 hover:text-primary-foreground hover:bg-primary transition-colors">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1310,52 +1309,87 @@ export default function InventoryPage() {
           </div>
 
           {/* ── Tab Navigation ── */}
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-xl w-fit">
-            {(
-              [
-                { key: 'incoming',     label: 'Incoming Boxes',    icon: Inbox,         count: incomingBoxes.length,  activeColor: 'bg-cyan-100 text-cyan-700' },
-                { key: 'verification', label: 'Book Verification', icon: ClipboardCheck, count: inventoryBoxes.length, activeColor: 'bg-amber-100 text-amber-700' },
-                { key: 'outgoing',     label: 'Outgoing Boxes',    icon: Send,          count: outgoingBoxes.length,  activeColor: 'bg-emerald-100 text-emerald-700' },
-              ] as const
-            ).map(({ key, label, icon: Icon, count, activeColor }) => (
-              <button
-                key={key}
-                disabled={verifSessionActive}
-                onClick={() => setInventoryTab(key)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  inventoryTab === key
-                    ? 'bg-primary text-background shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-                {count > 0 && (
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${inventoryTab === key ? 'bg-background text-primary' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
-                    {count}
-                  </span>
+          <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
+            <button
+              disabled={verifSessionActive}
+              onClick={() => setInventoryTab('incoming')}
+              className={cn(
+                'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                inventoryTab === 'incoming'
+                  ? 'border-amber-600 text-amber-700 bg-amber-50/50'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              <Inbox className="h-4 w-4" /> Incoming
+              <span className={cn(
+                'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                inventoryTab === 'incoming' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
+              )}>{incomingBoxes.length}</span>
+            </button>
+            <button
+              disabled={verifSessionActive}
+              onClick={() => setInventoryTab('verification')}
+              className={cn(
+                'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                inventoryTab === 'verification'
+                  ? 'bg-primary/10'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              style={inventoryTab === 'verification' ? {
+                borderBottomColor: colors.accent,
+                color: colors.accent,
+                backgroundColor: `${colors.accent}14`,
+              } : undefined}
+            >
+              <ClipboardCheck className="h-4 w-4" /> Book Verification
+              <span
+                className={cn(
+                  'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                  inventoryTab === 'verification' ? '' : 'bg-muted text-muted-foreground'
                 )}
-              </button>
-            ))}
+                style={inventoryTab === 'verification' ? {
+                  backgroundColor: `${colors.accent}1A`,
+                  color: colors.accent,
+                } : undefined}
+              >{inventoryBoxes.length}</span>
+            </button>
+            <button
+              disabled={verifSessionActive}
+              onClick={() => setInventoryTab('outgoing')}
+              className={cn(
+                'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                inventoryTab === 'outgoing'
+                  ? 'border-amber-600 text-amber-700 bg-amber-50/50'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+            >
+              <Send className="h-4 w-4" /> Outgoing
+              <span className={cn(
+                'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                inventoryTab === 'outgoing' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
+              )}>{outgoingBoxes.length}</span>
+            </button>
+            
+            <div className="ml-auto">
+              <RefreshControl onRefresh={fetchBoxes} refreshing={loadingBoxes} lastUpdated={lastInventoryUpdate} storageKey="inventory" className="hidden sm:flex" />
+            </div>
           </div>
 
           {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {/* TAB: INCOMING BOXES                                              */}
           {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {inventoryTab === 'incoming' && (
-            <div className="flex flex-col gap-3 min-h-0 flex-1">
-              <p className="text-xs text-muted-foreground">
-                {loadingBoxes ? 'Loading…' : `${incomingBoxes.length} box${incomingBoxes.length !== 1 ? 'es' : ''} waiting to be received`}
-              </p>
+            <div className="flex-1 flex flex-col">
               {loadingBoxes ? (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading boxes…
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+                  <p className="text-sm font-medium">Loading boxes...</p>
                 </div>
               ) : incomingBoxes.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-                  <div className="bg-cyan-50 rounded-full p-5"><Inbox className="h-8 w-8 text-cyan-400" /></div>
-                  <p className="text-sm font-semibold text-foreground">No incoming boxes</p>
-                  <p className="text-xs text-muted-foreground max-w-xs">Boxes sent by the warehouse will appear here, ready for you to receive.</p>
+                <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                  <Inbox className="h-10 w-10 mb-3 text-amber-600" />
+                  <p className="font-semibold text-foreground">No incoming boxes</p>
+                  <p className="text-sm">Boxes sent by the warehouse will appear here.</p>
                 </div>
               ) : (
                 <div className="flex flex-col min-h-0 flex-1">
@@ -1370,45 +1404,40 @@ export default function InventoryPage() {
                         const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
-                            <div
-                              onClick={() => toggleBox(box.id)}
-                              className="flex items-center px-4 py-3 gap-4 cursor-pointer select-none"
-                            >
-                              {/* Expand chevron */}
-                              <div className="shrink-0 text-muted-foreground">
-                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            <div className="flex items-center px-4 py-3 gap-4">
+                              <button
+                                onClick={() => toggleBox(box.id)}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-amber-600" />
                               </div>
-                              {/* Icon */}
-                              <div className="bg-cyan-50 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-cyan-600" />
-                              </div>
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-100 text-cyan-700 font-medium">Incoming</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Incoming</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
-                              {/* Created date + time */}
-                              <div className="shrink-0 hidden sm:flex flex-col items-end gap-0.5">
-                                <span className="text-xs text-muted-foreground">
-                                  {created ? created.toLocaleDateString() : ''}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground/80">
-                                  {created ? created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
-                                </span>
-                              </div>
-                              {/* Received button */}
+                              {created && (
+                                <div className="shrink-0 hidden sm:block text-right mr-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    {created.toLocaleDateString()}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground/80">
+                                    {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
                                 disabled={receivingBox === box.id}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-cyan-600 text-white hover:bg-cyan-700 disabled:opacity-60 transition-colors shrink-0"
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
                               >
-                                {receivingBox === box.id
-                                  ? <Loader2 className="h-4 w-4 animate-spin" />
-                                  : <CheckCircle2 className="h-4 w-4" />}
-                                {receivingBox === box.id ? 'Receiving…' : 'Received'}
+                                {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
+                                {receivingBox === box.id ? 'Receiving…' : 'Receive Box'}
                               </button>
                             </div>
 
@@ -1655,19 +1684,17 @@ export default function InventoryPage() {
 
               {!verifSessionActive ? (
                 /* ── Box list for verification ── */
-                <div className="flex flex-col gap-3 min-h-0 flex-1">
-                  <p className="text-xs text-muted-foreground">
-                    {loadingBoxes ? 'Loading…' : `${inventoryBoxes.length} box${inventoryBoxes.length !== 1 ? 'es' : ''} awaiting verification`}
-                  </p>
+                <div className="flex-1 flex flex-col">
                   {loadingBoxes ? (
-                    <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Loading boxes…
+                    <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <p className="text-sm font-medium">Loading boxes...</p>
                     </div>
                   ) : inventoryBoxes.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-                      <div className="bg-amber-50 rounded-full p-5"><ClipboardCheck className="h-8 w-8 text-amber-400" /></div>
-                      <p className="text-sm font-semibold text-foreground">No boxes to verify</p>
-                      <p className="text-xs text-muted-foreground max-w-xs">Receive boxes from the Incoming Boxes tab first.</p>
+                    <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                      <ClipboardCheck className="h-10 w-10 mb-3 text-primary" />
+                      <p className="font-semibold text-foreground">No boxes to verify</p>
+                      <p className="text-sm">Receive boxes from the Incoming Boxes tab first.</p>
                     </div>
                   ) : (
                     <div className="flex flex-col min-h-0 flex-1">
@@ -1694,28 +1721,30 @@ export default function InventoryPage() {
                                     {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                   </button>
                                   {/* Icon */}
-                                  <div className="bg-amber-50 rounded-lg p-2 shrink-0">
-                                    <Package className="h-5 w-5 text-amber-600" />
+                                  <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                    <Package className="h-5 w-5 text-primary" />
                                   </div>
                                   {/* Info — clickable to expand */}
                                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
                                     <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                                     <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                   </div>
-                                  {/* Date + stuck badge */}
-                                  <div className="shrink-0 hidden sm:flex flex-col items-end gap-0.5">
-                                    <span className="text-xs text-muted-foreground">
-                                      {created ? created.toLocaleDateString() : ''}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground/80">
-                                      {created ? created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
-                                    </span>
-                                  </div>
+                                  {/* Date + time */}
+                                  {created && (
+                                    <div className="shrink-0 hidden sm:block text-right mr-2">
+                                      <p className="text-xs text-muted-foreground">
+                                        {created.toLocaleDateString()}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground/80">
+                                        {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                      </p>
+                                    </div>
+                                  )}
                                   {/* Start Session button */}
                                   <button
                                     onClick={() => handleStartVerifSession(box.id)}
                                     disabled={loadingVerifBooks}
-                                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                                   >
                                     {loadingVerifBooks
                                       ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -1914,7 +1943,7 @@ export default function InventoryPage() {
                                       book.scan_status === 'processable' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
                                     }`}>
                                       {book.scan_status === 'processable' ? 'Processable' : (book.rejection_reason === 'missing' || book.rejection_reason === 'extra') ? `Non-Processable (${book.rejection_reason.charAt(0).toUpperCase() + book.rejection_reason.slice(1)})` : 'Non-Processable'}
-                                    </span>
+                                    </span  >
                                   </div>
                                   <div className="col-span-1"></div>
                                 </div>
@@ -2021,19 +2050,17 @@ export default function InventoryPage() {
           {/* TAB: OUTGOING BOXES                                              */}
           {/* ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ */}
           {inventoryTab === 'outgoing' && (
-            <div className="flex flex-col gap-3 min-h-0 flex-1">
-              <p className="text-xs text-muted-foreground">
-                {loadingBoxes ? 'Loading…' : `${outgoingBoxes.length} box${outgoingBoxes.length !== 1 ? 'es' : ''} ready to send to Cut`}
-              </p>
+            <div className="flex-1 flex flex-col">
               {loadingBoxes ? (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+                  <p className="text-sm font-medium">Loading boxes...</p>
                 </div>
               ) : outgoingBoxes.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
-                  <div className="bg-emerald-50 rounded-full p-5"><Send className="h-8 w-8 text-emerald-400" /></div>
-                  <p className="text-sm font-semibold text-foreground">No outgoing boxes yet</p>
-                  <p className="text-xs text-muted-foreground max-w-xs">Complete a verification session in the Book Verification tab to add boxes here.</p>
+                <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                  <Send className="h-10 w-10 mb-3 text-amber-600" />
+                  <p className="font-semibold text-foreground">No outgoing boxes yet</p>
+                  <p className="text-sm">Complete a verification session in the Book Verification tab to add boxes here.</p>
                 </div>
               ) : (
                 <div className="flex flex-col min-h-0 flex-1">
@@ -2052,44 +2079,46 @@ export default function InventoryPage() {
                         const allPrinted = boxLabelPrinted
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
-                            {/* ── Header row (Full row is now clickable) ── */}
-                            <div
-                              onClick={() => toggleOutgoingBox(box)}
-                              className="flex items-center px-4 py-3 gap-4 cursor-pointer hover:bg-muted/50 transition-colors select-none"
-                              role="button"
-                              aria-expanded={isExpanded}
-                            >
-                              {/* Visual Expand/Collapse Indicator (No longer its own button) */}
-                              <div className="bg-emerald-50 rounded-lg p-2 shrink-0 text-emerald-600">
+                            {/* ── Header row ── */}
+                            <div className="flex items-center px-4 py-3 gap-4">
+                              <button
+                                onClick={() => toggleOutgoingBox(box)}
+                                disabled={outgoingLoadingBooks === box.id}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
+                              >
                                 {outgoingLoadingBooks === box.id ? (
-                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                  <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : isExpanded ? (
-                                  <ChevronUp className="h-5 w-5" />
+                                  <ChevronDown className="h-4 w-4" />
                                 ) : (
-                                  <ChevronDown className="h-5 w-5" />
+                                  <ChevronRight className="h-4 w-4" />
                                 )}
+                              </button>
+
+                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-amber-600" />
                               </div>
 
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleOutgoingBox(box)}>
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Verified</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Verified</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                   LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" />
                                 </p>
                               </div>
 
-                              {/* Date + time */}
-                              <div className="shrink-0 hidden sm:flex flex-col items-end gap-0.5">
-                                <span className="text-xs text-muted-foreground">
-                                  {created ? created.toLocaleDateString() : ''}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground/80">
-                                  {created ? created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''}
-                                </span>
-                              </div>
+                              {created && (
+                                <div className="shrink-0 hidden sm:block text-right mr-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    {created.toLocaleDateString()}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground/80">
+                                    {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              )}
 
                               {/* Print label button + printed checkbox */}
                               <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
@@ -2112,7 +2141,7 @@ export default function InventoryPage() {
                                   type="checkbox"
                                   checked={boxLabelPrinted}
                                   readOnly
-                                  className="h-4 w-4 rounded border-border accent-emerald-600 cursor-default"
+                                  className="h-4 w-4 rounded border-border accent-amber-600 cursor-default"
                                   title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
                                 />
                               </div>
@@ -2127,7 +2156,7 @@ export default function InventoryPage() {
                                     handleSendToCut(box)
                                   }}
                                   disabled={sendingToCut === box.id || !allPrinted}
-                                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                 >
                                   {sendingToCut === box.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -2220,7 +2249,7 @@ export default function InventoryPage() {
                                             type="checkbox"
                                             checked={isBookPrinted}
                                             readOnly
-                                            className="h-4 w-4 rounded border-border accent-emerald-600 cursor-default"
+                                            className="h-4 w-4 rounded border-border accent-amber-600 cursor-default"
                                             title={isBookPrinted ? 'Slip printed' : 'Not yet printed'}
                                           />
                                         </div>
@@ -2359,7 +2388,7 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
-
+      </div>
     </div>
     </>
   )
