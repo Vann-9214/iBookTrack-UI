@@ -145,6 +145,7 @@ export default function StationCheckpointsPage() {
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
   const [confirmBox, setConfirmBox] = useState<BoxItem | null>(null)
+  const [confirmActionType, setConfirmActionType] = useState<'receive' | 'send_forward' | 'advance' | null>(null)
   const [undoEntry, setUndoEntry] = useState<{ box: BoxItem; fromStage: string; toStage: string } | null>(null)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [scannedBox, setScannedBox] = useState<{ box: BoxItem; books: ScannedBook[] } | null>(null)
@@ -159,10 +160,10 @@ export default function StationCheckpointsPage() {
   const [simflexCheckResult, setSimflexCheckResult] = useState<{ boxId: string; message: string; success: boolean; autoAdvanced?: boolean } | null>(null)
   // Pipeline transition stage filter
   const [transitionStageFilter, setTransitionStageFilter] = useState<Stage | ''>('')
-  // Manual advance Simflex validation error
   const [advanceError, setAdvanceError] = useState<{ box: BoxItem; message: string; pending_isbns: string[] } | null>(null)
   // Expanded box inside the stage detail modal (accordion)
   const [expandedStageBoxId, setExpandedStageBoxId] = useState<string | null>(null)
+  const [hasAutoCheckedScan, setHasAutoCheckedScan] = useState(false)
   const [stageBoxDetails, setStageBoxDetails] = useState<Record<string, {
     books: ScannedBook[]
     simflex: Record<string, { latestStatus: string | null; transmissionCompleted: boolean }>
@@ -178,6 +179,19 @@ export default function StationCheckpointsPage() {
   const [simflexRows, setSimflexRows] = useState<any[]>([])
   const [simflexRowsLoading, setSimflexRowsLoading] = useState(false)
   const [simflexRowsSearch, setSimflexRowsSearch] = useState('')
+
+  useEffect(() => {
+    if (selectedStage === 'scan' && !hasAutoCheckedScan) {
+      setHasAutoCheckedScan(true)
+      const scanBoxes = boxes.filter(b => b.current_stage === 'scan')
+      scanBoxes.forEach(box => {
+        handleCheckSimflexForBox(box)
+      })
+    } else if (selectedStage !== 'scan') {
+      setHasAutoCheckedScan(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStage, boxes, hasAutoCheckedScan])
   const [statusFilter, setStatusFilter] = useState('')
   const [pageCountSort, setPageCountSort] = useState<'none' | 'desc' | 'asc'>('none')
   const [updatedSort, setUpdatedSort] = useState<'none' | 'desc' | 'asc'>('none')
@@ -382,7 +396,7 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Complete
             </Badge>
-            <Button size="sm" variant="default" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <Button size="sm" variant="default" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Send'}
               {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
             </Button>
@@ -404,7 +418,7 @@ export default function StationCheckpointsPage() {
         )
       } else {
         return (
-          <Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); handleReceive(box) }} className="h-7 w-[76px] gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0">
+          <Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('receive'); }} className="h-7 w-[76px] gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0">
             {receiving === box.id ? '...' : 'Receive'}
           </Button>
         )
@@ -433,7 +447,7 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Sent
             </Badge>
-            <Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); handleReceive(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('receive'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {receiving === box.id ? '...' : 'Receive'}
             </Button>
           </div>
@@ -451,7 +465,7 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Receive
             </Badge>
-            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); handleSendForward(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {sendingForward === box.id ? '...' : 'Send'}
               {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
             </Button>
@@ -463,7 +477,7 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Sent
             </Badge>
-            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Receive'}
             </Button>
           </div>
@@ -493,7 +507,7 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Complete
             </Badge>
-            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); handleSendForward(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {sendingForward === box.id ? '...' : 'Send'}
               {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
             </Button>
@@ -505,7 +519,7 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Sent
             </Badge>
-            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Receive'}
             </Button>
           </div>
@@ -520,17 +534,9 @@ export default function StationCheckpointsPage() {
     }
     if (stage === 'scan') {
       return (
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={checkingSimflexBoxId === box.id}
-          onClick={(e) => { e.stopPropagation(); handleCheckSimflexForBox(box) }}
-          className="h-7 gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 shrink-0"
-          title="Check Simflex status and auto-advance if complete"
-        >
-          {checkingSimflexBoxId === box.id ? '...' : 'Check'}
-          {checkingSimflexBoxId !== box.id && <Zap className="h-3 w-3" />}
-        </Button>
+        <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50 shrink-0 flex items-center justify-center h-7 px-2 cursor-default">
+          {checkingSimflexBoxId === box.id ? 'Checking...' : 'Pending'}
+        </Badge>
       )
     }
     if (stage === 'transmit') {
@@ -539,7 +545,7 @@ export default function StationCheckpointsPage() {
           size="sm"
           variant="outline"
           disabled={advancing === box.id}
-          onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
+          onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }}
           className="h-7 gap-1 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50 shrink-0"
         >
           {advancing === box.id ? '...' : 'Send'}
@@ -552,7 +558,7 @@ export default function StationCheckpointsPage() {
         size="sm"
         variant="outline"
         disabled={receiving === box.id}
-        onClick={(e) => { e.stopPropagation(); handleReceive(box) }}
+        onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('receive'); }}
         className="h-7 gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0"
       >
         {receiving === box.id ? '...' : 'Receive'}
@@ -652,7 +658,7 @@ export default function StationCheckpointsPage() {
       const books: ScannedBook[] = data.box?.books || []
       const details: any = { books, simflex: {}, loading: false, loadingSimflex: false }
 
-      if ((box.current_stage === 'scan' || box.current_stage === 'transmit') && books.length > 0) {
+      if ((box.current_stage === 'scan' || box.current_stage === 'transmit' || box.current_stage === 'storage') && books.length > 0) {
         const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
         if (processableIsbns.length > 0) {
           details.loadingSimflex = true
@@ -867,26 +873,62 @@ export default function StationCheckpointsPage() {
             )}
 
             {/* Confirmation Dialog */}
-            {confirmBox && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            {confirmBox && confirmActionType && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
                 <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
-                  <h3 className="text-base font-semibold text-foreground mb-1">Confirm Receive</h3>
+                  <h3 className="text-base font-semibold text-foreground mb-1">
+                    {confirmActionType === 'receive' ? 'Confirm Receive' : 
+                     confirmActionType === 'send_forward' ? 'Confirm Send/Complete' : 
+                     'Confirm Move'}
+                  </h3>
                   <p className="text-sm text-muted-foreground mb-1">
-                    Move <span className="font-semibold text-foreground">{confirmBox.box_number}</span> from
+                    {confirmActionType === 'receive' ? (
+                      <>Receive <span className="font-semibold text-foreground">{confirmBox.box_number}</span> at {STAGE_META[confirmBox.current_stage]?.label}?</>
+                    ) : confirmActionType === 'send_forward' ? (
+                      <>Mark <span className="font-semibold text-foreground">{confirmBox.box_number}</span> as completed/sent?</>
+                    ) : (
+                      <>Move <span className="font-semibold text-foreground">{confirmBox.box_number}</span> from</>
+                    )}
                   </p>
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STAGE_META[confirmBox.current_stage]?.color}`}>
-                      {STAGE_META[confirmBox.current_stage]?.label}
+                  
+                  {/* Visual Guide for ALL Actions */}
+                  <div className="flex items-center gap-2 mb-4 mt-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                      confirmActionType === 'receive' 
+                        ? STAGE_META[STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) - 1]]?.color || 'bg-gray-100'
+                        : STAGE_META[confirmBox.current_stage]?.color
+                    }`}>
+                      {confirmActionType === 'receive' 
+                        ? (STAGE_META[STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) - 1]]?.label || 'Previous')
+                        : STAGE_META[confirmBox.current_stage]?.label}
                     </span>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.color}`}>
-                      {STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.label}
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                      confirmActionType === 'receive'
+                        ? STAGE_META[confirmBox.current_stage]?.color
+                        : STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.color
+                    }`}>
+                      {confirmActionType === 'receive'
+                        ? STAGE_META[confirmBox.current_stage]?.label
+                        : STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.label}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-4">Make sure the box has physically arrived at the next station before confirming.</p>
+
+                  <p className="text-xs text-muted-foreground mb-4 mt-2">
+                    {confirmActionType === 'advance' ? 'Make sure the box has physically arrived at the next station before confirming.' : 
+                     confirmActionType === 'receive' ? 'Make sure you have physically received the box.' : 
+                     'Are you sure you want to finalize this step?'}
+                  </p>
+                  
                   <div className="flex gap-2 justify-end">
-                    <button onClick={() => setConfirmBox(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-                    <button onClick={() => doAdvance(confirmBox)} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium">Yes, Confirm</button>
+                    <button onClick={() => { setConfirmBox(null); setConfirmActionType(null); }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                    <button onClick={() => {
+                      if (confirmActionType === 'receive') handleReceive(confirmBox);
+                      else if (confirmActionType === 'send_forward') handleSendForward(confirmBox);
+                      else doAdvance(confirmBox);
+                      setConfirmBox(null);
+                      setConfirmActionType(null);
+                    }} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-medium">Yes, Confirm</button>
                   </div>
                 </div>
               </div>
@@ -940,9 +982,47 @@ export default function StationCheckpointsPage() {
 
                       {/* Box list for all stages */}
                       <div className="flex-1 overflow-y-auto p-4">
-                  {filteredBoxes.length === 0 ? (
+                          {filteredBoxes.length === 0 && selectedStage !== 'transmit' ? (
                             <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                               {stageModalSearch ? 'No matching boxes found.' : 'No boxes at this station.'}
+                            </div>
+                          ) : selectedStage === 'transmit' ? (
+                            <div className="flex flex-col gap-2">
+                              {simflexRowsLoading ? (
+                                <div className="text-center py-8 text-muted-foreground text-sm">Loading books...</div>
+                              ) : simflexRows.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
+                                  {simflexRowsSearch ? 'No matching books found.' : 'No books currently in transmission.'}
+                                </div>
+                              ) : (
+                                simflexRows.filter(row => {
+                                  const q = simflexRowsSearch.toLowerCase().trim()
+                                  return !q || row.ISBN?.toLowerCase().includes(q) || row.BoxNumber?.toLowerCase().includes(q)
+                                }).map((row, idx) => {
+                                  const matchedBox = stageBoxes.find(b => b.box_number === row.BoxNumber)
+                                  const lotNumber = matchedBox?.lot?.lot_number || 'Unknown Lot'
+                                  return (
+                                    <div key={idx} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between hover:shadow-sm transition-all">
+                                      <div className="flex items-center gap-4">
+                                        <div className="flex flex-col">
+                                          <span className="font-mono font-bold text-foreground text-sm">{row.ISBN}</span>
+                                          <span className="text-xs text-muted-foreground mt-1">
+                                            Box: <span className="font-semibold text-foreground">{row.BoxNumber || 'N/A'}</span> • Lot: <span className="font-semibold text-foreground">{lotNumber}</span>
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="text-right flex flex-col items-end gap-1.5">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider">
+                                          Ongoing
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground font-medium">
+                                          Simflex: {row.Status || 'Transmission_Archive'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )
+                                })
+                              )}
                             </div>
                           ) : (
                             <div className="flex flex-col gap-2">
@@ -1063,24 +1143,28 @@ export default function StationCheckpointsPage() {
                                             </span>
                                           </div>
 
-                                          <div className="min-w-[130px] col-span-1">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} By</span>
-                                            <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={byName}>
-                                              {byName}
-                                            </span>
-                                          </div>
+                                          {selectedStage !== 'scan' && (
+                                            <div className="min-w-[130px] col-span-1">
+                                              <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} By</span>
+                                              <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={byName}>
+                                                {byName}
+                                              </span>
+                                            </div>
+                                          )}
                                         </div>
 
                                         {/* Right side: Timestamp & Action */}
                                         <div className="flex items-center gap-4 ml-auto pl-4">
-                                          <div className="text-left sm:text-right shrink-0 min-w-[100px]">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} At</span>
-                                            <span className="text-xs font-semibold text-muted-foreground">
-                                              {timeStr
-                                                ? new Date(timeStr).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
-                                                : 'N/A'}
-                                            </span>
-                                          </div>
+                                          {selectedStage !== 'scan' && (
+                                            <div className="text-left sm:text-right shrink-0 min-w-[100px]">
+                                              <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} At</span>
+                                              <span className="text-xs font-semibold text-muted-foreground">
+                                                {timeStr
+                                                  ? new Date(timeStr).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                                                  : 'N/A'}
+                                              </span>
+                                            </div>
+                                          )}
                                           <div className="shrink-0 flex items-center justify-end border-l border-border/50 pl-4">
                                             {renderBoxAction(box)}
                                           </div>
@@ -1106,17 +1190,15 @@ export default function StationCheckpointsPage() {
                                               <tbody className="block w-full">
                                                 {details.books.filter(book => {
                                                   const status = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || '';
-                                                  if (selectedStage === 'scan') {
-                                                    return ['Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Jaguar Validate ONGOING', 'Jaguar Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED'].includes(status);
-                                                  }
                                                   if (selectedStage === 'transmit') {
                                                     return status.includes('Transmission_Archive') || status === 'COMPLETED';
                                                   }
                                                   return true;
-                                                }).map((book) => {
-                                                  const simflexStatus = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || 'Not found';
-                                                  const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
-                                                  return (
+                                                  }).map((book) => {
+                                                    const rawStatus = details.simflex?.[book.isbn];
+                                                    const simflexStatus = typeof rawStatus === 'string' ? rawStatus : (rawStatus?.latestStatus || 'Pending');
+                                                    const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
+                                                    return (
                                                   <tr key={book.id} className="border-b border-border/40 last:border-0 grid grid-cols-[100px_1fr_120px] gap-3 w-full items-start">
                                                     <td className="py-1.5 text-foreground font-mono tabular-nums truncate" title={book.isbn}>
                                                       {book.isbn}
@@ -1128,6 +1210,11 @@ export default function StationCheckpointsPage() {
                                                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                                         {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
                                                       </span>
+                                                      {(selectedStage === 'scan' || selectedStage === 'transmit' || selectedStage === 'storage') && (
+                                                        <span className="block mt-1 text-[9px] text-muted-foreground font-normal leading-tight">
+                                                          Simflex: {book.scan_status === 'non_processable' ? 'Not Included' : simflexStatus}
+                                                        </span>
+                                                      )}
                                                       {book.scan_status === 'non_processable' && book.flag?.issue && (
                                                         <span className="block mt-1 text-[9px] text-red-500 font-normal leading-tight opacity-90">
                                                           Reason: {book.flag.issue}

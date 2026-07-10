@@ -199,10 +199,9 @@ router.get('/simflex-status', requireAuth, async (req, res) => {
       return res.status(502).json({ success: false, error: result.error || 'Simflex unavailable' })
     }
 
-    // Build isbn → status map
     const statuses = {}
     for (const r of result.data) {
-      statuses[r.isbn] = r.transmissionCompleted ? 'COMPLETED' : (r.latestStatus || 'Pending')
+      statuses[r.isbn] = r.latestStatus || 'Pending'
     }
 
     // Sync transmission_status to book_activity in Supabase
