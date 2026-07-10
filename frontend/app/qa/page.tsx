@@ -8,10 +8,11 @@ import { useBrand } from "@/hooks/use-brand"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import { ScannerInput } from "@/components/scanner-input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   AlertTriangle, ChevronDown, ChevronRight, CheckCircle2,
   Inbox, ClipboardCheck, Send, Package, BookOpen, Loader2, Trash2, ClipboardList,
-  ScanBarcode, CircleCheck, CircleX,
+  ScanBarcode, CircleCheck, CircleX, Search, X,
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 
@@ -104,6 +105,10 @@ export default function BookInspectionPage() {
   const [activeTab, setActiveTab] = useState<'incoming' | 'inspection' | 'outgoing'>('incoming')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
+  // ── Search ────────────────────────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchType, setSearchType] = useState<'box' | 'lot' | 'isbn'>('box')
+
   // ── Incoming Boxes (cut stage) ──────────────────────────────────────────────
   const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
   const [loadingIncoming, setLoadingIncoming] = useState(true)
@@ -112,7 +117,15 @@ export default function BookInspectionPage() {
   const fetchIncoming = useCallback(async () => {
     setLoadingIncoming(true)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes?current_stage=cut&box_type=${brand}`)
+      const params = new URLSearchParams()
+      params.append('current_stage', 'cut')
+      params.append('box_type', brand)
+      const query = searchQuery.trim()
+      if (query) {
+        if (searchType === 'box') params.append('box_number', query)
+        if (searchType === 'isbn') params.append('isbn', query)
+      }
+      const res = await authFetch(`${API_URL}/api/boxes?${params.toString()}`)
       const data = await res.json()
       const filteredIncoming = (data.boxes || []).filter((b: BoxEntry) => {
          return b.box_sessions?.some(s => s.status === 'sent')
@@ -123,7 +136,7 @@ export default function BookInspectionPage() {
     } finally {
       setLoadingIncoming(false)
     }
-  }, [brand])
+  }, [brand, searchQuery, searchType])
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)
@@ -151,7 +164,15 @@ export default function BookInspectionPage() {
   const fetchEndorsementBoxes = useCallback(async () => {
     setLoadingEndorsement(true)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement&box_type=${brand}`)
+      const params = new URLSearchParams()
+      params.append('current_stage', 'endorsement')
+      params.append('box_type', brand)
+      const query = searchQuery.trim()
+      if (query) {
+        if (searchType === 'box') params.append('box_number', query)
+        if (searchType === 'isbn') params.append('isbn', query)
+      }
+      const res = await authFetch(`${API_URL}/api/boxes?${params.toString()}`)
       const data = await res.json()
       if (data.boxes) {
         const filteredEndorsement = data.boxes.filter((b: BoxEntry) => {
@@ -165,11 +186,14 @@ export default function BookInspectionPage() {
     } finally {
       setLoadingEndorsement(false)
     }
-  }, [brand])
+  }, [brand, searchQuery, searchType])
 
   useEffect(() => {
-    fetchIncoming()
-    fetchEndorsementBoxes()
+    const timer = setTimeout(() => {
+      fetchIncoming()
+      fetchEndorsementBoxes()
+    }, 300)
+    return () => clearTimeout(timer)
   }, [fetchIncoming, fetchEndorsementBoxes])
 
   // ── Outgoing Boxes (endorsed → send to Scan) ────────────────────────────────
@@ -178,6 +202,17 @@ export default function BookInspectionPage() {
 
   const outgoingBoxes = endorsementBoxes.filter(b => b.box_sessions?.some(s => s.status === 'completed'))
   const inspectionBoxes = endorsementBoxes.filter(b => !b.box_sessions?.some(s => s.status === 'completed'))
+
+  const matchesLotSearch = (box: BoxEntry) => {
+    if (searchType !== 'lot') return true
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return true
+    return (box.lot?.lot_number || '').toLowerCase().includes(query)
+  }
+
+  const filteredIncoming = incomingBoxes.filter(matchesLotSearch)
+  const filteredInspection = inspectionBoxes.filter(matchesLotSearch)
+  const filteredOutgoing = outgoingBoxes.filter(matchesLotSearch)
 
   const handleSendToScan = async (box: BoxEntry) => {
     setSendingToScan(box.id)
@@ -492,6 +527,54 @@ export default function BookInspectionPage() {
               </p>
             </div>
 
+            {/* Search bar */}
+            <div className="flex items-center gap-2 mb-6">
+              <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
+                <SelectTrigger className="w-[130px] shrink-0 hover:text-primary-foreground hover:bg-primary transition-colors">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="box">Box No.</SelectItem>
+                  <SelectItem value="lot">Lot</SelectItem>
+                  <SelectItem value="isbn">ISBN</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => {
+                    let val = e.target.value
+                    if (searchType === 'isbn') {
+                      val = val.replace(/\D/g, '').slice(0, 13)
+                    }
+                    setSearchQuery(val)
+                  }}
+                  inputMode={searchType === 'isbn' ? 'numeric' : 'text'}
+                  maxLength={searchType === 'isbn' ? 13 : undefined}
+                  placeholder={
+                    searchType === 'isbn'
+                      ? 'ISBN (10 or 13 digits)'
+                      : searchType === 'lot'
+                        ? 'Search by lot number…'
+                        : 'Search by box number…'
+                  }
+                  className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* ── Tab Navigation ── */}
             <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
               <button
@@ -508,7 +591,7 @@ export default function BookInspectionPage() {
                 <span className={cn(
                   'ml-1.5 px-2 py-0.5 rounded-full text-xs',
                   activeTab === 'incoming' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
-                )}>{incomingBoxes.length}</span>
+                )}>{filteredIncoming.length}</span>
               </button>
               <button
                 disabled={inspSessionActive}
@@ -535,7 +618,7 @@ export default function BookInspectionPage() {
                     backgroundColor: `${colors.accent}1A`,
                     color: colors.accent,
                   } : undefined}
-                >{inspectionBoxes.length}</span>
+                >{filteredInspection.length}</span>
               </button>
               <button
                 disabled={inspSessionActive}
@@ -551,7 +634,7 @@ export default function BookInspectionPage() {
                 <span className={cn(
                   'ml-1.5 px-2 py-0.5 rounded-full text-xs',
                   activeTab === 'outgoing' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
-                )}>{outgoingBoxes.length}</span>
+                )}>{filteredOutgoing.length}</span>
               </button>
 
               <div className="ml-auto">
@@ -569,7 +652,7 @@ export default function BookInspectionPage() {
                     <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
                     <p className="text-sm font-medium">Loading boxes...</p>
                   </div>
-                ) : incomingBoxes.length === 0 ? (
+                ) : filteredIncoming.length === 0 ? (
                   <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
                     <Inbox className="h-10 w-10 mb-3 text-amber-600" />
                     <p className="font-semibold text-foreground">No incoming boxes</p>
@@ -579,7 +662,7 @@ export default function BookInspectionPage() {
                   <div className="flex flex-col min-h-0 flex-1">
                     <div className="flex-1 overflow-y-auto pr-1">
                       <div className="flex flex-col gap-2 pb-2">
-                        {incomingBoxes.map(box => {
+                        {filteredIncoming.map(box => {
                           const isExpanded = expandedBoxId === box.id
                           const rowBooks = boxBooks[box.id] || []
                           const isLoadingBooks = loadingBoxBooks === box.id
@@ -750,7 +833,7 @@ export default function BookInspectionPage() {
                         <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         <p className="text-sm font-medium">Loading boxes...</p>
                       </div>
-                    ) : inspectionBoxes.length === 0 ? (
+                    ) : filteredInspection.length === 0 ? (
                       <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
                         <ClipboardCheck className="h-10 w-10 mb-3 text-primary" />
                         <p className="font-semibold text-foreground">No boxes to inspect</p>
@@ -760,7 +843,7 @@ export default function BookInspectionPage() {
                       <div className="flex flex-col min-h-0 flex-1">
                         <div className="flex-1 overflow-y-auto pr-1">
                           <div className="flex flex-col gap-2 pb-2">
-                            {inspectionBoxes.map(box => {
+                            {filteredInspection.map(box => {
                               const isExpanded = inspExpandedBoxId === box.id
                               const rowBooks = inspRowBooks[box.id] || []
                               const isLoadingBooks = loadingInspRowBooks === box.id
@@ -1023,7 +1106,7 @@ export default function BookInspectionPage() {
             {/* ══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'outgoing' && (
               <div className="flex-1 flex flex-col">
-                {outgoingBoxes.length === 0 ? (
+                {filteredOutgoing.length === 0 ? (
                   <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
                     <Send className="h-10 w-10 mb-3 text-amber-600" />
                     <p className="font-semibold text-foreground">No outgoing boxes yet</p>
@@ -1033,7 +1116,7 @@ export default function BookInspectionPage() {
                   <div className="flex flex-col min-h-0 flex-1">
                     <div className="flex-1 overflow-y-auto pr-1">
                       <div className="flex flex-col gap-2 pb-2">
-                        {outgoingBoxes.map(box => {
+                        {filteredOutgoing.map(box => {
                           const isExpanded = expandedBoxId === box.id
                           const rowBooks = boxBooks[box.id] || []
                           const isLoadingBooks = loadingBoxBooks === box.id
