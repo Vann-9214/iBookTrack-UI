@@ -221,7 +221,7 @@ export default function ScanPage() {
                 <div className="flex flex-col gap-2">
                   {filteredIncoming.length === 0 ? (
                     <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                      <ScanBarcode className="h-10 w-10 mb-3 text-muted-foreground/30" />
+                      <ScanBarcode className="h-10 w-10 mb-3 text-amber-600" />
                       <p className="font-semibold text-foreground">No incoming boxes</p>
                       <p className="text-sm">Boxes sent from Endorsement will appear here.</p>
                     </div>
