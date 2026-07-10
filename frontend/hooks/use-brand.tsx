@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 export type Brand = 'mustang' | 'jaguar'
 
@@ -23,6 +23,11 @@ export function BrandProvider({ children }: { children: ReactNode }) {
   const setBrand = (b: Brand) => {
     setBrandState(b)
   }
+
+  useEffect(() => {
+    document.body.classList.remove('theme-mustang', 'theme-jaguar')
+    document.body.classList.add(`theme-${brand}`)
+  }, [brand])
 
   return (
     <BrandContext.Provider value={{ brand, setBrand, colors: BRAND_COLORS[brand] }}>
