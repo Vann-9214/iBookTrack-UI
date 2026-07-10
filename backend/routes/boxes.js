@@ -193,7 +193,7 @@ router.get('/by-number/:box_number', requireAuth, async (req, res) => {
     // Pull scanned books from book_activity for this box
     const { data: scans } = await db
       .from('book_activity')
-      .select('id, scan_status, warehouse_scan_at, books!inner(isbn, title, box_id, book_type)')
+      .select('id, scan_status, warehouse_scan_at, transmission_status, books!inner(isbn, title, box_id, book_type)')
       .eq('books.box_id', box.id)
       .order('warehouse_scan_at', { ascending: true })
 
@@ -203,6 +203,7 @@ router.get('/by-number/:box_number', requireAuth, async (req, res) => {
       title: s.books?.title,
       book_type: s.books?.book_type,
       scan_status: s.scan_status,
+      transmission_status: s.transmission_status,
       scanned_at: s.warehouse_scan_at,
     }))
 
@@ -234,7 +235,7 @@ router.get('/:id', requireAuth, async (req, res) => {
     // Pull scanned books from book_activity for this box
     const { data: scans } = await db
       .from('book_activity')
-      .select('id, scan_status, warehouse_scan_at, user_flags(rejection_reason, notes), books!inner(isbn, title, box_id)')
+      .select('id, scan_status, warehouse_scan_at, transmission_status, user_flags(rejection_reason, notes), books!inner(isbn, title, box_id)')
       .eq('books.box_id', id)
       .order('warehouse_scan_at', { ascending: true })
 
@@ -352,7 +353,7 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
     const { id } = req.params
     const { notes } = req.body
 
-    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage']
+    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage']
 
     const db = supabaseAdmin || supabase
 
@@ -371,8 +372,8 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
 
     const nextStage = STAGE_ORDER[currentIdx + 1]
 
-    // Validate Scan → Transmit: all processable ISBNs must be verified in Simflex
-    if (box.current_stage === 'scan' && nextStage === 'transmit') {
+    // Validate Scan → Storage: all processable ISBNs must be verified in Simflex
+    if (box.current_stage === 'scan' && nextStage === 'storage') {
       const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
 
       const { data: scans } = await db
@@ -497,8 +498,8 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
       }
     }
 
-    // If advancing from scan to transmit, record scan user received
-    if (box.current_stage === 'scan' && nextStage === 'transmit') {
+    // If advancing from scan to storage, record scan user received
+    if (box.current_stage === 'scan' && nextStage === 'storage') {
       const { data: session } = await db
         .from('box_sessions')
         .select('id, status')
@@ -817,12 +818,12 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
     const notCompleted = simflexData.filter(r => !r.transmissionCompleted)
     const allCompleted = notCompleted.length === 0
 
-    // 5. If all done → auto-advance scan → transmit
+    // 5. If all done → auto-advance scan → storage
     let autoAdvanced = false
     let finalStage = box.current_stage
 
     if (allCompleted) {
-      const nextStage = 'transmit'
+      const nextStage = 'storage'
       const { error: updateError } = await db
         .from('boxes')
         .update({ current_stage: nextStage })
@@ -853,7 +854,7 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
       completedCount: simflexData.filter(r => r.transmissionCompleted).length,
       pendingCount: notCompleted.length,
       message: allCompleted
-        ? `All ${isbns.length} books confirmed transmitted. Box automatically advanced to Transmission.`
+        ? `All ${isbns.length} books confirmed transmitted. Box automatically advanced to Storage.`
         : `${notCompleted.length} of ${isbns.length} books not yet completed in Simflex. Box remains in Scan.`,
       simflexResults: simflexData,
       notCompleted: notCompleted.map(r => ({ isbn: r.isbn, latestStatus: r.latestStatus })),

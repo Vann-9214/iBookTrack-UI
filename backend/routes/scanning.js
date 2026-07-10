@@ -18,6 +18,7 @@ import express from 'express'
 import simflexDb from '../services/simflex-db.js'
 import pipelineCounts from '../services/pipeline-counts.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { supabaseAdmin } from '../config/supabase.js'
 
 const router = express.Router()
 
@@ -202,6 +203,31 @@ router.get('/simflex-status', requireAuth, async (req, res) => {
     const statuses = {}
     for (const r of result.data) {
       statuses[r.isbn] = r.transmissionCompleted ? 'COMPLETED' : (r.latestStatus || 'Pending')
+    }
+
+    // Sync transmission_status to book_activity in Supabase
+    if (Object.keys(statuses).length > 0) {
+      // Fetch books to get their IDs
+      const { data: booksData } = await supabaseAdmin
+        .from('books')
+        .select('id, isbn')
+        .in('isbn', isbnList)
+        
+      if (booksData && booksData.length > 0) {
+        // Prepare promises to update book_activity
+        const updatePromises = booksData.map(book => {
+          const stat = statuses[book.isbn]
+          if (stat) {
+            return supabaseAdmin
+              .from('book_activity')
+              .update({ transmission_status: stat })
+              .eq('book_id', book.id)
+          }
+          return null
+        }).filter(Boolean)
+        
+        await Promise.all(updatePromises)
+      }
     }
 
     res.json({ success: true, statuses })

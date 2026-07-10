@@ -423,8 +423,8 @@ export default function StationCheckpointsPage() {
       const books: ScannedBook[] = data.box?.books || []
       setScannedBox({ box, books })
 
-      // Fetch Simflex status when box is in scan or transmit stage
-      if ((box.current_stage === 'scan' || box.current_stage === 'transmit') && books.length > 0) {
+      // Fetch Simflex status when box is in scan stage
+      if (box.current_stage === 'scan' && books.length > 0) {
         setLoadingBoxDetailsSimflex(true)
         const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
         if (processableIsbns.length > 0) {
@@ -514,7 +514,12 @@ export default function StationCheckpointsPage() {
   }
 
   const boxesByStage = STAGE_ORDER.reduce<Record<Stage, BoxItem[]>>((acc, stage) => {
-    let stageBoxes = boxes.filter(b => b.current_stage === stage)
+    let stageBoxes = boxes.filter(b => {
+      if (stage === 'transmit') {
+        return b.current_stage === 'scan'
+      }
+      return b.current_stage === stage
+    })
     if (stage === 'warehouse') {
       stageBoxes = stageBoxes.filter(b => b.total_books_expected > 0)
     }
@@ -710,8 +715,8 @@ export default function StationCheckpointsPage() {
                       {STAGE_META[confirmBox.current_stage]?.label}
                     </span>
                     <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STAGE_META[STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.color}`}>
-                      {STAGE_META[STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.label}
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.color}`}>
+                      {STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.label}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mb-4">Make sure the box has physically arrived at the next station before confirming.</p>
@@ -866,18 +871,17 @@ export default function StationCheckpointsPage() {
                                               </thead>
                                               <tbody>
                                                 {details.books.filter(book => {
+                                                  const status = details.simflex?.[book.isbn] || book.transmission_status || '';
                                                   if (selectedStage === 'scan') {
-                                                    const status = details.simflex?.[book.isbn]?.latestStatus || '';
                                                     return ['Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Jaguar Validate ONGOING', 'Jaguar Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED'].includes(status);
                                                   }
                                                   if (selectedStage === 'transmit') {
-                                                    const status = details.simflex?.[book.isbn]?.latestStatus || '';
-                                                    return status === 'Transmission_Archive ONGOING';
+                                                    return status.includes('Transmission_Archive') || status === 'COMPLETED';
                                                   }
                                                   return true;
                                                 }).map((book) => {
-                                                  const simflexStatus = details.simflex?.[book.isbn]?.latestStatus || 'Not found';
-                                                  const isTransmissionCompleted = details.simflex?.[book.isbn]?.transmissionCompleted;
+                                                  const simflexStatus = details.simflex?.[book.isbn] || book.transmission_status || 'Not found';
+                                                  const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
                                                   return (
                                                   <tr key={book.id} className="border-b border-border/40 last:border-0">
                                                     <td className="py-1.5 pr-3 text-foreground">{book.isbn}</td>
