@@ -195,7 +195,7 @@ export default function ScanPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredIncoming.length === 0 ? (
                     <div className="col-span-full py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                      <ScanBarcode className="h-10 w-10 mb-3 text-muted-foreground/30" />
+                      <ScanBarcode className="h-10 w-10 mb-3 text-amber-600" />
                       <p className="font-semibold text-foreground">No incoming boxes</p>
                       <p className="text-sm">Boxes sent from Endorsement will appear here.</p>
                     </div>
