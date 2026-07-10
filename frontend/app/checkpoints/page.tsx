@@ -888,14 +888,17 @@ export default function StationCheckpointsPage() {
                                       <th className="px-4 py-2.5 text-left font-medium align-top">
                                         <div className="flex flex-col gap-1">
                                           <span>Status</span>
-                                          <select
-                                            value={statusFilter}
-                                            onChange={e => setStatusFilter(e.target.value)}
-                                            className="text-[10px] border border-border rounded px-1 py-0.5 bg-card text-foreground max-w-[140px]"
-                                          >
-                                            <option value="">All statuses</option>
-                                            {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                          </select>
+                                          <Select value={statusFilter || 'all'} onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}>
+                                            <SelectTrigger className="h-7 text-[10px] w-[140px]">
+                                              <SelectValue placeholder="All statuses" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="all">All statuses</SelectItem>
+                                              {uniqueStatuses.map(s => (
+                                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
                                         </div>
                                       </th>
                                       <th className="px-4 py-2.5 text-left font-medium align-top">
