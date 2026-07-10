@@ -266,7 +266,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Controls row — scan + search always on one line */}
-              <div className="flex items-center gap-2"> 
+              <div className="flex items-center gap-2 justify-end"> 
                 <Button
                   variant="default"
                   size="default"
