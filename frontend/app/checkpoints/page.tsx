@@ -91,7 +91,18 @@ interface BoxItem {
   total_books_expected: number
 
   lot: { lot_number: string } | null
-  box_sessions?: { warehouse_time_received?: string; received_by_name?: string }[]
+  box_sessions?: { 
+    warehouse_time_received?: string; 
+    inventory_time_received?: string;
+    inventory_time_send?: string;
+    cut_time_received?: string;
+    cut_time_send?: string;
+    endorsement_time_received?: string;
+    endorsement_time_send?: string;
+    scan_time_received?: string;
+    updated_at?: string;
+    status?: string 
+  }[]
 }
 
 interface ScannedBook {
@@ -100,6 +111,10 @@ interface ScannedBook {
   title: string | null
   scan_status: string
   transmission_status?: string | null
+  flag?: {
+    issue: string
+    remarks: string
+  } | null
 }
 
 interface Transition {
@@ -338,6 +353,53 @@ export default function StationCheckpointsPage() {
         </Badge>
       )
     }
+    if (['warehouse', 'inventory', 'cut', 'endorsement'].includes(stage)) {
+      const latestSession = box.box_sessions?.[0]
+      const status = latestSession?.status || 'sent'
+      
+      if (status === 'completed') {
+        return (
+          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
+            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center hover:bg-emerald-50 hover:text-emerald-700">
+              Completed
+            </Badge>
+            <Button
+              size="sm"
+              variant="default"
+              disabled={advancing === box.id}
+              onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
+              className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300"
+            >
+              {advancing === box.id ? '...' : 'Send'}
+              {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
+            </Button>
+          </div>
+        )
+      } else if (status === 'received') {
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled
+            className="h-7 gap-1 text-xs border-blue-300 text-blue-700 bg-blue-50 shrink-0 opacity-100 cursor-not-allowed"
+          >
+            Received
+          </Button>
+        )
+      } else {
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={receiving === box.id}
+            onClick={(e) => { e.stopPropagation(); handleReceive(box) }}
+            className="h-7 gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0"
+          >
+            {receiving === box.id ? '...' : 'Receive'}
+          </Button>
+        )
+      }
+    }
     if (stage === 'scan') {
       return (
         <Button
@@ -365,25 +427,6 @@ export default function StationCheckpointsPage() {
           {advancing === box.id ? '...' : 'Send'}
           {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
         </Button>
-      )
-    }
-    if (stage === 'warehouse') {
-      return (
-        <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
-          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default">
-            Done
-          </Badge>
-          <Button
-            size="sm"
-            variant="default"
-            disabled={advancing === box.id}
-            onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
-            className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300"
-          >
-            {advancing === box.id ? '...' : 'Send'}
-            {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
-          </Button>
-        </div>
       )
     }
     return (
@@ -779,81 +822,134 @@ export default function StationCheckpointsPage() {
 
                       {/* Box list for all stages */}
                       <div className="flex-1 overflow-y-auto p-4">
-                          {filteredBoxes.length === 0 ? (
+                  {filteredBoxes.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                               {stageModalSearch ? 'No matching boxes found.' : 'No boxes at this station.'}
                             </div>
                           ) : (
                             <div className="flex flex-col gap-2">
                               {filteredBoxes.map(box => {
-                                const isExpanded = expandedStageBoxId === box.id
-                                const details = stageBoxDetails[box.id]
-                                const latestTransition = transitions.find(t => t.box?.box_number === box.box_number && t.to_stage === box.current_stage)
-                                return (
-                                  <div
-                                    key={box.id}
-                                    id={`box-${box.id}`}
-                                    className={cn(
-                                      "rounded-lg border overflow-hidden transition-all bg-card hover:shadow-sm",
-                                      highlightBox === box.id ? 'border-primary' : 'border-border',
-                                      isExpanded && `border-l-4 ${borderClass}`
-                                    )}
-                                  >
-                                    <div 
-                                      className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer group hover:bg-slate-50 transition-colors gap-3"
-                                      onClick={() => toggleStageBoxDetails(box)}
+                                  const isExpanded = expandedStageBoxId === box.id
+                                  const details = stageBoxDetails[box.id]
+                                  const latestTransition = transitions.find(t => t.box?.box_number === box.box_number && t.to_stage === box.current_stage)
+                                  
+                                  const stage = box.current_stage
+                                  const session = box.box_sessions?.[0]
+                                  const sessionStatus = session?.status || 'pending'
+
+                                  let actionLabel = 'Received'
+                                  let byName = latestTransition?.moved_by_name || 'N/A'
+                                  let timeStr = latestTransition?.created_at || null
+
+                                  if (stage === 'warehouse') {
+                                    if (sessionStatus === 'completed') {
+                                      actionLabel = 'Completed'
+                                      byName = (session as any)?.warehouse_received_profile?.name || byName
+                                      timeStr = session?.updated_at || timeStr
+                                    } else if (sessionStatus === 'received') {
+                                      actionLabel = 'Received'
+                                      byName = (session as any)?.warehouse_received_profile?.name || byName
+                                      timeStr = session?.warehouse_time_received || timeStr
+                                    }
+                                  } else if (stage === 'inventory') {
+                                    if (sessionStatus === 'completed') {
+                                      actionLabel = 'Completed'
+                                      byName = (session as any)?.inventory_send_profile?.name || byName
+                                      timeStr = session?.inventory_time_send || timeStr
+                                    } else if (sessionStatus === 'received') {
+                                      actionLabel = 'Received'
+                                      byName = (session as any)?.inventory_received_profile?.name || byName
+                                      timeStr = session?.inventory_time_received || timeStr
+                                    }
+                                  } else if (stage === 'cut') {
+                                    if (sessionStatus === 'completed') {
+                                      actionLabel = 'Completed'
+                                      byName = (session as any)?.cut_send_profile?.name || byName
+                                      timeStr = session?.cut_time_send || timeStr
+                                    } else if (sessionStatus === 'received') {
+                                      actionLabel = 'Received'
+                                      byName = (session as any)?.cut_received_profile?.name || byName
+                                      timeStr = session?.cut_time_received || timeStr
+                                    }
+                                  } else if (stage === 'endorsement') {
+                                    if (sessionStatus === 'completed') {
+                                      actionLabel = 'Completed'
+                                      byName = (session as any)?.endorsement_send_profile?.name || byName
+                                      timeStr = session?.endorsement_time_send || timeStr
+                                    } else if (sessionStatus === 'received') {
+                                      actionLabel = 'Received'
+                                      byName = (session as any)?.endorsement_received_profile?.name || byName
+                                      timeStr = session?.endorsement_time_received || timeStr
+                                    }
+                                  } else if (stage === 'scan') {
+                                    actionLabel = 'Scanned'
+                                    byName = (session as any)?.scan_received_profile?.name || byName
+                                    timeStr = session?.scan_time_received || timeStr
+                                  }
+
+                                  return (
+                                    <div
+                                      key={box.id}
+                                      id={`box-${box.id}`}
+                                      className={cn(
+                                        "rounded-lg border overflow-hidden transition-all bg-card hover:shadow-sm",
+                                        highlightBox === box.id ? 'border-primary' : 'border-border',
+                                        isExpanded && `border-l-4 ${borderClass}`
+                                      )}
                                     >
-                                      {/* Left side: Box & Lot */}
-                                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        {isExpanded ? (
-                                          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform" />
-                                        ) : (
-                                          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
-                                        )}
-                                        <div className="min-w-0">
-                                          <p className="text-sm font-bold text-foreground truncate">
-                                            BOX: {box.box_number}
-                                          </p>
-                                          <p className="text-xs text-muted-foreground truncate">
-                                            LOT: {box.lot?.lot_number || 'ΓÇö'}
-                                          </p>
+                                      <div 
+                                        className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer group hover:bg-slate-50 transition-colors gap-3"
+                                        onClick={() => toggleStageBoxDetails(box)}
+                                      >
+                                        {/* Left side: Box & Lot */}
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                          {isExpanded ? (
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform" />
+                                          ) : (
+                                            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
+                                          )}
+                                          <div className="min-w-0">
+                                            <p className="text-sm font-bold text-foreground truncate">
+                                              BOX: {box.box_number}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                              {box.lot?.lot_number || 'N/A'}
+                                            </p>
+                                          </div>
+                                        </div>
+
+                                        {/* Middle section: Book numbers, Station, Received By */}
+                                        <div className="grid grid-cols-2 gap-4 sm:flex sm:items-center sm:gap-6 text-left shrink-0">
+                                          <div className="min-w-[80px]">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
+                                            <span className="text-xs font-semibold text-foreground">
+                                              {box.total_books_expected} expected
+                                            </span>
+                                          </div>
+
+                                          <div className="min-w-[130px] col-span-1">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} By</span>
+                                            <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={byName}>
+                                              {byName}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        {/* Right side: Timestamp & Action */}
+                                        <div className="flex items-center gap-4 ml-auto pl-4">
+                                          <div className="text-left sm:text-right shrink-0 min-w-[100px]">
+                                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} At</span>
+                                            <span className="text-xs font-semibold text-muted-foreground">
+                                              {timeStr
+                                                ? new Date(timeStr).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                                                : 'N/A'}
+                                            </span>
+                                          </div>
+                                          <div className="shrink-0 flex items-center justify-end border-l border-border/50 pl-4">
+                                            {renderBoxAction(box)}
+                                          </div>
                                         </div>
                                       </div>
-
-                                      {/* Middle section: Book numbers, Station, Received By */}
-                                      <div className="grid grid-cols-3 gap-4 sm:flex sm:items-center sm:gap-6 text-left shrink-0">
-                                        <div className="min-w-[80px]">
-                                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
-                                          <span className="text-xs font-semibold text-foreground">
-                                            {box.total_books_expected} expected
-                                          </span>
-                                        </div>
-
-                                        <div className="min-w-[90px]">
-                                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Station</span>
-                                          <span className="text-xs font-semibold text-foreground capitalize">
-                                            {STAGE_META[box.current_stage]?.label || box.current_stage}
-                                          </span>
-                                        </div>
-
-                                        <div className="min-w-[130px] col-span-1">
-                                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">Received By</span>
-                                          <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={latestTransition?.moved_by_name || 'ΓÇö'}>
-                                            {latestTransition?.moved_by_name || 'ΓÇö'}
-                                          </span>
-                                        </div>
-                                      </div>
-
-                                      {/* Right side: Timestamp */}
-                                      <div className="text-left sm:text-right shrink-0 min-w-[100px] pr-2">
-                                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">Received At</span>
-                                        <span className="text-xs font-semibold text-muted-foreground">
-                                          {latestTransition?.created_at
-                                            ? new Date(latestTransition.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
-                                            : 'ΓÇö'}
-                                        </span>
-                                      </div>
-                                    </div>
 
                                     {isExpanded && (
                                       <div className="border-t border-border bg-slate-50 px-3 py-3">
@@ -865,14 +961,13 @@ export default function StationCheckpointsPage() {
                                           <div className="overflow-x-auto">
                                             <table className="w-full text-xs">
                                               <thead>
-                                                <tr className="text-muted-foreground border-b border-border">
-                                                  <th className="pb-2 text-left font-medium pr-3">ISBN</th>
-                                                  <th className="pb-2 text-left font-medium pr-3">Title</th>
-                                                  <th className="pb-2 text-left font-medium pr-3">Status</th>
-                                                  <th className="pb-2 text-left font-medium pr-3">Stage</th>
+                                                <tr className="text-muted-foreground border-b border-border grid grid-cols-[100px_1fr_120px] gap-3 w-full">
+                                                  <th className="pb-2 text-left font-medium">ISBN</th>
+                                                  <th className="pb-2 text-left font-medium">Title</th>
+                                                  <th className="pb-2 text-right font-medium">Status</th>
                                                 </tr>
                                               </thead>
-                                              <tbody>
+                                              <tbody className="block w-full">
                                                 {details.books.filter(book => {
                                                   const status = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || '';
                                                   if (selectedStage === 'scan') {
@@ -886,22 +981,20 @@ export default function StationCheckpointsPage() {
                                                   const simflexStatus = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || 'Not found';
                                                   const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
                                                   return (
-                                                  <tr key={book.id} className="border-b border-border/40 last:border-0">
-                                                    <td className="py-1.5 pr-3 text-foreground">{book.isbn}</td>
-                                                    <td className="py-1.5 pr-3 max-w-[160px] truncate text-foreground">{book.title || 'ΓÇö'}</td>
-                                                    <td className="py-1.5 pr-3">
+                                                  <tr key={book.id} className="border-b border-border/40 last:border-0 grid grid-cols-[100px_1fr_120px] gap-3 w-full items-start">
+                                                    <td className="py-1.5 text-foreground font-mono tabular-nums truncate" title={book.isbn}>
+                                                      {book.isbn}
+                                                    </td>
+                                                    <td className="py-1.5 text-foreground leading-tight truncate" title={book.title || undefined}>
+                                                      {book.title || 'N/A'}
+                                                    </td>
+                                                    <td className="py-1.5 flex flex-col items-end text-right">
                                                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                                         {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
                                                       </span>
-                                                    </td>
-                                                    <td className="py-1.5 pr-3">
-                                                      {isTransmissionCompleted ? (
-                                                        <span className="flex items-center gap-1 text-[10px] font-medium text-green-700">
-                                                          <CheckCircle className="h-3 w-3" /> Done
-                                                        </span>
-                                                      ) : (
-                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
-                                                          {simflexStatus}
+                                                      {book.scan_status === 'non_processable' && book.flag?.issue && (
+                                                        <span className="block mt-1 text-[9px] text-red-500 font-normal leading-tight opacity-90">
+                                                          Reason: {book.flag.issue}
                                                         </span>
                                                       )}
                                                     </td>
