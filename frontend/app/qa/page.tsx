@@ -716,7 +716,7 @@ export default function BookInspectionPage() {
                                         <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
                                           <div className="flex flex-col">
                                             <span className="text-xs font-medium text-foreground">{book.isbn}</span>
-                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                            {book.title && <span className="text-[10px] text-muted-foreground break-words">{book.title}</span>}
                                           </div>
                                           <div className="flex gap-2 items-center">
                                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -761,7 +761,7 @@ export default function BookInspectionPage() {
                             inspScannedBooks.map((book, idx) => (
                               <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
                                 <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
-                                <span className="text-[11px] truncate flex-1">{book.title}</span>
+                                <span className="text-[11px] break-words flex-1">{book.title}</span>
                                 <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                   {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
                                 </span>
@@ -887,7 +887,7 @@ export default function BookInspectionPage() {
                                             <div key={book.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/40 last:border-0">
                                               <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}</span>
                                               <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
-                                              <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
+                                              <span className="flex-1 text-muted-foreground break-words">{book.title || '—'}</span>
                                               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                                 {book.scan_status === 'processable' ? 'Processable' : (book.flag?.issue ? `Non-Processable (${book.flag.issue})` : 'Non-Processable')}
                                               </span>
@@ -1019,7 +1019,7 @@ export default function BookInspectionPage() {
                                       <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                     </div>
                                     <div className="col-span-6">
-                                      <p className="text-[11px] text-foreground truncate">{book.title}</p>
+                                      <p className="text-[11px] text-foreground break-words">{book.title}</p>
                                     </div>
                                     <div className="col-span-3 flex items-center justify-end">
                                       <span className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
@@ -1066,7 +1066,7 @@ export default function BookInspectionPage() {
                                     <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                   </div>
                                   <div className="col-span-5">
-                                    <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>
+                                    <p className="text-[11px] text-muted-foreground break-words">{book.title}</p>
                                     {book.flag_issue && (
                                       <p className="text-[10px] text-red-500 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                                     )}
@@ -1170,7 +1170,7 @@ export default function BookInspectionPage() {
                                         <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
                                           <div className="flex flex-col">
                                             <span className="text-xs font-medium text-foreground">{book.isbn}</span>
-                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                            {book.title && <span className="text-[10px] text-muted-foreground break-words">{book.title}</span>}
                                           </div>
                                           <div className="flex gap-2 items-center">
                                             <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
