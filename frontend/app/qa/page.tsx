@@ -679,7 +679,7 @@ export default function BookInspectionPage() {
                                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
                                   <div className="flex items-center gap-2">
                                     <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Incoming</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Sent from Cut</span>
                                   </div>
                                   <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
