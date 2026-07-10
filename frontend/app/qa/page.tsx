@@ -7,12 +7,11 @@ import { cn } from "@/lib/utils"
 import { useBrand } from "@/hooks/use-brand"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScannerInput } from "@/components/scanner-input"
 import {
-  AlertTriangle, ChevronDown, ChevronRight, RefreshCw, CheckCircle2,
+  AlertTriangle, ChevronDown, ChevronRight, CheckCircle2,
   Inbox, ClipboardCheck, Send, Package, BookOpen, Loader2, Trash2, ClipboardList,
+  ScanBarcode, CircleCheck, CircleX,
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 
@@ -99,7 +98,7 @@ interface InspSession {
 const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
 export default function BookInspectionPage() {
-  const { brand } = useBrand()
+  const { brand, colors } = useBrand()
 
   // ── Tab navigation ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'incoming' | 'inspection' | 'outgoing'>('incoming')
@@ -476,139 +475,182 @@ export default function BookInspectionPage() {
     : 'Not updated yet'
 
   return (
-    <div className={cn("flex min-h-dvh bg-background", `theme-${brand}`)}>
+    <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={inspSessionActive} />
       <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
         <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
-        <div className="flex-1 overflow-y-auto bg-slate-50/50">
-          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+        <main className="flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
+          <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
 
             {/* Header */}
-            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Endorsement</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Receive boxes from Cut, inspect and scan books, then send to Scan.
-                </p>
-              </div>
-              <RefreshControl onRefresh={() => { fetchIncoming(); fetchEndorsementBoxes() }} refreshing={loadingIncoming || loadingEndorsement} lastUpdated={lastUpdated} storageKey="qa" className="hidden sm:flex" />
-            </header>
+            <div className="flex flex-col gap-2 mb-6">
+              <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+                Endorsement
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Receive boxes from Cut, inspect and scan books, then send to Scan.
+              </p>
+            </div>
 
             {/* ── Tab Navigation ── */}
-            <div className="flex items-center gap-1 p-1 bg-muted rounded-xl w-fit">
-              {([
-                { key: 'incoming',   label: 'Incoming Boxes',  icon: Inbox,          count: incomingBoxes.length,   activeColor: 'bg-orange-100 text-orange-700' },
-                { key: 'inspection', label: 'Endorsement', icon: ClipboardCheck, count: inspectionBoxes.length, activeColor: 'bg-amber-100 text-amber-700' },
-                { key: 'outgoing',   label: 'Outgoing Boxes',  icon: Send,           count: outgoingBoxes.length,   activeColor: 'bg-emerald-100 text-emerald-700' },
-              ] as const).map(({ key, label, icon: Icon, count, activeColor }) => (
-                <button
-                  key={key}
-                  disabled={inspSessionActive}
-                  onClick={() => setActiveTab(key)}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === key
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                  {count > 0 && (
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${activeTab === key ? 'bg-background text-primary' : 'bg-muted-foreground/20 text-muted-foreground'}`}>
-                      {count}
-                    </span>
+            <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
+              <button
+                disabled={inspSessionActive}
+                onClick={() => setActiveTab('incoming')}
+                className={cn(
+                  'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                  activeTab === 'incoming'
+                    ? 'border-amber-600 text-amber-700 bg-amber-50/50'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                <Inbox className="h-4 w-4" /> Incoming
+                <span className={cn(
+                  'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                  activeTab === 'incoming' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
+                )}>{incomingBoxes.length}</span>
+              </button>
+              <button
+                disabled={inspSessionActive}
+                onClick={() => setActiveTab('inspection')}
+                className={cn(
+                  'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                  activeTab === 'inspection'
+                    ? 'bg-primary/10'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+                style={activeTab === 'inspection' ? {
+                  borderBottomColor: colors.accent,
+                  color: colors.accent,
+                  backgroundColor: `${colors.accent}14`,
+                } : undefined}
+              >
+                <ClipboardCheck className="h-4 w-4" /> Endorsement
+                <span
+                  className={cn(
+                    'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                    activeTab === 'inspection' ? '' : 'bg-muted text-muted-foreground'
                   )}
-                </button>
-              ))}
+                  style={activeTab === 'inspection' ? {
+                    backgroundColor: `${colors.accent}1A`,
+                    color: colors.accent,
+                  } : undefined}
+                >{inspectionBoxes.length}</span>
+              </button>
+              <button
+                disabled={inspSessionActive}
+                onClick={() => setActiveTab('outgoing')}
+                className={cn(
+                  'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                  activeTab === 'outgoing'
+                    ? 'border-amber-600 text-amber-700 bg-amber-50/50'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                <Send className="h-4 w-4" /> Outgoing
+                <span className={cn(
+                  'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                  activeTab === 'outgoing' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
+                )}>{outgoingBoxes.length}</span>
+              </button>
+
+              <div className="ml-auto">
+                <RefreshControl onRefresh={() => { fetchIncoming(); fetchEndorsementBoxes() }} refreshing={loadingIncoming || loadingEndorsement} lastUpdated={lastUpdated} storageKey="qa" className="hidden sm:flex" />
+              </div>
             </div>
 
             {/* ══════════════════════════════════════════════════════════════════ */}
             {/* TAB: INCOMING BOXES (from Cut)                                   */}
             {/* ══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'incoming' && (
-              <div className="flex flex-col gap-3">
-                <p className="text-xs text-muted-foreground">
-                  {loadingIncoming ? 'Loading…' : `${incomingBoxes.length} box${incomingBoxes.length !== 1 ? 'es' : ''} arriving from Cut`}
-                </p>
+              <div className="flex-1 flex flex-col">
                 {loadingIncoming ? (
-                  <div className="py-12 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Loading boxes…
+                  <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                    <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+                    <p className="text-sm font-medium">Loading boxes...</p>
                   </div>
                 ) : incomingBoxes.length === 0 ? (
-                  <div className="py-20 flex flex-col items-center gap-3 text-center">
-                    <div className="bg-orange-50 rounded-full p-5"><Inbox className="h-8 w-8 text-orange-400" /></div>
-                    <p className="text-sm font-semibold text-foreground">No incoming boxes</p>
-                    <p className="text-xs text-muted-foreground max-w-xs">Boxes advanced from the Cut stage will appear here.</p>
+                  <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                    <Inbox className="h-10 w-10 mb-3 text-amber-600" />
+                    <p className="font-semibold text-foreground">No incoming boxes</p>
+                    <p className="text-sm">Boxes advanced from the Cut stage will appear here.</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
-                    {incomingBoxes.map(box => {
-                      const isExpanded = expandedBoxId === box.id
-                      const rowBooks = boxBooks[box.id] || []
-                      const isLoadingBooks = loadingBoxBooks === box.id
-                      const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
-                      return (
-                        <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
-                          <div className="flex items-center px-4 py-3 gap-4">
-                            <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
-                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </button>
-                            <div className="bg-orange-50 rounded-lg p-2 shrink-0">
-                              <Package className="h-5 w-5 text-orange-600" />
-                            </div>
-                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
-                              <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                              <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                            </div>
-                            {box.box_sessions?.[0]?.cut_time_send && (
-                              <div className="shrink-0 hidden sm:block text-right mr-2">
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(box.box_sessions[0].cut_time_send).toLocaleDateString()}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground/80">
-                                  {new Date(box.box_sessions[0].cut_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                </p>
-                              </div>
-                            )}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
-                              disabled={receivingBox === box.id}
-                              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-60 transition-colors shrink-0"
-                            >
-                              {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                              {receivingBox === box.id ? 'Receiving…' : 'Received'}
-                            </button>
-                          </div>
-                          {isExpanded && (
-                            <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
-                              {isLoadingBooks ? (
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                  <div className="flex flex-col min-h-0 flex-1">
+                    <div className="flex-1 overflow-y-auto pr-1">
+                      <div className="flex flex-col gap-2 pb-2">
+                        {incomingBoxes.map(box => {
+                          const isExpanded = expandedBoxId === box.id
+                          const rowBooks = boxBooks[box.id] || []
+                          const isLoadingBooks = loadingBoxBooks === box.id
+                          const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                          return (
+                            <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                              <div className="flex items-center px-4 py-3 gap-4">
+                                <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </button>
+                                <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                  <Package className="h-5 w-5 text-amber-600" />
                                 </div>
-                              ) : rowBooks.length === 0 ? (
-                                <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
-                              ) : (
-                                <div className="flex flex-col gap-1 border-l-2 border-orange-200 pl-3">
-                                  {rowBooks.map(book => (
-                                    <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
-                                      <div className="flex flex-col">
-                                        <span className="text-xs font-medium text-foreground">{book.isbn}</span>
-                                        {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
-                                      </div>
-                                      <div className="flex gap-2 items-center">
-                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-                                        </span>
-                                      </div>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Incoming</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                </div>
+                                {box.box_sessions?.[0]?.cut_time_send && (
+                                  <div className="shrink-0 hidden sm:block text-right mr-2">
+                                    <p className="text-xs text-muted-foreground">
+                                      {new Date(box.box_sessions[0].cut_time_send).toLocaleDateString()}
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground/80">
+                                      {new Date(box.box_sessions[0].cut_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                    </p>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                                  disabled={receivingBox === box.id}
+                                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                                >
+                                  {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
+                                  {receivingBox === box.id ? 'Receiving…' : 'Receive Box'}
+                                </button>
+                              </div>
+                              {isExpanded && (
+                                <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                                  {isLoadingBooks ? (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
                                     </div>
-                                  ))}
+                                  ) : rowBooks.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                                  ) : (
+                                    <div className="flex flex-col gap-1 border-l-2 border-amber-200 pl-3">
+                                      {rowBooks.map(book => (
+                                        <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+                                          <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                          </div>
+                                          <div className="flex gap-2 items-center">
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                              {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -702,79 +744,81 @@ export default function BookInspectionPage() {
 
                 {!inspSessionActive ? (
                   /* ── Box list ── */
-                  <div className="flex flex-col gap-3">
-                    <p className="text-xs text-muted-foreground">
-                      {loadingEndorsement ? 'Loading…' : `${inspectionBoxes.length} box${inspectionBoxes.length !== 1 ? 'es' : ''} awaiting inspection`}
-                    </p>
+                  <div className="flex-1 flex flex-col">
                     {loadingEndorsement ? (
-                      <div className="py-12 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading boxes…
+                      <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        <p className="text-sm font-medium">Loading boxes...</p>
                       </div>
                     ) : inspectionBoxes.length === 0 ? (
-                      <div className="py-20 flex flex-col items-center gap-3 text-center">
-                        <div className="bg-amber-50 rounded-full p-5"><ClipboardCheck className="h-8 w-8 text-amber-400" /></div>
-                        <p className="text-sm font-semibold text-foreground">No boxes to inspect</p>
-                        <p className="text-xs text-muted-foreground max-w-xs">Receive boxes from the Incoming Boxes tab first.</p>
+                      <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                        <ClipboardCheck className="h-10 w-10 mb-3 text-primary" />
+                        <p className="font-semibold text-foreground">No boxes to inspect</p>
+                        <p className="text-sm">Receive boxes from the Incoming Boxes tab first.</p>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-2">
-                        {inspectionBoxes.map(box => {
-                          const isExpanded = inspExpandedBoxId === box.id
-                          const rowBooks = inspRowBooks[box.id] || []
-                          const isLoadingBooks = loadingInspRowBooks === box.id
-                          return (
-                            <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
-                              <div className="flex items-center px-4 py-3 gap-4">
-                                <button onClick={() => toggleInspRow(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
-                                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                </button>
-                                <div className="bg-amber-50 rounded-lg p-2 shrink-0">
-                                  <Package className="h-5 w-5 text-amber-600" />
-                                </div>
-                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleInspRow(box.id)}>
-                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                                </div>
-                                <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
-                                  {box.box_sessions?.[0]?.endorsement_time_received ? new Date(box.box_sessions[0].endorsement_time_received).toLocaleString() : ''}
-                                </span>
-                                <button
-                                  onClick={() => handleStartInspSession(box.id)}
-                                  disabled={loadingInspSession}
-                                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
-                                >
-                                  {loadingInspSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
-                                  {loadingInspSession ? 'Starting…' : 'Start Session'}
-                                </button>
-                              </div>
-                              {isExpanded && (
-                                <div className="border-t border-border px-5 py-3 bg-muted/30">
-                                  {isLoadingBooks ? (
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                      <div className="flex flex-col min-h-0 flex-1">
+                        <div className="flex-1 overflow-y-auto pr-1">
+                          <div className="flex flex-col gap-2 pb-2">
+                            {inspectionBoxes.map(box => {
+                              const isExpanded = inspExpandedBoxId === box.id
+                              const rowBooks = inspRowBooks[box.id] || []
+                              const isLoadingBooks = loadingInspRowBooks === box.id
+                              return (
+                                <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                                  <div className="flex items-center px-4 py-3 gap-4">
+                                    <button onClick={() => toggleInspRow(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </button>
+                                    <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                      <Package className="h-5 w-5 text-primary" />
                                     </div>
-                                  ) : rowBooks.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
-                                  ) : (
-                                    <div className="flex flex-col">
-                                      <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
-                                      {rowBooks.map((book, idx) => (
-                                        <div key={book.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/40 last:border-0">
-                                          <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}</span>
-                                          <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
-                                          <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
-                                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {book.scan_status === 'processable' ? 'Processable' : (book.flag?.issue ? `Non-Processable (${book.flag.issue})` : 'Non-Processable')}
-                                          </span>
+                                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleInspRow(box.id)}>
+                                      <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                      <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                                      {box.box_sessions?.[0]?.endorsement_time_received ? new Date(box.box_sessions[0].endorsement_time_received).toLocaleString() : ''}
+                                    </span>
+                                    <button
+                                      onClick={() => handleStartInspSession(box.id)}
+                                      disabled={loadingInspSession}
+                                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+                                    >
+                                      {loadingInspSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardCheck className="h-4 w-4" />}
+                                      {loadingInspSession ? 'Starting…' : 'Start Session'}
+                                    </button>
+                                  </div>
+                                  {isExpanded && (
+                                    <div className="border-t border-border px-5 py-3 bg-muted/30">
+                                      {isLoadingBooks ? (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
                                         </div>
-                                      ))}
+                                      ) : rowBooks.length === 0 ? (
+                                        <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                                      ) : (
+                                        <div className="flex flex-col">
+                                          <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
+                                          {rowBooks.map((book, idx) => (
+                                            <div key={book.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-border/40 last:border-0">
+                                              <span className="text-muted-foreground w-5 text-right shrink-0">{idx + 1}</span>
+                                              <span className="font-mono text-foreground w-32 shrink-0">{book.isbn}</span>
+                                              <span className="flex-1 text-muted-foreground truncate">{book.title || '—'}</span>
+                                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {book.scan_status === 'processable' ? 'Processable' : (book.flag?.issue ? `Non-Processable (${book.flag.issue})` : 'Non-Processable')}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          )
-                        })}
+                              )
+                            })}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -811,17 +855,32 @@ export default function BookInspectionPage() {
 
                     {/* ── Stats cards ── */}
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-xs text-blue-600 font-medium">Total Scanned</p>
-                        <p className="text-2xl font-bold text-blue-900">{inspCurrentSession?.total_scanned || 0}</p>
+                      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
+                          <ScanBarcode className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
+                          <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{inspCurrentSession?.total_scanned || 0}</p>
+                        </div>
                       </div>
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                        <p className="text-xs text-green-600 font-medium">Processable</p>
-                        <p className="text-2xl font-bold text-green-900">{inspCurrentSession?.total_processable || 0}</p>
+                      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
+                          <CircleCheck className="h-4 w-4 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
+                          <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{inspCurrentSession?.total_processable || 0}</p>
+                        </div>
                       </div>
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                        <p className="text-xs text-red-600 font-medium">Non-Processable</p>
-                        <p className="text-2xl font-bold text-red-900">{inspCurrentSession?.total_non_processable || 0}</p>
+                      <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
+                          <CircleX className="h-4 w-4 text-destructive" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
+                          <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{inspCurrentSession?.total_non_processable || 0}</p>
+                        </div>
                       </div>
                     </div>
 
@@ -833,8 +892,8 @@ export default function BookInspectionPage() {
                       {/* Warehouse Table (Left) - Read Only */}
                       <div className="bg-card border border-border rounded-xl p-5">
                         <div className="flex items-center gap-2 mb-3">
-                          <Package className="h-4 w-4 text-blue-600" />
-                          <h3 className="text-sm font-semibold text-blue-600">Previous Scans (Inventory)</h3>
+                          <Package className="h-4 w-4 text-muted-foreground" />
+                          <h3 className="text-sm font-semibold text-muted-foreground">Previous Scans (Inventory)</h3>
                           {loadingWarehouseBooks ? (
                             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                           ) : (
@@ -895,14 +954,14 @@ export default function BookInspectionPage() {
                       </div>
 
                       {/* Endorsement Table (Right) - Editable */}
-                      <div className="bg-card border-2 border-green-500 rounded-xl p-5 shadow-sm">
+                      <div className="bg-card border-2 border-primary rounded-xl p-5 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                           <div className="flex items-center gap-2">
-                            <ClipboardCheck className="h-4 w-4 text-green-600" />
-                            <h3 className="text-sm font-semibold text-green-600">Endorsement Scans</h3>
+                            <ClipboardCheck className="h-4 w-4 text-primary" />
+                            <h3 className="text-sm font-semibold text-primary">Endorsement Scans</h3>
                             <span className="text-xs text-muted-foreground">({inspScannedBooks.length} books)</span>
                           </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium border border-green-200">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium border border-primary/20">
                             Currently Endorsing
                           </span>
                         </div>
@@ -963,95 +1022,96 @@ export default function BookInspectionPage() {
             {/* TAB: OUTGOING BOXES (send to Scan)                               */}
             {/* ══════════════════════════════════════════════════════════════════ */}
             {activeTab === 'outgoing' && (
-              <div className="flex flex-col gap-3">
-                <p className="text-xs text-muted-foreground">
-                  {`${outgoingBoxes.length} box${outgoingBoxes.length !== 1 ? 'es' : ''} ready to send to Scan`}
-                </p>
+              <div className="flex-1 flex flex-col">
                 {outgoingBoxes.length === 0 ? (
-                  <div className="py-20 flex flex-col items-center gap-3 text-center">
-                    <div className="bg-emerald-50 rounded-full p-5"><Send className="h-8 w-8 text-emerald-400" /></div>
-                    <p className="text-sm font-semibold text-foreground">No outgoing boxes yet</p>
-                    <p className="text-xs text-muted-foreground max-w-xs">Complete an inspection session in the Book Inspection tab to add boxes here.</p>
+                  <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
+                    <Send className="h-10 w-10 mb-3 text-amber-600" />
+                    <p className="font-semibold text-foreground">No outgoing boxes yet</p>
+                    <p className="text-sm">Complete an inspection session in the Book Inspection tab to add boxes here.</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
-                    {outgoingBoxes.map(box => {
-                      const isExpanded = expandedBoxId === box.id
-                      const rowBooks = boxBooks[box.id] || []
-                      const isLoadingBooks = loadingBoxBooks === box.id
-                      const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
-                      return (
-                        <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
-                          <div className="flex items-center px-4 py-3 gap-4">
-                            <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
-                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                            </button>
-                            <div className="bg-emerald-50 rounded-lg p-2 shrink-0">
-                              <Package className="h-5 w-5 text-emerald-600" />
-                            </div>
-                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Endorsed</span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                            </div>
-                            {(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at) && (
-                              <div className="shrink-0 flex flex-col items-end gap-0.5 mr-2">
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleDateString()}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground/80">
-                                  {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                </span>
-                              </div>
-                            )}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleSendToScan(box) }}
-                              disabled={sendingToScan === box.id}
-                              className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 transition-colors shrink-0"
-                            >
-                              {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                              {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
-                            </button>
-                          </div>
-                          {isExpanded && (
-                            <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
-                              {isLoadingBooks ? (
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+                  <div className="flex flex-col min-h-0 flex-1">
+                    <div className="flex-1 overflow-y-auto pr-1">
+                      <div className="flex flex-col gap-2 pb-2">
+                        {outgoingBoxes.map(box => {
+                          const isExpanded = expandedBoxId === box.id
+                          const rowBooks = boxBooks[box.id] || []
+                          const isLoadingBooks = loadingBoxBooks === box.id
+                          const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                          return (
+                            <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
+                              <div className="flex items-center px-4 py-3 gap-4">
+                                <button onClick={() => toggleBox(box.id)} className="shrink-0 text-muted-foreground hover:text-foreground transition-colors">
+                                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </button>
+                                <div className="bg-amber-50 rounded-lg p-2 shrink-0">
+                                  <Package className="h-5 w-5 text-amber-600" />
                                 </div>
-                              ) : rowBooks.length === 0 ? (
-                                <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
-                              ) : (
-                                <div className="flex flex-col gap-1 border-l-2 border-emerald-200 pl-3">
-                                  {rowBooks.map(book => (
-                                    <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
-                                      <div className="flex flex-col">
-                                        <span className="text-xs font-medium text-foreground">{book.isbn}</span>
-                                        {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
-                                      </div>
-                                      <div className="flex gap-2 items-center">
-                                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-                                        </span>
-                                      </div>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Endorsed</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                </div>
+                                {(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at) && (
+                                  <div className="shrink-0 flex flex-col items-end gap-0.5 mr-2">
+                                    <span className="text-xs text-muted-foreground">
+                                      {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleDateString()}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground/80">
+                                      {new Date(box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at as string).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                )}
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleSendToScan(box) }}
+                                  disabled={sendingToScan === box.id}
+                                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                                >
+                                  {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                  {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
+                                </button>
+                              </div>
+                              {isExpanded && (
+                                <div className="border-t border-border px-5 py-3 bg-muted/30 max-h-[300px] overflow-y-auto">
+                                  {isLoadingBooks ? (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
                                     </div>
-                                  ))}
+                                  ) : rowBooks.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+                                  ) : (
+                                    <div className="flex flex-col gap-1 border-l-2 border-amber-200 pl-3">
+                                      {rowBooks.map(book => (
+                                        <div key={book.id} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+                                          <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-foreground">{book.isbn}</span>
+                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                          </div>
+                                          <div className="flex gap-2 items-center">
+                                            <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                              {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
-                          )}
-                        </div>
-                      )
-                    })}
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
           </div>
-        </div>
+        </main>
       </div>
     </div>
   )
