@@ -581,8 +581,8 @@ export default function DashboardPage() {
             {/* Active Pipeline Flowchart */}
             <ActivePipeline currentLot={displayText} stats={dashboardStats} brand={brand} loading={isRefreshing} />
 
-            {/* Transmission Queue - Full Width */}
-            <div className="flex-1 w-full flex flex-col min-h-0">
+            {/* Transmission Queue - Full Width (hidden on mobile) */}
+            <div className="hidden md:flex flex-1 w-full flex-col min-h-0">
               <TransmissionQueue scans={liveScans} loading={isRefreshing} />
             </div>
           </div>
