@@ -71,6 +71,7 @@
 .theme-mustang {
   --primary: oklch(0.55 0.2 260);
   --accent: oklch(0.55 0.2 260);
+  --ring: oklch(0.55 0.2 260);
   --sidebar-primary: oklch(0.55 0.2 260);
   --sidebar-ring: oklch(0.55 0.2 260);
 }
@@ -78,6 +79,7 @@
 .theme-jaguar {
   --primary: oklch(0.62 0.16 142); /* Green for Jaguar */
   --accent: oklch(0.62 0.16 142);
+  --ring: oklch(0.62 0.16 142);
   --sidebar-primary: oklch(0.62 0.16 142);
   --sidebar-ring: oklch(0.62 0.16 142);
 }

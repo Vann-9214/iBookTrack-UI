@@ -1125,7 +1125,7 @@ export default function StationCheckpointsPage() {
                     placeholder="Search box or lot..."
                     value={transitionSearch}
                     onChange={e => setTransitionSearch(e.target.value)}
-                    className="pl-9 h-9"
+                    className="pl-9 h-9 border-primary/30 focus-visible:border-primary focus-visible:ring-primary/50"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
