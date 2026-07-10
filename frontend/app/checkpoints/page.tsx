@@ -134,6 +134,7 @@ export default function StationCheckpointsPage() {
   const [loading, setLoading] = useState(true)
   const [advancing, setAdvancing] = useState<string | null>(null)
   const [receiving, setReceiving] = useState<string | null>(null)
+  const [sendingForward, setSendingForward] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [scanInput, setScanInput] = useState('')
   const [highlightBox, setHighlightBox] = useState<string | null>(null)
@@ -203,9 +204,9 @@ export default function StationCheckpointsPage() {
     try {
       const currentFilter = transitionStageFilterRef.current
       const currentBrand = brandRef.current
-      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50${currentFilter ? `&stage=${currentFilter}` : ''}`
+      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50&box_type=${currentBrand}${currentFilter ? `&stage=${currentFilter}` : ''}`
       const [boxRes, transRes, liveRes] = await Promise.all([
-        authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true`),
+        authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true&box_type=${currentBrand}`),
         authFetch(transitionUrl),
         authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}&wipOnly=true`).catch(() => null),
       ])
@@ -243,7 +244,7 @@ export default function StationCheckpointsPage() {
 
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+  }, [fetchData, brand])
 
   // Load Simflex rows whenever the Scan or Transmit stage modal opens
   useEffect(() => {
@@ -291,6 +292,23 @@ export default function StationCheckpointsPage() {
       toast.error(e instanceof Error ? e.message : 'Failed to receive box')
     } finally {
       setReceiving(null)
+    }
+  }
+
+  const handleSendForward = async (box: BoxItem) => {
+    setSendingForward(box.id)
+    try {
+      const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-forward`, {
+        method: 'POST',
+        body: JSON.stringify({})
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to send forward')
+      await fetchData()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to send box')
+    } finally {
+      setSendingForward(null)
     }
   }
 
@@ -353,50 +371,140 @@ export default function StationCheckpointsPage() {
         </Badge>
       )
     }
-    if (['warehouse', 'inventory', 'cut', 'endorsement'].includes(stage)) {
+    if (stage === 'warehouse') {
       const latestSession = box.box_sessions?.[0]
       const status = latestSession?.status || 'sent'
       
       if (status === 'completed') {
         return (
           <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
-            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center hover:bg-emerald-50 hover:text-emerald-700">
-              Completed
+            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
+              Complete
             </Badge>
-            <Button
-              size="sm"
-              variant="default"
-              disabled={advancing === box.id}
-              onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
-              className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300"
-            >
-              {advancing === box.id ? '...' : 'Send'}
-              {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
+            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+              {advancing === box.id ? '...' : 'Receive'}
             </Button>
           </div>
         )
       } else if (status === 'received') {
         return (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled
-            className="h-7 gap-1 text-xs border-blue-300 text-blue-700 bg-blue-50 shrink-0 opacity-100 cursor-not-allowed"
-          >
+          <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 shrink-0 flex items-center justify-center w-[76px] h-7 cursor-default">
             Received
-          </Button>
+          </Badge>
         )
       } else {
         return (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={receiving === box.id}
-            onClick={(e) => { e.stopPropagation(); handleReceive(box) }}
-            className="h-7 gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0"
-          >
+          <Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); handleReceive(box) }} className="h-7 w-[76px] gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0">
             {receiving === box.id ? '...' : 'Receive'}
           </Button>
+        )
+      }
+    }
+    
+    if (stage === 'inventory') {
+      const latestSession = box.box_sessions?.[0]
+      const status = latestSession?.status || 'sent'
+      
+      if (status === 'completed') {
+        return (
+          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 shrink-0 flex items-center justify-center w-[76px] h-7 cursor-default">
+            Complete
+          </Badge>
+        )
+      } else if (status === 'received') {
+        return (
+          <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 shrink-0 flex items-center justify-center w-[76px] h-7 cursor-default">
+            Received
+          </Badge>
+        )
+      } else {
+        return (
+          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
+            <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
+              Sent
+            </Badge>
+            <Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); handleReceive(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+              {receiving === box.id ? '...' : 'Receive'}
+            </Button>
+          </div>
+        )
+      }
+    }
+    
+    if (stage === 'cut') {
+      const latestSession = box.box_sessions?.[0]
+      const status = latestSession?.status || 'sent'
+      
+      if (status === 'received') {
+        return (
+          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
+            <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
+              Receive
+            </Badge>
+            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); handleSendForward(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+              {sendingForward === box.id ? '...' : 'Send'}
+              {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
+            </Button>
+          </div>
+        )
+      } else if (status === 'sent') {
+        return (
+          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
+            <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
+              Sent
+            </Badge>
+            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+              {advancing === box.id ? '...' : 'Receive'}
+            </Button>
+          </div>
+        )
+      } else {
+        return (
+          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 shrink-0 flex items-center justify-center w-[76px] h-7 cursor-default">
+            {status === 'completed' ? 'Complete' : status}
+          </Badge>
+        )
+      }
+    }
+    
+    if (stage === 'endorsement') {
+      const latestSession = box.box_sessions?.[0]
+      const status = latestSession?.status || 'sent'
+      
+      if (status === 'received') {
+        return (
+          <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 shrink-0 flex items-center justify-center w-[76px] h-7 cursor-default">
+            Receive
+          </Badge>
+        )
+      } else if (status === 'completed') {
+        return (
+          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
+            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
+              Complete
+            </Badge>
+            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); handleSendForward(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+              {sendingForward === box.id ? '...' : 'Send'}
+              {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
+            </Button>
+          </div>
+        )
+      } else if (status === 'sent') {
+        return (
+          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
+            <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
+              Sent
+            </Badge>
+            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+              {advancing === box.id ? '...' : 'Receive'}
+            </Button>
+          </div>
+        )
+      } else {
+        return (
+          <Badge variant="outline" className="text-[10px] border-gray-300 text-gray-700 bg-gray-50 shrink-0 flex items-center justify-center w-[76px] h-7 cursor-default">
+            {status}
+          </Badge>
         )
       }
     }
@@ -850,6 +958,10 @@ export default function StationCheckpointsPage() {
                                       actionLabel = 'Received'
                                       byName = (session as any)?.warehouse_received_profile?.name || byName
                                       timeStr = session?.warehouse_time_received || timeStr
+                                    } else if (sessionStatus === 'sent') {
+                                      actionLabel = 'Sent'
+                                      byName = (session as any)?.warehouse_received_profile?.name || byName
+                                      timeStr = session?.updated_at || timeStr
                                     }
                                   } else if (stage === 'inventory') {
                                     if (sessionStatus === 'completed') {
@@ -860,6 +972,10 @@ export default function StationCheckpointsPage() {
                                       actionLabel = 'Received'
                                       byName = (session as any)?.inventory_received_profile?.name || byName
                                       timeStr = session?.inventory_time_received || timeStr
+                                    } else if (sessionStatus === 'sent') {
+                                      actionLabel = 'Sent'
+                                      byName = (session as any)?.inventory_send_profile?.name || byName
+                                      timeStr = session?.inventory_time_send || timeStr
                                     }
                                   } else if (stage === 'cut') {
                                     if (sessionStatus === 'completed') {
@@ -870,6 +986,10 @@ export default function StationCheckpointsPage() {
                                       actionLabel = 'Received'
                                       byName = (session as any)?.cut_received_profile?.name || byName
                                       timeStr = session?.cut_time_received || timeStr
+                                    } else if (sessionStatus === 'sent') {
+                                      actionLabel = 'Sent'
+                                      byName = (session as any)?.cut_send_profile?.name || byName
+                                      timeStr = session?.cut_time_send || timeStr
                                     }
                                   } else if (stage === 'endorsement') {
                                     if (sessionStatus === 'completed') {
@@ -880,6 +1000,10 @@ export default function StationCheckpointsPage() {
                                       actionLabel = 'Received'
                                       byName = (session as any)?.endorsement_received_profile?.name || byName
                                       timeStr = session?.endorsement_time_received || timeStr
+                                    } else if (sessionStatus === 'sent') {
+                                      actionLabel = 'Sent'
+                                      byName = (session as any)?.endorsement_send_profile?.name || byName
+                                      timeStr = session?.endorsement_time_send || timeStr
                                     }
                                   } else if (stage === 'scan') {
                                     actionLabel = 'Scanned'

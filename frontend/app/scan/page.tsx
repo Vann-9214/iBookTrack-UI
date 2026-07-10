@@ -84,6 +84,7 @@ export default function ScanPage() {
         if (searchType === 'isbn') params.append('isbn', query)
       }
       // Fetch incoming: current stage is 'endorsement' but session is 'sent'
+      params.append('box_type', brand)
       const resIncoming = await authFetch(`${API_URL}/api/boxes?${params.toString()}`)
       const incomingData = await resIncoming.json()
       const filteredIncoming = (incomingData.boxes || []).filter((b: BoxEntry) => {
@@ -96,7 +97,7 @@ export default function ScanPage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, searchType])
+  }, [brand, searchQuery, searchType])
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchBoxes() }, 300)

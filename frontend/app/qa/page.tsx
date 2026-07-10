@@ -113,7 +113,7 @@ export default function BookInspectionPage() {
   const fetchIncoming = useCallback(async () => {
     setLoadingIncoming(true)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes?current_stage=cut`)
+      const res = await authFetch(`${API_URL}/api/boxes?current_stage=cut&box_type=${brand}`)
       const data = await res.json()
       const filteredIncoming = (data.boxes || []).filter((b: BoxEntry) => {
          return b.box_sessions?.some(s => s.status === 'sent')
@@ -124,7 +124,7 @@ export default function BookInspectionPage() {
     } finally {
       setLoadingIncoming(false)
     }
-  }, [])
+  }, [brand])
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)
@@ -152,7 +152,7 @@ export default function BookInspectionPage() {
   const fetchEndorsementBoxes = useCallback(async () => {
     setLoadingEndorsement(true)
     try {
-      const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
+      const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement&box_type=${brand}`)
       const data = await res.json()
       if (data.boxes) {
         const filteredEndorsement = data.boxes.filter((b: BoxEntry) => {
@@ -166,7 +166,7 @@ export default function BookInspectionPage() {
     } finally {
       setLoadingEndorsement(false)
     }
-  }, [])
+  }, [brand])
 
   useEffect(() => {
     fetchIncoming()

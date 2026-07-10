@@ -40,7 +40,7 @@ function formatStageLabel(stage) {
 // Get dashboard stats
 router.get('/stats', requireAuth, async (req, res) => {
   try {
-    const { lot_number, lot_range_start, lot_range_end } = req.query
+    const { lot_number, lot_range_start, lot_range_end, box_type } = req.query
     const db = supabaseAdmin || supabase
 
     // Build lot filter
@@ -66,17 +66,23 @@ router.get('/stats', requireAuth, async (req, res) => {
     // Get total boxes
     let boxQuery = db.from('boxes').select('id', { count: 'exact', head: true })
     if (lotIds) boxQuery = boxQuery.in('lot_id', lotIds)
+    if (box_type) boxQuery = boxQuery.eq('box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     const { count: totalBoxes } = await boxQuery
 
     // Get total books
     let bookQuery = db.from('books').select('id', { count: 'exact', head: true })
-    if (lotIds) {
-      const { data: boxes } = await db
-        .from('boxes')
-        .select('id')
-        .in('lot_id', lotIds)
-      if (boxes) {
+    
+    let boxesFilterQuery = db.from('boxes').select('id')
+    if (lotIds) boxesFilterQuery = boxesFilterQuery.in('lot_id', lotIds)
+    if (box_type) boxesFilterQuery = boxesFilterQuery.eq('box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
+    
+    if (lotIds || box_type) {
+      const { data: boxes } = await boxesFilterQuery
+      if (boxes && boxes.length > 0) {
         bookQuery = bookQuery.in('box_id', boxes.map(b => b.id))
+      } else {
+        // If filters yielded no boxes, then books should be 0
+        bookQuery = bookQuery.eq('id', '00000000-0000-0000-0000-000000000000') // forcing empty result
       }
     }
     const { count: totalBooks } = await bookQuery
@@ -119,11 +125,21 @@ router.get('/stats', requireAuth, async (req, res) => {
     // Get active lots count
     let activeLots = 0
     if (!lot_number && !lot_range_start) {
-      const { count } = await db
-        .from('lots')
-        .select('id', { count: 'exact', head: true })
-        .neq('status', 'storage')
-      activeLots = count
+      if (box_type) {
+        // Need to fetch lots that have boxes of this type instead of using count directly on joined table because Supabase count with inner join can be tricky
+        const { data: lotsWithBoxes } = await db
+          .from('lots')
+          .select('id, boxes!inner(id)')
+          .neq('status', 'storage')
+          .eq('boxes.box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
+        activeLots = lotsWithBoxes ? lotsWithBoxes.length : 0
+      } else {
+        const { count } = await db
+          .from('lots')
+          .select('id', { count: 'exact', head: true })
+          .neq('status', 'storage')
+        activeLots = count
+      }
     } else {
       activeLots = lotIds ? lotIds.length : 0
     }
