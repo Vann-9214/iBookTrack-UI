@@ -45,6 +45,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [timestamp, setTimestamp] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [sortKey, setSortKey] = useState<SortKey>('progress')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -58,7 +59,9 @@ export default function ReportsPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to fetch')
       setLots(data.lots || [])
-      setTimestamp(new Date().toLocaleString())
+      const now = new Date()
+      setTimestamp(now.toLocaleString())
+      setLastUpdated(now)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -124,7 +127,7 @@ export default function ReportsPage() {
                 {timestamp && <span className="ml-2">· Updated {timestamp}</span>}
               </p>
             </div>
-            <RefreshControl onRefresh={fetchData} refreshing={loading} storageKey="reports" className="hidden sm:flex" />
+            <RefreshControl onRefresh={fetchData} refreshing={loading} lastUpdated={lastUpdated} storageKey="reports" className="hidden sm:flex" />
           </header>
 
           {/* Summary cards */}

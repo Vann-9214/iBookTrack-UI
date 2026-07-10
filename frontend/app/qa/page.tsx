@@ -111,6 +111,7 @@ export default function BookInspectionPage() {
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
   const fetchIncoming = useCallback(async () => {
+    setLoadingIncoming(true)
     try {
       const res = await authFetch(`${API_URL}/api/boxes?current_stage=cut`)
       const data = await res.json()
@@ -149,6 +150,7 @@ export default function BookInspectionPage() {
   const [loadingEndorsement, setLoadingEndorsement] = useState(true)
 
   const fetchEndorsementBoxes = useCallback(async () => {
+    setLoadingEndorsement(true)
     try {
       const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
       const data = await res.json()
@@ -489,7 +491,7 @@ export default function BookInspectionPage() {
                   Receive boxes from Cut, inspect and scan books, then send to Scan.
                 </p>
               </div>
-              <RefreshControl onRefresh={() => { fetchIncoming(); fetchEndorsementBoxes() }} refreshing={loadingIncoming || loadingEndorsement} storageKey="qa" className="hidden sm:flex" />
+              <RefreshControl onRefresh={() => { fetchIncoming(); fetchEndorsementBoxes() }} refreshing={loadingIncoming || loadingEndorsement} lastUpdated={lastUpdated} storageKey="qa" className="hidden sm:flex" />
             </header>
 
             {/* ── Tab Navigation ── */}
