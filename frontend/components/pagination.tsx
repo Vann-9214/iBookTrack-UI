@@ -31,20 +31,22 @@ export function Pagination({
 
   return (
     <div className={cn('flex items-center justify-center sm:justify-between py-4 px-4 border-t border-border', className)}>
-      <div className="hidden sm:flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Items per page:</span>
-        <select
-          value={pageSize}
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="text-xs px-2 py-1 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-        >
-          {options.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
-      </div>
+      {options.length > 0 && (
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Items per page:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="text-xs px-2 py-1 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            {options.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <Button

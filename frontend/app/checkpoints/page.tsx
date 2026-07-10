@@ -549,7 +549,7 @@ export default function StationCheckpointsPage() {
     const matchesDate = (!from || tDate >= from) && (!to || tDate <= to)
     return matchesSearch && matchesDate
   })
-  const transitionsPagination = usePagination({ totalItems: filteredTransitions.length, defaultPageSize: 30 })
+  const transitionsPagination = usePagination({ totalItems: filteredTransitions.length, defaultPageSize: 50 })
   const paginatedTransitions = filteredTransitions.slice(transitionsPagination.offset, transitionsPagination.offset + transitionsPagination.limit)
 
   const formatTime = (iso: string) => {
@@ -1246,7 +1246,7 @@ export default function StationCheckpointsPage() {
                     onPageSizeChange={transitionsPagination.setPageSize}
                     canPrevPage={transitionsPagination.canPrevPage}
                     canNextPage={transitionsPagination.canNextPage}
-                    pageSizeOptions={[10, 30, 50, 100]}
+                    pageSizeOptions={[]}
                   />
                 )}
               </CardContent>
