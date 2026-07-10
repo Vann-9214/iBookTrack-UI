@@ -279,7 +279,7 @@ export default function CutPage() {
                   <div className="flex flex-col gap-2">
                     {filteredIncoming.length === 0 ? (
                       <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                        <Inbox className="h-10 w-10 mb-3 text-muted-foreground/30" />
+                        <Inbox className="h-10 w-10 mb-3 text-amber-600" />
                         <p className="font-semibold text-foreground">No incoming boxes</p>
                         <p className="text-sm">Boxes sent from Inventory will appear here.</p>
                       </div>
@@ -374,7 +374,7 @@ export default function CutPage() {
                   <div className="flex flex-col gap-2">
                     {filteredOutgoing.length === 0 ? (
                       <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                        <Send className="h-10 w-10 mb-3 text-muted-foreground/30" />
+                        <Send className="h-10 w-10 mb-3 text-amber-600" />
                         <p className="font-semibold text-foreground">No outgoing boxes</p>
                         <p className="text-sm">Received boxes will appear here.</p>
                       </div>
