@@ -5,19 +5,18 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 function getStepStatus(count: number, stage: string) {
-  if (stage === "storage") {return count > 0 ? "completed" : "idle"}
   if (count >= 100) return "busy"
   if (count === 0) return "idle"
   return "active"
 }
 
-const statusConfig = {
+const getStatusConfig = (brand: string) => ({
   active: {
-    nodeRing: "border-blue-400 text-blue-500",
-    countColor: "text-blue-500",
-    bar: "bg-blue-400",
-    cardBg: "bg-blue-50",
-    dot: "bg-blue-400",
+    nodeRing: brand === 'jaguar' ? "border-green-400 text-green-500" : "border-blue-400 text-blue-500",
+    countColor: brand === 'jaguar' ? "text-green-500" : "text-blue-500",
+    bar: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
+    cardBg: brand === 'jaguar' ? "bg-green-50" : "bg-blue-50",
+    dot: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
     label: "Active",
   },
   busy: {
@@ -36,15 +35,7 @@ const statusConfig = {
     dot: "bg-gray-400",
     label: "Idle",
   },
-  completed: {
-    nodeRing: "border-green-300 text-green-400",
-    countColor: "text-green-400",
-    bar: "bg-green-400",
-    cardBg: "bg-green-50",
-    dot: "bg-green-400",
-    label: "Completed",
-  },
-}
+})
 
 interface ActivePipelineProps {
   currentLot?: string
@@ -137,7 +128,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
               const status = getStepStatus(step.count, step.stage)
-              const cfg = statusConfig[status]
+              const cfg = getStatusConfig(brand)[status]
               const inner = (
                 <>
                   {/* Step number circle */}
@@ -175,7 +166,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Legend */}
           <div className="hidden lg:flex items-center gap-4 mt-4">
             <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-blue-400" />
+              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-400" : "bg-blue-400")} />
               <span className="text-xs text-muted-foreground">Active</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -186,17 +177,13 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               <span className="h-2 w-2 rounded-full bg-gray-400" />
               <span className="text-xs text-muted-foreground">Idle</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-green-400" />
-              <span className="text-xs text-muted-foreground">Completed</span>
-            </div>
           </div>
 
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
               const status = getStepStatus(step.count, step.stage)
-              const cfg = statusConfig[status]
+              const cfg = getStatusConfig(brand)[status]
               const inner = (
                 <>
                   <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold", cfg.nodeRing)}>

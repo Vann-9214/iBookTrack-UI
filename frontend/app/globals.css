@@ -69,6 +69,7 @@
 }
 
 .theme-mustang {
+  --background: oklch(0.993 0.007 260); /* Extremely light blue for Mustang */
   --primary: oklch(0.55 0.2 260);
   --accent: oklch(0.55 0.2 260);
   --ring: oklch(0.55 0.2 260);
@@ -77,6 +78,7 @@
 }
 
 .theme-jaguar {
+  --background: oklch(0.993 0.009 142); /* Extremely light green for Jaguar */
   --primary: oklch(0.62 0.16 142); /* Green for Jaguar */
   --accent: oklch(0.62 0.16 142);
   --ring: oklch(0.62 0.16 142);

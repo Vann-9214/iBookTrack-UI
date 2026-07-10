@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from "react"
+import { cn } from "@/lib/utils"
 import {
   Card,
   CardContent,
@@ -48,10 +49,10 @@ function getPipelineStatusBadge(status: string) {
     </Badge>
   )
   return (
-    <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary gap-1 text-[10px] uppercase font-semibold">
+    <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[10px] uppercase font-semibold">
       <Loader2 className="h-3 w-3 animate-spin" /> {formattedStage} ONGOING
     </Badge>
-  ) 
+  )
 }
 
 function formatTime(val: string) {
@@ -103,17 +104,17 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
 
   return (
     <Card className="border-border bg-card flex flex-col overflow-hidden p-0 h-full">
-      {/* Blue header - sticky */}
-      <div className="flex items-center justify-between px-5 py-4 bg-blue-50 border-b border-blue-100 shrink-0">
+      {/* Header - sticky */}
+      <div className={cn("flex items-center justify-between px-5 py-4 border-b shrink-0", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white shadow-sm">
+          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
             <Activity className="h-4 w-4" />
           </div>
           <div>
             <p className="text-sm font-bold text-gray-800">Live Transmission Feed</p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-              <span className="text-xs text-blue-500 font-medium">
+              <span className={cn("h-1.5 w-1.5 rounded-full", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")} />
+              <span className={cn("text-xs font-medium", brand === 'jaguar' ? "text-green-500" : "text-blue-500")}>
                 {ongoingCount > 0 ? `${ongoingCount} actively processing` : 'actively processing'}
               </span>
             </div>
@@ -123,7 +124,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           {propLoading || loading ? (
             <Skeleton className="h-6 w-16 rounded-full bg-muted-foreground/20" />
           ) : (
-            <Badge variant="outline" className="border-blue-300 bg-white text-blue-600 text-[11px] font-semibold px-2.5 whitespace-nowrap">
+            <Badge variant="outline" className={cn("bg-white text-[11px] font-semibold px-2.5 whitespace-nowrap", brand === 'jaguar' ? "border-green-300 text-green-600" : "border-blue-300 text-blue-600")}>
               {`${scans.length} books`}
             </Badge>
           )}

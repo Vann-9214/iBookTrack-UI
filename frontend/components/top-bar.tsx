@@ -151,7 +151,7 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-background px-6 md:px-6 pl-14 md:pl-6">
+    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-white px-6 md:px-6 pl-14 md:pl-6">
       {/* Mustang / Jaguar toggle */}
       <div className="flex items-center rounded-full border border-muted/20 bg-gray-200 p-0.5">
         {(['mustang', 'jaguar'] as Brand[]).map((b) => (

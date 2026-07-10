@@ -42,46 +42,47 @@ const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color:
   storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
 }
 
-const statusConfig = {
-  active: {
-    nodeRing: "border-blue-400 text-blue-500",
-    countColor: "text-blue-500",
-    bar: "bg-blue-400",
-    cardBg: "bg-blue-50",
-    dot: "bg-blue-400",
-    label: "Active",
-  },
-  busy: {
-    nodeRing: "border-orange-400 text-orange-500",
-    countColor: "text-orange-500",
-    bar: "bg-orange-400",
-    cardBg: "bg-orange-50",
-    dot: "bg-orange-400",
-    label: "Busy",
-  },
-  idle: {
+const getStepStatus = (count: number) => {
+  if (count >= 100) return "busy"
+  if (count === 0) return "idle"
+  return "active"
+}
+
+const getStatusConfig = (status: string, brand: string) => {
+  if (status === 'active') {
+    return {
+      nodeRing: brand === 'jaguar' ? "border-green-400 text-green-500" : "border-blue-400 text-blue-500",
+      countColor: brand === 'jaguar' ? "text-green-500" : "text-blue-500",
+      bar: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
+      cardBg: brand === 'jaguar' ? "bg-green-50" : "bg-blue-50",
+      dot: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
+      label: "Active",
+      borderTop: brand === 'jaguar' ? "border-t-green-400" : "border-t-blue-400",
+      iconColorCls: brand === 'jaguar' ? "bg-green-100 text-green-700 border-green-200" : "bg-blue-100 text-blue-700 border-blue-200",
+    }
+  }
+  if (status === 'busy') {
+    return {
+      nodeRing: "border-orange-400 text-orange-500",
+      countColor: "text-orange-500",
+      bar: "bg-orange-400",
+      cardBg: "bg-orange-50",
+      dot: "bg-orange-400",
+      label: "Busy",
+      borderTop: "border-t-orange-400",
+      iconColorCls: "bg-orange-100 text-orange-700 border-orange-200",
+    }
+  }
+  return {
     nodeRing: "border-gray-300 text-gray-400",
     countColor: "text-gray-400",
     bar: "bg-gray-400",
     cardBg: "bg-gray-50",
     dot: "bg-gray-400",
     label: "Idle",
-  },
-  completed: {
-    nodeRing: "border-green-300 text-green-400",
-    countColor: "text-green-400",
-    bar: "bg-green-400",
-    cardBg: "bg-green-50",
-    dot: "bg-green-400",
-    label: "Completed",
-  },
-} as const
-
-function getStepStatus(count: number, stage: string) {
-  if (stage === "storage") {return count > 0 ? "completed" : "idle"}
-  if (count >= 100) return "busy"
-  if (count === 0) return "idle"
-  return "active"
+    borderTop: "border-t-gray-300",
+    iconColorCls: "bg-gray-100 text-gray-500 border-gray-200",
+  }
 }
 
 interface BoxItem {
@@ -349,7 +350,7 @@ export default function StationCheckpointsPage() {
     if (isLast) {
       return (
         <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 shrink-0">
-          Done
+          Completed
         </Badge>
       )
     }
@@ -359,21 +360,16 @@ export default function StationCheckpointsPage() {
       
       if (status === 'completed') {
         return (
-          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
-            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center hover:bg-emerald-50 hover:text-emerald-700">
-              Completed
-            </Badge>
-            <Button
-              size="sm"
-              variant="default"
-              disabled={advancing === box.id}
-              onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
-              className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300"
-            >
-              {advancing === box.id ? '...' : 'Send'}
-              {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            variant="default"
+            disabled={advancing === box.id}
+            onClick={(e) => { e.stopPropagation(); setConfirmBox(box) }}
+            className="h-7 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 shrink-0"
+          >
+            {advancing === box.id ? '...' : 'Send'}
+            {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
+          </Button>
         )
       } else if (status === 'received') {
         return (
@@ -381,7 +377,12 @@ export default function StationCheckpointsPage() {
             size="sm"
             variant="outline"
             disabled
-            className="h-7 gap-1 text-xs border-blue-300 text-blue-700 bg-blue-50 shrink-0 opacity-100 cursor-not-allowed"
+            className={cn(
+              "h-7 gap-1 text-xs shrink-0 opacity-100 cursor-not-allowed",
+              brand === 'jaguar' 
+                ? "border-green-300 text-green-700 bg-green-50"
+                : "border-blue-300 text-blue-700 bg-blue-50"
+            )}
           >
             Received
           </Button>
@@ -843,7 +844,7 @@ export default function StationCheckpointsPage() {
 
                                   if (stage === 'warehouse') {
                                     if (sessionStatus === 'completed') {
-                                      actionLabel = 'Completed'
+                                      actionLabel = 'Processed'
                                       byName = (session as any)?.warehouse_received_profile?.name || byName
                                       timeStr = session?.updated_at || timeStr
                                     } else if (sessionStatus === 'received') {
@@ -853,7 +854,7 @@ export default function StationCheckpointsPage() {
                                     }
                                   } else if (stage === 'inventory') {
                                     if (sessionStatus === 'completed') {
-                                      actionLabel = 'Completed'
+                                      actionLabel = 'Processed'
                                       byName = (session as any)?.inventory_send_profile?.name || byName
                                       timeStr = session?.inventory_time_send || timeStr
                                     } else if (sessionStatus === 'received') {
@@ -863,7 +864,7 @@ export default function StationCheckpointsPage() {
                                     }
                                   } else if (stage === 'cut') {
                                     if (sessionStatus === 'completed') {
-                                      actionLabel = 'Completed'
+                                      actionLabel = 'Processed'
                                       byName = (session as any)?.cut_send_profile?.name || byName
                                       timeStr = session?.cut_time_send || timeStr
                                     } else if (sessionStatus === 'received') {
@@ -873,7 +874,7 @@ export default function StationCheckpointsPage() {
                                     }
                                   } else if (stage === 'endorsement') {
                                     if (sessionStatus === 'completed') {
-                                      actionLabel = 'Completed'
+                                      actionLabel = 'Processed'
                                       byName = (session as any)?.endorsement_send_profile?.name || byName
                                       timeStr = session?.endorsement_time_send || timeStr
                                     } else if (sessionStatus === 'received') {
@@ -885,6 +886,8 @@ export default function StationCheckpointsPage() {
                                     actionLabel = 'Scanned'
                                     byName = (session as any)?.scan_received_profile?.name || byName
                                     timeStr = session?.scan_time_received || timeStr
+                                  } else if (stage === 'storage') {
+                                    actionLabel = 'Completed'
                                   }
 
                                   return (
@@ -1049,7 +1052,31 @@ export default function StationCheckpointsPage() {
 
             {/* Pipeline Stage Flow */}
             <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-1 flex-wrap">
+              {/* Desktop perfectly aligned headers */}
+              <div className="hidden lg:grid grid-cols-7 gap-3 px-5">
+                {STAGE_ORDER.map((stage, i) => {
+                  const meta = STAGE_META[stage]
+                  const count = boxesByStage[stage]?.length || 0
+                  return (
+                    <div key={stage} className="relative flex items-center justify-center">
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] xl:text-xs font-medium border ${meta.color} z-10 bg-background`}>
+                        <meta.icon className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{meta.label}</span>
+                        {count > 0 && <span className="ml-0.5 bg-white/60 rounded-full px-1.5 font-bold shrink-0">{count}</span>}
+                      </div>
+                      {/* Arrow to the next stage */}
+                      {i < STAGE_ORDER.length - 1 && (
+                        <div className="absolute top-1/2 -right-3 translate-x-1/2 -translate-y-1/2 z-0 text-muted-foreground flex items-center justify-center w-6 h-6">
+                          <ChevronRight className="h-4 w-4 opacity-50" />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              
+              {/* Mobile wrapping headers */}
+              <div className="flex lg:hidden items-center gap-1 flex-wrap">
                 {STAGE_ORDER.map((stage, i) => {
                   const meta = STAGE_META[stage]
                   const count = boxesByStage[stage]?.length || 0
@@ -1065,9 +1092,8 @@ export default function StationCheckpointsPage() {
                   )
                 })}
               </div>
-
-
             </div>
+
 
             {/* Station Cards Grid */}
             {loading ? (
@@ -1081,14 +1107,8 @@ export default function StationCheckpointsPage() {
                     const stageBoxes = boxesByStage[stage]
                     const count = stageBoxes.length
                     
-                    const status = getStepStatus(count, stage)
-                    const cfg = statusConfig[status]
-
-                    const iconColorCls = status === 'active'
-                      ? 'bg-blue-100 text-blue-700 border-blue-200'
-                      : status === 'busy'
-                      ? 'bg-orange-100 text-orange-700 border-orange-200'
-                      : 'bg-gray-100 text-gray-500 border-gray-200'
+                    const status = getStepStatus(count)
+                    const cfg = getStatusConfig(status, brand)
 
                     return (
                       <div
@@ -1099,13 +1119,11 @@ export default function StationCheckpointsPage() {
                         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setSelectedStage(stage); setStageModalSearch('') }}}
                         className={cn(
                           "flex-1 min-w-0 rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:shadow-sm hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary/30 border-t-4 select-none",
-                          status === 'active' && "border-t-blue-400",
-                          status === 'busy' && "border-t-orange-400",
-                          status === 'idle' && "border-t-gray-300"
+                          cfg.borderTop
                         )}
                       >
                         <div className="flex items-center justify-between mb-3 gap-2">
-                          <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", iconColorCls)}>
+                          <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
                           <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
@@ -1131,14 +1149,8 @@ export default function StationCheckpointsPage() {
                     const stageBoxes = boxesByStage[stage]
                     const count = stageBoxes.length
                     
-                    const status = getStepStatus(count, stage)
-                    const cfg = statusConfig[status]
-
-                    const iconColorCls = status === 'active'
-                      ? 'bg-blue-100 text-blue-700 border-blue-200'
-                      : status === 'busy'
-                      ? 'bg-orange-100 text-orange-700 border-orange-200'
-                      : 'bg-gray-100 text-gray-500 border-gray-200'
+                    const status = getStepStatus(count)
+                    const cfg = getStatusConfig(status, brand)
 
                     return (
                       <div
@@ -1149,20 +1161,20 @@ export default function StationCheckpointsPage() {
                         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setSelectedStage(stage); setStageModalSearch('') }}}
                         className={cn(
                           "rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-primary/30 border-t-4 select-none",
-                          status === 'active' && "border-t-blue-400",
-                          status === 'busy' && "border-t-orange-400",
-                          status === 'idle' && "border-t-gray-300"
+                          cfg.borderTop
                         )}
                       >
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                          <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", iconColorCls)}>
+                        <div className="flex items-center justify-between mb-3 gap-2">
+                          <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
                           <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
                             {stageBoxes.length}
                           </span>
                         </div>
-                        <h3 className="text-xs font-bold text-card-foreground mt-auto truncate">{meta.label}</h3>
+                        <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
+                          {meta.label}
+                        </h3>
                         <div className="flex items-center gap-1 mt-1.5 shrink-0">
                           <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
                           <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
@@ -1175,7 +1187,7 @@ export default function StationCheckpointsPage() {
                 {/* Status Legend */}
                 <div className="flex items-center gap-4 text-xs mt-4">
                   <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-blue-400" />
+                    <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-400" : "bg-blue-400")} />
                     <span className="text-xs text-muted-foreground">Active</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -1186,19 +1198,15 @@ export default function StationCheckpointsPage() {
                     <span className="h-2 w-2 rounded-full bg-gray-400" />
                     <span className="text-xs text-muted-foreground">Idle</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-green-400" />
-                    <span className="text-xs text-muted-foreground">Completed</span>
-                  </div>
                 </div>
               </div>
             )}
 
             {/* Pipeline Transition Logs */}
             <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-              <div className="flex items-center justify-between px-5 py-4 bg-slate-50 border-b border-slate-100">
+              <div className={cn("flex items-center justify-between px-5 py-4 border-b", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-500 text-white">
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
                     <Scan className="h-5 w-5" />
                   </div>
                   <div>
