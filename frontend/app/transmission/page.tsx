@@ -72,7 +72,7 @@ function getPipelineStatusBadge(status: string) {
     </Badge>
   )
   return (
-    <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary gap-1 text-[10px]">
+    <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[10px]">
       <Loader2 className="h-3 w-3 animate-spin" /> {formattedStage} ONGOING
     </Badge>
   ) 
@@ -656,7 +656,7 @@ export default function TransmissionMonitorPage() {
                         : 'text-gray-500 hover:text-gray-700'
                     )}
                   >
-                    <span className={cn('h-1.5 w-1.5 rounded-full', tableView === 'books' ? 'bg-blue-500' : 'bg-gray-400')} />
+                    <span className={cn('h-1.5 w-1.5 rounded-full', tableView === 'books' ? (brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500') : 'bg-gray-400')} />
                     {loading ? '…' : totalBooks} Books
                   </button>
                   <button
@@ -677,9 +677,9 @@ export default function TransmissionMonitorPage() {
               {/* ── Live Scan Feed ── */}
               <TabsContent value="queue" className="mt-4">
                 <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-                  <div className="flex items-center justify-between px-5 py-4 bg-blue-50 border-b border-blue-100">
+                  <div className={cn("flex items-center justify-between px-5 py-4 border-b", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 text-white">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl text-white bg-blue-500">
                         <FileUp className="h-4 w-4" />
                       </div>
                       <div>
@@ -688,7 +688,7 @@ export default function TransmissionMonitorPage() {
                           <span className="hidden sm:inline"> — {fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`}</span>
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', tableView === 'wip' ? 'bg-red-500' : 'bg-blue-500')} />
+                          <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', tableView === 'wip' ? 'bg-red-500' : (brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500'))} />
                           <span className="text-xs text-gray-500 whitespace-nowrap">
                             {tableView === 'wip'
                               ? <><span className="sm:hidden">{filteredScans.length} not transmitted</span><span className="hidden sm:inline">{filteredScans.length} books not yet transmitted</span></>

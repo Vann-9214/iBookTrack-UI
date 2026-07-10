@@ -200,10 +200,10 @@ export default function ReportsPage() {
               No lots match the current filter.
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className={cn("rounded-xl border shadow-sm overflow-hidden", brand === 'jaguar' ? "border-green-200 bg-white" : "border-blue-200 bg-white")}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="border-b border-border bg-muted/40">
+                  <thead className={cn("border-b", brand === 'jaguar' ? "border-green-200 bg-green-50/50" : "border-blue-200 bg-blue-50/50")}>
                     <tr>
                       <th className={thCls('lot_number')} onClick={() => handleSort('lot_number')}>
                         <span className="flex items-center gap-1">Lot Number <SortIcon k="lot_number" /></span>
@@ -226,7 +226,7 @@ export default function ReportsPage() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className={cn("divide-y", brand === 'jaguar' ? "divide-green-100" : "divide-blue-100")}>
                     {filtered.map(lot => {
                       const meta = STATUS_META[lot.computed_status]
                       const Icon = meta.icon
@@ -248,15 +248,27 @@ export default function ReportsPage() {
                               )}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-emerald-600 dark:text-emerald-400 font-medium">{lot.transmitted}</td>
-                          <td className="px-4 py-3 text-amber-600 dark:text-amber-400 font-medium">{lot.pending}</td>
-                          <td className="px-4 py-3 text-muted-foreground">{lot.non_processable}</td>
+                          <td className="px-4 py-3">
+                            <span className={cn("px-2 py-1 rounded-md text-xs font-semibold border", brand === 'jaguar' ? "bg-green-50 text-green-700 border-green-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                              {lot.transmitted}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cn("px-2 py-1 rounded-md text-xs font-semibold border", brand === 'jaguar' ? "bg-green-50 text-green-700 border-green-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                              {lot.pending}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cn("px-2 py-1 rounded-md text-xs font-semibold border", brand === 'jaguar' ? "bg-green-50 text-green-700 border-green-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
+                              {lot.non_processable}
+                            </span>
+                          </td>
                           <td className="px-4 py-3 min-w-[140px]">
                             {lot.total_scans > 0 ? (
                               <div className="flex items-center gap-2">
                                 <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                                   <div
-                                    className={cn('h-full rounded-full transition-all', pct >= 100 ? 'bg-emerald-500' : pct >= 50 ? 'bg-blue-500' : 'bg-amber-500')}
+                                    className={cn('h-full rounded-full transition-all', brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}
                                     style={{ width: `${pct}%` }}
                                   />
                                 </div>

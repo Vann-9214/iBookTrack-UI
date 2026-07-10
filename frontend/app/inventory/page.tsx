@@ -1863,8 +1863,8 @@ export default function InventoryPage() {
                     {/* Warehouse Table (Left) - Read Only */}
                     <div className="bg-card border border-border rounded-xl p-5">
                       <div className="flex items-center gap-2 mb-3">
-                        <Package className="h-4 w-4 text-blue-600" />
-                        <h3 className="text-sm font-semibold text-blue-600">Warehouse Scans</h3>
+                        <Package className={cn("h-4 w-4", brand === 'jaguar' ? "text-green-600" : "text-blue-600")} />
+                        <h3 className={cn("text-sm font-semibold", brand === 'jaguar' ? "text-green-600" : "text-blue-600")}>Warehouse Scans</h3>
                         {loadingWarehouseBooks ? (
                           <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                         ) : (
@@ -1900,9 +1900,9 @@ export default function InventoryPage() {
                                 return (a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1)
                               })
                               .map(({ book, isMatch, isMissing }, i) => (
-                                <div key={i} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
-                                  isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
-                                }`}>
+                                <div key={i} className={cn("grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center",
+                                  isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? (brand === 'mustang' ? 'bg-blue-100 border-blue-300' : 'bg-green-100 border-green-300') : 'bg-red-100 border-red-300'
+                                )}>
                                   <div className="col-span-2">
                                     <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                   </div>
@@ -1925,14 +1925,14 @@ export default function InventoryPage() {
                     </div>
 
                     {/* Inventory Table (Right) - Editable */}
-                    <div className="bg-card border-2 border-green-500 rounded-xl p-5 shadow-sm">
+                    <div className={cn("bg-card border-2 rounded-xl p-5 shadow-sm", brand === 'mustang' ? "border-blue-500" : "border-green-500")}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <ClipboardCheck className="h-4 w-4 text-green-600" />
-                          <h3 className="text-sm font-semibold text-green-600">Inventory Scans</h3>
+                          <ClipboardCheck className={cn("h-4 w-4", brand === 'mustang' ? "text-blue-600" : "text-green-600")} />
+                          <h3 className={cn("text-sm font-semibold", brand === 'mustang' ? "text-blue-600" : "text-green-600")}>Inventory Scans</h3>
                           <span className="text-xs text-muted-foreground">({verifScannedBooks.length} books)</span>
                         </div>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium border border-green-200">
+                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium border", brand === 'mustang' ? "bg-blue-100 text-blue-700 border-blue-200" : "bg-green-100 text-green-700 border-green-200")}>
                           Currently Verifying
                         </span>
                       </div>
@@ -1956,9 +1956,9 @@ export default function InventoryPage() {
                               })
                               .sort((a, b) => b.book.timestamp.getTime() - a.book.timestamp.getTime())
                               .map(({ book, isMatch }, i) => (
-                                <div key={`${book.id}-${i}`} className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
-                                  isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
-                                }`}>
+                                <div key={`${book.id}-${i}`} className={cn("grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center",
+                                  isMatch ? (brand === 'mustang' ? 'bg-blue-100 border-blue-300' : 'bg-green-100 border-green-300') : 'bg-red-100 border-red-300'
+                                )}>
                                   <div className="col-span-2">
                                     <p className="text-xs font-mono text-muted-foreground">{book.isbn}</p>
                                   </div>
