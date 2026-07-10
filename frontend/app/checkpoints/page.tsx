@@ -27,6 +27,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+const todayStr = () => new Date().toISOString().split('T')[0]
+
 const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'] as const
 type Stage = typeof STAGE_ORDER[number]
 
@@ -121,8 +123,8 @@ export default function StationCheckpointsPage() {
   const [scanInput, setScanInput] = useState('')
   const [highlightBox, setHighlightBox] = useState<string | null>(null)
   const [transitionSearch, setTransitionSearch] = useState('')
-  const [transitionDateFrom, setTransitionDateFrom] = useState('')
-  const [transitionDateTo, setTransitionDateTo] = useState('')
+  const [transitionDateFrom, setTransitionDateFrom] = useState(todayStr())
+  const [transitionDateTo, setTransitionDateTo] = useState(todayStr())
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
   const [confirmBox, setConfirmBox] = useState<BoxItem | null>(null)
@@ -1140,16 +1142,13 @@ export default function StationCheckpointsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">From</label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">From</span>
                   <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-9 w-[150px] justify-start text-left font-normal text-sm"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Pick a date'}
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Pick date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -1162,16 +1161,13 @@ export default function StationCheckpointsPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">To</label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">To</span>
                   <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-9 w-[150px] justify-start text-left font-normal text-sm"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'Pick a date'}
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'Pick date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
