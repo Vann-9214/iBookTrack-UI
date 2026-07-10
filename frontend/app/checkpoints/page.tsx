@@ -535,7 +535,7 @@ export default function StationCheckpointsPage() {
     if (stage === 'scan') {
       return (
         <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50 shrink-0 flex items-center justify-center h-7 px-2 cursor-default">
-          {checkingSimflexBoxId === box.id ? 'Checking...' : 'Check Pending'}
+          {checkingSimflexBoxId === box.id ? 'Checking...' : 'Pending'}
         </Badge>
       )
     }
@@ -658,7 +658,7 @@ export default function StationCheckpointsPage() {
       const books: ScannedBook[] = data.box?.books || []
       const details: any = { books, simflex: {}, loading: false, loadingSimflex: false }
 
-      if ((box.current_stage === 'scan' || box.current_stage === 'transmit') && books.length > 0) {
+      if ((box.current_stage === 'scan' || box.current_stage === 'transmit' || box.current_stage === 'storage') && books.length > 0) {
         const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
         if (processableIsbns.length > 0) {
           details.loadingSimflex = true
@@ -982,9 +982,47 @@ export default function StationCheckpointsPage() {
 
                       {/* Box list for all stages */}
                       <div className="flex-1 overflow-y-auto p-4">
-                  {filteredBoxes.length === 0 ? (
+                          {filteredBoxes.length === 0 && selectedStage !== 'transmit' ? (
                             <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                               {stageModalSearch ? 'No matching boxes found.' : 'No boxes at this station.'}
+                            </div>
+                          ) : selectedStage === 'transmit' ? (
+                            <div className="flex flex-col gap-2">
+                              {simflexRowsLoading ? (
+                                <div className="text-center py-8 text-muted-foreground text-sm">Loading books...</div>
+                              ) : simflexRows.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
+                                  {simflexRowsSearch ? 'No matching books found.' : 'No books currently in transmission.'}
+                                </div>
+                              ) : (
+                                simflexRows.filter(row => {
+                                  const q = simflexRowsSearch.toLowerCase().trim()
+                                  return !q || row.ISBN?.toLowerCase().includes(q) || row.BoxNumber?.toLowerCase().includes(q)
+                                }).map((row, idx) => {
+                                  const matchedBox = stageBoxes.find(b => b.box_number === row.BoxNumber)
+                                  const lotNumber = matchedBox?.lot?.lot_number || 'Unknown Lot'
+                                  return (
+                                    <div key={idx} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between hover:shadow-sm transition-all">
+                                      <div className="flex items-center gap-4">
+                                        <div className="flex flex-col">
+                                          <span className="font-mono font-bold text-foreground text-sm">{row.ISBN}</span>
+                                          <span className="text-xs text-muted-foreground mt-1">
+                                            Box: <span className="font-semibold text-foreground">{row.BoxNumber || 'N/A'}</span> • Lot: <span className="font-semibold text-foreground">{lotNumber}</span>
+                                          </span>
+                                        </div>
+                                      </div>
+                                      <div className="text-right flex flex-col items-end gap-1.5">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider">
+                                          Ongoing
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground font-medium">
+                                          Simflex: {row.Status || 'Transmission_Archive'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )
+                                })
+                              )}
                             </div>
                           ) : (
                             <div className="flex flex-col gap-2">
@@ -1105,24 +1143,28 @@ export default function StationCheckpointsPage() {
                                             </span>
                                           </div>
 
-                                          <div className="min-w-[130px] col-span-1">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} By</span>
-                                            <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={byName}>
-                                              {byName}
-                                            </span>
-                                          </div>
+                                          {selectedStage !== 'scan' && (
+                                            <div className="min-w-[130px] col-span-1">
+                                              <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} By</span>
+                                              <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={byName}>
+                                                {byName}
+                                              </span>
+                                            </div>
+                                          )}
                                         </div>
 
                                         {/* Right side: Timestamp & Action */}
                                         <div className="flex items-center gap-4 ml-auto pl-4">
-                                          <div className="text-left sm:text-right shrink-0 min-w-[100px]">
-                                            <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} At</span>
-                                            <span className="text-xs font-semibold text-muted-foreground">
-                                              {timeStr
-                                                ? new Date(timeStr).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
-                                                : 'N/A'}
-                                            </span>
-                                          </div>
+                                          {selectedStage !== 'scan' && (
+                                            <div className="text-left sm:text-right shrink-0 min-w-[100px]">
+                                              <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} At</span>
+                                              <span className="text-xs font-semibold text-muted-foreground">
+                                                {timeStr
+                                                  ? new Date(timeStr).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                                                  : 'N/A'}
+                                              </span>
+                                            </div>
+                                          )}
                                           <div className="shrink-0 flex items-center justify-end border-l border-border/50 pl-4">
                                             {renderBoxAction(box)}
                                           </div>
@@ -1152,10 +1194,11 @@ export default function StationCheckpointsPage() {
                                                     return status.includes('Transmission_Archive') || status === 'COMPLETED';
                                                   }
                                                   return true;
-                                                }).map((book) => {
-                                                  const simflexStatus = details.simflex?.[book.isbn]?.latestStatus || 'Pending';
-                                                  const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
-                                                  return (
+                                                  }).map((book) => {
+                                                    const rawStatus = details.simflex?.[book.isbn];
+                                                    const simflexStatus = typeof rawStatus === 'string' ? rawStatus : (rawStatus?.latestStatus || 'Pending');
+                                                    const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
+                                                    return (
                                                   <tr key={book.id} className="border-b border-border/40 last:border-0 grid grid-cols-[100px_1fr_120px] gap-3 w-full items-start">
                                                     <td className="py-1.5 text-foreground font-mono tabular-nums truncate" title={book.isbn}>
                                                       {book.isbn}
@@ -1167,9 +1210,11 @@ export default function StationCheckpointsPage() {
                                                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                                         {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
                                                       </span>
-                                                      <span className="block mt-1 text-[9px] text-muted-foreground font-normal leading-tight">
-                                                        Simflex: {simflexStatus}
-                                                      </span>
+                                                      {(selectedStage === 'scan' || selectedStage === 'transmit' || selectedStage === 'storage') && (
+                                                        <span className="block mt-1 text-[9px] text-muted-foreground font-normal leading-tight">
+                                                          Simflex: {book.scan_status === 'non_processable' ? 'Not Included' : simflexStatus}
+                                                        </span>
+                                                      )}
                                                       {book.scan_status === 'non_processable' && book.flag?.issue && (
                                                         <span className="block mt-1 text-[9px] text-red-500 font-normal leading-tight opacity-90">
                                                           Reason: {book.flag.issue}
