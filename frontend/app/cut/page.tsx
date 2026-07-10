@@ -76,7 +76,7 @@ export default function CutPage() {
     setLoading(true)
     try {
       // Fetch incoming: still in 'inventory' stage but their session status is 'sent'
-      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=inventory`)
+      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=inventory&box_type=${brand}`)
       const incomingData = await resIncoming.json()
       
       const filteredIncoming = (incomingData.boxes || []).filter((b: BoxEntry) => {
@@ -86,7 +86,7 @@ export default function CutPage() {
       setIncomingBoxes(filteredIncoming)
 
       // Fetch outgoing: current stage is 'cut', but NOT sent to endorsement yet
-      const resOutgoing = await authFetch(`${API_URL}/api/boxes?current_stage=cut`)
+      const resOutgoing = await authFetch(`${API_URL}/api/boxes?current_stage=cut&box_type=${brand}`)
       const outgoingData = await resOutgoing.json()
       const filteredOutgoing = (outgoingData.boxes || []).filter((b: BoxEntry) => {
          return !b.box_sessions?.some(s => s.status === 'sent')
@@ -99,7 +99,7 @@ export default function CutPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [brand])
 
   useEffect(() => {
     fetchBoxes()

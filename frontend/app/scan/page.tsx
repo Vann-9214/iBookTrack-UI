@@ -49,7 +49,7 @@ export default function ScanPage() {
     setLoading(true)
     try {
       // Fetch incoming: current stage is 'endorsement' but session is 'sent'
-      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
+      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement&box_type=${brand}`)
       const incomingData = await resIncoming.json()
       const filteredIncoming = (incomingData.boxes || []).filter((b: BoxEntry) => {
          return b.box_sessions?.some(s => s.status === 'sent')
@@ -61,7 +61,7 @@ export default function ScanPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [brand])
 
   useEffect(() => {
     fetchBoxes()
