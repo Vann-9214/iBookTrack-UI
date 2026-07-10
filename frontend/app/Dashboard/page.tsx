@@ -82,12 +82,11 @@ export default function DashboardPage() {
 
   const fetchDashboardStats = async (lotNumber?: string) => {
     try {
-      const statsUrl = lotNumber
-        ? `${API_URL}/api/dashboard/stats?lot_number=${encodeURIComponent(lotNumber)}`
-        : `${API_URL}/api/dashboard/stats`
-      const pipelineUrl = lotNumber
-        ? `${API_URL}/api/dashboard/pipeline-stats?lot_number=${encodeURIComponent(lotNumber)}`
-        : `${API_URL}/api/dashboard/pipeline-stats`
+      let statsUrl = `${API_URL}/api/dashboard/stats?box_type=${brand}`
+      if (lotNumber) statsUrl += `&lot_number=${encodeURIComponent(lotNumber)}`
+
+      let pipelineUrl = `${API_URL}/api/dashboard/pipeline-stats?brand=${brand}`
+      if (lotNumber) pipelineUrl += `&lot_number=${encodeURIComponent(lotNumber)}`
 
       const [statsRes, pipelineRes, simflexRes] = await Promise.all([
         authFetch(statsUrl),

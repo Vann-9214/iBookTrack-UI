@@ -154,9 +154,13 @@ router.get('/', async (req, res) => {
 // Get recent pipeline transitions (for Checkpoint Monitor logs)
 router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   try {
-    const { limit = 50, stage } = req.query
+    const { limit = 50, stage, box_type } = req.query
 
     const db = supabaseAdmin || supabase
+    const boxSelect = box_type 
+      ? `box:boxes!inner(box_number, lot:lots(lot_number), box_type)`
+      : `box:boxes(box_number, lot:lots(lot_number))`
+
     let query = db
       .from('pipeline_events')
       .select(`
@@ -166,13 +170,17 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
         moved_by_name,
         notes,
         created_at,
-        box:boxes(box_number, lot:lots(lot_number))
+        ${boxSelect}
       `)
       .order('created_at', { ascending: false })
       .limit(parseInt(limit))
 
     if (stage) {
       query = query.or(`from_stage.eq.${stage},to_stage.eq.${stage}`)
+    }
+
+    if (box_type) {
+      query = query.eq('boxes.box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     }
 
     const { data, error } = await query

@@ -81,6 +81,7 @@ export default function CutPage() {
       const buildUrl = (stage: string) => {
         const params = new URLSearchParams()
         params.append('current_stage', stage)
+        params.append('box_type', brand)
         const query = searchQuery.trim()
         if (query) {
           if (searchType === 'box') params.append('box_number', query)
@@ -113,7 +114,7 @@ export default function CutPage() {
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, searchType])
+  }, [brand, searchQuery, searchType])
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchBoxes() }, 300)

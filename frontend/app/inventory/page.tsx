@@ -255,6 +255,7 @@ export default function InventoryPage() {
     try {
       let url = `${API_URL}/api/boxes`
       const params: string[] = []
+      params.push(`box_type=${brand}`)
       const query = searchQuery.trim()
       if (searchType === 'box' && query) params.push(`box_number=${encodeURIComponent(query)}`)
       if (searchType === 'isbn' && query) params.push(`isbn=${encodeURIComponent(query)}`)
