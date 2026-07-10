@@ -2,14 +2,14 @@
  * routes/scanning.js
  *
  * Exposes live scanning data from Simflex WMS to the frontend.
- * All data is read-only — this route never writes to Simflex.
+ * All data is read-only Ã¢â‚¬â€ this route never writes to Simflex.
  *
  * Endpoints:
- *   GET /api/scanning/live             — Combined live snapshot: summary + by-machine + by-stage + recent scans
- *   GET /api/scanning/scan-rows        — Raw rows for all scan-stage statuses today (debug modal)
- *   GET /api/scanning/ranking          — Scan-user performance ranking for a given date
- *   GET /api/scanning/export           — CSV download of scan data for a date (up to 5000 rows)
- *   GET /api/scanning/simflex-status   — Per-ISBN latest status from Simflex (used by pipeline pages)
+ *   GET /api/scanning/live             Ã¢â‚¬â€ Combined live snapshot: summary + by-machine + by-stage + recent scans
+ *   GET /api/scanning/scan-rows        Ã¢â‚¬â€ Raw rows for all scan-stage statuses today (debug modal)
+ *   GET /api/scanning/ranking          Ã¢â‚¬â€ Scan-user performance ranking for a given date
+ *   GET /api/scanning/export           Ã¢â‚¬â€ CSV download of scan data for a date (up to 5000 rows)
+ *   GET /api/scanning/simflex-status   Ã¢â‚¬â€ Per-ISBN latest status from Simflex (used by pipeline pages)
  *
  * All routes require authentication (requireAuth middleware).
  */
@@ -78,13 +78,13 @@ router.get('/live', requireAuth, async (req, res) => {
     console.log('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
     const scanBooks = scanStageResult.count || 0
 
-    // Scan-pipeline WIP total — matches the Transmission Monitor "New Process Only" figure.
+    // Scan-pipeline WIP total Ã¢â‚¬â€ matches the Transmission Monitor "New Process Only" figure.
     const SCAN_STAGES = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval']
     const scanWipCount = byStage.data?.reduce((sum, s) => {
       return SCAN_STAGES.includes(s.Stage) ? sum + (s.Total || 0) : sum
     }, 0) || 0
 
-    // Distinct ISBNs currently transmitting — ONGOING only, not COMPLETED.
+    // Distinct ISBNs currently transmitting Ã¢â‚¬â€ ONGOING only, not COMPLETED.
     const transmitStage = (stageCounts.stages || []).find(s => s.stage === 'Transmission_Archive')
     const transmitBooks = transmitStage ? transmitStage.Ongoing : 0
 
@@ -126,14 +126,109 @@ router.get('/scan-rows', requireAuth, async (req, res) => {
 
 /**
  * GET /api/scanning/transmit-rows
- * Full Simflex rows for Transmission_Archive ONGOING today (for checkpoint modal).
- * Returns ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated.
+ * Books currently in Transmission_Archive ONGOING, cross-referenced against
+ * the iBookTrack DB.
+ *
+ * Rules:
+ *   1. Start from Simflex ISBNs with status = 'Transmission_Archive ONGOING'.
+ *   2. Only keep ISBNs that exist in our `books` table.
+ *   3. Only keep those whose box has current_stage = 'scan'. In the checkpoint
+ *      UI the Transmit card shows scan-stage boxes whose books are actively
+ *      transmitting -- boxes do NOT change stage until Simflex is done.
+ *   4. Box number and lot number come from the DB (authoritative).
+ *      The DB value already includes the word e.g. "Lot 1", so no extra
+ *      prefix is added.
  */
 router.get('/transmit-rows', requireAuth, async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
-    const result = await simflexDb.getTransmitStageRows(location)
-    res.json({ success: true, rows: result.data || [], count: result.count })
+
+    // Convert location ('mustang'|'jaguar') to box_type ('Mustang'|'Jaguar')
+    // so the DB filter correctly separates the two brands.
+    const boxType = location.charAt(0).toUpperCase() + location.slice(1).toLowerCase()
+
+    // 1. Fetch raw Simflex rows for this location (Transmission_Archive ONGOING today)
+    const simResult = await simflexDb.getTransmitStageRows(location)
+    const simRows = simResult.data || []
+
+    if (simRows.length === 0) {
+      return res.json({ success: true, rows: [], count: 0 })
+    }
+
+    // 2. Collect unique ISBNs from Simflex
+    const simflexIsbns = [...new Set(simRows.map(r => String(r.ISBN || '').trim()).filter(Boolean))]
+
+    // 3. Query our DB: books matching these ISBNs, with two hard filters:
+    //    a) boxes.current_stage = 'scan'  (Transmit UI card = scan-stage boxes)
+    //    b) boxes.box_type     = boxType  (brand isolation: Mustang vs Jaguar)
+    const { supabaseAdmin } = await import('../config/supabase.js')
+    const { data: dbBooks, error: dbError } = await supabaseAdmin
+      .from('books')
+      .select('id, isbn, title, boxes!inner(box_number, current_stage, box_type, lot:lots(lot_number))')
+      .in('isbn', simflexIsbns)
+      .eq('boxes.current_stage', 'scan')
+      .eq('boxes.box_type', boxType)
+
+    if (dbError) throw dbError
+
+    if (!dbBooks || dbBooks.length === 0) {
+      return res.json({ success: true, rows: [], count: 0 })
+    }
+
+    // 4. Non-processable protection: fetch scan_status from book_activity for
+    //    these books and exclude any that are flagged non_processable.
+    //    (Non-processable books should not appear in Simflex, but just in case.)
+    const bookIds = dbBooks.map(b => b.id).filter(Boolean)
+    const { data: activities } = await supabaseAdmin
+      .from('book_activity')
+      .select('book_id, scan_status')
+      .in('book_id', bookIds)
+
+    // Build a set of book IDs confirmed to be processable
+    const processableIds = new Set(
+      (activities || [])
+        .filter(a => a.scan_status === 'processable')
+        .map(a => a.book_id)
+    )
+
+    // 5. Build lookup: isbn -> { box_number, lot_number, title }
+    //    lot_number already contains the full label (e.g. "Lot 1") -- no extra prefix.
+    const dbLookup = {}
+    for (const book of dbBooks) {
+      // Skip if not confirmed processable
+      if (!processableIds.has(book.id)) continue
+      const box = book.boxes
+      if (!box) continue
+      dbLookup[book.isbn] = {
+        title: book.title || null,
+        box_number: box.box_number,
+        lot_number: box.lot?.lot_number || null,
+      }
+    }
+
+    // 6. Merge: keep only Simflex rows that passed all DB validations, deduped by ISBN
+    const enrichedRows = []
+    const seenIsbns = new Set()
+    for (const row of simRows) {
+      const isbn = String(row.ISBN || '').trim()
+      if (!isbn || seenIsbns.has(isbn)) continue
+      const dbInfo = dbLookup[isbn]
+      if (!dbInfo) continue  // Not in our DB, wrong brand, wrong stage, or non-processable
+      seenIsbns.add(isbn)
+      enrichedRows.push({
+        ISBN: isbn,
+        BoxNumber: dbInfo.box_number,
+        LotNumber: dbInfo.lot_number,
+        Title: dbInfo.title,
+        Status: row.Status,
+        ScanUser: row.ScanUser,
+        ScanDate: row.ScanDate,
+        PageCount: row.PageCount,
+        Updated: row.Updated,
+      })
+    }
+
+    res.json({ success: true, rows: enrichedRows, count: enrichedRows.length })
   } catch (error) {
     console.error('Error in /transmit-rows:', error)
     res.status(500).json({ success: false, error: error.message })

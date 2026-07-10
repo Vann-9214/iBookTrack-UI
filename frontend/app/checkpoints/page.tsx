@@ -175,6 +175,11 @@ export default function StationCheckpointsPage() {
   const [scanBooks, setScanBooks] = useState<number | null>(null)
   const [transmitBooks, setTransmitBooks] = useState<number | null>(null)
 
+  // Box numbers that have at least one book in the scan-WIP range
+  // (Scanning ONGOING → Preval COMPLETED). Populated at page load so the
+  // Scan card count and the modal list stay in sync.
+  const [scanEligibleBoxNums, setScanEligibleBoxNums] = useState<Set<string>>(new Set())
+
   // Simflex raw rows for the Scan / Transmit stage modals
   const [simflexRows, setSimflexRows] = useState<any[]>([])
   const [simflexRowsLoading, setSimflexRowsLoading] = useState(false)
@@ -220,10 +225,12 @@ export default function StationCheckpointsPage() {
       const currentFilter = transitionStageFilterRef.current
       const currentBrand = brandRef.current
       const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50&box_type=${currentBrand}${currentFilter ? `&stage=${currentFilter}` : ''}`
-      const [boxRes, transRes, liveRes] = await Promise.all([
+      const [boxRes, transRes, liveRes, scanRowsRes, transmitRowsRes] = await Promise.all([
         authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true&box_type=${currentBrand}`),
         authFetch(transitionUrl),
         authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}&wipOnly=true`).catch(() => null),
+        authFetch(`${API_URL}/api/scanning/scan-rows?location=${currentBrand}`).catch(() => null),
+        authFetch(`${API_URL}/api/scanning/transmit-rows?location=${currentBrand}`).catch(() => null),
       ])
       const boxData = await boxRes.json()
       const transData = await transRes.json()
@@ -238,14 +245,34 @@ export default function StationCheckpointsPage() {
         prevTransitionsRef.current = transData.transitions
       }
 
-      // Pull Simflex book counts for Scan & Transmit cards.
-      // Use the same scan-stage distinct-ISBN count as the modal row source so
-      // the checkpoint Scan card matches the modal row count.
+      // Pull Simflex book counts for Scan card.
       if (liveRes && liveRes.ok) {
         const liveData = await liveRes.json()
         if (liveData.success) {
           setScanBooks(liveData.scanWipCount ?? null)
-          setTransmitBooks(liveData.transmitBooks ?? null)
+        }
+      }
+
+      // Populate the set of box numbers that have at least one book in the
+      // scan-WIP status range (Scanning ONGOING → Preval COMPLETED).
+      // This is used both for the card count and the modal box list.
+      if (scanRowsRes && scanRowsRes.ok) {
+        const scanRowsData = await scanRowsRes.json()
+        if (scanRowsData.success) {
+          const eligible = new Set<string>(
+            (scanRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
+          )
+          setScanEligibleBoxNums(eligible)
+        }
+      }
+
+      // Transmit card count: use DB-validated transmit-rows count so it matches
+      // the modal list (only books in our DB whose box is still in scan stage,
+      // correct brand, and confirmed processable).
+      if (transmitRowsRes && transmitRowsRes.ok) {
+        const transmitRowsData = await transmitRowsRes.json()
+        if (transmitRowsData.success) {
+          setTransmitBooks(transmitRowsData.count ?? 0)
         }
       }
 
@@ -693,6 +720,13 @@ export default function StationCheckpointsPage() {
     if (stage === 'warehouse') {
       stageBoxes = stageBoxes.filter(b => b.total_books_expected > 0)
     }
+    // For the Scan card: only count/show boxes that have at least one book
+    // currently in the scan-WIP range (Scanning ONGOING → Preval COMPLETED).
+    // Boxes where every qualifying book has already advanced to
+    // Transmission_Archive COMPLETED are excluded from the count and the modal.
+    if (stage === 'scan' && scanEligibleBoxNums.size > 0) {
+      stageBoxes = stageBoxes.filter(b => scanEligibleBoxNums.has(b.box_number))
+    }
     acc[stage] = stageBoxes
     return acc
   }, {} as Record<Stage, BoxItem[]>)
@@ -939,6 +973,10 @@ export default function StationCheckpointsPage() {
               (() => {
                 const stageBoxes = boxesByStage[selectedStage]
                 const meta = STAGE_META[selectedStage]
+
+                // stageBoxes for 'scan' is already pre-filtered to scan-WIP
+                // eligible boxes via boxesByStage (which uses scanEligibleBoxNums
+                // populated at page load). No extra filtering needed here.
                 const filteredBoxes = stageBoxes.filter(box => {
                   const q = stageModalSearch.toLowerCase().trim()
                   if (!q) return true
@@ -958,7 +996,12 @@ export default function StationCheckpointsPage() {
                           </div>
                           <div>
                             <h3 className="text-base font-semibold text-foreground">{meta.label}</h3>
-                            <p className="text-xs text-muted-foreground">{stageBoxes.length} {stageBoxes.length === 1 ? 'box' : 'boxes'} waiting</p>
+                            <p className="text-xs text-muted-foreground">
+                             {selectedStage === 'transmit'
+                               ? `${simflexRowsLoading ? '…' : simflexRows.length} book${simflexRows.length === 1 ? '' : 's'} transmitting`
+                               : `${stageBoxes.length} ${stageBoxes.length === 1 ? 'box' : 'boxes'} waiting`
+                             }
+                           </p>
 
                           </div>
                         </div>
@@ -972,7 +1015,7 @@ export default function StationCheckpointsPage() {
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
-                            placeholder={selectedStage === 'scan' || selectedStage === 'transmit' ? 'Search ISBN, box, or userΓÇª' : 'Search box number or lot...'}
+                            placeholder={selectedStage === 'scan' || selectedStage === 'transmit' ? 'Search ISBN, box, or user…' : 'Search box number or lot...'}
                             value={selectedStage === 'scan' || selectedStage === 'transmit' ? simflexRowsSearch : stageModalSearch}
                             onChange={e => selectedStage === 'scan' || selectedStage === 'transmit' ? setSimflexRowsSearch(e.target.value) : setStageModalSearch(e.target.value)}
                             className="pl-9"
@@ -995,33 +1038,39 @@ export default function StationCheckpointsPage() {
                                   {simflexRowsSearch ? 'No matching books found.' : 'No books currently in transmission.'}
                                 </div>
                               ) : (
-                                simflexRows.filter(row => {
+                                simflexRows
+                                .filter(row => {
                                   const q = simflexRowsSearch.toLowerCase().trim()
-                                  return !q || row.ISBN?.toLowerCase().includes(q) || row.BoxNumber?.toLowerCase().includes(q)
-                                }).map((row, idx) => {
-                                  const matchedBox = stageBoxes.find(b => b.box_number === row.BoxNumber)
-                                  const lotNumber = matchedBox?.lot?.lot_number || 'Unknown Lot'
-                                  return (
-                                    <div key={idx} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between hover:shadow-sm transition-all">
-                                      <div className="flex items-center gap-4">
-                                        <div className="flex flex-col">
-                                          <span className="font-mono font-bold text-foreground text-sm">{row.ISBN}</span>
-                                          <span className="text-xs text-muted-foreground mt-1">
-                                            Box: <span className="font-semibold text-foreground">{row.BoxNumber || 'N/A'}</span> • Lot: <span className="font-semibold text-foreground">{lotNumber}</span>
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <div className="text-right flex flex-col items-end gap-1.5">
-                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider">
-                                          Ongoing
+                                  return !q ||
+                                    row.ISBN?.toLowerCase().includes(q) ||
+                                    row.BoxNumber?.toLowerCase().includes(q) ||
+                                    row.LotNumber?.toLowerCase().includes(q) ||
+                                    row.ScanUser?.toLowerCase().includes(q)
+                                }).map((row, idx) => (
+                                  <div key={idx} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between hover:shadow-sm transition-all">
+                                    <div className="flex items-center gap-4">
+                                      <div className="flex flex-col">
+                                        <span className="font-mono font-bold text-foreground text-sm">{row.ISBN}</span>
+                                        <span className="text-xs text-muted-foreground mt-1">
+                                          Box: <span className="font-semibold text-foreground">{row.BoxNumber || 'N/A'}</span>
+                                          {row.LotNumber && <> • <span className="font-semibold text-foreground">{row.LotNumber}</span></>}
+                                          {row.ScanUser && <> • User: <span className="font-semibold text-foreground">{row.ScanUser}</span></>}
                                         </span>
-                                        <span className="text-[10px] text-muted-foreground font-medium">
-                                          Simflex: {row.Status || 'Transmission_Archive'}
-                                        </span>
+                                        {row.Title && (
+                                          <span className="text-xs text-muted-foreground mt-0.5 max-w-[340px] truncate" title={row.Title}>{row.Title}</span>
+                                        )}
                                       </div>
                                     </div>
-                                  )
-                                })
+                                    <div className="text-right flex flex-col items-end gap-1.5">
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wider">
+                                        Ongoing
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground font-medium">
+                                        Simflex: {row.Status || 'Transmission_Archive ONGOING'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))
                               )}
                             </div>
                           ) : (
@@ -1299,7 +1348,7 @@ export default function StationCheckpointsPage() {
               <div className="flex lg:hidden items-center gap-1 flex-wrap">
                 {STAGE_ORDER.map((stage, i) => {
                   const meta = STAGE_META[stage]
-                  const count = boxesByStage[stage]?.length || 0
+                  const count = stage === 'transmit' ? (transmitBooks ?? 0) : (boxesByStage[stage]?.length || 0)
                   return (
                     <div key={stage} className="flex items-center gap-1">
                       <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${meta.color}`}>
@@ -1325,7 +1374,8 @@ export default function StationCheckpointsPage() {
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    const count = stageBoxes.length
+                    // For Transmit: use DB-validated book count so card matches modal
+                    const count = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
                     
                     const status = getStepStatus(count)
                     const cfg = getStatusConfig(status, brand)
@@ -1347,7 +1397,7 @@ export default function StationCheckpointsPage() {
                             <meta.icon className="h-4 w-4" />
                           </div>
                           <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                            {stageBoxes.length}
+                            {count}
                           </span>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
@@ -1367,7 +1417,8 @@ export default function StationCheckpointsPage() {
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    const count = stageBoxes.length
+                    // For Transmit: use DB-validated book count so card matches modal
+                    const count = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
                     
                     const status = getStepStatus(count)
                     const cfg = getStatusConfig(status, brand)
@@ -1389,7 +1440,7 @@ export default function StationCheckpointsPage() {
                             <meta.icon className="h-4 w-4" />
                           </div>
                           <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                            {stageBoxes.length}
+                            {count}
                           </span>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
