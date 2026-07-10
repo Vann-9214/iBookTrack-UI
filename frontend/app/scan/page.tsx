@@ -8,9 +8,10 @@ import { useBrand } from "@/hooks/use-brand"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import {
-  Inbox, ScanBarcode, Loader2, Package, Clock, BookOpen
+  Inbox, ScanBarcode, Loader2, Package, Clock, BookOpen, Search, X
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -39,6 +40,8 @@ export default function ScanPage() {
   const { brand } = useBrand()
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchType, setSearchType] = useState<'box' | 'lot' | 'isbn'>('box')
 
   const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,8 +51,15 @@ export default function ScanPage() {
   const fetchBoxes = useCallback(async () => {
     setLoading(true)
     try {
+      const params = new URLSearchParams()
+      params.append('current_stage', 'endorsement')
+      const query = searchQuery.trim()
+      if (query) {
+        if (searchType === 'box') params.append('box_number', query)
+        if (searchType === 'isbn') params.append('isbn', query)
+      }
       // Fetch incoming: current stage is 'endorsement' but session is 'sent'
-      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
+      const resIncoming = await authFetch(`${API_URL}/api/boxes?${params.toString()}`)
       const incomingData = await resIncoming.json()
       const filteredIncoming = (incomingData.boxes || []).filter((b: BoxEntry) => {
          return b.box_sessions?.some(s => s.status === 'sent')
@@ -61,11 +71,19 @@ export default function ScanPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [searchQuery, searchType])
 
   useEffect(() => {
-    fetchBoxes()
+    const timer = setTimeout(() => { fetchBoxes() }, 300)
+    return () => clearTimeout(timer)
   }, [fetchBoxes])
+
+  const filteredIncoming = incomingBoxes.filter(box => {
+    if (searchType !== 'lot') return true
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return true
+    return (box.lot?.lot_number || '').toLowerCase().includes(query)
+  })
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)
@@ -86,7 +104,7 @@ export default function ScanPage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#FDFDFD] font-sans">
+    <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
       <DashboardSidebar />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar />
@@ -102,16 +120,64 @@ export default function ScanPage() {
               </p>
             </div>
 
+            {/* Search bar */}
+            <div className="flex items-center gap-2 mb-6">
+              <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
+                <SelectTrigger className="w-[130px] shrink-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="box">Box No.</SelectItem>
+                  <SelectItem value="lot">Lot</SelectItem>
+                  <SelectItem value="isbn">ISBN</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => {
+                    let val = e.target.value
+                    if (searchType === 'isbn') {
+                      val = val.replace(/\D/g, '').slice(0, 13)
+                    }
+                    setSearchQuery(val)
+                  }}
+                  inputMode={searchType === 'isbn' ? 'numeric' : 'text'}
+                  maxLength={searchType === 'isbn' ? 13 : undefined}
+                  placeholder={
+                    searchType === 'isbn'
+                      ? 'ISBN (10 or 13 digits)'
+                      : searchType === 'lot'
+                        ? 'Search by lot number…'
+                        : 'Search by box number…'
+                  }
+                  className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
               <button
                 className={cn(
-                  'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all border-emerald-600 text-emerald-700 bg-emerald-50/50 rounded-t-lg'
+                  'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all border-amber-600 text-amber-700 bg-amber-50/50 rounded-t-lg'
                 )}
               >
                 <Inbox className="h-4 w-4" /> Incoming
                 <span className={cn(
-                  'ml-1.5 px-2 py-0.5 rounded-full text-xs bg-emerald-100 text-emerald-800'
-                )}>{incomingBoxes.length}</span>
+                  'ml-1.5 px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800'
+                )}>{filteredIncoming.length}</span>
               </button>
               
               <div className="ml-auto">
@@ -121,20 +187,20 @@ export default function ScanPage() {
 
             {loading ? (
               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
                 <p className="text-sm font-medium">Loading boxes...</p>
               </div>
             ) : (
               <div className="flex-1 flex flex-col">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {incomingBoxes.length === 0 ? (
+                  {filteredIncoming.length === 0 ? (
                     <div className="col-span-full py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
                       <ScanBarcode className="h-10 w-10 mb-3 text-muted-foreground/30" />
                       <p className="font-semibold text-foreground">No incoming boxes</p>
                       <p className="text-sm">Boxes sent from Endorsement will appear here.</p>
                     </div>
                   ) : (
-                    incomingBoxes.map(box => {
+                    filteredIncoming.map(box => {
                       const sentSession = box.box_sessions?.find(s => s.status === 'sent')
                       const sentTime = formatDateTime(sentSession?.endorsement_time_send)
                       const bookCount = box.total_books_expected ?? 0
@@ -173,7 +239,7 @@ export default function ScanPage() {
                             <button
                               onClick={() => handleReceiveBox(box)}
                               disabled={receivingBox === box.id}
-                              className="w-full flex justify-center items-center gap-2 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
+                              className="w-full flex justify-center items-center gap-2 py-2 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium transition-colors disabled:opacity-50"
                             >
                               {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
                               {receivingBox === box.id ? 'Receiving...' : 'Receive Box'}
