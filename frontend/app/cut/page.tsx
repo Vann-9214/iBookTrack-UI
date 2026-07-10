@@ -271,7 +271,7 @@ export default function CutPage() {
                                         <div key={book.id} className="flex justify-between items-center py-1">
                                           <div className="flex flex-col">
                                             <span className="text-xs font-medium text-foreground">{book.isbn}</span>
-                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                            {book.title && <span className="text-[10px] text-muted-foreground break-words whitespace-normal">{book.title}</span>}
                                           </div>
                                           <div className="flex gap-2 items-center">
                                             {book.book_type && (
@@ -366,7 +366,7 @@ export default function CutPage() {
                                         <div key={book.id} className="flex justify-between items-center py-1">
                                           <div className="flex flex-col">
                                             <span className="text-xs font-medium text-foreground">{book.isbn}</span>
-                                            {book.title && <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{book.title}</span>}
+                                            {book.title && <span className="text-[10px] text-muted-foreground break-words whitespace-normal">{book.title}</span>}
                                           </div>
                                           <div className="flex gap-2 items-center">
                                             {book.book_type && (
