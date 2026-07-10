@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { authFetch, fetchUserProfile } from '@/lib/auth-api'
 import { useBrand } from '@/hooks/use-brand'
-import { usePagination } from '@/hooks/usePagination'
-import { Pagination } from '@/components/pagination'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -1024,15 +1022,6 @@ export default function InventoryPage() {
     matchesBrand(b)
   )
 
-  // Per-tab pagination
-  const incomingPagination = usePagination({ totalItems: incomingBoxes.length, defaultPageSize: 50 })
-  const inventoryPagination = usePagination({ totalItems: inventoryBoxes.length, defaultPageSize: 50 })
-  const outgoingPagination = usePagination({ totalItems: outgoingBoxes.length, defaultPageSize: 50 })
-
-  const paginatedIncomingBoxes = incomingBoxes.slice(incomingPagination.offset, incomingPagination.offset + incomingPagination.limit)
-  const paginatedInventoryBoxes = inventoryBoxes.slice(inventoryPagination.offset, inventoryPagination.offset + inventoryPagination.limit)
-  const paginatedOutgoingBoxes = outgoingBoxes.slice(outgoingPagination.offset, outgoingPagination.offset + outgoingPagination.limit)
-
   const normalizeVerifIsbn = (isbn: string) => isbn.trim().toLowerCase()
   const verifProcessableBooks = verifScannedBooks.filter(book => book.scan_status === 'processable')
   const verifBlockedBooks = verifScannedBooks.filter(book => book.scan_status === 'non_processable')
@@ -1040,13 +1029,6 @@ export default function InventoryPage() {
     book.rejection_reason === 'missing' &&
     !verifScannedBooks.some(scanned => normalizeVerifIsbn(scanned.isbn) === normalizeVerifIsbn(book.isbn))
   )
-
-  useEffect(() => {
-    incomingPagination.goToPage(1)
-    inventoryPagination.goToPage(1)
-    outgoingPagination.goToPage(1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, searchType, brand])
 
   return (
     <>
@@ -1395,7 +1377,7 @@ export default function InventoryPage() {
                 <div className="flex flex-col min-h-0 flex-1">
                   <div className="flex-1 overflow-y-auto pr-1">
                     <div className="flex flex-col gap-2 pb-2">
-                      {paginatedIncomingBoxes.map(box => {
+                      {incomingBoxes.map(box => {
                         const activeSession = box.box_sessions?.[0]
                         const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = expandedBox === box.id
@@ -1492,15 +1474,6 @@ export default function InventoryPage() {
                       })}
                     </div>
                   </div>
-                  <Pagination
-                    currentPage={incomingPagination.currentPage}
-                    totalPages={incomingPagination.totalPages}
-                    pageSize={incomingPagination.pageSize}
-                    onPageChange={incomingPagination.goToPage}
-                    onPageSizeChange={incomingPagination.setPageSize}
-                    canPrevPage={incomingPagination.canPrevPage}
-                    canNextPage={incomingPagination.canNextPage}
-                  />
                 </div>
               )}
             </div>
@@ -1700,7 +1673,7 @@ export default function InventoryPage() {
                     <div className="flex flex-col min-h-0 flex-1">
                       <div className="flex-1 overflow-y-auto pr-1">
                         <div className="flex flex-col gap-2 pb-2">
-                          {paginatedInventoryBoxes.map(box => {
+                          {inventoryBoxes.map(box => {
                             const isExpanded = verifExpandedBoxId === box.id
                             const rowBooks = verifRowBooks[box.id] || []
                             const isLoadingBooks = loadingVerifRowBooks === box.id
@@ -1803,15 +1776,6 @@ export default function InventoryPage() {
                           })}
                         </div>
                       </div>
-                      <Pagination
-                        currentPage={inventoryPagination.currentPage}
-                        totalPages={inventoryPagination.totalPages}
-                        pageSize={inventoryPagination.pageSize}
-                        onPageChange={inventoryPagination.goToPage}
-                        onPageSizeChange={inventoryPagination.setPageSize}
-                        canPrevPage={inventoryPagination.canPrevPage}
-                        canNextPage={inventoryPagination.canNextPage}
-                      />
                     </div>
                   )}
                 </div>
@@ -2066,7 +2030,7 @@ export default function InventoryPage() {
                 <div className="flex flex-col min-h-0 flex-1">
                   <div className="flex-1 overflow-y-auto pr-1">
                     <div className="flex flex-col gap-2 pb-2">
-                      {paginatedOutgoingBoxes.map(box => {
+                      {outgoingBoxes.map(box => {
                         const activeSession = box.box_sessions?.[0]
                         const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
                         const isExpanded = outgoingExpandedBoxId === box.id
@@ -2265,15 +2229,6 @@ export default function InventoryPage() {
                       })}
                     </div>
                   </div>
-                  <Pagination
-                    currentPage={outgoingPagination.currentPage}
-                    totalPages={outgoingPagination.totalPages}
-                    pageSize={outgoingPagination.pageSize}
-                    onPageChange={outgoingPagination.goToPage}
-                    onPageSizeChange={outgoingPagination.setPageSize}
-                    canPrevPage={outgoingPagination.canPrevPage}
-                    canNextPage={outgoingPagination.canNextPage}
-                  />
                 </div>
               )}
             </div>
