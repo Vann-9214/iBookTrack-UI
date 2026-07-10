@@ -45,7 +45,20 @@ router.get('/', async (req, res) => {
       .select(`
         *,
         lot:lots(lot_number, type),
-        box_sessions(id, status, updated_at, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received, inventory_time_received, inventory_time_send, cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received)
+        box_sessions(
+          id, status, updated_at, total_scanned,
+          warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, 
+          warehouse_time_received, inventory_time_received, inventory_time_send, 
+          cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received,
+          warehouse_received_profile:profiles!warehouse_sessions_received_by_fkey(name),
+          inventory_received_profile:profiles!box_sessions_inventory_user_received_fkey(name),
+          inventory_send_profile:profiles!box_sessions_inventory_user_scan_fkey(name),
+          cut_received_profile:profiles!box_sessions_cut_user_received_fkey(name),
+          cut_send_profile:profiles!box_sessions_cut_user_send_fkey(name),
+          endorsement_received_profile:profiles!box_sessions_endorsement_user_received_fkey(name),
+          endorsement_send_profile:profiles!box_sessions_endorsement_user_send_fkey(name),
+          scan_received_profile:profiles!box_sessions_scan_user_received_fkey(name)
+        )
       `)
       .order('created_at', { ascending: false })
 
