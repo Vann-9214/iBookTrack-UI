@@ -889,7 +889,7 @@ export default function StationCheckpointsPage() {
                                         <div className="flex flex-col gap-1">
                                           <span>Status</span>
                                           <Select value={statusFilter || 'all'} onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}>
-                                            <SelectTrigger className="h-7 text-[10px] w-[140px]">
+                                            <SelectTrigger className="h-7 text-[10px] w-fit min-w-[120px]">
                                               <SelectValue placeholder="All statuses" />
                                             </SelectTrigger>
                                             <SelectContent>
