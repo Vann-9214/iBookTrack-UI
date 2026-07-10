@@ -1180,15 +1180,6 @@ export default function StationCheckpointsPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { setTransitionSearch(''); setTransitionDateFrom(''); setTransitionDateTo(''); setTransitionStageFilter('') }}
-                  className="h-9 px-3 text-xs"
-                >
-                  <X className="h-3.5 w-3.5 mr-1.5" />
-                  Clear
-                </Button>
               </div>
 
               <CardContent className="p-0">
