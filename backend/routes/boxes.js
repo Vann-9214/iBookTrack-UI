@@ -24,8 +24,7 @@ import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// Get all boxes (with optional filters)
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { lot_id, current_stage, box_number, exclude_assigned_storage, box_type, isbn } = req.query
 
@@ -45,8 +44,8 @@ router.get('/', requireAuth, async (req, res) => {
       .from('boxes')
       .select(`
         *,
-        lot:lots(lot_number, shipment_id, type),
-        box_sessions:box_sessions(id, status, updated_at, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received, inventory_time_received, inventory_time_send, cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received)
+        lot:lots(lot_number, type),
+        box_sessions(id, status, updated_at, total_scanned, warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, warehouse_time_received, inventory_time_received, inventory_time_send, cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received)
       `)
       .order('created_at', { ascending: false })
 
@@ -60,7 +59,9 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     const { data, error } = await query
-    if (error) throw error
+    if (error) {
+      throw error;
+    }
 
     let boxes = data || []
 
@@ -71,27 +72,43 @@ router.get('/', requireAuth, async (req, res) => {
       const boxIds = boxes.map(b => b.id)
       const scanTimeMap = {}
 
-      const [{ data: invRows }, { data: endRows }] = await Promise.all([
-        db.from('book_activity')
-          .select('inventory_scan_at, book:books!inner(box_id)')
-          .in('book.box_id', boxIds)
-          .not('inventory_scan_at', 'is', null)
-          .order('inventory_scan_at', { ascending: false }),
-        db.from('book_activity')
-          .select('endorsement_scan_at, book:books!inner(box_id)')
-          .in('book.box_id', boxIds)
-          .not('endorsement_scan_at', 'is', null)
-          .order('endorsement_scan_at', { ascending: false }),
-      ])
+      let allBooks = [];
+      if (boxIds.length > 0) {
+        const res = await db.from('books').select('id, box_id').in('box_id', boxIds);
+        allBooks = res.data || [];
+      }
+      const allBookIds = allBooks.map(b => b.id);
+      
+      let invRows = [];
+      let endRows = [];
+      if (allBookIds.length > 0) {
+        const [invRes, endRes] = await Promise.all([
+          db.from('book_activity')
+            .select('inventory_scan_at, book_id')
+            .in('book_id', allBookIds)
+            .not('inventory_scan_at', 'is', null)
+            .order('inventory_scan_at', { ascending: false }),
+          db.from('book_activity')
+            .select('endorsement_scan_at, book_id')
+            .in('book_id', allBookIds)
+            .not('endorsement_scan_at', 'is', null)
+            .order('endorsement_scan_at', { ascending: false }),
+        ]);
+        invRows = invRes.data || [];
+        endRows = endRes.data || [];
+      }
+
+      const bookToBox = {};
+      (allBooks || []).forEach(b => { bookToBox[b.id] = b.box_id; });
 
       for (const row of (invRows || [])) {
-        const id = row.book?.box_id
+        const id = bookToBox[row.book_id]
         if (id && !scanTimeMap[id]?.latest_inventory_scan_at) {
           scanTimeMap[id] = { ...scanTimeMap[id], latest_inventory_scan_at: row.inventory_scan_at }
         }
       }
       for (const row of (endRows || [])) {
-        const id = row.book?.box_id
+        const id = bookToBox[row.book_id]
         if (id && !scanTimeMap[id]?.latest_endorsement_scan_at) {
           scanTimeMap[id] = { ...scanTimeMap[id], latest_endorsement_scan_at: row.endorsement_scan_at }
         }
@@ -115,7 +132,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     res.json({ boxes })
   } catch (error) {
-    console.error('Get boxes error:', error)
+    console.error('Fetch boxes error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -166,7 +183,7 @@ router.get('/by-number/:box_number', requireAuth, async (req, res) => {
     // Find box by exact box_number (case-insensitive)
     const { data: box, error: boxError } = await db
       .from('boxes')
-      .select(`*, lot:lots(lot_number, shipment_id, type)`)
+      .select(`*, lot:lots(lot_number, type)`)
       .ilike('box_number', box_number.trim())
       .maybeSingle()
 
@@ -206,7 +223,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       .from('boxes')
       .select(`
         *,
-        lot:lots(lot_number, shipment_id, type)
+        lot:lots(lot_number, type)
       `)
       .eq('id', id)
       .single()
