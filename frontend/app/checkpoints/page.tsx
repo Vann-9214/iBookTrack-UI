@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { authFetch } from "@/lib/auth-api"
@@ -97,6 +97,7 @@ interface ScannedBook {
   isbn: string
   title: string | null
   scan_status: string
+  transmission_status?: string | null
 }
 
 interface Transition {
@@ -871,7 +872,7 @@ export default function StationCheckpointsPage() {
                                               </thead>
                                               <tbody>
                                                 {details.books.filter(book => {
-                                                  const status = details.simflex?.[book.isbn] || book.transmission_status || '';
+                                                  const status = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || '';
                                                   if (selectedStage === 'scan') {
                                                     return ['Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Jaguar Validate ONGOING', 'Jaguar Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED'].includes(status);
                                                   }
@@ -880,7 +881,7 @@ export default function StationCheckpointsPage() {
                                                   }
                                                   return true;
                                                 }).map((book) => {
-                                                  const simflexStatus = details.simflex?.[book.isbn] || book.transmission_status || 'Not found';
+                                                  const simflexStatus = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || 'Not found';
                                                   const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
                                                   return (
                                                   <tr key={book.id} className="border-b border-border/40 last:border-0">
