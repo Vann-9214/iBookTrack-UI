@@ -9,9 +9,10 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import {
   Inbox, Send, Package, CheckCircle2,
-  Loader2, RefreshCw, ChevronDown, ChevronRight, BookOpen
+  Loader2, RefreshCw, ChevronDown, ChevronRight, BookOpen, Search, X
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -39,6 +40,8 @@ export default function CutPage() {
   const { brand } = useBrand()
 
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchType, setSearchType] = useState<'box' | 'lot' | 'isbn'>('box')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
@@ -75,18 +78,29 @@ export default function CutPage() {
   const fetchBoxes = useCallback(async () => {
     setLoading(true)
     try {
+      const buildUrl = (stage: string) => {
+        const params = new URLSearchParams()
+        params.append('current_stage', stage)
+        const query = searchQuery.trim()
+        if (query) {
+          if (searchType === 'box') params.append('box_number', query)
+          if (searchType === 'isbn') params.append('isbn', query)
+        }
+        return `${API_URL}/api/boxes?${params.toString()}`
+      }
+
       // Fetch incoming: still in 'inventory' stage but their session status is 'sent'
-      const resIncoming = await authFetch(`${API_URL}/api/boxes?current_stage=inventory`)
+      const resIncoming = await authFetch(buildUrl('inventory'))
       const incomingData = await resIncoming.json()
-      
+
       const filteredIncoming = (incomingData.boxes || []).filter((b: BoxEntry) => {
          return b.box_sessions?.some(s => s.status === 'sent')
       })
-      
+
       setIncomingBoxes(filteredIncoming)
 
       // Fetch outgoing: current stage is 'cut', but NOT sent to endorsement yet
-      const resOutgoing = await authFetch(`${API_URL}/api/boxes?current_stage=cut`)
+      const resOutgoing = await authFetch(buildUrl('cut'))
       const outgoingData = await resOutgoing.json()
       const filteredOutgoing = (outgoingData.boxes || []).filter((b: BoxEntry) => {
          return !b.box_sessions?.some(s => s.status === 'sent')
@@ -99,10 +113,11 @@ export default function CutPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [searchQuery, searchType])
 
   useEffect(() => {
-    fetchBoxes()
+    const timer = setTimeout(() => { fetchBoxes() }, 300)
+    return () => clearTimeout(timer)
   }, [fetchBoxes])
 
   const handleReceiveBox = async (box: BoxEntry) => {
@@ -141,8 +156,18 @@ export default function CutPage() {
     }
   }
 
+  const matchesSearch = (box: BoxEntry) => {
+    if (searchType !== 'lot') return true
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return true
+    return (box.lot?.lot_number || '').toLowerCase().includes(query)
+  }
+
+  const filteredIncoming = incomingBoxes.filter(matchesSearch)
+  const filteredOutgoing = outgoingBoxes.filter(matchesSearch)
+
   return (
-    <div className="flex h-screen bg-[#FDFDFD] font-sans">
+    <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
       <DashboardSidebar />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar />
@@ -156,6 +181,54 @@ export default function CutPage() {
               <p className="text-sm text-muted-foreground">
                 Receive boxes from Inventory and send them forward to Endorsement.
               </p>
+            </div>
+
+            {/* Search bar */}
+            <div className="flex items-center gap-2 mb-6">
+              <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
+                <SelectTrigger className="w-[130px] shrink-0 hover:text-primary-foreground hover:bg-primary transition-colors">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="box">Box No.</SelectItem>
+                  <SelectItem value="lot">Lot</SelectItem>
+                  <SelectItem value="isbn">ISBN</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => {
+                    let val = e.target.value
+                    if (searchType === 'isbn') {
+                      val = val.replace(/\D/g, '').slice(0, 13)
+                    }
+                    setSearchQuery(val)
+                  }}
+                  inputMode={searchType === 'isbn' ? 'numeric' : 'text'}
+                  maxLength={searchType === 'isbn' ? 13 : undefined}
+                  placeholder={
+                    searchType === 'isbn'
+                      ? 'ISBN (10 or 13 digits)'
+                      : searchType === 'lot'
+                        ? 'Search by lot number…'
+                        : 'Search by box number…'
+                  }
+                  className="w-full pl-9 pr-9 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
@@ -172,7 +245,7 @@ export default function CutPage() {
                 <span className={cn(
                   'ml-1.5 px-2 py-0.5 rounded-full text-xs',
                   activeTab === 'incoming' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
-                )}>{incomingBoxes.length}</span>
+                )}>{filteredIncoming.length}</span>
               </button>
               <button
                 onClick={() => setActiveTab('outgoing')}
@@ -187,7 +260,7 @@ export default function CutPage() {
                 <span className={cn(
                   'ml-1.5 px-2 py-0.5 rounded-full text-xs',
                   activeTab === 'outgoing' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
-                )}>{outgoingBoxes.length}</span>
+                )}>{filteredOutgoing.length}</span>
               </button>
               
               <div className="ml-auto">
@@ -204,14 +277,14 @@ export default function CutPage() {
               <div className="flex-1 flex flex-col">
                 {activeTab === 'incoming' && (
                   <div className="flex flex-col gap-2">
-                    {incomingBoxes.length === 0 ? (
+                    {filteredIncoming.length === 0 ? (
                       <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                        <Inbox className="h-10 w-10 mb-3 text-muted-foreground/30" />
+                        <Inbox className="h-10 w-10 mb-3 text-amber-600" />
                         <p className="font-semibold text-foreground">No incoming boxes</p>
                         <p className="text-sm">Boxes sent from Inventory will appear here.</p>
                       </div>
                     ) : (
-                      incomingBoxes.map(box => {
+                      filteredIncoming.map(box => {
                         const isExpanded = expandedBoxId === box.id
                         const rowBooks = boxBooks[box.id] || []
                         const isLoadingBooks = loadingBoxBooks === box.id
@@ -299,14 +372,14 @@ export default function CutPage() {
                 
                 {activeTab === 'outgoing' && (
                   <div className="flex flex-col gap-2">
-                    {outgoingBoxes.length === 0 ? (
+                    {filteredOutgoing.length === 0 ? (
                       <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                        <Send className="h-10 w-10 mb-3 text-muted-foreground/30" />
+                        <Send className="h-10 w-10 mb-3 text-amber-600" />
                         <p className="font-semibold text-foreground">No outgoing boxes</p>
                         <p className="text-sm">Received boxes will appear here.</p>
                       </div>
                     ) : (
-                      outgoingBoxes.map(box => {
+                      filteredOutgoing.map(box => {
                         const isExpanded = expandedBoxId === box.id
                         const rowBooks = boxBooks[box.id] || []
                         const isLoadingBooks = loadingBoxBooks === box.id
