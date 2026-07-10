@@ -167,7 +167,7 @@ export default function CutPage() {
   const filteredOutgoing = outgoingBoxes.filter(matchesSearch)
 
   return (
-    <div className="flex h-screen bg-[#FDFDFD] font-sans">
+    <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
       <DashboardSidebar />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar />
