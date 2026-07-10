@@ -14,6 +14,7 @@ interface PaginationProps {
   canNextPage: boolean
   className?: string
   pageSizeOptions?: number[]
+  showPageInfo?: boolean
 }
 
 export function Pagination({
@@ -25,26 +26,31 @@ export function Pagination({
   canPrevPage,
   canNextPage,
   className,
-  pageSizeOptions = [10, 50, 100]
+  pageSizeOptions = [10, 50, 100],
+  showPageInfo = true
 }: PaginationProps) {
   const options = pageSizeOptions
+  const hasSideContent = options.length > 0 || showPageInfo
+  const justifyClass = hasSideContent ? 'justify-center sm:justify-between' : 'justify-center'
 
   return (
-    <div className={cn('flex items-center justify-center sm:justify-between py-4 px-4 border-t border-border', className)}>
-      <div className="hidden sm:flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Items per page:</span>
-        <select
-          value={pageSize}
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
-          className="text-xs px-2 py-1 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-        >
-          {options.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className={cn('flex items-center py-4 px-4 border-t border-border', justifyClass, className)}>
+      {options.length > 0 && (
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Items per page:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            className="text-xs px-2 py-1 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            {options.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <Button
@@ -129,9 +135,11 @@ export function Pagination({
         </Button>
       </div>
 
-      <span className="hidden sm:inline text-xs text-muted-foreground">
-        Page {currentPage} of {totalPages}
-      </span>
+      {showPageInfo && (
+        <span className="hidden sm:inline text-xs text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </span>
+      )}
     </div>
   )
 }

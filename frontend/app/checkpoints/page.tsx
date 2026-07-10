@@ -27,6 +27,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+const todayStr = () => new Date().toISOString().split('T')[0]
+
 const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'] as const
 type Stage = typeof STAGE_ORDER[number]
 
@@ -136,8 +138,8 @@ export default function StationCheckpointsPage() {
   const [scanInput, setScanInput] = useState('')
   const [highlightBox, setHighlightBox] = useState<string | null>(null)
   const [transitionSearch, setTransitionSearch] = useState('')
-  const [transitionDateFrom, setTransitionDateFrom] = useState('')
-  const [transitionDateTo, setTransitionDateTo] = useState('')
+  const [transitionDateFrom, setTransitionDateFrom] = useState(todayStr())
+  const [transitionDateTo, setTransitionDateTo] = useState(todayStr())
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
   const [confirmBox, setConfirmBox] = useState<BoxItem | null>(null)
@@ -590,7 +592,7 @@ export default function StationCheckpointsPage() {
     const matchesDate = (!from || tDate >= from) && (!to || tDate <= to)
     return matchesSearch && matchesDate
   })
-  const transitionsPagination = usePagination({ totalItems: filteredTransitions.length, defaultPageSize: 30 })
+  const transitionsPagination = usePagination({ totalItems: filteredTransitions.length, defaultPageSize: 50 })
   const paginatedTransitions = filteredTransitions.slice(transitionsPagination.offset, transitionsPagination.offset + transitionsPagination.limit)
 
   const formatTime = (iso: string) => {
@@ -1216,15 +1218,15 @@ export default function StationCheckpointsPage() {
                     placeholder="Search box or lot..."
                     value={transitionSearch}
                     onChange={e => setTransitionSearch(e.target.value)}
-                    className="pl-9 h-9"
+                    className="pl-9 h-9 border-primary/30 focus-visible:border-primary focus-visible:ring-primary/50"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Stage</label>
                   <Select value={transitionStageFilter || 'all'} onValueChange={v => setTransitionStageFilter(v === 'all' ? '' : v as Stage)}>
-                    <SelectTrigger className="h-9 w-[150px] text-sm">
+                    <SelectTrigger className="h-9 w-[150px] text-sm hover:bg-primary hover:text-primary-foreground transition-colors">
                       <SelectValue placeholder="All stages" />
-                    </SelectTrigger>
+                    </SelectTrigger>  
                     <SelectContent>
                       <SelectItem value="all">All stages</SelectItem>
                       {STAGE_ORDER.map(stage => (
@@ -1233,16 +1235,13 @@ export default function StationCheckpointsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">From</label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">From</span>
                   <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-9 w-[150px] justify-start text-left font-normal text-sm"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Pick a date'}
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Pick date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -1255,16 +1254,13 @@ export default function StationCheckpointsPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">To</label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">To</span>
                   <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="h-9 w-[150px] justify-start text-left font-normal text-sm"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                        {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'Pick a date'}
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'Pick date'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -1277,15 +1273,6 @@ export default function StationCheckpointsPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { setTransitionSearch(''); setTransitionDateFrom(''); setTransitionDateTo(''); setTransitionStageFilter('') }}
-                  className="h-9 px-3 text-xs"
-                >
-                  <X className="h-3.5 w-3.5 mr-1.5" />
-                  Clear
-                </Button>
               </div>
 
               <CardContent className="p-0">
@@ -1352,7 +1339,8 @@ export default function StationCheckpointsPage() {
                     onPageSizeChange={transitionsPagination.setPageSize}
                     canPrevPage={transitionsPagination.canPrevPage}
                     canNextPage={transitionsPagination.canNextPage}
-                    pageSizeOptions={[10, 30, 50, 100]}
+                    pageSizeOptions={[]}
+                    showPageInfo={false}
                   />
                 )}
               </CardContent>
