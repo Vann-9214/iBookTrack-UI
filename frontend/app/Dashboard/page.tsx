@@ -266,18 +266,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Controls row — scan + search always on one line */}
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1 min-w-0">
-                  <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={boxScanInput}
-                    onChange={e => setBoxScanInput(e.target.value)}
-                    onKeyDown={handleBoxScan}
-                    placeholder="Scan barcode…"
-                    className="pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 w-full sm:w-52"
-                  />
-                </div>
+              <div className="flex items-center gap-2"> 
                 <Button
                   variant="default"
                   size="default"
