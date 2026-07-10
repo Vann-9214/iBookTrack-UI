@@ -1131,9 +1131,9 @@ export default function StationCheckpointsPage() {
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Stage</label>
                   <Select value={transitionStageFilter || 'all'} onValueChange={v => setTransitionStageFilter(v === 'all' ? '' : v as Stage)}>
-                    <SelectTrigger className="h-9 w-[150px] text-sm">
+                    <SelectTrigger className="h-9 w-[150px] text-sm hover:bg-primary hover:text-primary-foreground transition-colors">
                       <SelectValue placeholder="All stages" />
-                    </SelectTrigger>
+                    </SelectTrigger>  
                     <SelectContent>
                       <SelectItem value="all">All stages</SelectItem>
                       {STAGE_ORDER.map(stage => (
