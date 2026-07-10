@@ -748,12 +748,7 @@ export default function StationCheckpointsPage() {
                           <div>
                             <h3 className="text-base font-semibold text-foreground">{meta.label}</h3>
                             <p className="text-xs text-muted-foreground">{stageBoxes.length} {stageBoxes.length === 1 ? 'box' : 'boxes'} waiting</p>
-                            {selectedStage === 'scan' && scanBooks !== null && (
-                              <p className="text-xs font-semibold text-blue-600 mt-0.5">{scanBooks} {scanBooks === 1 ? 'book' : 'books'} in scan pipeline (Simflex)</p>
-                            )}
-                            {selectedStage === 'transmit' && transmitBooks !== null && (
-                              <p className="text-xs font-semibold text-violet-600 mt-0.5">{transmitBooks} {transmitBooks === 1 ? 'book' : 'books'} transmitting (Simflex)</p>
-                            )}
+
                           </div>
                         </div>
                         <button onClick={() => setSelectedStage(null)} className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors">
@@ -774,201 +769,8 @@ export default function StationCheckpointsPage() {
                         </div>
                       </div>
 
-                      {/* Simflex data table for Scan / Transmit */}
-                      {selectedStage === 'scan' || selectedStage === 'transmit' ? (
-                        <div className="flex-1 overflow-y-auto">
-                          {simflexRowsLoading ? (
-                            <div className="flex items-center justify-center py-12 gap-2 text-sm text-muted-foreground">
-                              <Loader2 className="h-4 w-4 animate-spin" /> Loading from Simflex…
-                            </div>
-                          ) : simflexRows.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
-                              No records found in Simflex for today.
-                            </div>
-                          ) : (() => {
-                            const q = simflexRowsSearch.toLowerCase().trim()
-                            const baseFiltered = q
-                              ? simflexRows.filter((r: any) =>
-                                  (r.ISBN || '').toLowerCase().includes(q) ||
-                                  (r.BoxNumber || '').toLowerCase().includes(q) ||
-                                  (r.ScanUser || '').toLowerCase().includes(q) ||
-                                  (r.Status || '').toLowerCase().includes(q)
-                                )
-                              : simflexRows
-
-                            let filtered = baseFiltered
-                            if (statusFilter) filtered = filtered.filter((r: any) => (r.Status || '').trim() === statusFilter)
-
-                            // PageCount sort: none → desc → asc → none
-                            if (pageCountSort !== 'none') {
-                              filtered = [...filtered].sort((a: any, b: any) => {
-                                const pa = Number(a.PageCount) || 0
-                                const pb = Number(b.PageCount) || 0
-                                return pageCountSort === 'desc' ? pb - pa : pa - pb
-                              })
-                            }
-
-                            // Updated sort: none -> desc (newest first) -> asc (oldest first) -> none
-                            if (updatedSort !== 'none') {
-                              filtered = [...filtered].sort((a: any, b: any) => {
-                                const valA = a.Updated || a.LastUpdated
-                                const valB = b.Updated || b.LastUpdated
-                                const dateA = valA ? new Date(valA).getTime() : 0
-                                const dateB = valB ? new Date(valB).getTime() : 0
-                                
-                                const timeA = isNaN(dateA) ? 0 : dateA
-                                const timeB = isNaN(dateB) ? 0 : dateB
-
-                                return updatedSort === 'desc' ? timeB - timeA : timeA - timeB
-                              })
-                            }
-
-                            const uniqueStatuses = Array.from(new Set(simflexRows.map((r: any) => (r.Status || '').trim()).filter(Boolean))).sort()
-
-                            const hasFilters = statusFilter || pageCountSort !== 'none' || updatedSort !== 'none'
-                            const totalPages = Math.max(1, Math.ceil(filtered.length / SIMFLEX_PAGE_SIZE))
-                            const safePage = Math.min(simflexPage, totalPages)
-                            const paginated = filtered.slice((safePage - 1) * SIMFLEX_PAGE_SIZE, safePage * SIMFLEX_PAGE_SIZE)
-
-                            return (
-                              <div className="overflow-x-auto">
-                                {hasFilters && (
-                                  <div className="px-4 py-2 flex items-center gap-2 flex-wrap border-b border-border bg-muted/30">
-                                    <span className="text-xs text-muted-foreground">Active filters:</span>
-                                    
-                                    {statusFilter && (
-                                      <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 flex items-center gap-1.5">
-                                        Status: {statusFilter}
-                                        <button onClick={() => setStatusFilter('')} className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"><X className="h-3 w-3" /></button>
-                                      </span>
-                                    )}
-                                    {pageCountSort !== 'none' && (
-                                      <span className="text-xs px-2 py-0.5 rounded bg-orange-100 text-orange-700 flex items-center gap-1.5">
-                                        PageCount: {pageCountSort === 'desc' ? 'High → Low' : 'Low → High'}
-                                        <button onClick={() => setPageCountSort('none')} className="hover:bg-orange-200 rounded-full p-0.5 transition-colors"><X className="h-3 w-3" /></button>
-                                      </span>
-                                    )}
-                                    {updatedSort !== 'none' && (
-                                      <span className="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700 flex items-center gap-1.5">
-                                        Updated: {updatedSort === 'desc' ? 'Newest → Oldest' : 'Oldest → Newest'}
-                                        <button onClick={() => setUpdatedSort('none')} className="hover:bg-purple-200 rounded-full p-0.5 transition-colors"><X className="h-3 w-3" /></button>
-                                      </span>
-                                    )}
-                                    
-                                    <button
-                                      onClick={() => { setStatusFilter(''); setPageCountSort('none'); setUpdatedSort('none') }}
-                                      className="ml-auto p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-                                      title="Clear all filters"
-                                    >
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  </div>
-                                )}
-                                <table className="w-full text-xs">
-                                  <thead className="sticky top-0 bg-card border-b border-border">
-                                    <tr className="text-muted-foreground">
-                                      <th className="px-4 py-2.5 text-left font-medium w-12">#</th>
-                                      <th className="px-4 py-2.5 text-left font-medium">ScanDate</th>
-                                      <th className="px-4 py-2.5 text-left font-medium">ScanUser</th>
-                                      <th className="px-4 py-2.5 text-left font-medium">BoxNumber</th>
-                                      <th className="px-4 py-2.5 text-left font-medium">ISBN</th>
-                                      <th className="px-4 py-2.5 text-left font-medium align-top">
-                                        {/* BUG FIX START */}
-                                        <button
-                                          onClick={() => setPageCountSort(s => s === 'desc' ? 'asc' : 'desc')}
-                                          className="flex items-center gap-1 hover:text-foreground"
-                                        >
-                                          PageCount
-                                          {pageCountSort === 'desc' && <span className="text-[10px]">▼</span>}
-                                          {pageCountSort === 'asc' && <span className="text-[10px]">▲</span>}
-                                          {pageCountSort === 'none' && <span className="text-[10px] text-muted-foreground">⇅</span>}
-                                        </button>
-                                        {/* BUG FIX END */}
-                                      </th>
-                                      <th className="px-4 py-2.5 text-left font-medium align-top">
-                                        <div className="flex flex-col gap-1">
-                                          <span>Status</span>
-                                          <select
-                                            value={statusFilter}
-                                            onChange={e => setStatusFilter(e.target.value)}
-                                            className="text-[10px] border border-border rounded px-1 py-0.5 bg-card text-foreground max-w-[140px]"
-                                          >
-                                            <option value="">All statuses</option>
-                                            {uniqueStatuses.map(s => <option key={s} value={s}>{s}</option>)}
-                                          </select>
-                                        </div>
-                                      </th>
-                                      <th className="px-4 py-2.5 text-left font-medium align-top">
-                                        {/* BUG FIX START */}
-                                        <button
-                                          onClick={() => setUpdatedSort(s => s === 'desc' ? 'asc' : 'desc')}
-                                          className="flex items-center gap-1 hover:text-foreground"
-                                        >
-                                          Updated
-                                          {updatedSort === 'desc' && <span className="text-[10px]">▼</span>}
-                                          {updatedSort === 'asc' && <span className="text-[10px]">▲</span>}
-                                          {updatedSort === 'none' && <span className="text-[10px] text-muted-foreground">⇅</span>}
-                                        </button>
-                                        {/* BUG FIX END */}
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {paginated.map((row: any, i: number) => {
-                                      const rowNumber = (safePage - 1) * SIMFLEX_PAGE_SIZE + i + 1
-                                      const updatedRaw = row.Updated || row.LastUpdated
-                                      let updatedDisplay = '—'
-                                      if (updatedRaw) {
-                                        const d = new Date(updatedRaw)
-                                        updatedDisplay = !isNaN(d.getTime()) ? d.toLocaleString() : String(updatedRaw)
-                                      }
-                                      return (
-                                        <tr key={i} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
-                                          <td className="px-4 py-1.5 text-muted-foreground whitespace-nowrap w-12">{rowNumber}</td>
-                                          <td className="px-4 py-1.5 text-muted-foreground whitespace-nowrap">{row.ScanDate ? new Date(row.ScanDate).toLocaleString() : '—'}</td>
-                                          <td className="px-4 py-1.5 text-foreground">{row.ScanUser || '—'}</td>
-                                          <td className="px-4 py-1.5 text-foreground font-medium">{row.BoxNumber || '—'}</td>
-                                          <td className="px-4 py-1.5 text-foreground">{row.ISBN || '—'}</td>
-                                          <td className="px-4 py-1.5 text-muted-foreground text-center">{row.PageCount ?? '—'}</td>
-                                          <td className="px-4 py-1.5">
-                                            <span 
-                                              onClick={() => {
-                                                if (row.Status) setStatusFilter(row.Status.trim())
-                                              }}
-                                              className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 whitespace-nowrap cursor-pointer hover:bg-blue-200 transition-colors"
-                                              title="Click to filter by this status"
-                                            >
-                                              {row.Status || '—'}
-                                            </span>
-                                          </td>
-                                          <td className="px-4 py-1.5 text-muted-foreground whitespace-nowrap">{updatedDisplay}</td>
-                                        </tr>
-                                      )
-                                    })}
-                                  </tbody>
-                                </table>
-                                {filtered.length > 0 && (
-                                  <Pagination
-                                    currentPage={safePage}
-                                    totalPages={totalPages}
-                                    pageSize={SIMFLEX_PAGE_SIZE}
-                                    onPageChange={setSimflexPage}
-                                    onPageSizeChange={() => {}}
-                                    canPrevPage={safePage > 1}
-                                    canNextPage={safePage < totalPages}
-                                    pageSizeOptions={[50]}
-                                  />
-                                )}
-                                {(q || statusFilter) && filtered.length === 0 && (
-                                  <div className="py-8 text-center text-sm text-muted-foreground">No matching records.</div>
-                                )}
-                              </div>
-                            )
-                          })()}
-                        </div>
-                      ) : (
-                        /* Box list for all other stages */
-                        <div className="flex-1 overflow-y-auto p-4">
+                      {/* Box list for all stages */}
+                      <div className="flex-1 overflow-y-auto p-4">
                           {filteredBoxes.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                               {stageModalSearch ? 'No matching boxes found.' : 'No boxes at this station.'}
@@ -1063,7 +865,20 @@ export default function StationCheckpointsPage() {
                                                 </tr>
                                               </thead>
                                               <tbody>
-                                                {details.books.map((book) => (
+                                                {details.books.filter(book => {
+                                                  if (selectedStage === 'scan') {
+                                                    const status = details.simflex?.[book.isbn]?.latestStatus || '';
+                                                    return ['Scanning ONGOING', 'Scanning COMPLETED', 'Validate ONGOING', 'Validate COMPLETED', 'Jaguar Validate ONGOING', 'Jaguar Validate COMPLETED', 'Tif2PDF ONGOING', 'Tif2PDF COMPLETED', 'Preval ONGOING', 'Preval COMPLETED'].includes(status);
+                                                  }
+                                                  if (selectedStage === 'transmit') {
+                                                    const status = details.simflex?.[book.isbn]?.latestStatus || '';
+                                                    return status === 'Transmission_Archive ONGOING';
+                                                  }
+                                                  return true;
+                                                }).map((book) => {
+                                                  const simflexStatus = details.simflex?.[book.isbn]?.latestStatus || 'Not found';
+                                                  const isTransmissionCompleted = details.simflex?.[book.isbn]?.transmissionCompleted;
+                                                  return (
                                                   <tr key={book.id} className="border-b border-border/40 last:border-0">
                                                     <td className="py-1.5 pr-3 text-foreground">{book.isbn}</td>
                                                     <td className="py-1.5 pr-3 max-w-[160px] truncate text-foreground">{book.title || '—'}</td>
@@ -1073,12 +888,18 @@ export default function StationCheckpointsPage() {
                                                       </span>
                                                     </td>
                                                     <td className="py-1.5 pr-3">
-                                                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
-                                                        {box.current_stage || '—'}
-                                                      </span>
+                                                      {isTransmissionCompleted ? (
+                                                        <span className="flex items-center gap-1 text-[10px] font-medium text-green-700">
+                                                          <CheckCircle className="h-3 w-3" /> Done
+                                                        </span>
+                                                      ) : (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
+                                                          {simflexStatus}
+                                                        </span>
+                                                      )}
                                                     </td>
                                                   </tr>
-                                                ))}
+                                                )})}
                                               </tbody>
                                             </table>
                                           </div>
@@ -1091,14 +912,11 @@ export default function StationCheckpointsPage() {
                             </div>
                           )}
                         </div>
-                      )}
+
 
                       {/* Footer */}
                       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                        {selectedStage === 'scan' || selectedStage === 'transmit'
-                          ? <span>{simflexRows.length} {simflexRows.length === 1 ? 'record' : 'records'} from Simflex</span>
-                          : <span>{filteredBoxes.length} {filteredBoxes.length === 1 ? 'box' : 'boxes'} shown</span>
-                        }
+                        <span>{filteredBoxes.length} {filteredBoxes.length === 1 ? 'box' : 'boxes'} shown</span>
                         <button onClick={() => setSelectedStage(null)} className="text-primary hover:text-primary/80 font-medium">Close</button>
                       </div>
                     </div>
@@ -1161,11 +979,7 @@ export default function StationCheckpointsPage() {
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    const count = stage === 'scan'
-                      ? (scanBooks ?? 0)
-                      : stage === 'transmit'
-                      ? (transmitBooks ?? 0)
-                      : stageBoxes.length
+                    const count = stageBoxes.length
                     
                     const status = getStepStatus(count, stage)
                     const cfg = statusConfig[status]
@@ -1194,18 +1008,9 @@ export default function StationCheckpointsPage() {
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
-                          {stage === 'scan' || stage === 'transmit' ? (
-                            <div className="flex flex-col items-end min-w-0">
-                              <span className={cn("text-xl font-extrabold leading-none truncate max-w-full", cfg.countColor)}>
-                                {stage === 'scan' ? (scanBooks ?? '—') : (transmitBooks ?? '—')}
-                              </span>
-                              <span className="text-[8px] font-medium text-muted-foreground mt-0.5">books</span>
-                            </div>
-                          ) : (
-                            <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                              {stageBoxes.length}
-                            </span>
-                          )}
+                          <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
+                            {stageBoxes.length}
+                          </span>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
                           {meta.label}
@@ -1224,11 +1029,7 @@ export default function StationCheckpointsPage() {
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    const count = stage === 'scan'
-                      ? (scanBooks ?? 0)
-                      : stage === 'transmit'
-                      ? (transmitBooks ?? 0)
-                      : stageBoxes.length
+                    const count = stageBoxes.length
                     
                     const status = getStepStatus(count, stage)
                     const cfg = statusConfig[status]
@@ -1257,18 +1058,9 @@ export default function StationCheckpointsPage() {
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
-                          {stage === 'scan' || stage === 'transmit' ? (
-                            <div className="flex flex-col items-end min-w-0">
-                              <span className={cn("text-xl font-extrabold leading-none truncate max-w-full", cfg.countColor)}>
-                                {stage === 'scan' ? (scanBooks ?? '—') : (transmitBooks ?? '—')}
-                              </span>
-                              <span className="text-[8px] font-medium text-muted-foreground mt-0.5">books</span>
-                            </div>
-                          ) : (
-                            <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                              {stageBoxes.length}
-                            </span>
-                          )}
+                          <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
+                            {stageBoxes.length}
+                          </span>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate">{meta.label}</h3>
                         <div className="flex items-center gap-1 mt-1.5 shrink-0">
