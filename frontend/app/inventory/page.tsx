@@ -1256,7 +1256,7 @@ export default function InventoryPage() {
               <p className="text-sm text-muted-foreground mt-1">Browse all boxes and their contents</p>
             </div>
             <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-              <RefreshControl onRefresh={fetchBoxes} refreshing={loadingBoxes} storageKey="inventory" className="hidden sm:flex" />
+              <RefreshControl onRefresh={fetchBoxes} refreshing={loadingBoxes} lastUpdated={lastInventoryUpdate} storageKey="inventory" className="hidden sm:flex" />
             </div>
           </header>
 

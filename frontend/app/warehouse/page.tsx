@@ -1015,7 +1015,7 @@ export default function WarehousePage() {
             </div>
           ) : (
             <header className="flex items-center justify-end">
-              <RefreshControl onRefresh={handleRefreshStats} refreshing={refreshingStats || lotsLoading} storageKey="warehouse" className="hidden sm:flex" />
+              <RefreshControl onRefresh={handleRefreshStats} refreshing={refreshingStats || lotsLoading} lastUpdated={lastStatsUpdate} storageKey="warehouse" className="hidden sm:flex" />
             </header>
           ))}
 

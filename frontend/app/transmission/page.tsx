@@ -507,7 +507,7 @@ export default function TransmissionMonitorPage() {
                   <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
                     <Trophy className="h-3.5 w-3.5" /> Ranking
                   </Button>
-                  <RefreshControl onRefresh={() => fetchLiveData()} refreshing={loading} storageKey="transmission" className="hidden sm:flex" />
+                  <RefreshControl onRefresh={() => fetchLiveData()} refreshing={loading} lastUpdated={lastUpdated} storageKey="transmission" className="hidden sm:flex" />
                 </div>
               </div>
             </header>
