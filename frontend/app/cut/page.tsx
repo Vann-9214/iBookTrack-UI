@@ -186,7 +186,7 @@ export default function CutPage() {
             {/* Search bar */}
             <div className="flex items-center gap-2 mb-6">
               <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
-                <SelectTrigger className="w-[130px] shrink-0">
+                <SelectTrigger className="w-[130px] shrink-0 hover:text-primary-foreground hover:bg-primary transition-colors">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
