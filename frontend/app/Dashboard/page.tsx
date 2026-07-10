@@ -262,7 +262,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 {/* Refresh + timestamp — hidden on mobile */}
-                <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} storageKey="dashboard" className="hidden sm:flex" />
+                <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} lastUpdated={lastStatsUpdate} storageKey="dashboard" className="hidden sm:flex" />
               </div>
 
               {/* Controls row — scan + search always on one line */}

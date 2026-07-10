@@ -554,7 +554,7 @@ export default function WarehouseLocatorPage() {
                   Assign incoming boxes to rack slots. Search by ISBN or box number to find their location.
                 </p>
               </div>
-              <RefreshControl onRefresh={fetchLocations} refreshing={loadingLocations} storageKey="locator" className="hidden sm:flex" />
+              <RefreshControl onRefresh={fetchLocations} refreshing={loadingLocations} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
             </header>
 
             {/* Search */}

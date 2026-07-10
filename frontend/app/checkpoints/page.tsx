@@ -181,6 +181,7 @@ export default function StationCheckpointsPage() {
   }, [])
 
   const fetchData = useCallback(async () => {
+    setLoading(true)
     try {
       const currentFilter = transitionStageFilterRef.current
       const currentBrand = brandRef.current
@@ -1125,20 +1126,7 @@ export default function StationCheckpointsPage() {
                   Manually receive boxes at each station to advance them through the pipeline.
                 </p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Scan className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Scan box barcode..."
-                    value={scanInput}
-                    onChange={e => setScanInput(e.target.value)}
-                    onKeyDown={handleScan}
-                    className="w-56 pl-9 pr-3 py-2 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <RefreshControl onRefresh={fetchData} refreshing={loading} storageKey="checkpoints" className="hidden sm:flex" />
-              </div>
+              <RefreshControl onRefresh={fetchData} refreshing={loading} lastUpdated={lastUpdated} storageKey="checkpoints" className="hidden sm:flex" />
             </header>
 
             {/* Pipeline Stage Flow */}
