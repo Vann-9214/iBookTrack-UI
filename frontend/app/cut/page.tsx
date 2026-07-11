@@ -238,14 +238,14 @@ export default function CutPage() {
                 className={cn(
                   'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all',
                   activeTab === 'incoming'
-                    ? 'border-amber-600 text-amber-700 bg-amber-50/50 rounded-t-lg'
+                    ? 'border-primary text-primary bg-primary/10 rounded-t-lg'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-t-lg'
                 )}
               >
                 <Inbox className="h-4 w-4" /> Incoming
                 <span className={cn(
                   'ml-1.5 px-2 py-0.5 rounded-full text-xs',
-                  activeTab === 'incoming' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
+                  activeTab === 'incoming' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
                 )}>{filteredIncoming.length}</span>
               </button>
               <button
@@ -253,14 +253,14 @@ export default function CutPage() {
                 className={cn(
                   'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all',
                   activeTab === 'outgoing'
-                    ? 'border-amber-600 text-amber-700 bg-amber-50/50 rounded-t-lg'
+                    ? 'border-primary text-primary bg-primary/10 rounded-t-lg'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-t-lg'
                 )}
               >
                 <Send className="h-4 w-4" /> Outgoing
                 <span className={cn(
                   'ml-1.5 px-2 py-0.5 rounded-full text-xs',
-                  activeTab === 'outgoing' ? 'bg-amber-100 text-amber-800' : 'bg-muted text-muted-foreground'
+                  activeTab === 'outgoing' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
                 )}>{filteredOutgoing.length}</span>
               </button>
               
@@ -271,7 +271,7 @@ export default function CutPage() {
 
             {loading ? (
               <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                <Loader2 className="h-6 w-6 animate-spin text-amber-600" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 <p className="text-sm font-medium">Loading boxes...</p>
               </div>
             ) : (
@@ -280,7 +280,7 @@ export default function CutPage() {
                   <div className="flex flex-col gap-2">
                     {filteredIncoming.length === 0 ? (
                       <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                        <Inbox className="h-10 w-10 mb-3 text-amber-600" />
+                        <Inbox className="h-10 w-10 mb-3 text-primary" />
                         <p className="font-semibold text-foreground">No incoming boxes</p>
                         <p className="text-sm">Boxes sent from Inventory will appear here.</p>
                       </div>
@@ -299,13 +299,13 @@ export default function CutPage() {
                               >
                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </button>
-                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-amber-600" />
+                              <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-primary" />
                               </div>
                               <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Sent from Inventory</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Sent from Inventory</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
@@ -322,7 +322,7 @@ export default function CutPage() {
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
                                 disabled={receivingBox === box.id}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                               >
                                 {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
                                 {receivingBox === box.id ? 'Receiving...' : 'Receive Box'}
@@ -340,7 +340,7 @@ export default function CutPage() {
                                 ) : (
                                   <div className="flex flex-col">
                                     <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
-                                    <div className="flex flex-col gap-1 border-l-2 border-amber-200 pl-3">
+                                    <div className="flex flex-col gap-1 border-l-2 border-primary/30 pl-3">
                                       {rowBooks.map(book => (
                                         <div key={book.id} className="flex justify-between items-center py-1">
                                           <div className="flex flex-col">
@@ -375,7 +375,7 @@ export default function CutPage() {
                   <div className="flex flex-col gap-2">
                     {filteredOutgoing.length === 0 ? (
                       <div className="py-12 flex flex-col items-center text-center text-muted-foreground bg-white border border-dashed border-border rounded-xl">
-                        <Send className="h-10 w-10 mb-3 text-amber-600" />
+                        <Send className="h-10 w-10 mb-3 text-primary" />
                         <p className="font-semibold text-foreground">No outgoing boxes</p>
                         <p className="text-sm">Received boxes will appear here.</p>
                       </div>
@@ -394,13 +394,13 @@ export default function CutPage() {
                               >
                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                               </button>
-                              <div className="bg-amber-50 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-amber-600" />
+                              <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-primary" />
                               </div>
                               <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
                                 <div className="flex items-center gap-2">
                                   <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-medium">Ready to Send</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Ready to Send</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
@@ -417,7 +417,7 @@ export default function CutPage() {
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleSendBox(box) }}
                                 disabled={sendingBox === box.id}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-60 transition-colors shrink-0"
+                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                               >
                                 {sendingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                                 {sendingBox === box.id ? 'Sending...' : 'Send to Endorsement'}
@@ -435,7 +435,7 @@ export default function CutPage() {
                                 ) : (
                                   <div className="flex flex-col">
                                     <p className="text-xs font-medium text-muted-foreground mb-2">{rowBooks.length} book{rowBooks.length !== 1 ? 's' : ''} in this box</p>
-                                    <div className="flex flex-col gap-1 border-l-2 border-amber-200 pl-3">
+                                    <div className="flex flex-col gap-1 border-l-2 border-primary/30 pl-3">
                                       {rowBooks.map(book => (
                                         <div key={book.id} className="flex justify-between items-center py-1">
                                           <div className="flex flex-col">

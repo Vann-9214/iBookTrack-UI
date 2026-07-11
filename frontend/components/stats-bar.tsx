@@ -180,11 +180,12 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       icon: Activity,
       iconColor: "text-white",
       iconBg: "bg-blue-500",
-      cardBg: "bg-blue-100/60",
-      hoverBg: "hover:bg-blue-100",
-      border: "border-blue-300",
-      valueColor: "text-blue-600",
-      subtextColor: "text-blue-500",
+      cardBg: "bg-blue-200",
+      hoverBg: "hover:bg-blue-300",
+      border: "border-blue-400",
+      valueColor: "text-blue-800",
+      subtextColor: "text-blue-600",
+      titleColor: "text-gray-900",
       onClick: openLiveLots,
     },
     {
@@ -208,13 +209,14 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       subtext: "books transmitted",
       badge: "All processed",
       icon: FileOutput,
-      iconColor: "text-green-600",
+      iconColor: "text-white",
       iconBg: "bg-green-500",
-      cardBg: "bg-green-100/60",
-      hoverBg: "hover:bg-green-100",
-      border: "border-green-300",
-      valueColor: "text-green-600",
-      subtextColor: "text-green-500",
+      cardBg: "bg-green-200",
+      hoverBg: "hover:bg-green-300",
+      border: "border-green-400",
+      valueColor: "text-green-800",
+      subtextColor: "text-green-600",
+      titleColor: "text-gray-900",
       onClick: openDailyOutput,
     },
     {
@@ -284,7 +286,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 </div>
                 <div className="min-w-0">
                   <div className={cn("text-xl font-black leading-none", stat.valueColor)}>{stat.value}</div>
-                  <div className="text-xs font-medium text-gray-600 truncate mt-0.5">{stat.title}</div>
+                  <div className={cn("text-xs font-medium truncate mt-0.5", stat.titleColor || "text-gray-600")}>{stat.title}</div>
                 </div>
               </div>
             ))}
@@ -308,7 +310,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   </div>
                   <div className={cn("text-4xl font-black mb-0.5", stat.valueColor)}>{stat.value}</div>
                 </div>
-                <div className="text-sm font-semibold text-gray-700 mb-0.5">{stat.title}</div>
+                <div className={cn("text-sm font-semibold mb-0.5", stat.titleColor || "text-gray-700")}>{stat.title}</div>
                 <div className={cn("text-xs", stat.subtextColor)}>{stat.subtext}</div>
               </div>
             ))}
