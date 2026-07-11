@@ -131,6 +131,26 @@ interface Transition {
   box: { box_number: string; lot: { lot_number: string } | null } | null
 }
 
+const SIMFLEX_STAGE_LABELS: Record<string, string> = {
+  Scanning: 'Scan',
+  Tif2PDF: 'PDF',
+  Preval: 'Preval',
+  Transmission_Archive: 'Transmission',
+  Transmission_Archived: 'Transmission',
+};
+
+function formatSimflexStatus(raw: string | undefined | null) {
+  if (!raw) return raw;
+  const parts = raw.split(' ');
+  const stage = parts[0];
+  const status = parts.slice(1).join(' ');
+  const label = SIMFLEX_STAGE_LABELS[stage] ?? stage;
+  const prettyStatus = status
+    ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
+    : '';
+  return `${label} ${prettyStatus}`.trim();
+}
+
 export default function StationCheckpointsPage() {
   const { brand } = useBrand()
   const [boxes, setBoxes] = useState<BoxItem[]>([])
@@ -181,7 +201,8 @@ export default function StationCheckpointsPage() {
   // Box numbers that have at least one book in the scan-WIP range
   // (Scanning ONGOING → Preval COMPLETED). Populated at page load so the
   // Scan card count and the modal list stay in sync.
-  const [scanEligibleBoxNums, setScanEligibleBoxNums] = useState<Set<string>>(new Set())
+  const [scanEligibleBoxNums, setScanEligibleBoxNums] = useState<Set<string> | null>(null)
+  const [transmitEligibleBoxNums, setTransmitEligibleBoxNums] = useState<Set<string> | null>(null)
 
   // Simflex raw rows for the Scan / Transmit stage modals
   const [simflexRows, setSimflexRows] = useState<any[]>([])
@@ -276,6 +297,10 @@ export default function StationCheckpointsPage() {
         const transmitRowsData = await transmitRowsRes.json()
         if (transmitRowsData.success) {
           setTransmitBooks(transmitRowsData.count ?? 0)
+          const transmitEligible = new Set<string>(
+            (transmitRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
+          )
+          setTransmitEligibleBoxNums(transmitEligible)
         }
       }
 
@@ -563,6 +588,13 @@ export default function StationCheckpointsPage() {
       }
     }
     if (stage === 'scan') {
+      if (selectedStage === 'storage') {
+        return (
+          <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 shrink-0 flex items-center justify-center h-7 px-2 cursor-default">
+            Done
+          </Badge>
+        )
+      }
       return (
         <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50 shrink-0 flex items-center justify-center h-7 px-2 cursor-default">
           {checkingSimflexBoxId === box.id ? 'Checking...' : 'Pending'}
@@ -655,19 +687,25 @@ export default function StationCheckpointsPage() {
       const data = await res.json()
       if (!res.ok) {
         setSimflexCheckResult({ boxId: box.id, message: data.error || 'Simflex check failed', success: false })
+        toast.error(data.error || 'Simflex check failed')
         return
       }
       setSimflexCheckResult({
         boxId: box.id,
-        message: data.message || 'Simflex check completed',
+        message: data.message || (data.autoAdvanced ? 'Box fully completed and advanced to Storage!' : 'Not all books are completed yet.'),
         success: true,
         autoAdvanced: data.autoAdvanced
       })
       if (data.autoAdvanced) {
+        toast.success('Box fully completed and advanced to Storage!')
         await fetchData()
+      } else {
+        toast.error('Cannot advance: Not all processable books are completed.')
       }
     } catch (e) {
-      setSimflexCheckResult({ boxId: box.id, message: e instanceof Error ? e.message : 'Simflex check failed', success: false })
+      const msg = e instanceof Error ? e.message : 'Simflex check failed'
+      setSimflexCheckResult({ boxId: box.id, message: msg, success: false })
+      toast.error(msg)
     } finally {
       setCheckingSimflexBoxId(null)
     }
@@ -718,6 +756,15 @@ export default function StationCheckpointsPage() {
       if (stage === 'transmit') {
         return b.current_stage === 'scan'
       }
+      if (stage === 'storage') {
+        const isActuallyStorage = b.current_stage === 'storage'
+        const isScanButFullyCompleted = b.current_stage === 'scan'
+          && scanEligibleBoxNums !== null
+          && transmitEligibleBoxNums !== null
+          && !scanEligibleBoxNums.has(b.box_number)
+          && !transmitEligibleBoxNums.has(b.box_number)
+        return isActuallyStorage || isScanButFullyCompleted
+      }
       return b.current_stage === stage
     })
     if (stage === 'warehouse') {
@@ -727,7 +774,7 @@ export default function StationCheckpointsPage() {
     // currently in the scan-WIP range (Scanning ONGOING → Preval COMPLETED).
     // Boxes where every qualifying book has already advanced to
     // Transmission_Archive COMPLETED are excluded from the count and the modal.
-    if (stage === 'scan' && scanEligibleBoxNums.size > 0) {
+    if (stage === 'scan' && scanEligibleBoxNums !== null) {
       stageBoxes = stageBoxes.filter(b => scanEligibleBoxNums.has(b.box_number))
     }
     acc[stage] = stageBoxes
@@ -1195,7 +1242,7 @@ export default function StationCheckpointsPage() {
                                             </span>
                                           </div>
 
-                                          {selectedStage !== 'scan' && (
+                                          {selectedStage !== 'scan' && actionLabel !== 'Scanned' && (
                                             <div className="min-w-[130px] col-span-1">
                                               <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} By</span>
                                               <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={byName}>
@@ -1207,7 +1254,7 @@ export default function StationCheckpointsPage() {
 
                                         {/* Right side: Timestamp & Action */}
                                         <div className="flex items-center gap-4 ml-auto pl-4">
-                                          {selectedStage !== 'scan' && (
+                                          {selectedStage !== 'scan' && actionLabel !== 'Scanned' && (
                                             <div className="text-left sm:text-right shrink-0 min-w-[100px]">
                                               <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} At</span>
                                               <span className="text-xs font-semibold text-muted-foreground">
@@ -1233,10 +1280,10 @@ export default function StationCheckpointsPage() {
                                           <div className="overflow-x-auto">
                                             <table className="w-full text-xs">
                                               <thead>
-                                                <tr className="text-muted-foreground border-b border-border grid grid-cols-[100px_1fr_120px] gap-3 w-full">
+                                                <tr className="text-muted-foreground border-b border-border grid grid-cols-[110px_minmax(0,1fr)_380px] gap-3 w-full">
                                                   <th className="pb-2 text-left font-medium">ISBN</th>
                                                   <th className="pb-2 text-left font-medium">Title</th>
-                                                  <th className="pb-2 text-right font-medium">Status</th>
+                                                  <th className="pb-2 text-left font-medium">Status</th>
                                                 </tr>
                                               </thead>
                                               <tbody className="block w-full">
@@ -1251,24 +1298,25 @@ export default function StationCheckpointsPage() {
                                                     const simflexStatus = typeof rawStatus === 'string' ? rawStatus : (rawStatus?.latestStatus || 'Pending');
                                                     const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
                                                     return (
-                                                  <tr key={book.id} className="border-b border-border/40 last:border-0 grid grid-cols-[100px_1fr_120px] gap-3 w-full items-start">
+                                                  <tr key={book.id} className="border-b border-border/40 last:border-0 grid grid-cols-[110px_minmax(0,1fr)_380px] gap-3 w-full items-start">
                                                     <td className="py-1.5 text-foreground font-mono tabular-nums truncate" title={book.isbn}>
                                                       {book.isbn}
                                                     </td>
-                                                    <td className="py-1.5 text-foreground leading-tight truncate" title={book.title || undefined}>
+                                                    <td className="py-1.5 text-foreground leading-tight truncate min-w-0" title={book.title || undefined}>
                                                       {book.title || 'N/A'}
                                                     </td>
-                                                    <td className="py-1.5 flex flex-col items-end text-right">
-                                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                    <td className="py-1.5 flex flex-row items-center justify-start gap-2 text-left overflow-hidden">
+                                                      <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' :
+                                                      book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                                         {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
                                                       </span>
                                                       {(selectedStage === 'scan' || selectedStage === 'transmit' || selectedStage === 'storage') && (
-                                                        <span className="block mt-1 text-[9px] text-muted-foreground font-normal leading-tight">
-                                                          Simflex: {book.scan_status === 'non_processable' ? 'Not Included' : simflexStatus}
+                                                        <span className="text-[9px] text-muted-foreground font-normal truncate" title={`Simflex: ${book.scan_status === 'non_processable' ? 'Not Included' : formatSimflexStatus(simflexStatus)}`}>
+                                                          Simflex: {book.scan_status === 'non_processable' ? 'Not Included' : formatSimflexStatus(simflexStatus)}
                                                         </span>
                                                       )}
                                                       {book.scan_status === 'non_processable' && book.flag?.issue && (
-                                                        <span className="block mt-1 text-[9px] text-red-500 font-normal leading-tight opacity-90">
+                                                        <span className="text-[9px] text-red-500 font-normal opacity-90 truncate" title={`Reason: ${book.flag.issue}`}>
                                                           Reason: {book.flag.issue}
                                                         </span>
                                                       )}
