@@ -153,21 +153,28 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-white px-6 md:px-6 pl-14 md:pl-6">
       {/* Mustang / Jaguar toggle */}
-      <div className="flex items-center rounded-full border border-muted/20 bg-gray-200 p-0.5">
-        {(['mustang', 'jaguar'] as Brand[]).map((b) => (
-          disableBrandToggle ? (
+      <div className="relative flex items-center rounded-full border border-muted/20 bg-gray-200 p-0.5 w-[160px]">
+        {/* Animated Background Pill */}
+        <div 
+          className="absolute top-0.5 bottom-0.5 rounded-full transition-all duration-300 ease-out shadow-sm pointer-events-none"
+          style={{
+            width: 'calc(50% - 2px)',
+            left: brand === 'mustang' ? '2px' : '50%',
+            backgroundColor: BRAND_COLORS[brand].accent,
+          }}
+        />
+        {(['mustang', 'jaguar'] as Brand[]).map((b) => {
+          const isSelected = brand === b;
+          return disableBrandToggle ? (
             <SessionOngoingTooltip key={b} side="bottom">
-              <span className="inline-flex">
+              <span className="relative z-10 flex-1 flex justify-center">
                 <button
                   onClick={() => setBrand(b)}
                   disabled
                   className={cn(
-                    'px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 capitalize opacity-50 cursor-not-allowed',
-                    brand === b
-                      ? 'text-white shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
+                    'w-full py-1.5 text-xs font-semibold rounded-full transition-colors duration-300 capitalize opacity-50 cursor-not-allowed',
+                    isSelected ? 'text-white' : 'text-muted-foreground hover:text-foreground'
                   )}
-                  style={brand === b ? { backgroundColor: BRAND_COLORS[b].accent } : undefined}
                 >
                   {BRAND_COLORS[b].label}
                 </button>
@@ -178,17 +185,14 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
               key={b}
               onClick={() => setBrand(b)}
               className={cn(
-                'px-4 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 capitalize',
-                brand === b
-                  ? 'text-white shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                'relative z-10 flex-1 py-1.5 text-xs font-semibold rounded-full transition-colors duration-300 capitalize',
+                isSelected ? 'text-white' : 'text-muted-foreground hover:text-foreground'
               )}
-              style={brand === b ? { backgroundColor: BRAND_COLORS[b].accent } : undefined}
             >
               {BRAND_COLORS[b].label}
             </button>
           )
-        ))}
+        })}
       </div>
 
       {/* Scan QR button — mobile only */}

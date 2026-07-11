@@ -64,7 +64,13 @@ router.get('/', async (req, res) => {
 
     if (lot_id) query = query.eq('lot_id', lot_id)
     if (box_type) query = query.eq('box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
-    if (current_stage) query = query.eq('current_stage', current_stage)
+    if (current_stage) {
+      if (current_stage.includes(',')) {
+        query = query.in('current_stage', current_stage.split(','))
+      } else {
+        query = query.eq('current_stage', current_stage)
+      }
+    }
     if (box_number) query = query.ilike('box_number', `%${box_number}%`)
     if (isbnBoxIds) {
       if (isbnBoxIds.length === 0) return res.json({ boxes: [] })

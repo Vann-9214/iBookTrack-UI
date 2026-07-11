@@ -381,7 +381,7 @@ export default function TransmissionMonitorPage() {
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
     : 'Not updated yet'
 
-  const stageBorderColor = brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600'
+
 
   return (
     <div className={cn("flex h-dvh overflow-hidden bg-background", `theme-${brand}`)}>
@@ -582,7 +582,8 @@ export default function TransmissionMonitorPage() {
                   {ordered.map((s: any) => {
                     const pct = s.Total > 0 ? (s.Completed / s.Total) * 100 : 0
                     return (
-                      <div key={s.Stage} className={cn("rounded-2xl border border-gray-200 bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-1.5 sm:gap-3 border-t-2", stageBorderColor)}>
+                      <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-1.5 sm:gap-3 relative overflow-hidden">
+                        {s.Total > 0 && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />}
                         {/* Stage name + total */}
                         <div className="flex items-start justify-between gap-1">
                           <p className="text-[9px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight break-words">{formatPipelineStage(s.Stage)}</p>
@@ -679,7 +680,7 @@ export default function TransmissionMonitorPage() {
                 <Card className="border-border bg-card overflow-hidden py-0 gap-0">
                   <div className={cn("flex items-center justify-between px-5 py-4 border-b", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl text-white bg-blue-500">
+                      <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
                         <FileUp className="h-4 w-4" />
                       </div>
                       <div>

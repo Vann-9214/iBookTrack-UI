@@ -58,6 +58,7 @@ const getStatusConfig = (status: string, brand: string) => {
       dot: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
       label: "Active",
       borderTop: brand === 'jaguar' ? "border-t-green-400" : "border-t-blue-400",
+      borderGradient: "bg-gradient-to-r from-primary via-primary/50 to-transparent",
       iconColorCls: brand === 'jaguar' ? "bg-green-100 text-green-700 border-green-200" : "bg-blue-100 text-blue-700 border-blue-200",
     }
   }
@@ -70,6 +71,7 @@ const getStatusConfig = (status: string, brand: string) => {
       dot: "bg-orange-400",
       label: "Busy",
       borderTop: "border-t-orange-400",
+      borderGradient: "",
       iconColorCls: "bg-orange-100 text-orange-700 border-orange-200",
     }
   }
@@ -81,6 +83,7 @@ const getStatusConfig = (status: string, brand: string) => {
     dot: "bg-gray-400",
     label: "Idle",
     borderTop: "border-t-gray-300",
+    borderGradient: "",
     iconColorCls: "bg-gray-100 text-gray-500 border-gray-200",
   }
 }
@@ -909,8 +912,8 @@ export default function StationCheckpointsPage() {
             {/* Confirmation Dialog */}
             {confirmBox && confirmActionType && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
-                <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
-                  <h3 className="text-base font-semibold text-foreground mb-1">
+                <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-sm mx-4">
+                  <h3 className="text-base font-semibold text-foreground mb-4">
                     {confirmActionType === 'receive' ? 'Confirm Receive' : 
                      confirmActionType === 'send_forward' ? 'Confirm Send/Complete' : 
                      'Confirm Move'}
@@ -1368,7 +1371,7 @@ export default function StationCheckpointsPage() {
             {loading ? (
               <div className="text-center py-16 text-sm text-muted-foreground">Loading stations...</div>
             ) : (
-              <div className={cn("bg-card border border-border rounded-2xl p-5 shadow-sm border-t-2", pipelineBorderColor)}>
+              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
                 {/* Desktop: 7 inline columns */}
                 <div className="hidden lg:flex items-stretch gap-3">
                   {STAGE_ORDER.map((stage) => {
@@ -1388,10 +1391,10 @@ export default function StationCheckpointsPage() {
                         onClick={() => { setSelectedStage(stage); setStageModalSearch('') }}
                         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setSelectedStage(stage); setStageModalSearch('') }}}
                         className={cn(
-                          "flex-1 min-w-0 rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:shadow-sm hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary/30 border-t-4 select-none",
-                          cfg.borderTop
+                          "flex-1 min-w-0 rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:shadow-sm hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary/30 select-none relative overflow-hidden"
                         )}
                       >
+                        <div className={cn("absolute top-0 left-0 right-0 h-1", cfg.borderGradient)} />
                         <div className="flex items-center justify-between mb-3 gap-2">
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
@@ -1431,10 +1434,10 @@ export default function StationCheckpointsPage() {
                         onClick={() => { setSelectedStage(stage); setStageModalSearch('') }}
                         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { setSelectedStage(stage); setStageModalSearch('') }}}
                         className={cn(
-                          "rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-primary/30 border-t-4 select-none",
-                          cfg.borderTop
+                          "rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition-all duration-200 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-primary/30 select-none relative overflow-hidden"
                         )}
                       >
+                        <div className={cn("absolute top-0 left-0 right-0 h-1", cfg.borderGradient)} />
                         <div className="flex items-center justify-between mb-3 gap-2">
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
