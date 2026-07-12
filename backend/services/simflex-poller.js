@@ -67,7 +67,7 @@ async function advanceBoxStage(boxId, lotId, fromStage, toStage, notes) {
  *
  * @param {{ id, box_number, lot_id, current_stage }} box
  */
-async function checkAndAdvanceBox(box) {
+export async function checkAndAdvanceBox(box) {
   try {
     // Get all processable ISBNs assigned to this box
     const { data: scans, error: scansError } = await db()
@@ -83,7 +83,7 @@ async function checkAndAdvanceBox(box) {
     const isbns = [...new Set(scans.map(s => s.books?.isbn))]
 
     // Query Simflex for the latest status of each ISBN
-    const simflexResult = await getSimflexStatusForISBNs(isbns)
+    const simflexResult = await getSimflexStatusForISBNs(isbns, box.box_type || 'mustang')
     if (!simflexResult.success) return
 
     const results = simflexResult.data
@@ -153,7 +153,7 @@ async function runPoll() {
   try {
     const { data: boxes, error } = await db()
       .from('boxes')
-      .select('id, box_number, lot_id, current_stage')
+      .select('id, box_number, lot_id, current_stage, box_type')
       .in('current_stage', ['scan', 'transmit'])
 
     if (error) { console.error('[Simflex Poller] DB error:', error.message); return }

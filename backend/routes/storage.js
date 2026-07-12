@@ -207,6 +207,7 @@ router.delete('/locations/:id', requireAuth, async (req, res) => {
 // Returns boxes in 'storage' stage that have NOT yet been assigned to a location
 router.get('/ready-boxes', requireAuth, async (req, res) => {
   try {
+    const { box_type } = req.query
     // Get all box IDs already assigned
     const { data: assigned, error: assignedError } = await db()
       .from('storage_assignments')
@@ -224,11 +225,15 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
         lot:lots(lot_number),
         books:books(
           isbn, title,
-          scans:book_activity(scan_status)
+          scans:book_activity(scan_status, transmission_status)
         )
       `)
-      .eq('current_stage', 'storage')
+      .in('current_stage', ['scan', 'transmit', 'storage'])
       .order('created_at', { ascending: false })
+
+    if (box_type) {
+      query = query.eq('box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
+    }
 
     if (assignedIds.length > 0) {
       query = query.not('id', 'in', `(${assignedIds.join(',')})`)
@@ -237,7 +242,26 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
     const { data: boxes, error: boxesError } = await query
     if (boxesError) throw boxesError
 
-    const normalized = (boxes || []).map(b => ({
+    // Filter boxes: ALL processable books must have a "transmission completed" status
+    const readyBoxes = (boxes || []).filter(b => {
+      const processableBooks = (b.books || []).filter(bk => 
+        (bk.scans || []).some(s => s.scan_status === 'processable')
+      )
+      
+      // If there are no processable books, it is considered ready to be stored
+      if (processableBooks.length === 0) return true;
+
+      // Every processable book must have a transmission_status indicating completion
+      return processableBooks.every(bk => {
+        return (bk.scans || []).some(s => {
+          if (s.scan_status !== 'processable') return false;
+          const ts = s.transmission_status ? s.transmission_status.toLowerCase() : '';
+          return ts.includes('transmission') && ts.includes('completed');
+        })
+      })
+    })
+
+    const normalized = readyBoxes.map(b => ({
       id: b.id,
       box_number: b.box_number,
       lot_number: b.lot?.lot_number || null,
@@ -315,6 +339,14 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
       .select()
 
     if (insertError) throw insertError
+
+    // Formally advance the boxes to the 'storage' stage now that they are assigned
+    const { error: updateError } = await db()
+      .from('boxes')
+      .update({ current_stage: 'storage' })
+      .in('id', box_ids)
+
+    if (updateError) console.error('Failed to advance box stages on assignment:', updateError)
 
     res.status(201).json({ success: true, assignments: assignments || [] })
   } catch (error) {

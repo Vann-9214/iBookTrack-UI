@@ -24,6 +24,64 @@ import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
+/**
+ * Dynamically updates transmission_status in book_activity for all processable
+ * books in a box based on their exact current Simflex status.
+ */
+async function syncBoxTransmissionStatus(boxId, db, location) {
+  try {
+    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+
+    let boxLocation = location
+    if (!boxLocation) {
+      const { data: box } = await db.from('boxes').select('box_type').eq('id', boxId).single()
+      boxLocation = box?.box_type || 'mustang'
+    }
+
+    const { data: scans } = await db
+      .from('book_activity')
+      .select('book_id, books!inner(isbn, box_id)')
+      .eq('books.box_id', boxId)
+      .eq('scan_status', 'processable')
+
+    if (!scans || scans.length === 0) return
+
+    const isbns = [...new Set(scans.map(s => s.books?.isbn).filter(Boolean))]
+    if (isbns.length === 0) return
+
+    const simflexResult = await getSimflexStatusForISBNs(isbns, boxLocation.toLowerCase())
+    if (!simflexResult.success) {
+      console.warn('Failed to reach Simflex for transmission_status sync:', simflexResult.error)
+      return
+    }
+
+    const updates = []
+    for (const scan of scans) {
+      const isbn = scan.books?.isbn
+      if (!isbn) continue
+      
+      const cleanIsbn = String(isbn).trim().toLowerCase()
+      const sfRecord = simflexResult.data.find(r => String(r.isbn).trim().toLowerCase() === cleanIsbn)
+      
+      const statusToSave = (sfRecord && sfRecord.latestStatus) 
+        ? String(sfRecord.latestStatus).trim() 
+        : 'Pending';
+
+      updates.push(
+        db.from('book_activity')
+          .update({ transmission_status: statusToSave })
+          .eq('book_id', scan.book_id)
+      )
+    }
+
+    if (updates.length > 0) {
+      await Promise.all(updates)
+    }
+  } catch (err) {
+    console.error('Error syncing transmission_status:', err)
+  }
+}
+
 router.get('/', async (req, res) => {
   try {
     const { lot_id, current_stage, box_number, exclude_assigned_storage, box_type, isbn } = req.query
@@ -147,6 +205,14 @@ router.get('/', async (req, res) => {
         .select('box_id')
       const assignedIds = new Set((assigned || []).map(a => a.box_id))
       boxes = boxes.filter(b => !(b.current_stage === 'storage' && assignedIds.has(b.id)))
+    }
+
+    // Automatically sync Simflex transmission_status for scan boxes in the background
+    const scanBoxes = boxes.filter(b => b.current_stage === 'scan' || b.current_stage === 'transmit')
+    if (scanBoxes.length > 0) {
+      Promise.all(scanBoxes.map(async b => {
+        await syncBoxTransmissionStatus(b.id, db, b.box_type)
+      })).catch(err => console.error('Background sync failed in GET /api/boxes:', err))
     }
 
     res.json({ boxes })
