@@ -8,23 +8,13 @@
 CREATE TABLE IF NOT EXISTS public.books (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   isbn            TEXT        NOT NULL, -- ISBN-10 or ISBN-13
-  barcode         TEXT,       -- Barcode representation (can be same as ISBN or different)
   box_id          UUID        REFERENCES public.boxes(id) ON DELETE SET NULL,
   
   -- Book Details (will come from client's API)
   title           TEXT,
-  description     TEXT,
-  project_name    TEXT,       -- Project/Collection name
   book_type       TEXT        CHECK (book_type IN ('Mustang', 'Jaguar')),
-  publisher       TEXT,
-  language        TEXT,
-  page_count      INTEGER,
-  condition       TEXT,
   
   -- Tracking Information
-  date_purchased  DATE,
-  date_catalogued DATE,
-  date_scanned    TIMESTAMPTZ,
   
   -- Status
   status          TEXT        NOT NULL DEFAULT 'pending'
@@ -48,7 +38,6 @@ CREATE TRIGGER trg_books_updated_at
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_books_isbn ON public.books(isbn);
-CREATE INDEX IF NOT EXISTS idx_books_barcode ON public.books(barcode);
 CREATE INDEX IF NOT EXISTS idx_books_box_id ON public.books(box_id);
 CREATE INDEX IF NOT EXISTS idx_books_status ON public.books(status);
 CREATE INDEX IF NOT EXISTS idx_books_current_stage ON public.books(current_stage);

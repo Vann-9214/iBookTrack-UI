@@ -10,6 +10,7 @@ import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
 import { DashboardNavbar } from "@/components/top-bar"
+import { useBrand } from "@/hooks/use-brand"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -66,6 +67,7 @@ type SearchResult = {
 }
 
 export default function WarehouseLocatorPage() {
+  const { brand } = useBrand()
   const [totalSections, setTotalSections] = useState(DEFAULT_SECTIONS)
   const [locations, setLocations] = useState<StorageLocation[]>([])
   const [readyBoxes, setReadyBoxes] = useState<ReadyBox[]>([])
@@ -151,15 +153,21 @@ export default function WarehouseLocatorPage() {
   const fetchReadyBoxes = useCallback(async () => {
     setLoadingReady(true)
     try {
-      const res = await authFetch(`${API_URL}/api/storage/ready-boxes`)
+      const res = await authFetch(`${API_URL}/api/storage/ready-boxes?box_type=${brand}`)
       const data = await res.json()
       if (res.ok) setReadyBoxes(data.boxes || [])
     } finally {
       setLoadingReady(false)
     }
-  }, [])
+  }, [brand])
 
   useEffect(() => { fetchLocations() }, [fetchLocations])
+
+  useEffect(() => {
+    if (assignSlot) {
+      fetchReadyBoxes()
+    }
+  }, [brand, assignSlot, fetchReadyBoxes])
 
   const getLocation = (rack: string, level: number) =>
     locations.find(l => l.rack_id === rack && l.level === level)

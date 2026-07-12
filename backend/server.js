@@ -150,8 +150,9 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n🚀 Backend running at http://localhost:${PORT}`)
   // Verify Supabase connection on startup
   await testConnection()
-  // Start the background job that auto-advances boxes through the Simflex pipeline
-  startSimflexPoller()
+  // User explicitly requested NO polling. Sync and auto-advance now happens
+  // in real-time when a user reloads/refreshes the page via GET /api/boxes.
+  // startSimflexPoller()
 })
 
 // Drop idle HTTP connections after 2 minutes so the process can't accumulate
