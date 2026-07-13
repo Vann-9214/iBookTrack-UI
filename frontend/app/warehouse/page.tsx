@@ -1265,24 +1265,24 @@ export default function WarehousePage() {
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 {/* Top accent strip */}
                 <div className="h-0.5 w-full bg-primary/80" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
-                  <div className="flex items-center gap-5">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-3 sm:px-5 sm:py-4">
+                  <div className="flex items-start gap-3 sm:gap-5">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
                       <Package className="h-4 w-4 text-primary" />
                     </div>
                     <div className="flex items-center divide-x divide-border">
-                      <div className="pr-5">
+                      <div className="pr-3 sm:pr-5">
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Lot</p>
                         <p className="text-sm font-bold text-foreground mt-0.5">{activeLot}</p>
                       </div>
                       {currentBoxNumber && (
-                        <div className="px-5">
+                        <div className="px-3 sm:px-5">
                           <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Box</p>
                           <p className="text-sm font-bold text-foreground mt-0.5">{currentBoxNumber}</p>
                           <p className="text-[10px] text-muted-foreground">{currentBoxBooks} books</p>
                         </div>
                       )}
-                      <div className="pl-5">
+                      <div className="pl-3 sm:pl-5">
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Operator</p>
                         <p className="text-sm font-bold text-foreground mt-0.5">{userName || 'Unknown'}</p>
                       </div>
@@ -1290,7 +1290,7 @@ export default function WarehousePage() {
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={handleResetSession}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
+                      className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 text-sm rounded-lg border border-border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
                       <X className="h-3.5 w-3.5" />
                       Reset
                     </button>
@@ -1301,7 +1301,7 @@ export default function WarehousePage() {
                             <button
                               onClick={handleCloseSession}
                               disabled
-                              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                              className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             >
                               <CircleCheck className="h-3.5 w-3.5" />
                               Complete Session
@@ -1316,7 +1316,7 @@ export default function WarehousePage() {
                       <button
                         onClick={handleCloseSession}
                         disabled={loading}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                       >
                         <CircleCheck className="h-3.5 w-3.5" />
                         Complete Session
@@ -1328,33 +1328,18 @@ export default function WarehousePage() {
 
               {/* Stats */}
               {currentSession && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
-                      <ScanBarcode className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
-                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_scanned}</p>
-                    </div>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  <div className="bg-card border border-primary/30 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center">
+                    <p className="text-[10px] sm:text-[11px] text-primary font-medium uppercase tracking-wide">Total Scanned</p>
+                    <p className="text-xl sm:text-2xl font-bold text-primary leading-none mt-0.5">{currentSession.total_scanned}</p>
                   </div>
-                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
-                      <CircleCheck className="h-4 w-4 text-emerald-500" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
-                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_processable}</p>
-                    </div>
+                  <div className="bg-card border border-emerald-500/30 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center">
+                    <p className="text-[10px] sm:text-[11px] text-emerald-500 font-medium uppercase tracking-wide">Processable</p>
+                    <p className="text-xl sm:text-2xl font-bold text-emerald-500 leading-none mt-0.5">{currentSession.total_processable}</p>
                   </div>
-                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
-                      <CircleX className="h-4 w-4 text-destructive" />
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
-                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_non_processable}</p>
-                    </div>
+                  <div className="bg-card border border-destructive/30 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center">
+                    <p className="text-[10px] sm:text-[11px] text-destructive font-medium uppercase tracking-wide">Non-Processable</p>
+                    <p className="text-xl sm:text-2xl font-bold text-destructive leading-none mt-0.5">{currentSession.total_non_processable}</p>
                   </div>
                 </div>
               )}
@@ -1363,7 +1348,7 @@ export default function WarehousePage() {
               <ScannerInput onScan={handleScan} />
 
               {/* Scan log */}
-              <div className="bg-card border border-primary/30 rounded-xl overflow-hidden">
+              <div className="bg-card border border-primary/30 rounded-xl overflow-hidden flex flex-col">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/10">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-primary" />
@@ -1377,20 +1362,22 @@ export default function WarehousePage() {
                   )}
                 </div>
                 {scannedBooks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                      <ScanBarcode className="h-5 w-5 text-primary" />
+                  <div className="flex flex-col items-center justify-center gap-3 text-center flex-1 py-16 sm:py-20 min-h-[280px]">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                      <ScanBarcode className="h-6 w-6 text-primary" />
                     </div>
-                    <p className="text-sm font-medium text-foreground">Awaiting scan</p>
-                    <p className="text-xs text-muted-foreground">Scan a book barcode to add it here.</p>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Awaiting scan</p>
+                      <p className="text-xs text-muted-foreground">Scan a book barcode to add it here.</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
                     {/* Header row */}
-                    <div className="grid grid-cols-12 gap-2 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30">
+                    <div className="grid grid-cols-12 gap-2 px-3 sm:px-5 py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30">
                       <div className="col-span-3">ISBN</div>
-                      <div className="col-span-5">Title</div>
-                      <div className="col-span-2 text-center">Status</div>
+                      <div className="col-span-3 sm:col-span-5">Title</div>
+                      <div className="col-span-4 sm:col-span-2 text-center">Status</div>
                       <div className="col-span-2 text-right">Remove</div>
                     </div>
                     {/* Scan log entries */}
@@ -1398,23 +1385,23 @@ export default function WarehousePage() {
                       {scannedBooks.map((book, idx) => (
                         <div
                           key={`${book.id}-${idx}`}
-                          className={`grid grid-cols-12 gap-2 px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
+                          className={`grid grid-cols-12 gap-2 px-3 sm:px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
                             book.scan_status === 'non_processable' ? 'bg-destructive/5' : ''
                           }`}
                         >
                           <div className="col-span-3">
-                            <p className="text-xs font-mono text-foreground truncate">{book.isbn}</p>
+                            <p className="text-[11px] sm:text-xs font-mono text-foreground truncate">{book.isbn}</p>
                           </div>
-                          <div className="col-span-5">
-                            <p className="text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
+                          <div className="col-span-3 sm:col-span-5">
+                            <p className="text-[11px] sm:text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
                             {book.flag_issue && (
                               <p className="text-[10px] text-destructive mt-0.5 truncate">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                             )}
                           </div>
-                          <div className="col-span-2 flex items-center justify-center gap-2">
+                          <div className="col-span-4 sm:col-span-2 flex items-center justify-center gap-1 sm:gap-2">
                             {book.scan_status === 'processable' ? (
                               <>
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap">
                                   <CircleCheck className="h-3 w-3" />
                                   Processable
                                 </span>
@@ -1426,14 +1413,14 @@ export default function WarehousePage() {
                                 </button>
                               </>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20">
+                              <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 whitespace-nowrap">
                                 <CircleX className="h-3 w-3" />
                                 Non-Processable
                               </span>
                             )}
                           </div>
-                          <div className="col-span-2 flex items-center justify-end gap-2">
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                          <div className="col-span-2 flex items-center justify-end gap-1 sm:gap-2">
+                            <p className="hidden sm:block text-[10px] text-muted-foreground mt-0.5">
                               {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </p>
                             <button
