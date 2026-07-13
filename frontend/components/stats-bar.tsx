@@ -690,7 +690,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                         <td className="py-3 px-4 font-mono text-xs text-gray-800 truncate">{row.isbn}</td>
                         <td className="py-3 px-4 text-gray-600 truncate">{row.title || '—'}</td>
                         <td className="py-3 px-4 font-semibold text-gray-800 truncate">{row.lot_number}</td>
-                        <td className="py-3 px-4 text-gray-500 truncate">{row.box_number}</td>
+                        <td className="py-3 px-4 text-gray-500 break-words">{row.box_number}</td>
                         <td className="py-3 px-4 text-xs text-gray-500">
                           {row.completed_at ? new Date(row.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </td>
