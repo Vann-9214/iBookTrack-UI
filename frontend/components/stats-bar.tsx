@@ -664,7 +664,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : (
               <div className="overflow-auto flex-1">
-                <table className="min-w-[640px] w-full text-sm table-fixed">
+                <table className="min-w-[640px] w-full text-sm">
                   <colgroup>
                     <col className="w-10" />
                     <col className="w-36" />
@@ -688,9 +688,9 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                       <tr key={row.isbn} className="hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-xs text-gray-300">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
                         <td className="py-3 px-4 font-mono text-xs text-gray-800 truncate">{row.isbn}</td>
-                        <td className="py-3 px-4 text-gray-600 truncate">{row.title || '—'}</td>
-                        <td className="py-3 px-4 font-semibold text-gray-800 truncate">{row.lot_number}</td>
-                        <td className="py-3 px-4 text-gray-500 break-words">{row.box_number}</td>
+                        <td className="py-3 px-4 text-gray-600 truncate max-w-[200px]">{row.title || '—'}</td>
+                        <td className="py-3 px-4 font-semibold text-gray-800 truncate max-w-[140px]">{row.lot_number}</td>
+                        <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{row.box_number}</td>
                         <td className="py-3 px-4 text-xs text-gray-500">
                           {row.completed_at ? new Date(row.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </td>
