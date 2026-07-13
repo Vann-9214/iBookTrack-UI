@@ -849,8 +849,8 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
 })
 
 // Check Simflex transmission status for all processable books in a box.
-// If all are Transmission_Archive COMPLETED, auto-advance box from scan → transmit.
-// Box must be in 'scan' stage. Manual advance is still available separately.
+// Returns status only — does NOT auto-advance the stage.
+// Box must be in 'scan' stage. Stage advancement to storage must be done manually via /advance.
 router.post('/:id/check-simflex', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
@@ -911,32 +911,10 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
     const notCompleted = simflexData.filter(r => !r.transmissionCompleted)
     const allCompleted = notCompleted.length === 0
 
-    // 5. If all done → auto-advance scan → storage
-    let autoAdvanced = false
-    let finalStage = box.current_stage
-
-    if (allCompleted) {
-      const nextStage = 'storage'
-      const { error: updateError } = await db
-        .from('boxes')
-        .update({ current_stage: nextStage })
-        .eq('id', id)
-
-      if (updateError) throw updateError
-
-      await db.from('pipeline_events').insert({
-        box_id: id,
-        lot_id: box.lot_id,
-        from_stage: 'scan',
-        to_stage: nextStage,
-        moved_by: req.user.id,
-        moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-        notes: `Auto-advanced: all ${isbns.length} processable ISBNs confirmed Transmission_Archive COMPLETED in Simflex`,
-      })
-
-      autoAdvanced = true
-      finalStage = nextStage
-    }
+    // 5. Report status only — stage remains 'scan' until a user manually assigns a storage locator.
+    //    Use POST /:id/advance to move the box to storage.
+    const autoAdvanced = false
+    const finalStage = box.current_stage
 
     return res.json({
       success: true,
@@ -947,7 +925,7 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
       completedCount: simflexData.filter(r => r.transmissionCompleted).length,
       pendingCount: notCompleted.length,
       message: allCompleted
-        ? `All ${isbns.length} books confirmed transmitted. Box automatically advanced to Storage.`
+        ? `All ${isbns.length} books confirmed transmitted. Box is ready to be assigned to a storage locator.`
         : `${notCompleted.length} of ${isbns.length} books not yet completed in Simflex. Box remains in Scan.`,
       simflexResults: simflexData,
       notCompleted: notCompleted.map(r => ({ isbn: r.isbn, latestStatus: r.latestStatus })),
