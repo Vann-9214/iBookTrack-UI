@@ -1329,7 +1329,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
     }
 
     const flagInsert = { 
-      book_id: existingScan.book_id,
+      book_activity_id: existingScan.id,
       rejection_reason, 
       notes: notes || null
     };
@@ -1346,7 +1346,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
 
     const { data, error } = await supabaseAdmin
       .from('book_activity')
-      .update({ scan_status: 'non_processable', user_flag_id: flagData.id })
+      .update({ scan_status: 'non_processable' })
       .eq('id', scan_id)
       .select()
       .single()
@@ -1421,7 +1421,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
     }
 
     const flagInsert = {
-      book_id: existing.book_id,
+      book_activity_id: existing.id,
       rejection_reason: remarks.trim(),
       notes: `Tagged as ${status} by ${taggedBy}`
     };
@@ -1439,8 +1439,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('book_activity')
       .update({
-        scan_status: status,
-        user_flag_id: flagData.id
+        scan_status: status
       })
       .eq('id', scan_id)
       .select()

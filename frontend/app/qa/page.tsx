@@ -410,6 +410,7 @@ export default function BookInspectionPage() {
         scan_status: book.scan_status,
         rejection_reason: book.flag_issue || null,
         notes: book.flag_remarks || null,
+        stage: 'endorsement'
       }),
     })
     const data = await res.json()
