@@ -1236,7 +1236,7 @@ export default function WarehousePage() {
             )}
           </div>
           ) : (
-            <div className="relative flex-1 flex flex-col min-h-0">
+            <div className="relative flex flex-col gap-4">
               {loading && (
                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-card rounded-xl">
                   <div className="flex items-center gap-3 px-5 py-4 bg-muted/50 border border-border rounded-xl shadow-lg">
@@ -1256,7 +1256,7 @@ export default function WarehousePage() {
                   </div>
                 </div>
               )}
-              <div className="mb-6">
+              <div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse Receiving</h1>
                 <p className="text-sm text-muted-foreground mt-1">Active scanning session — scan books into the current lot and box.</p>
               </div>
@@ -1265,43 +1265,46 @@ export default function WarehousePage() {
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 {/* Top accent strip */}
                 <div className="h-0.5 w-full bg-primary/80" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 py-3 sm:px-5 sm:py-4">
+                {/* On mobile: flex-col (info on top, buttons below). On sm+: flex-row inline. */}
+                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
+                  {/* Info */}
                   <div className="flex items-start gap-3 sm:gap-5">
                     <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
                       <Package className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="flex items-center divide-x divide-border">
-                      <div className="pr-3 sm:pr-5">
+                    <div className="flex items-center divide-x divide-border min-w-0">
+                      <div className="pr-3 sm:pr-5 shrink-0">
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Lot</p>
                         <p className="text-sm font-bold text-foreground mt-0.5">{activeLot}</p>
                       </div>
                       {currentBoxNumber && (
-                        <div className="px-3 sm:px-5">
+                        <div className="px-3 sm:px-5 shrink-0">
                           <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Box</p>
                           <p className="text-sm font-bold text-foreground mt-0.5">{currentBoxNumber}</p>
                           <p className="text-[10px] text-muted-foreground">{currentBoxBooks} books</p>
                         </div>
                       )}
-                      <div className="pl-3 sm:pl-5">
+                      <div className="pl-3 sm:pl-5 min-w-0">
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Operator</p>
-                        <p className="text-sm font-bold text-foreground mt-0.5">{userName || 'Unknown'}</p>
+                        <p className="text-sm font-bold text-foreground mt-0.5 truncate">{userName || 'Unknown'}</p>
                       </div>
                     </div>
                   </div>
+                  {/* Buttons — full-width equal halves on mobile, auto-width inline on desktop */}
                   <div className="flex gap-2 shrink-0">
                     <button onClick={handleResetSession}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 text-sm rounded-lg border border-border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
                       <X className="h-3.5 w-3.5" />
                       Reset
                     </button>
                     {scannedBooks.length === 0 ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex">
+                          <span className="flex-1 sm:flex-none inline-flex">
                             <button
                               onClick={handleCloseSession}
                               disabled
-                              className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                              className="w-full inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             >
                               <CircleCheck className="h-3.5 w-3.5" />
                               Complete Session
@@ -1316,7 +1319,7 @@ export default function WarehousePage() {
                       <button
                         onClick={handleCloseSession}
                         disabled={loading}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 sm:px-4 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                       >
                         <CircleCheck className="h-3.5 w-3.5" />
                         Complete Session
@@ -1329,17 +1332,33 @@ export default function WarehousePage() {
               {/* Stats */}
               {currentSession && (
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  <div className="bg-card border border-primary/30 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center">
-                    <p className="text-[10px] sm:text-[11px] text-primary font-medium uppercase tracking-wide">Total Scanned</p>
-                    <p className="text-xl sm:text-2xl font-bold text-primary leading-none mt-0.5">{currentSession.total_scanned}</p>
+                  {/* Mobile: centered col, no icon. Desktop: original — icon left, left-aligned text */}
+                  <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:items-center sm:justify-start sm:gap-3 sm:text-left">
+                    <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
+                      <ScanBarcode className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-[11px] text-primary sm:text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
+                      <p className="text-xl sm:text-2xl font-bold text-primary sm:text-foreground leading-none mt-0.5">{currentSession.total_scanned}</p>
+                    </div>
                   </div>
-                  <div className="bg-card border border-emerald-500/30 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center">
-                    <p className="text-[10px] sm:text-[11px] text-emerald-500 font-medium uppercase tracking-wide">Processable</p>
-                    <p className="text-xl sm:text-2xl font-bold text-emerald-500 leading-none mt-0.5">{currentSession.total_processable}</p>
+                  <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:items-center sm:justify-start sm:gap-3 sm:text-left">
+                    <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
+                      <CircleCheck className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-[11px] text-emerald-500 sm:text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
+                      <p className="text-xl sm:text-2xl font-bold text-emerald-500 sm:text-foreground leading-none mt-0.5">{currentSession.total_processable}</p>
+                    </div>
                   </div>
-                  <div className="bg-card border border-destructive/30 rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center">
-                    <p className="text-[10px] sm:text-[11px] text-destructive font-medium uppercase tracking-wide">Non-Processable</p>
-                    <p className="text-xl sm:text-2xl font-bold text-destructive leading-none mt-0.5">{currentSession.total_non_processable}</p>
+                  <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:items-center sm:justify-start sm:gap-3 sm:text-left">
+                    <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
+                      <CircleX className="h-4 w-4 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] sm:text-[11px] text-destructive sm:text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
+                      <p className="text-xl sm:text-2xl font-bold text-destructive sm:text-foreground leading-none mt-0.5">{currentSession.total_non_processable}</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1348,7 +1367,7 @@ export default function WarehousePage() {
               <ScannerInput onScan={handleScan} />
 
               {/* Scan log */}
-              <div className="bg-card border border-primary/30 rounded-xl overflow-hidden flex flex-col">
+              <div className="bg-card border border-primary/30 rounded-xl flex flex-col overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/10">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-primary" />
@@ -1362,7 +1381,7 @@ export default function WarehousePage() {
                   )}
                 </div>
                 {scannedBooks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-3 text-center flex-1 py-16 sm:py-20 min-h-[280px]">
+                  <div className="flex flex-col items-center justify-center gap-3 text-center min-h-[240px] py-12">
                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
                       <ScanBarcode className="h-6 w-6 text-primary" />
                     </div>
