@@ -663,8 +663,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-sm font-medium text-gray-500">No books transmitted today</span>
               </div>
             ) : (
-              <div className="overflow-y-auto flex-1">
-                <table className="w-full text-sm table-fixed">
+              <div className="overflow-auto flex-1">
+                <table className="min-w-[640px] w-full text-sm table-fixed">
                   <colgroup>
                     <col className="w-10" />
                     <col className="w-36" />
