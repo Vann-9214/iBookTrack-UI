@@ -691,7 +691,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                         <td className="py-3 px-4 text-gray-600 truncate max-w-[200px]">{row.title || '—'}</td>
                         <td className="py-3 px-4 font-semibold text-gray-800 truncate max-w-[140px]">{row.lot_number}</td>
                         <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{row.box_number}</td>
-                        <td className="py-3 px-4 text-xs text-gray-500">
+                        <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
                           {row.completed_at ? new Date(row.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </td>
                       </tr>
