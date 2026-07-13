@@ -608,8 +608,8 @@ export default function WarehousePage() {
 
           {/* Confirm Complete Session Modal */}
           {confirmCompleteOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmCompleteOpen(false)}>
-              <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl mx-auto flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="fixed top-0 left-0 right-0 z-50 flex items-start sm:items-center justify-center p-4 sm:p-0 bg-black/50 backdrop-blur-sm overflow-y-auto" style={{ bottom: 0, minHeight: '100%' }} onClick={() => setConfirmCompleteOpen(false)}>
+              <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl mx-auto flex flex-col max-h-none sm:max-h-[90vh] overflow-hidden my-auto" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 shrink-0">
                   <div className="flex items-center gap-3">
@@ -787,28 +787,28 @@ export default function WarehousePage() {
                 </div>
 
                 {/* Footer / Actions */}
-                <div className="px-6 py-4 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
-                      <div className="w-px h-3 bg-border" />
-                      <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
-                      {issues.length > 0 && (
-                        <>
-                          <div className="w-px h-3 bg-border" />
-                          <div><span className="font-semibold text-destructive">{issues.length}</span> Issues</div>
-                        </>
-                      )}
-                    </div>
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border bg-muted/10 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Stats summary */}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
+                    <div className="w-px h-3 bg-border" />
+                    <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
+                    {issues.length > 0 && (
+                      <>
+                        <div className="w-px h-3 bg-border" />
+                        <div><span className="font-semibold text-destructive">{issues.length}</span> Issues</div>
+                      </>
+                    )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  {/* Action buttons — full width on mobile, auto on desktop */}
+                  <div className="flex gap-2 sm:shrink-0">
                     <button onClick={() => {
                       setConfirmCompleteOpen(false)
                       setTotalBooksExpected('')
                       setIssueIsbn('')
                       setIssues([])
-                    }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-                    <button onClick={confirmCloseSession} disabled={loading} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors shadow-sm">
+                    }} className="flex-1 sm:flex-none px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                    <button onClick={confirmCloseSession} disabled={loading} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors shadow-sm">
                       <CircleCheck className="h-4 w-4" />
                       {loading ? 'Completing...' : 'Confirm Complete'}
                     </button>
