@@ -137,15 +137,7 @@ router.delete('/:id/flag', requireAuth, async (req, res) => {
     const { id } = req.params
     const db = supabaseAdmin
 
-    const { data: activity } = await db.from('book_activity').select('user_flag_id').eq('id', id).single()
-    let error = null;
-    if (activity?.user_flag_id) {
-       const res = await db.from('user_flags').delete().eq('id', activity.user_flag_id)
-       error = res.error
-       if (!error) {
-         await db.from('book_activity').update({ user_flag_id: null }).eq('id', id)
-       }
-    }
+    const { error } = await db.from('user_flags').delete().eq('book_activity_id', id)
 
     if (error) throw error
 

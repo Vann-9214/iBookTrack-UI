@@ -557,7 +557,8 @@ export default function InventoryPage() {
           author: bookData.author,
           scan_status,
           rejection_reason: flag_issue || null,
-          notes: flag_remarks || null
+          notes: flag_remarks || null,
+          stage: 'inventory'
         })
       })
       const data = await res.json()
