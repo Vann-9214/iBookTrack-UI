@@ -608,8 +608,8 @@ export default function WarehousePage() {
 
           {/* Confirm Complete Session Modal */}
           {confirmCompleteOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmCompleteOpen(false)}>
-              <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl mx-auto flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="fixed top-0 left-0 right-0 z-50 flex items-start sm:items-center justify-center p-4 sm:p-0 bg-black/50 backdrop-blur-sm overflow-y-auto" style={{ bottom: 0, minHeight: '100%' }} onClick={() => setConfirmCompleteOpen(false)}>
+              <div className="bg-card rounded-2xl shadow-2xl w-full max-w-4xl mx-auto flex flex-col max-h-none sm:max-h-[90vh] overflow-hidden my-auto" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 shrink-0">
                   <div className="flex items-center gap-3">
@@ -787,28 +787,28 @@ export default function WarehousePage() {
                 </div>
 
                 {/* Footer / Actions */}
-                <div className="px-6 py-4 border-t border-border bg-muted/10 shrink-0 flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
-                      <div className="w-px h-3 bg-border" />
-                      <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
-                      {issues.length > 0 && (
-                        <>
-                          <div className="w-px h-3 bg-border" />
-                          <div><span className="font-semibold text-destructive">{issues.length}</span> Issues</div>
-                        </>
-                      )}
-                    </div>
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-border bg-muted/10 shrink-0 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Stats summary */}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
+                    <div className="w-px h-3 bg-border" />
+                    <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
+                    {issues.length > 0 && (
+                      <>
+                        <div className="w-px h-3 bg-border" />
+                        <div><span className="font-semibold text-destructive">{issues.length}</span> Issues</div>
+                      </>
+                    )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  {/* Action buttons — full width on mobile, auto on desktop */}
+                  <div className="flex gap-2 sm:shrink-0">
                     <button onClick={() => {
                       setConfirmCompleteOpen(false)
                       setTotalBooksExpected('')
                       setIssueIsbn('')
                       setIssues([])
-                    }} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-                    <button onClick={confirmCloseSession} disabled={loading} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors shadow-sm">
+                    }} className="flex-1 sm:flex-none px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+                    <button onClick={confirmCloseSession} disabled={loading} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors shadow-sm">
                       <CircleCheck className="h-4 w-4" />
                       {loading ? 'Completing...' : 'Confirm Complete'}
                     </button>
@@ -1236,7 +1236,7 @@ export default function WarehousePage() {
             )}
           </div>
           ) : (
-            <div className="relative flex-1 flex flex-col min-h-0">
+            <div className="relative flex flex-col gap-4">
               {loading && (
                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-card rounded-xl">
                   <div className="flex items-center gap-3 px-5 py-4 bg-muted/50 border border-border rounded-xl shadow-lg">
@@ -1256,7 +1256,7 @@ export default function WarehousePage() {
                   </div>
                 </div>
               )}
-              <div className="mb-6">
+              <div>
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">Warehouse Receiving</h1>
                 <p className="text-sm text-muted-foreground mt-1">Active scanning session — scan books into the current lot and box.</p>
               </div>
@@ -1265,43 +1265,46 @@ export default function WarehousePage() {
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 {/* Top accent strip */}
                 <div className="h-0.5 w-full bg-primary/80" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
-                  <div className="flex items-center gap-5">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10">
+                {/* On mobile: flex-col (info on top, buttons below). On sm+: flex-row inline. */}
+                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
+                  {/* Info */}
+                  <div className="flex items-start gap-3 sm:gap-5">
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
                       <Package className="h-4 w-4 text-primary" />
                     </div>
-                    <div className="flex items-center divide-x divide-border">
-                      <div className="pr-5">
+                    <div className="flex items-center divide-x divide-border min-w-0">
+                      <div className="pr-3 sm:pr-5 shrink-0">
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Lot</p>
                         <p className="text-sm font-bold text-foreground mt-0.5">{activeLot}</p>
                       </div>
                       {currentBoxNumber && (
-                        <div className="px-5">
+                        <div className="px-3 sm:px-5 shrink-0">
                           <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Box</p>
                           <p className="text-sm font-bold text-foreground mt-0.5">{currentBoxNumber}</p>
                           <p className="text-[10px] text-muted-foreground">{currentBoxBooks} books</p>
                         </div>
                       )}
-                      <div className="pl-5">
+                      <div className="pl-3 sm:pl-5 min-w-0">
                         <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Operator</p>
-                        <p className="text-sm font-bold text-foreground mt-0.5">{userName || 'Unknown'}</p>
+                        <p className="text-sm font-bold text-foreground mt-0.5 truncate">{userName || 'Unknown'}</p>
                       </div>
                     </div>
                   </div>
+                  {/* Buttons — full-width equal halves on mobile, auto-width inline on desktop */}
                   <div className="flex gap-2 shrink-0">
                     <button onClick={handleResetSession}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border border-border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
                       <X className="h-3.5 w-3.5" />
                       Reset
                     </button>
                     {scannedBooks.length === 0 ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex">
+                          <span className="flex-1 sm:flex-none inline-flex">
                             <button
                               onClick={handleCloseSession}
                               disabled
-                              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                              className="w-full inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                             >
                               <CircleCheck className="h-3.5 w-3.5" />
                               Complete Session
@@ -1316,7 +1319,7 @@ export default function WarehousePage() {
                       <button
                         onClick={handleCloseSession}
                         disabled={loading}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                       >
                         <CircleCheck className="h-3.5 w-3.5" />
                         Complete Session
@@ -1328,32 +1331,33 @@ export default function WarehousePage() {
 
               {/* Stats */}
               {currentSession && (
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                  {/* Mobile: centered col, no icon. Desktop: original — icon left, left-aligned text */}
+                  <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:items-center sm:justify-start sm:gap-3 sm:text-left">
+                    <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
                       <ScanBarcode className="h-4 w-4 text-primary" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
-                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_scanned}</p>
+                      <p className="text-[10px] sm:text-[11px] text-primary sm:text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
+                      <p className="text-xl sm:text-2xl font-bold text-primary sm:text-foreground leading-none mt-0.5">{currentSession.total_scanned}</p>
                     </div>
                   </div>
-                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
+                  <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:items-center sm:justify-start sm:gap-3 sm:text-left">
+                    <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
                       <CircleCheck className="h-4 w-4 text-emerald-500" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
-                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_processable}</p>
+                      <p className="text-[10px] sm:text-[11px] text-emerald-500 sm:text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
+                      <p className="text-xl sm:text-2xl font-bold text-emerald-500 sm:text-foreground leading-none mt-0.5">{currentSession.total_processable}</p>
                     </div>
                   </div>
-                  <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
+                  <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:items-center sm:justify-start sm:gap-3 sm:text-left">
+                    <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
                       <CircleX className="h-4 w-4 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
-                      <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{currentSession.total_non_processable}</p>
+                      <p className="text-[10px] sm:text-[11px] text-destructive sm:text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
+                      <p className="text-xl sm:text-2xl font-bold text-destructive sm:text-foreground leading-none mt-0.5">{currentSession.total_non_processable}</p>
                     </div>
                   </div>
                 </div>
@@ -1363,7 +1367,7 @@ export default function WarehousePage() {
               <ScannerInput onScan={handleScan} />
 
               {/* Scan log */}
-              <div className="bg-card border border-primary/30 rounded-xl overflow-hidden">
+              <div className="bg-card border border-primary/30 rounded-xl flex flex-col overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/10">
                   <div className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4 text-primary" />
@@ -1377,75 +1381,80 @@ export default function WarehousePage() {
                   )}
                 </div>
                 {scannedBooks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                      <ScanBarcode className="h-5 w-5 text-primary" />
+                  <div className="flex flex-col items-center justify-center gap-3 text-center min-h-[240px] py-12">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10">
+                      <ScanBarcode className="h-6 w-6 text-primary" />
                     </div>
-                    <p className="text-sm font-medium text-foreground">Awaiting scan</p>
-                    <p className="text-xs text-muted-foreground">Scan a book barcode to add it here.</p>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Awaiting scan</p>
+                      <p className="text-xs text-muted-foreground">Scan a book barcode to add it here.</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
-                    {/* Header row */}
-                    <div className="grid grid-cols-12 gap-2 px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30">
-                      <div className="col-span-3">ISBN</div>
-                      <div className="col-span-5">Title</div>
-                      <div className="col-span-2 text-center">Status</div>
-                      <div className="col-span-2 text-right">Remove</div>
-                    </div>
-                    {/* Scan log entries */}
-                    <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
-                      {scannedBooks.map((book, idx) => (
-                        <div
-                          key={`${book.id}-${idx}`}
-                          className={`grid grid-cols-12 gap-2 px-5 py-3 items-center transition-colors hover:bg-muted/30 ${
-                            book.scan_status === 'non_processable' ? 'bg-destructive/5' : ''
-                          }`}
-                        >
-                          <div className="col-span-3">
-                            <p className="text-xs font-mono text-foreground truncate">{book.isbn}</p>
-                          </div>
-                          <div className="col-span-5">
-                            <p className="text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
-                            {book.flag_issue && (
-                              <p className="text-[10px] text-destructive mt-0.5 truncate">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
-                            )}
-                          </div>
-                          <div className="col-span-2 flex items-center justify-center gap-2">
-                            {book.scan_status === 'processable' ? (
-                              <>
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                                  <CircleCheck className="h-3 w-3" />
-                                  Processable
+                    {/* Scan log table — horizontally scrollable on mobile */}
+                    <div className="overflow-x-auto">
+                      {/* Header row */}
+                      <div className="flex gap-2 px-3 sm:px-5 py-2.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/30 min-w-[480px]">
+                        <div className="w-[110px] shrink-0">ISBN</div>
+                        <div className="flex-1 min-w-0">Title</div>
+                        <div className="w-[140px] sm:w-[160px] shrink-0 text-center">Status</div>
+                        <div className="w-[60px] sm:w-[80px] shrink-0 text-right">Remove</div>
+                      </div>
+                      {/* Scan log entries */}
+                      <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
+                        {scannedBooks.map((book, idx) => (
+                          <div
+                            key={`${book.id}-${idx}`}
+                            className={`flex gap-2 px-3 sm:px-5 py-3 items-center transition-colors hover:bg-muted/30 min-w-[480px] ${
+                              book.scan_status === 'non_processable' ? 'bg-destructive/5' : ''
+                            }`}
+                          >
+                            <div className="w-[110px] shrink-0">
+                              <p className="text-[11px] sm:text-xs font-mono text-foreground">{book.isbn}</p>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] sm:text-xs text-foreground font-medium truncate leading-snug">{book.title}</p>
+                              {book.flag_issue && (
+                                <p className="text-[10px] text-destructive mt-0.5 truncate">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
+                              )}
+                            </div>
+                            <div className="w-[140px] sm:w-[160px] shrink-0 flex items-center justify-center gap-1 sm:gap-2">
+                              {book.scan_status === 'processable' ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap">
+                                    <CircleCheck className="h-3 w-3" />
+                                    Processable
+                                  </span>
+                                  <button
+                                    onClick={() => openFlagModal(book)}
+                                    className="text-[10px] text-muted-foreground hover:text-destructive underline transition-colors"
+                                  >
+                                    Flag
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 whitespace-nowrap">
+                                  <CircleX className="h-3 w-3" />
+                                  Non-Processable
                                 </span>
-                                <button
-                                  onClick={() => openFlagModal(book)}
-                                  className="text-[10px] text-muted-foreground hover:text-destructive underline transition-colors"
-                                >
-                                  Flag
-                                </button>
-                              </>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20">
-                                <CircleX className="h-3 w-3" />
-                                Non-Processable
-                              </span>
-                            )}
+                              )}
+                            </div>
+                            <div className="w-[60px] sm:w-[80px] shrink-0 flex items-center justify-end gap-1 sm:gap-2">
+                              <p className="hidden sm:block text-[10px] text-muted-foreground mt-0.5">
+                                {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                              </p>
+                              <button
+                                onClick={() => handleRemoveBook(book.id)}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                title="Remove from scan log"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="col-span-2 flex items-center justify-end gap-2">
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </p>
-                            <button
-                              onClick={() => handleRemoveBook(book.id)}
-                              className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                              title="Remove from scan log"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -1296,27 +1296,30 @@ export default function InventoryPage() {
 
           {/* â”€â”€ Tab Navigation â”€â”€ */}
           <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
+            {/* Incoming */}
             <button
               disabled={verifSessionActive}
               onClick={() => setInventoryTab('incoming')}
               className={cn(
-                'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                'flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
                 inventoryTab === 'incoming'
                   ? 'border-primary text-primary bg-primary/5'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
-              <Inbox className="h-4 w-4" /> Incoming
+              <Inbox className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Incoming</span>
               <span className={cn(
-                'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                'px-2 py-0.5 rounded-full text-xs',
                 inventoryTab === 'incoming' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
               )}>{incomingBoxes.length}</span>
             </button>
+            {/* Book Verification */}
             <button
               disabled={verifSessionActive}
               onClick={() => setInventoryTab('verification')}
               className={cn(
-                'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                'flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
                 inventoryTab === 'verification'
                   ? 'bg-primary/10'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
@@ -1327,10 +1330,11 @@ export default function InventoryPage() {
                 backgroundColor: `${colors.accent}14`,
               } : undefined}
             >
-              <ClipboardCheck className="h-4 w-4" /> Book Verification
+              <ClipboardCheck className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Book Verification</span>
               <span
                 className={cn(
-                  'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                  'px-2 py-0.5 rounded-full text-xs',
                   inventoryTab === 'verification' ? '' : 'bg-muted text-muted-foreground'
                 )}
                 style={inventoryTab === 'verification' ? {
@@ -1339,23 +1343,25 @@ export default function InventoryPage() {
                 } : undefined}
               >{inventoryBoxes.length}</span>
             </button>
+            {/* Outgoing */}
             <button
               disabled={verifSessionActive}
               onClick={() => setInventoryTab('outgoing')}
               className={cn(
-                'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
+                'flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
                 inventoryTab === 'outgoing'
                   ? 'border-primary text-primary bg-primary/5'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
               )}
             >
-              <Send className="h-4 w-4" /> Outgoing
+              <Send className="h-4 w-4 shrink-0" />
+              <span className="hidden sm:inline">Outgoing</span>
               <span className={cn(
-                'ml-1.5 px-2 py-0.5 rounded-full text-xs',
+                'px-2 py-0.5 rounded-full text-xs',
                 inventoryTab === 'outgoing' ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
               )}>{outgoingBoxes.length}</span>
             </button>
-            
+
             <div className="ml-auto">
               <RefreshControl onRefresh={fetchBoxes} refreshing={loadingBoxes} lastUpdated={lastInventoryUpdate} storageKey="inventory" className="hidden sm:flex" />
             </div>

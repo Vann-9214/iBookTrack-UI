@@ -486,15 +486,9 @@ export default function StationCheckpointsPage() {
       
       if (status === 'received') {
         return (
-          <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
-            <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
-              Received
-            </Badge>
-            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
-              {sendingForward === box.id ? '...' : 'Send'}
-              {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
-            </Button>
-          </div>
+          <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 shrink-0 flex items-center justify-center w-[76px] h-7 cursor-default">
+            Received
+          </Badge>
         )
       } else if (status === 'sent') {
         return (
@@ -798,7 +792,7 @@ export default function StationCheckpointsPage() {
     const matchesSearch = !q ||
       (t.box?.box_number || '').toLowerCase().includes(q) ||
       (t.box?.lot?.lot_number || '').toLowerCase().includes(q)
-    const tDate = new Date(t.created_at)
+    const tDate = new Date(t.updated_at || new Date())
     const from = transitionDateFrom ? parseDateLocal(transitionDateFrom) : null
     const to = transitionDateTo ? parseDateLocal(transitionDateTo) : null
     // Include the full day for the "to" date
@@ -996,10 +990,14 @@ export default function StationCheckpointsPage() {
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
                       confirmActionType === 'receive'
                         ? STAGE_META[confirmBox.current_stage]?.color
+                        : confirmActionType === 'send_forward'
+                        ? 'bg-blue-50 text-blue-700 border-blue-300'
                         : STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.color
                     }`}>
                       {confirmActionType === 'receive'
                         ? STAGE_META[confirmBox.current_stage]?.label
+                        : confirmActionType === 'send_forward'
+                        ? 'Sent'
                         : STAGE_META[confirmBox.current_stage === 'scan' ? 'storage' : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]]?.label}
                     </span>
                   </div>
@@ -1532,7 +1530,7 @@ export default function StationCheckpointsPage() {
                     <Scan className="h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-base font-semibold text-card-foreground">Pipeline Transition Log</CardTitle>
+                    <h2 className="text-sm font-semibold text-foreground">Box Pipeline Tracker</h2>
                     <p className="text-xs text-muted-foreground">
                       {filteredTransitions.length} of {transitions.length} entries
                     </p>
@@ -1620,43 +1618,61 @@ export default function StationCheckpointsPage() {
                       <TableRow className="border-border hover:bg-transparent bg-muted/30">
                         <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Box</TableHead>
                         <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Lot</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">From</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">To</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Received By</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3 text-right">Time</TableHead>
+                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Current</TableHead>
+                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Warehouse</TableHead>
+                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Inventory</TableHead>
+                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Cut</TableHead>
+                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Endorsement</TableHead>
+                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Scan</TableHead>
+                        <TableHead className="text-[10px] text-muted-foreground font-medium px-4 py-3 text-right">Updated</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {paginatedTransitions.map((t) => (
-                        <TableRow key={t.id} className="border-border hover:bg-muted/30">
-                          <TableCell className="text-xs text-card-foreground px-4 py-3">
-                            {t.box?.box_number || 'ΓÇö'}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-4 py-3">
-                            {t.box?.lot?.lot_number || 'ΓÇö'}
-                          </TableCell>
-                          <TableCell className="px-4 py-3">
-                            {t.from_stage ? (
-                              <Badge variant="outline" className={cn("text-[10px] font-normal capitalize border", STAGE_META[t.from_stage as Stage]?.color || '')}>
-                                {STAGE_META[t.from_stage as Stage]?.label || t.from_stage}
+                      {paginatedTransitions.map((t) => {
+                        const renderStep = (time: string | null, name: string) => {
+                          if (!time) return <span className="text-muted-foreground/30 flex justify-center">—</span>;
+                          return (
+                            <div className="flex flex-col items-center justify-center text-[10px] leading-tight">
+                              <span className="text-foreground">{formatTime(time)}</span>
+                              <span className="text-muted-foreground text-[9px] truncate max-w-[60px]" title={name}>{name.split(' ')[0]}</span>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <TableRow key={t.id} className="border-border hover:bg-muted/30">
+                            <TableCell className="text-xs font-medium text-card-foreground px-4 py-3">
+                              {t.box?.box_number || '—'}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground px-4 py-3">
+                              {t.box?.lot?.lot_number || '—'}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              <Badge variant="outline" className={cn("text-[10px] font-normal capitalize border", STAGE_META[t.box?.current_stage as Stage]?.color || '')}>
+                                {STAGE_META[t.box?.current_stage as Stage]?.label || t.box?.current_stage || '—'}
                               </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">ΓÇö</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="px-4 py-3">
-                            <Badge variant="outline" className={cn("text-[10px] font-normal capitalize border", STAGE_META[t.to_stage as Stage]?.color || '')}>
-                              {STAGE_META[t.to_stage as Stage]?.label || t.to_stage}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-4 py-3">
-                            {t.moved_by_name || 'ΓÇö'}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground text-right px-4 py-3">
-                            {formatTime(t.created_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                            <TableCell className="px-2 py-2">
+                              {renderStep(t.warehouse_time_received, t.warehouse_user_name)}
+                            </TableCell>
+                            <TableCell className="px-2 py-2">
+                              {renderStep(t.inventory_time_received, t.inventory_user_name)}
+                            </TableCell>
+                            <TableCell className="px-2 py-2">
+                              {renderStep(t.cut_time_received, t.cut_user_name)}
+                            </TableCell>
+                            <TableCell className="px-2 py-2">
+                              {renderStep(t.endorsement_time_received, t.endorsement_user_name)}
+                            </TableCell>
+                            <TableCell className="px-2 py-2">
+                              {renderStep(t.scan_time_received, t.scan_user_name)}
+                            </TableCell>
+                            <TableCell className="text-[10px] text-muted-foreground text-right px-4 py-3">
+                              {formatTime(t.updated_at)}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 )}
