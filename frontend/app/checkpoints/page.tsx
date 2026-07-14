@@ -1195,6 +1195,10 @@ export default function StationCheckpointsPage() {
                                       byName = (session as any)?.inventory_send_profile?.name || byName
                                       timeStr = session?.inventory_time_send || timeStr
                                     }
+                                    if (byName === 'N/A' && (box as any).latest_inventory_scan_by_name) {
+                                      byName = (box as any).latest_inventory_scan_by_name
+                                      timeStr = (box as any).latest_inventory_scan_at || timeStr
+                                    }
                                   } else if (stage === 'cut') {
                                     if (sessionStatus === 'completed') {
                                       actionLabel = 'Processed'
@@ -1222,6 +1226,10 @@ export default function StationCheckpointsPage() {
                                       actionLabel = 'Sent'
                                       byName = (session as any)?.endorsement_send_profile?.name || byName
                                       timeStr = session?.endorsement_time_send || timeStr
+                                    }
+                                    if (byName === 'N/A' && (box as any).latest_endorsement_scan_by_name) {
+                                      byName = (box as any).latest_endorsement_scan_by_name
+                                      timeStr = (box as any).latest_endorsement_scan_at || timeStr
                                     }
                                   } else if (stage === 'scan') {
                                     actionLabel = 'Scanned'
