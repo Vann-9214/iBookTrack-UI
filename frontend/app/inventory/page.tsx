@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { authFetch, fetchUserProfile } from '@/lib/auth-api'
 import { useBrand } from '@/hooks/use-brand'
+import { useIsMobile } from '@/components/ui/use-mobile'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -127,6 +128,7 @@ const FLAG_ISSUES = [
 
 export default function InventoryPage() {
   const { brand, colors } = useBrand()
+  const isMobile = useIsMobile()
   const { toast } = useToast()
   const [lastInventoryUpdate, setLastInventoryUpdate] = useState<Date | null>(null)
 
@@ -1709,7 +1711,12 @@ export default function InventoryPage() {
                                     </div>
                                     {/* Info -- clickable to expand */}
                                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
-                                      <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                        {isMobile && (
+                                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium whitespace-nowrap">View Only</span>
+                                        )}
+                                      </div>
                                       <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '--'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                     </div>
                                     {/* Date + time */}
@@ -1720,15 +1727,17 @@ export default function InventoryPage() {
                                       </div>
                                     )}
                                   </div>
-                                  {/* Start Session button: full-width on mobile */}
-                                  <button
-                                    onClick={() => handleStartVerifSession(box.id)}
-                                    disabled={loadingVerifBooks}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
-                                  >
-                                    {loadingVerifBooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
-                                    {loadingVerifBooks ? 'Starting...' : 'Start Session'}
-                                  </button>
+                                  {/* Start Session button: hidden on mobile (desktop only) */}
+                                  {!isMobile && (
+                                    <button
+                                      onClick={() => handleStartVerifSession(box.id)}
+                                      disabled={loadingVerifBooks}
+                                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+                                    >
+                                      {loadingVerifBooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                                      {loadingVerifBooks ? 'Starting...' : 'Start Session'}
+                                    </button>
+                                  )}
                                 </div>
                                 {/* Expandable books list */}
                                 {isExpanded && (
@@ -1783,6 +1792,78 @@ export default function InventoryPage() {
                       </div>
                     </div>
                   )}
+                </div>
+              ) : isMobile && verifBox ? (
+                /* Mobile: session is active on desktop — show read-only box list with "Session Ongoing" badge */
+                <div className="flex flex-col min-h-0 flex-1">
+                  <div className="flex-1 overflow-y-auto pr-1">
+                    <div className="flex flex-col gap-2 pb-2">
+                      {inventoryBoxes.map(box => {
+                        const isExpanded = verifExpandedBoxId === box.id
+                        const rowBooks = verifRowBooks[box.id] || []
+                        const isLoadingBooks = loadingVerifRowBooks === box.id
+                        const activeSession = box.box_sessions?.[0]
+                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
+                        const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
+                        const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
+                        return (
+                          <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
+                            <div className="flex items-center px-4 py-3 gap-3">
+                              <button
+                                onClick={() => toggleVerifRow(box.id)}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                              </button>
+                              <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium whitespace-nowrap">Session Ongoing</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '--'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                              </div>
+                            </div>
+                            {isExpanded && (
+                              <div className="border-t border-border bg-muted/30">
+                                {isLoadingBooks ? (
+                                  <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" /> Loading books...
+                                  </div>
+                                ) : rowBooks.length === 0 ? (
+                                  <div className="py-6 text-center text-sm text-muted-foreground">No books found in this box.</div>
+                                ) : (
+                                  <div className="divide-y divide-border">
+                                    <div className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
+                                      <span>ISBN / Title</span>
+                                      <span>Type</span>
+                                      <span>Status</span>
+                                    </div>
+                                    {rowBooks.map(book => (
+                                      <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                                        <div className="min-w-0 pr-3">
+                                          <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
+                                          {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
+                                        </div>
+                                        <span className={cn('text-xs font-medium', (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600')}>
+                                          {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '--'}
+                                        </span>
+                                        <span className={cn('text-[10px] px-2 py-0.5 rounded font-medium w-fit', book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+                                          {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               ) : verifBox && (
                 <>
@@ -2076,46 +2157,48 @@ export default function InventoryPage() {
                                   </div>
                                 )}
                               </div>
-                              {/* Action buttons: full-width row on mobile, inline on desktop */}
-                              <div className="flex gap-2 sm:shrink-0" onClick={e => e.stopPropagation()}>
-                                {/* Print label + checkbox */}
-                                <div className="flex items-center gap-2 flex-1 sm:flex-none">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); handlePrintLabel(box); }}
-                                    disabled={loadingPrint === box.id}
-                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
-                                  >
-                                    {loadingPrint === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                                    {loadingPrint === box.id ? 'Loading...' : 'Print Label'}
-                                  </button>
-                                  <input
-                                    type="checkbox"
-                                    checked={boxLabelPrinted}
-                                    readOnly
-                                    className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
-                                    title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
-                                  />
-                                </div>
-                                {/* Send to Cut */}
-                                <div className="relative group flex-1 sm:flex-none" onClick={e => e.stopPropagation()}>
-                                  {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); handleSendToCut(box) }}
-                                    disabled={sendingToCut === box.id || !allPrinted}
-                                    className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                  >
-                                    {sendingToCut === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                    {sendingToCut === box.id ? 'Sending...' : 'Send to Cut'}
-                                  </button>
-                                  {!allPrinted && (
-                                    <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
-                                      <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
-                                        Print the box label first
+                              {/* Action buttons: desktop only (hidden on mobile) */}
+                              {!isMobile && (
+                                <div className="flex gap-2 sm:shrink-0" onClick={e => e.stopPropagation()}>
+                                  {/* Print label + checkbox */}
+                                  <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handlePrintLabel(box); }}
+                                      disabled={loadingPrint === box.id}
+                                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
+                                    >
+                                      {loadingPrint === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                                      {loadingPrint === box.id ? 'Loading...' : 'Print Label'}
+                                    </button>
+                                    <input
+                                      type="checkbox"
+                                      checked={boxLabelPrinted}
+                                      readOnly
+                                      className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
+                                      title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
+                                    />
+                                  </div>
+                                  {/* Send to Cut */}
+                                  <div className="relative group flex-1 sm:flex-none" onClick={e => e.stopPropagation()}>
+                                    {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleSendToCut(box) }}
+                                      disabled={sendingToCut === box.id || !allPrinted}
+                                      className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                      {sendingToCut === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                      {sendingToCut === box.id ? 'Sending...' : 'Send to Cut'}
+                                    </button>
+                                    {!allPrinted && (
+                                      <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
+                                        <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
+                                          Print the box label first
+                                        </div>
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
 
                             {/*  Expanded book list  */}
@@ -2129,18 +2212,28 @@ export default function InventoryPage() {
                                   <div className="py-6 text-center text-sm text-muted-foreground">No books found in this box.</div>
                                 ) : (
                                   <div className="divide-y divide-border">
-                                    {/* Column header */}
-                                    <div className="grid grid-cols-[1fr_80px_120px_48px_40px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
+                                    {/* Column header — 3-col on mobile (no print/checkbox), 5-col on desktop */}
+                                    <div className={cn(
+                                      'items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50',
+                                      isMobile
+                                        ? 'grid grid-cols-[1fr_80px_120px]'
+                                        : 'grid grid-cols-[1fr_80px_120px_48px_40px]'
+                                    )}>
                                       <span>ISBN / Title</span>
                                       <span>Type</span>
                                       <span>Status</span>
-                                      <span className="text-center">Print</span>
-                                      <span>{/* Printed -- no header text */}</span>
+                                      {!isMobile && <span className="text-center">Print</span>}
+                                      {!isMobile && <span>{/* Printed -- no header text */}</span>}
                                     </div>
                                     {booksForBox.map(book => {
                                       const isBookPrinted = (printedBookSlips[box.id] ?? new Set<string>()).has(book.id)
                                       return (
-                                      <div key={book.id} className="grid grid-cols-[1fr_80px_120px_48px_40px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
+                                      <div key={book.id} className={cn(
+                                        'items-center px-4 py-2.5 hover:bg-muted/40 transition-colors',
+                                        isMobile
+                                          ? 'grid grid-cols-[1fr_80px_120px]'
+                                          : 'grid grid-cols-[1fr_80px_120px_48px_40px]'
+                                      )}>
                                         {/* ISBN + title */}
                                         <div className="min-w-0 pr-3">
                                           <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
@@ -2173,29 +2266,33 @@ export default function InventoryPage() {
                                             </span>
                                           )}
                                         </div>
-                                        {/* Per-book print button */}
-                                        <div className="flex items-center justify-center">
-                                          <button
-                                            onClick={() => handlePrintBookSlip(book, box)}
-                                            disabled={loadingBookPrint === `${box.id}-${book.id}`}
-                                            className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
-                                            title="Print book slip"
-                                          >
-                                            {loadingBookPrint === `${box.id}-${book.id}`
-                                              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                              : <Printer className="h-3.5 w-3.5" />}
-                                          </button>
-                                        </div>
-                                        {/* Printed checkbox */}
-                                        <div className="flex items-center justify-center">
-                                          <input
-                                            type="checkbox"
-                                            checked={isBookPrinted}
-                                            readOnly
-                                            className="h-4 w-4 rounded border-border accent-primary cursor-default"
-                                            title={isBookPrinted ? 'Slip printed' : 'Not yet printed'}
-                                          />
-                                        </div>
+                                        {/* Per-book print button — desktop only */}
+                                        {!isMobile && (
+                                          <div className="flex items-center justify-center">
+                                            <button
+                                              onClick={() => handlePrintBookSlip(book, box)}
+                                              disabled={loadingBookPrint === `${box.id}-${book.id}`}
+                                              className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
+                                              title="Print book slip"
+                                            >
+                                              {loadingBookPrint === `${box.id}-${book.id}`
+                                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                : <Printer className="h-3.5 w-3.5" />}
+                                            </button>
+                                          </div>
+                                        )}
+                                        {/* Printed checkbox — desktop only */}
+                                        {!isMobile && (
+                                          <div className="flex items-center justify-center">
+                                            <input
+                                              type="checkbox"
+                                              checked={isBookPrinted}
+                                              readOnly
+                                              className="h-4 w-4 rounded border-border accent-primary cursor-default"
+                                              title={isBookPrinted ? 'Slip printed' : 'Not yet printed'}
+                                            />
+                                          </div>
+                                        )}
                                       </div>
                                       )
                                     })}
