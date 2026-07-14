@@ -165,6 +165,7 @@ export default function StationCheckpointsPage() {
   const [transitionSearch, setTransitionSearch] = useState('')
   const [transitionDateFrom, setTransitionDateFrom] = useState(todayStr())
   const [transitionDateTo, setTransitionDateTo] = useState(todayStr())
+  const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null)
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
   const [confirmBox, setConfirmBox] = useState<BoxItem | null>(null)
@@ -433,6 +434,7 @@ export default function StationCheckpointsPage() {
 
   const renderBoxAction = (box: BoxItem) => {
     const stage = box.current_stage
+    const isFirst = stage === 'warehouse'
     const isLast = stage === 'storage'
     if (isLast) {
       return (
@@ -726,17 +728,18 @@ export default function StationCheckpointsPage() {
       const books: ScannedBook[] = data.box?.books || []
       const details: any = { books, simflex: {}, loading: false, loadingSimflex: false }
 
-      if ((box.current_stage === 'scan' || box.current_stage === 'transmit' || box.current_stage === 'storage') && books.length > 0) {
+      if ((box.current_stage === 'scan') && books.length > 0) {
         const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
         if (processableIsbns.length > 0) {
           details.loadingSimflex = true
           setStageBoxDetails(prev => ({ ...prev, [box.id]: { ...details, loadingSimflex: true } }))
           try {
-            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}&location=${brand}`)
-            const simData = await simRes.json()
-            if (simData.success && simData.statuses) {
-              details.simflex = simData.statuses
-            }
+            // Disabled Simflex check for now based on request
+            // const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}&location=${brand}`)
+            // const simData = await simRes.json()
+            // if (simData.success && simData.statuses) {
+            //   details.simflex = simData.statuses
+            // }
           } catch {
             // Simflex status is optional
           }
@@ -1619,68 +1622,230 @@ export default function StationCheckpointsPage() {
                     No transitions match your search or date filters.
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent bg-muted/30">
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Box</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Lot</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Current</TableHead>
-                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Warehouse</TableHead>
-                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Inventory</TableHead>
-                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Cut</TableHead>
-                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Endorsement</TableHead>
-                        <TableHead className="text-[10px] text-muted-foreground font-medium px-2 py-3 text-center">Scan</TableHead>
-                        <TableHead className="text-[10px] text-muted-foreground font-medium px-4 py-3 text-right">Updated</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedTransitions.map((t) => {
-                        const renderStep = (time: string | null, name: string) => {
-                          if (!time) return <span className="text-muted-foreground/30 flex justify-center">—</span>;
-                          return (
-                            <div className="flex flex-col items-center justify-center text-[10px] leading-tight">
-                              <span className="text-foreground">{formatTime(time)}</span>
-                              <span className="text-muted-foreground text-[9px] truncate max-w-[60px]" title={name}>{name.split(' ')[0]}</span>
-                            </div>
-                          )
-                        }
+                  <div className="flex flex-col border-t border-border">
+                    {paginatedTransitions.map((t) => {
+                      const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan'];
+                      const isExpanded = expandedTimelineId === t.id;
+                      const box = t.box;
+                      if (!box) return null;
+                      
+                      const stageIdx = PIPELINE_STAGES.indexOf(box.current_stage);
+                      const isCompleted = (box.current_stage === 'scan' && t.scan_time_received != null) || box.current_stage === 'transmit' || box.current_stage === 'storage';
 
-                        return (
-                          <TableRow key={t.id} className="border-border hover:bg-muted/30">
-                            <TableCell className="text-xs font-medium text-card-foreground px-4 py-3">
-                              {t.box?.box_number || '—'}
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground px-4 py-3">
-                              {t.box?.lot?.lot_number || '—'}
-                            </TableCell>
-                            <TableCell className="px-4 py-3">
-                              <Badge variant="outline" className={cn("text-[10px] font-normal capitalize border", STAGE_META[t.box?.current_stage as Stage]?.color || '')}>
-                                {STAGE_META[t.box?.current_stage as Stage]?.label || t.box?.current_stage || '—'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="px-2 py-2">
-                              {renderStep(t.warehouse_time_received, t.warehouse_user_name)}
-                            </TableCell>
-                            <TableCell className="px-2 py-2">
-                              {renderStep(t.inventory_time_received, t.inventory_user_name)}
-                            </TableCell>
-                            <TableCell className="px-2 py-2">
-                              {renderStep(t.cut_time_received, t.cut_user_name)}
-                            </TableCell>
-                            <TableCell className="px-2 py-2">
-                              {renderStep(t.endorsement_time_received, t.endorsement_user_name)}
-                            </TableCell>
-                            <TableCell className="px-2 py-2">
-                              {renderStep(t.scan_time_received, t.scan_user_name)}
-                            </TableCell>
-                            <TableCell className="text-[10px] text-muted-foreground text-right px-4 py-3">
+                      // Determine status and holder
+                      let statusText = 'In progress';
+                      let statusColor = 'bg-blue-100 text-blue-700';
+                      let holderName = '—';
+                      let holderStage = '';
+
+                      if (isCompleted) {
+                        statusText = 'Completed';
+                        statusColor = 'bg-green-100 text-green-700';
+                      } else if (box.current_stage === 'warehouse') {
+                        holderName = t.warehouse_user_name || '—';
+                        holderStage = 'Warehouse';
+                        statusText = 'Completed';
+                        statusColor = 'bg-green-100 text-green-700';
+                      } else if (box.current_stage === 'inventory') {
+                        holderName = t.inventory_user_name || '—';
+                        holderStage = 'Inventory';
+                        if (t.inventory_send_name) {
+                          statusText = 'Sent';
+                          statusColor = 'bg-indigo-100 text-indigo-700';
+                        } else if (t.inventory_time_received) {
+                          statusText = 'Received';
+                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        }
+                      } else if (box.current_stage === 'cut') {
+                        holderName = t.cut_user_name || '—';
+                        holderStage = 'Cut';
+                        if (t.cut_send_name) {
+                          statusText = 'Sent';
+                          statusColor = 'bg-indigo-100 text-indigo-700';
+                        } else if (t.cut_time_received) {
+                          statusText = 'Received';
+                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        }
+                      } else if (box.current_stage === 'endorsement') {
+                        holderName = t.endorsement_user_name || '—';
+                        holderStage = 'Endorsement';
+                        if (t.endorsement_send_name) {
+                          statusText = 'Sent';
+                          statusColor = 'bg-indigo-100 text-indigo-700';
+                        } else if (t.endorsement_time_received) {
+                          statusText = 'Received';
+                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        }
+                      } else if (box.current_stage === 'scan') {
+                        holderName = t.scan_user_name || '—';
+                        holderStage = 'Scan';
+                        if (t.scan_time_received) {
+                          statusText = 'Received';
+                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        }
+                      } else if (box.current_stage === 'transmit') {
+                        holderStage = 'Transmit';
+                      }
+
+                      return (
+                        <div key={t.id} className="border-b border-border last:border-0 flex flex-col bg-card">
+                          {/* Main Row */}
+                          <div 
+                            className="flex items-center px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors gap-4"
+                            onClick={() => setExpandedTimelineId(isExpanded ? null : t.id)}
+                          >
+                            {/* Box & Stage Dots */}
+                            <div className="w-[220px] shrink-0 flex flex-col gap-1.5">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-foreground text-sm">{box.box_number}</span>
+                                {box.lot?.lot_number && (
+                                  <span className="text-[10px] text-muted-foreground font-semibold">{box.lot.lot_number}</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1">
+                                  {PIPELINE_STAGES.map((s, i) => {
+                                    let dotColor = "bg-muted-foreground/30";
+                                    if (isCompleted || i < stageIdx) dotColor = "bg-green-500";
+                                    else if (i === stageIdx) dotColor = "bg-blue-500";
+                                    return <div key={s} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                  })}
+                                </div>
+                                <span className="text-[11px] text-muted-foreground capitalize font-medium">{box.current_stage}</span>
+                              </div>
+                            </div>
+
+                            {/* Status */}
+                            <div className="w-[110px] shrink-0">
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wide ${statusColor}`}>
+                                {statusText}
+                              </span>
+                            </div>
+
+                            {/* Scan / Expected */}
+                            <div className="w-[130px] shrink-0 flex flex-col">
+                              <span className="text-sm font-semibold text-foreground">
+                                {box.total_books_expected} expected
+                              </span>
+                              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">Books</span>
+                            </div>
+
+                            {/* Holder */}
+                            <div className="w-[150px] shrink-0 flex flex-col min-w-0">
+                              <span className="text-sm font-semibold text-foreground truncate" title={holderName}>{holderName}</span>
+                              <span className="text-[11px] text-muted-foreground">{holderStage}</span>
+                            </div>
+
+                            {/* Updated */}
+                            <div className="w-[100px] shrink-0 text-xs text-muted-foreground ml-auto text-right pr-4">
                               {formatTime(t.updated_at)}
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
+                            </div>
+
+                            {/* Chevron */}
+                            <div className="text-muted-foreground">
+                               <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isExpanded && "rotate-180")} />
+                            </div>
+                          </div>
+
+                          {/* Expanded Timeline */}
+                          {isExpanded && (
+                            <div className="px-6 py-6 bg-muted/20 border-t border-border overflow-hidden">
+                              <div className="text-sm font-bold text-foreground mb-6">
+                                {box.box_number} · full timeline
+                              </div>
+                              <div className="flex items-start justify-between relative px-2">
+                                {/* Connecting background line */}
+                                <div className="absolute top-3 left-10 right-10 h-[2px] bg-border z-0" />
+                                {/* Progress line */}
+                                <div 
+                                  className="absolute top-3 left-10 h-[2px] bg-green-500 z-0 transition-all duration-500" 
+                                  style={{ width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 80px)` }} 
+                                />
+                                
+                                {PIPELINE_STAGES.map((s, i) => {
+                                  const isPast = isCompleted || i < stageIdx;
+                                  const isCurrent = i === stageIdx;
+                                  const isFuture = !isCompleted && i > stageIdx;
+
+                                  let icon = <div className="w-6 h-6 rounded-full bg-muted border-2 border-background z-10" />;
+                                  if (isPast) {
+                                    icon = (
+                                      <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center z-10 border-2 border-background shadow-sm">
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                      </div>
+                                    );
+                                  } else if (isCurrent) {
+                                    icon = (
+                                      <div className="w-6 h-6 rounded-full bg-blue-500 z-10 border-2 border-background shadow-sm flex items-center justify-center">
+                                        <div className="w-2 h-2 rounded-full bg-white" />
+                                      </div>
+                                    );
+                                  }
+
+                                  // Get times based on stage
+                                  let recvTime = null;
+                                  let recvUser = null;
+                                  let scanTime = null;
+                                  let scanUser = null;
+                                  let sendTime = null;
+                                  let sendUser = null;
+
+                                  if (s === 'warehouse') {
+                                    recvTime = t.warehouse_time_received; recvUser = t.warehouse_user_name;
+                                    scanTime = t.warehouse_scan_at; scanUser = t.warehouse_scan_name;
+                                  } else if (s === 'inventory') {
+                                    recvTime = t.inventory_time_received; recvUser = t.inventory_user_name;
+                                    scanTime = t.inventory_scan_at; scanUser = t.inventory_scan_name;
+                                    sendTime = t.inventory_time_send; sendUser = t.inventory_send_name;
+                                  } else if (s === 'cut') {
+                                    recvTime = t.cut_time_received; recvUser = t.cut_user_name;
+                                    sendTime = t.cut_time_send; sendUser = t.cut_send_name;
+                                  } else if (s === 'endorsement') {
+                                    recvTime = t.endorsement_time_received; recvUser = t.endorsement_user_name;
+                                    scanTime = t.endorsement_scan_at; scanUser = t.endorsement_scan_name;
+                                    sendTime = t.endorsement_time_send; sendUser = t.endorsement_send_name;
+                                  } else if (s === 'scan') {
+                                    recvTime = t.scan_time_received; recvUser = t.scan_user_name;
+                                  }
+
+                                  return (
+                                    <div key={s} className="flex flex-col items-center flex-1 z-10 relative">
+                                       {icon}
+                                       <span className={cn("text-[11px] font-bold mt-2 capitalize", (isPast || isCurrent) ? "text-foreground" : "text-muted-foreground")}>{s}</span>
+                                       <div className="mt-1.5 flex flex-col items-center text-[10px] text-muted-foreground text-center h-8">
+                                         {!recvTime && !sendTime && !scanTime && (
+                                           <span className="opacity-50">not logged</span>
+                                         )}
+                                         <div className="flex flex-col text-[10px] text-muted-foreground">
+                                         {s === 'warehouse' ? (
+                                           (recvTime || scanTime) && (
+                                             <span className="whitespace-nowrap">↓ ✓ ↑ {(scanUser || recvUser)?.split(' ')[0] || 'System'}, {new Date(scanTime || recvTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                           )
+                                         ) : (
+                                           <>
+                                             {recvTime && (
+                                               <span className="whitespace-nowrap">↓ {recvUser?.split(' ')[0] || 'System'}, {new Date(recvTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                             )}
+                                             {scanTime && (
+                                               <span className="whitespace-nowrap mt-0.5">✓ {scanUser?.split(' ')[0] || 'System'}, {new Date(scanTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                             )}
+                                             {sendTime && (
+                                               <span className="whitespace-nowrap mt-0.5">↑ {sendUser?.split(' ')[0] || 'System'}, {new Date(sendTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                             )}
+                                           </>
+                                         )}
+                                         </div>
+                                       </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
                 {filteredTransitions.length > 0 && (
                   <Pagination
