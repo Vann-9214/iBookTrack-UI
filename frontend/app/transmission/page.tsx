@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   XCircle,
   Activity,
+  Radio,
   Search,
   Loader2,
   RefreshCw,
@@ -392,14 +393,19 @@ export default function TransmissionMonitorPage() {
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
             {/* Header */}
-            <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                  Transmission Monitor
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Live scanning data from Simflex WMS — updates every 60 seconds.
-                </p>
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                  <Radio className="h-7 w-7" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                    Transmission Monitor
+                  </h1>
+                  <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                    Live scanning data from Simflex WMS for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                  </p>
+                </div>
               </div>
               {/* Mobile layout: left col = From/To, right col = icons + checkbox */}
               <div className="flex gap-3 sm:hidden justify-between">
