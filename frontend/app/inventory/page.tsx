@@ -1411,7 +1411,10 @@ export default function InventoryPage() {
                                   <Package className="h-5 w-5 text-primary" />
                                 </div>
                                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
-                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Sent from Warehouse</span>
+                                  </div>
                                   <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
                               </div>
