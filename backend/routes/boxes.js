@@ -224,42 +224,86 @@ router.get('/', async (req, res) => {
 
 
 // Get recent pipeline transitions (for Checkpoint Monitor logs)
+// Now returns 1 row per box session to avoid flooding the UI with events
 router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   try {
     const { limit = 50, stage, box_type } = req.query
 
     const db = supabaseAdmin || supabase
     const boxSelect = box_type 
-      ? `box:boxes!inner(box_number, lot:lots(lot_number), box_type)`
-      : `box:boxes(box_number, lot:lots(lot_number))`
+      ? `box:boxes!inner(box_number, lot:lots(lot_number), box_type, current_stage)`
+      : `box:boxes(box_number, lot:lots(lot_number), box_type, current_stage)`
 
     let query = db
-      .from('pipeline_events')
+      .from('box_sessions')
       .select(`
         id,
-        from_stage,
-        to_stage,
-        moved_by_name,
-        notes,
-        created_at,
+        warehouse_time_received, warehouse_user_received,
+        inventory_time_received, inventory_user_received,
+        inventory_time_send, inventory_user_send,
+        cut_time_received, cut_user_received,
+        cut_time_send, cut_user_send,
+        endorsement_time_received, endorsement_user_received,
+        endorsement_time_send, endorsement_user_send,
+        scan_time_received, scan_user_received,
+        updated_at,
         ${boxSelect}
       `)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(parseInt(limit))
-
-    if (stage) {
-      query = query.or(`from_stage.eq.${stage},to_stage.eq.${stage}`)
-    }
 
     if (box_type) {
       query = query.eq('boxes.box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     }
-
-    const { data, error } = await query
-
+    
+    // Note: To perfectly filter by stage, we could add complex OR logic.
+    // For now, if stage is selected, filter in JS to keep it simple, or just return all and let UI filter.
+    
+    const { data: sessions, error } = await query
     if (error) throw error
 
-    res.json({ success: true, transitions: data })
+    let filteredSessions = sessions || []
+    if (stage) {
+      filteredSessions = filteredSessions.filter(s => s.box?.current_stage === stage)
+    }
+
+    // Fetch user names for all users involved in these sessions
+    const userIds = new Set()
+    filteredSessions.forEach(s => {
+      if (s.warehouse_user_received) userIds.add(s.warehouse_user_received)
+      if (s.inventory_user_received) userIds.add(s.inventory_user_received)
+      if (s.inventory_user_send) userIds.add(s.inventory_user_send)
+      if (s.cut_user_received) userIds.add(s.cut_user_received)
+      if (s.cut_user_send) userIds.add(s.cut_user_send)
+      if (s.endorsement_user_received) userIds.add(s.endorsement_user_received)
+      if (s.endorsement_user_send) userIds.add(s.endorsement_user_send)
+      if (s.scan_user_received) userIds.add(s.scan_user_received)
+    })
+
+    let userMap = {}
+    if (userIds.size > 0) {
+      const { data: profiles } = await db.from('profiles').select('id, full_name, email').in('id', Array.from(userIds))
+      for (const p of profiles || []) {
+        userMap[p.id] = p.full_name || p.email
+      }
+    }
+
+    // Assign names to session objects
+    const pagedEvents = filteredSessions.map(s => {
+      return {
+        ...s,
+        warehouse_user_name: userMap[s.warehouse_user_received] || 'Automated',
+        inventory_user_name: userMap[s.inventory_user_received] || 'Automated',
+        inventory_send_name: userMap[s.inventory_user_send] || 'Automated',
+        cut_user_name: userMap[s.cut_user_received] || 'Automated',
+        cut_send_name: userMap[s.cut_user_send] || 'Automated',
+        endorsement_user_name: userMap[s.endorsement_user_received] || 'Automated',
+        endorsement_send_name: userMap[s.endorsement_user_send] || 'Automated',
+        scan_user_name: userMap[s.scan_user_received] || 'Automated',
+      }
+    })
+
+    res.json({ success: true, transitions: pagedEvents })
   } catch (error) {
     console.error('Get pipeline transitions error:', error)
     res.status(500).json({ error: error.message })
@@ -422,16 +466,6 @@ router.post('/:id/receive', requireAuth, async (req, res) => {
 
     if (updateError) throw updateError
 
-    // Log receipt event
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage: box.current_stage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: `Received at ${box.current_stage}`
-    })
 
     res.json({ success: true, box: updatedBox })
   } catch (error) {
@@ -614,16 +648,6 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
       }
     }
 
-    // Log pipeline event
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage: nextStage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: notes || null
-    })
 
     res.json({ success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage })
   } catch (error) {
@@ -691,16 +715,7 @@ router.post('/:id/send-forward', requireAuth, async (req, res) => {
 
     if (updateError) throw updateError
 
-    // Log the pipeline event for audit
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage: nextStage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: notes || `Sent to ${nextStage} from ${box.current_stage}`
-    })
+
 
     res.json({ success: true, box, session_status: 'sent', current_stage: box.current_stage })
   } catch (error) {
@@ -739,15 +754,7 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
 
     if (updateError) throw updateError
 
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: 'Rolled back (undo)'
-    })
+
 
     res.json({ success: true, box: updatedBox })
   } catch (error) {
@@ -960,7 +967,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       await db.from('books').delete().in('id', booksToDelete.map(b => b.id))
     }
     await db.from('storage_assignments').delete().eq('box_id', id)
-    await db.from('pipeline_events').delete().eq('box_id', id)
+
 
     // Delete the box itself
     const { error: deleteError } = await db.from('boxes').delete().eq('id', id)
