@@ -1233,7 +1233,7 @@ export default function InventoryPage() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar disableBrandToggle={verifSessionActive} navigationLocked={verifSessionActive} />
         <main className="flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
+          <div className={cn("mx-auto w-full flex-1 flex flex-col", verifSessionActive ? "max-w-full" : "max-w-6xl")}>
 
           <div className="flex flex-col gap-2 mb-6">
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
@@ -1245,7 +1245,8 @@ export default function InventoryPage() {
           </div>
 
           {/* Search bar */}
-          <div className="flex items-center gap-2 mb-6">
+          {!verifSessionActive && (
+            <div className="flex items-center gap-2 mb-6">
             <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
               <SelectTrigger className="w-[130px] shrink-0 hover:text-primary-foreground hover:bg-primary transition-colors">
                 <SelectValue />
@@ -1291,6 +1292,7 @@ export default function InventoryPage() {
               )}
             </div>
           </div>
+          )}
 
           {/* â”€â”€ Tab Navigation â”€â”€ */}
           <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
