@@ -16,7 +16,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Scan, Package, Scissors, CheckCircle, Camera,
+  Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, ClipboardCheck, Archive,
   Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
   Loader2, Zap,
 } from "lucide-react"
@@ -155,16 +155,20 @@ export default function StationCheckpointsPage() {
   const { brand } = useBrand()
   const [boxes, setBoxes] = useState<BoxItem[]>([])
   const [transitions, setTransitions] = useState<Transition[]>([])
-  const [loading, setLoading] = useState(true)
+  const [totalTransitions, setTotalTransitions] = useState(0)
+  const [topLoading, setTopLoading] = useState(true)
+  const [transitionsLoading, setTransitionsLoading] = useState(true)
   const [advancing, setAdvancing] = useState<string | null>(null)
   const [receiving, setReceiving] = useState<string | null>(null)
   const [sendingForward, setSendingForward] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [scanInput, setScanInput] = useState('')
   const [highlightBox, setHighlightBox] = useState<string | null>(null)
+  const [transitionSearchInput, setTransitionSearchInput] = useState('')
   const [transitionSearch, setTransitionSearch] = useState('')
   const [transitionDateFrom, setTransitionDateFrom] = useState(todayStr())
   const [transitionDateTo, setTransitionDateTo] = useState(todayStr())
+  const transitionsPagination = usePagination({ totalItems: totalTransitions, defaultPageSize: 50 })
   const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null)
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
@@ -232,10 +236,17 @@ export default function StationCheckpointsPage() {
   const prevBoxesRef = useRef<BoxItem[]>([])
   const prevTransitionsRef = useRef<Transition[]>([])
 
-  // Keep latest filter/brand in refs so fetchData doesn't need to re-create
   const transitionStageFilterRef = useRef(transitionStageFilter)
+  const transitionSearchRef = useRef(transitionSearch)
+  const transitionDateFromRef = useRef(transitionDateFrom)
+  const transitionDateToRef = useRef(transitionDateTo)
+  const transitionOffsetRef = useRef(transitionsPagination.offset)
   const brandRef = useRef(brand)
   useEffect(() => { transitionStageFilterRef.current = transitionStageFilter }, [transitionStageFilter])
+  useEffect(() => { transitionSearchRef.current = transitionSearch }, [transitionSearch])
+  useEffect(() => { transitionDateFromRef.current = transitionDateFrom }, [transitionDateFrom])
+  useEffect(() => { transitionDateToRef.current = transitionDateTo }, [transitionDateTo])
+  useEffect(() => { transitionOffsetRef.current = transitionsPagination.offset }, [transitionsPagination.offset])
   useEffect(() => { brandRef.current = brand }, [brand])
 
   // Helper to check if data actually changed
@@ -244,74 +255,98 @@ export default function StationCheckpointsPage() {
     return oldData.some((item, i) => JSON.stringify(item) !== JSON.stringify(newData[i]))
   }, [])
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (opts?: { skipTop?: boolean }) => {
+    if (!opts?.skipTop) setTopLoading(true)
+    setTransitionsLoading(true)
     try {
       const currentFilter = transitionStageFilterRef.current
+      const currentSearch = transitionSearchRef.current
+      const currentDateFrom = transitionDateFromRef.current
+      const currentDateTo = transitionDateToRef.current
       const currentBrand = brandRef.current
-      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50&box_type=${currentBrand}${currentFilter ? `&stage=${currentFilter}` : ''}`
-      const [boxRes, transRes, liveRes, scanRowsRes, transmitRowsRes] = await Promise.all([
-        authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true&box_type=${currentBrand}`),
-        authFetch(transitionUrl),
-        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}&wipOnly=true`).catch(() => null),
-        authFetch(`${API_URL}/api/scanning/scan-rows?location=${currentBrand}`).catch(() => null),
-        authFetch(`${API_URL}/api/scanning/transmit-rows?location=${currentBrand}`).catch(() => null),
-      ])
-      const boxData = await boxRes.json()
-      const transData = await transRes.json()
+      
+      const transitionParams = new URLSearchParams({
+        limit: '50',
+        offset: String(transitionOffsetRef.current || 0),
+        box_type: currentBrand
+      })
+      if (currentFilter && currentFilter !== 'all') transitionParams.append('stage', currentFilter)
+      if (currentSearch) transitionParams.append('search', currentSearch)
+      if (currentDateFrom) transitionParams.append('date_from', currentDateFrom)
+      if (currentDateTo) transitionParams.append('date_to', currentDateTo)
+
+      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?${transitionParams.toString()}`
+      
+      let boxData, liveData, scanRowsData, transmitRowsData;
+      let transData;
+
+      if (!opts?.skipTop) {
+        const [boxRes, transRes, liveRes, scanRowsRes, transmitRowsRes] = await Promise.all([
+          authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true&box_type=${currentBrand}`),
+          authFetch(transitionUrl),
+          authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}&wipOnly=true`).catch(() => null),
+          authFetch(`${API_URL}/api/scanning/scan-rows?location=${currentBrand}`).catch(() => null),
+          authFetch(`${API_URL}/api/scanning/transmit-rows?location=${currentBrand}`).catch(() => null),
+        ])
+        boxData = await boxRes.json()
+        transData = await transRes.json()
+        if (liveRes && liveRes.ok) liveData = await liveRes.json()
+        if (scanRowsRes && scanRowsRes.ok) scanRowsData = await scanRowsRes.json()
+        if (transmitRowsRes && transmitRowsRes.ok) transmitRowsData = await transmitRowsRes.json()
+      } else {
+        const transRes = await authFetch(transitionUrl)
+        transData = await transRes.json()
+      }
       
       // Only update state if data actually changed
-      if (boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
+      if (boxData && boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
         setBoxes(boxData.boxes)
         prevBoxesRef.current = boxData.boxes
       }
       if (transData.success && hasDataChanged(prevTransitionsRef.current, transData.transitions)) {
         setTransitions(transData.transitions)
+        setTotalTransitions(transData.totalCount || 0)
         prevTransitionsRef.current = transData.transitions
       }
 
       // Pull Simflex book counts for Scan card.
-      if (liveRes && liveRes.ok) {
-        const liveData = await liveRes.json()
-        if (liveData.success) {
-          setScanBooks(liveData.scanWipCount ?? null)
-        }
+      if (liveData && liveData.success) {
+        setScanBooks(liveData.scanWipCount ?? null)
       }
 
       // Populate the set of box numbers that have at least one book in the
       // scan-WIP status range (Scanning ONGOING → Preval COMPLETED).
       // This is used both for the card count and the modal box list.
-      if (scanRowsRes && scanRowsRes.ok) {
-        const scanRowsData = await scanRowsRes.json()
-        if (scanRowsData.success) {
-          const eligible = new Set<string>(
-            (scanRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
-          )
-          setScanEligibleBoxNums(eligible)
-        }
+      if (scanRowsData && scanRowsData.success) {
+        const eligible = new Set<string>(
+          (scanRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
+        )
+        setScanEligibleBoxNums(eligible)
       }
 
       // Transmit card count: use DB-validated transmit-rows count so it matches
       // the modal list (only books in our DB whose box is still in scan stage,
       // correct brand, and confirmed processable).
-      if (transmitRowsRes && transmitRowsRes.ok) {
-        const transmitRowsData = await transmitRowsRes.json()
-        if (transmitRowsData.success) {
-          setTransmitBooks(transmitRowsData.count ?? 0)
-          const transmitEligible = new Set<string>(
-            (transmitRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
-          )
-          setTransmitEligibleBoxNums(transmitEligible)
-        }
+      if (transmitRowsData && transmitRowsData.success) {
+        setTransmitBooks(transmitRowsData.count ?? 0)
+        const transmitEligible = new Set<string>(
+          (transmitRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
+        )
+        setTransmitEligibleBoxNums(transmitEligible)
       }
 
       setLastUpdated(new Date())
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
-      setLoading(false)
+      if (!opts?.skipTop) setTopLoading(false)
+      setTransitionsLoading(false)
     }
   }, [hasDataChanged])
+
+  useEffect(() => {
+    fetchData({ skipTop: true })
+  }, [fetchData, transitionStageFilter, transitionSearch, transitionDateFrom, transitionDateTo, transitionsPagination.offset])
 
   useEffect(() => {
     fetchData()
@@ -789,22 +824,9 @@ export default function StationCheckpointsPage() {
     return new Date(year, month - 1, day)
   }
 
-  // Filter and pagination for transitions log
-  const filteredTransitions = transitions.filter(t => {
-    const q = transitionSearch.toLowerCase().trim()
-    const matchesSearch = !q ||
-      (t.box?.box_number || '').toLowerCase().includes(q) ||
-      (t.box?.lot?.lot_number || '').toLowerCase().includes(q)
-    const tDate = new Date(t.updated_at || new Date())
-    const from = transitionDateFrom ? parseDateLocal(transitionDateFrom) : null
-    const to = transitionDateTo ? parseDateLocal(transitionDateTo) : null
-    // Include the full day for the "to" date
-    if (to) to.setHours(23, 59, 59, 999)
-    const matchesDate = (!from || tDate >= from) && (!to || tDate <= to)
-    return matchesSearch && matchesDate
-  })
-  const transitionsPagination = usePagination({ totalItems: filteredTransitions.length, defaultPageSize: 50 })
-  const paginatedTransitions = filteredTransitions.slice(transitionsPagination.offset, transitionsPagination.offset + transitionsPagination.limit)
+  // Filter and pagination for transitions log is now handled SERVER-SIDE
+  const filteredTransitions = transitions
+  const paginatedTransitions = transitions
 
   const formatTime = (iso: string) => {
     const d = new Date(iso)
@@ -812,12 +834,12 @@ export default function StationCheckpointsPage() {
     if (diff < 60) return `${diff}s ago`
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-    return d.toLocaleString()
+    return `${Math.floor(diff / 86400)}d ago`
   }
 
   const STAGE_LABELS: Record<string, string> = {
     warehouse: 'Warehouse', inventory: 'Inventory', cut: 'Cut',
-    endorsement: 'Endorsement', scan: 'Scan', transmit: 'Transmit', storage: 'Storage'
+    endorsement: 'Endorsement', scan: 'Scan', storage: 'Storage'
   }
 
   const lastUpdateLabel = lastUpdated
@@ -1220,7 +1242,7 @@ export default function StationCheckpointsPage() {
                                       )}
                                     >
                                       <div 
-                                        className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer group hover:bg-slate-50 transition-colors gap-3"
+                                        className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-2 cursor-pointer group hover:bg-slate-50 transition-colors gap-3"
                                         onClick={() => toggleStageBoxDetails(box)}
                                       >
                                         {/* Left side: Box & Lot */}
@@ -1245,7 +1267,7 @@ export default function StationCheckpointsPage() {
                                           <div className="min-w-[80px]">
                                             <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
                                             <span className="text-xs font-semibold text-foreground">
-                                              {box.total_books_expected} expected
+                                              {box.box_sessions?.[0]?.total_scanned ?? 0} / {box.total_books_expected ?? 0}
                                             </span>
                                           </div>
 
@@ -1374,7 +1396,7 @@ export default function StationCheckpointsPage() {
                   Manually receive boxes at each station to advance them through the pipeline.
                 </p>
               </div>
-              <RefreshControl onRefresh={fetchData} refreshing={loading} lastUpdated={lastUpdated} storageKey="checkpoints" className="hidden sm:flex" />
+              <RefreshControl onRefresh={() => fetchData()} refreshing={topLoading || transitionsLoading} lastUpdated={lastUpdated} storageKey="checkpoints" className="hidden sm:flex" />
             </header>
 
             {/* Pipeline Stage Flow */}
@@ -1423,10 +1445,8 @@ export default function StationCheckpointsPage() {
 
 
             {/* Station Cards Grid */}
-            {loading ? (
-              <div className="text-center py-16 text-sm text-muted-foreground">Loading stations...</div>
-            ) : (
-              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative">
+              {topLoading && <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                 {/* Desktop: 7 inline columns */}
                 <div className="hidden lg:flex items-stretch gap-3">
                   {STAGE_ORDER.map((stage) => {
@@ -1529,19 +1549,18 @@ export default function StationCheckpointsPage() {
                   </div>
                 </div>
               </div>
-            )}
 
             {/* Pipeline Transition Logs */}
-            <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-              <div className={cn("flex items-center justify-between px-5 py-4 border-b", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
-                <div className="flex items-center gap-3">
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
+            <Card className="border-border/50 bg-card overflow-hidden py-0 gap-0 shadow-xl shadow-black/[0.03] ring-1 ring-black/5 rounded-2xl">
+              <div className={cn("flex items-center justify-between px-6 py-5 border-b border-border/50", brand === 'jaguar' ? "bg-gradient-to-r from-green-50/50 to-transparent" : "bg-gradient-to-r from-blue-50/50 to-transparent")}>
+                <div className="flex items-center gap-4">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
                     <Scan className="h-5 w-5" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-foreground">Box Pipeline Tracker</h2>
-                    <p className="text-xs text-muted-foreground">
-                      {filteredTransitions.length} of {transitions.length} entries
+                    <h2 className="text-base font-bold text-foreground tracking-tight">Box Pipeline Tracker</h2>
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                      Showing page {transitionsPagination.currentPage} of {transitionsPagination.totalPages || 1} ({totalTransitions} total matching entries)
                     </p>
                   </div>
                 </div>
@@ -1552,9 +1571,15 @@ export default function StationCheckpointsPage() {
                 <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Search box or lot..."
-                    value={transitionSearch}
-                    onChange={e => setTransitionSearch(e.target.value)}
+                    placeholder="Search box or lot (Press Enter)"
+                    value={transitionSearchInput}
+                    onChange={e => setTransitionSearchInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        setTransitionSearch(transitionSearchInput)
+                        transitionsPagination.goToPage(1)
+                      }
+                    }}
                     className="pl-9 h-9 border-primary/30 focus-visible:border-primary focus-visible:ring-primary/50"
                   />
                 </div>
@@ -1566,7 +1591,7 @@ export default function StationCheckpointsPage() {
                     </SelectTrigger>  
                     <SelectContent>
                       <SelectItem value="all">All stages</SelectItem>
-                      {STAGE_ORDER.map(stage => (
+                      {STAGE_ORDER.filter(s => s !== 'transmit').map(stage => (
                         <SelectItem key={stage} value={stage}>{STAGE_META[stage].label}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1612,25 +1637,27 @@ export default function StationCheckpointsPage() {
                 </div>
               </div>
 
-              <CardContent className="p-0">
+              <CardContent className="p-0 relative">
+                {transitionsLoading && <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center min-h-[100px]"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                 {transitions.length === 0 ? (
                   <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    No transitions logged yet. Use &quot;Receive&quot; buttons above to advance boxes.
+                    No transitions logged yet. Use "Receive" buttons above to advance boxes.
                   </div>
                 ) : filteredTransitions.length === 0 ? (
                   <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                     No transitions match your search or date filters.
                   </div>
                 ) : (
-                  <div className="flex flex-col border-t border-border">
+                  <div className="flex flex-col border-t border-border/50">
                     {paginatedTransitions.map((t) => {
-                      const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan'];
+                      const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage'];
                       const isExpanded = expandedTimelineId === t.id;
                       const box = t.box;
                       if (!box) return null;
                       
-                      const stageIdx = PIPELINE_STAGES.indexOf(box.current_stage);
-                      const isCompleted = (box.current_stage === 'scan' && t.scan_time_received != null) || box.current_stage === 'transmit' || box.current_stage === 'storage';
+                      let stageIdx = PIPELINE_STAGES.indexOf(box.current_stage);
+                      if (box.current_stage === 'transmit') stageIdx = 4;
+                      const isCompleted = box.current_stage === 'storage' && t.storage_time_assigned != null;
 
                       // Determine status and holder
                       let statusText = 'In progress';
@@ -1638,72 +1665,86 @@ export default function StationCheckpointsPage() {
                       let holderName = '—';
                       let holderStage = '';
 
-                      if (isCompleted) {
-                        statusText = 'Completed';
-                        statusColor = 'bg-green-100 text-green-700';
-                      } else if (box.current_stage === 'warehouse') {
+                      if (box.current_stage === 'warehouse') {
                         holderName = t.warehouse_user_name || '—';
                         holderStage = 'Warehouse';
-                        statusText = 'Completed';
-                        statusColor = 'bg-green-100 text-green-700';
+                        if (!isCompleted) {
+                          statusText = 'Completed';
+                          statusColor = 'bg-green-100 text-green-700';
+                        }
                       } else if (box.current_stage === 'inventory') {
                         holderName = t.inventory_user_name || '—';
                         holderStage = 'Inventory';
-                        if (t.inventory_send_name) {
-                          statusText = 'Sent';
-                          statusColor = 'bg-indigo-100 text-indigo-700';
-                        } else if (t.inventory_time_received) {
-                          statusText = 'Received';
-                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        if (!isCompleted) {
+                          if (t.inventory_send_name) {
+                            statusText = 'Sent';
+                            statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.inventory_time_received) {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
                         }
                       } else if (box.current_stage === 'cut') {
                         holderName = t.cut_user_name || '—';
                         holderStage = 'Cut';
-                        if (t.cut_send_name) {
-                          statusText = 'Sent';
-                          statusColor = 'bg-indigo-100 text-indigo-700';
-                        } else if (t.cut_time_received) {
-                          statusText = 'Received';
-                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        if (!isCompleted) {
+                          if (t.cut_send_name) {
+                            statusText = 'Sent';
+                            statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.cut_time_received) {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
                         }
                       } else if (box.current_stage === 'endorsement') {
                         holderName = t.endorsement_user_name || '—';
                         holderStage = 'Endorsement';
-                        if (t.endorsement_send_name) {
-                          statusText = 'Sent';
-                          statusColor = 'bg-indigo-100 text-indigo-700';
-                        } else if (t.endorsement_time_received) {
-                          statusText = 'Received';
-                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        if (!isCompleted) {
+                          if (t.endorsement_send_name) {
+                            statusText = 'Sent';
+                            statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.endorsement_time_received) {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
                         }
-                      } else if (box.current_stage === 'scan') {
+                      } else if (box.current_stage === 'scan' || box.current_stage === 'transmit') {
                         holderName = t.scan_user_name || '—';
-                        holderStage = 'Scan';
-                        if (t.scan_time_received) {
+                        holderStage = box.current_stage === 'transmit' ? 'Transmit' : 'Scan';
+                        if (box.current_stage === 'transmit') {
+                          statusText = 'Transmitted';
+                          statusColor = 'bg-blue-100 text-blue-700';
+                        } else if (t.scan_time_received) {
                           statusText = 'Received';
                           statusColor = 'bg-yellow-100 text-yellow-700';
                         }
-                      } else if (box.current_stage === 'transmit') {
-                        holderStage = 'Transmit';
+                      } else if (box.current_stage === 'storage') {
+                        holderName = t.storage_user_name || t.scan_user_name || '—';
+                        holderStage = 'Storage';
+                      }
+
+                      if (isCompleted) {
+                        statusText = 'Completed';
+                        statusColor = 'bg-green-100 text-green-700';
                       }
 
                       return (
-                        <div key={t.id} className="border-b border-border last:border-0 flex flex-col bg-card">
+                        <div key={t.id} className="border-b border-border/50 last:border-0 flex flex-col bg-card hover:bg-muted/30 transition-colors">
                           {/* Main Row */}
                           <div 
-                            className="flex items-center px-5 py-4 cursor-pointer hover:bg-muted/40 transition-colors gap-4"
+                            className="flex items-center px-6 py-4 cursor-pointer gap-4"
                             onClick={() => setExpandedTimelineId(isExpanded ? null : t.id)}
                           >
                             {/* Box & Stage Dots */}
-                            <div className="w-[220px] shrink-0 flex flex-col gap-1.5">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-foreground text-sm">{box.box_number}</span>
+                            <div className="w-[220px] shrink-0 flex items-center">
+                              <div className="w-[80px] shrink-0 flex flex-col mr-2">
+                                <span className="font-bold text-foreground text-sm truncate">{box.box_number}</span>
                                 {box.lot?.lot_number && (
-                                  <span className="text-[10px] text-muted-foreground font-semibold">{box.lot.lot_number}</span>
+                                  <span className="text-[10px] text-muted-foreground font-semibold truncate">{box.lot.lot_number}</span>
                                 )}
                               </div>
-                              <div className="flex items-center gap-1.5">
-                                <div className="flex items-center gap-1">
+                              <div className="flex flex-col gap-1 w-[130px]">
+                                <div className="flex items-center gap-1.5">
                                   {PIPELINE_STAGES.map((s, i) => {
                                     let dotColor = "bg-muted-foreground/30";
                                     if (isCompleted || i < stageIdx) dotColor = "bg-green-500";
@@ -1711,7 +1752,7 @@ export default function StationCheckpointsPage() {
                                     return <div key={s} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
                                   })}
                                 </div>
-                                <span className="text-[11px] text-muted-foreground capitalize font-medium">{box.current_stage}</span>
+                                <span className="text-[10px] text-muted-foreground capitalize font-medium truncate">{box.current_stage}</span>
                               </div>
                             </div>
 
@@ -1725,7 +1766,7 @@ export default function StationCheckpointsPage() {
                             {/* Scan / Expected */}
                             <div className="w-[130px] shrink-0 flex flex-col">
                               <span className="text-sm font-semibold text-foreground">
-                                {box.total_books_expected} expected
+                                {t.total_scanned ?? 0} / {box.total_books_expected ?? 0}
                               </span>
                               <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">Books</span>
                             </div>
@@ -1737,8 +1778,9 @@ export default function StationCheckpointsPage() {
                             </div>
 
                             {/* Updated */}
-                            <div className="w-[100px] shrink-0 text-xs text-muted-foreground ml-auto text-right pr-4">
-                              {formatTime(t.updated_at)}
+                            <div className="w-[100px] shrink-0 flex flex-col items-end justify-center ml-auto pr-4">
+                              <span className="text-xs text-muted-foreground">{formatTime(t.updated_at)}</span>
+                              {box.created_at && <span className="text-[10px] text-muted-foreground opacity-75 mt-0.5">{new Date(box.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>}
                             </div>
 
                             {/* Chevron */}
@@ -1749,10 +1791,7 @@ export default function StationCheckpointsPage() {
 
                           {/* Expanded Timeline */}
                           {isExpanded && (
-                            <div className="px-6 py-6 bg-muted/20 border-t border-border overflow-hidden">
-                              <div className="text-sm font-bold text-foreground mb-6">
-                                {box.box_number} · full timeline
-                              </div>
+                            <div className="px-6 py-4 bg-muted/20 border-t border-border overflow-hidden">
                               <div className="flex items-start justify-between relative px-2">
                                 {/* Connecting background line */}
                                 <div className="absolute top-3 left-10 right-10 h-[2px] bg-border z-0" />
@@ -1806,13 +1845,15 @@ export default function StationCheckpointsPage() {
                                     sendTime = t.endorsement_time_send; sendUser = t.endorsement_send_name;
                                   } else if (s === 'scan') {
                                     recvTime = t.scan_time_received; recvUser = t.scan_user_name;
+                                  } else if (s === 'storage') {
+                                    recvTime = t.storage_time_assigned; recvUser = t.storage_user_name;
                                   }
 
                                   return (
                                     <div key={s} className="flex flex-col items-center flex-1 z-10 relative">
                                        {icon}
                                        <span className={cn("text-[11px] font-bold mt-2 capitalize", (isPast || isCurrent) ? "text-foreground" : "text-muted-foreground")}>{s}</span>
-                                       <div className="mt-1.5 flex flex-col items-center text-[10px] text-muted-foreground text-center h-8">
+                                       <div className="mt-1 flex flex-col items-center text-[10px] text-muted-foreground text-center">
                                          {!recvTime && !sendTime && !scanTime && (
                                            <span className="opacity-50">not logged</span>
                                          )}

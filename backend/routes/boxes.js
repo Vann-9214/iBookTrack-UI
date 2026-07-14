@@ -227,13 +227,15 @@ router.get('/', async (req, res) => {
 // Now returns 1 row per box session to avoid flooding the UI with events
 router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   try {
-    const { limit = 50, stage, box_type } = req.query
+    const { limit = 50, offset = 0, stage, box_type, search, date_from, date_to } = req.query
+    const limitNum = parseInt(limit)
+    const offsetNum = parseInt(offset)
 
     const db = supabaseAdmin || supabase
-    const boxSelect = box_type 
-      ? `box:boxes!inner(id, box_number, lot:lots(lot_number), box_type, current_stage)`
-      : `box:boxes(id, box_number, lot:lots(lot_number), box_type, current_stage)`
-
+    
+    // We use inner join on boxes to allow filtering by box_number and stage
+    let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_books_expected`
+    
     let query = db
       .from('box_sessions')
       .select(`
@@ -246,26 +248,46 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
         endorsement_time_received, endorsement_user_received,
         endorsement_time_send, endorsement_user_send,
         scan_time_received, scan_user_received,
+        total_scanned,
         updated_at,
-        ${boxSelect}
-      `)
-      .order('updated_at', { ascending: false })
-      .limit(parseInt(limit))
+        box:boxes!inner(${boxSelect})
+      `, { count: 'exact' })
 
     if (box_type) {
       query = query.eq('boxes.box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     }
     
-    // Note: To perfectly filter by stage, we could add complex OR logic.
-    // For now, if stage is selected, filter in JS to keep it simple, or just return all and let UI filter.
+    if (stage && stage !== 'all') {
+      query = query.eq('boxes.current_stage', stage)
+    }
+
+    if (date_from) {
+      query = query.gte('updated_at', `${date_from}T00:00:00.000Z`)
+    }
     
-    const { data: sessions, error } = await query
+    if (date_to) {
+      query = query.lte('updated_at', `${date_to}T23:59:59.999Z`)
+    }
+    
+    if (search) {
+      // Find matching lots first so we can include them in an OR query on the boxes table
+      const { data: matchedLots } = await db.from('lots').select('id').ilike('lot_number', `%${search}%`)
+      const lotIds = (matchedLots || []).map(l => l.id)
+      
+      if (lotIds.length > 0) {
+        query = query.or(`box_number.ilike.%${search}%,lot_id.in.(${lotIds.join(',')})`, { foreignTable: 'boxes' })
+      } else {
+        query = query.ilike('boxes.box_number', `%${search}%`)
+      }
+    }
+
+    query = query.order('updated_at', { ascending: false })
+                 .range(offsetNum, offsetNum + limitNum - 1)
+    
+    const { data: sessions, count, error } = await query
     if (error) throw error
 
     let filteredSessions = sessions || []
-    if (stage) {
-      filteredSessions = filteredSessions.filter(s => s.box?.current_stage === stage)
-    }
     
     // Fetch user names for all users involved in these sessions
     const userIds = new Set()
@@ -289,6 +311,17 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
           }
         }
       }
+
+      const { data: storageAssignments } = await db
+        .from('storage_assignments')
+        .select('box_id, assigned_by, assigned_at')
+        .in('box_id', boxIds)
+
+      for (const sa of storageAssignments || []) {
+        if (!boxScanData[sa.box_id]) boxScanData[sa.box_id] = {}
+        boxScanData[sa.box_id].s_by = sa.assigned_by
+        boxScanData[sa.box_id].s_at = sa.assigned_at
+      }
     }
 
     filteredSessions.forEach(s => {
@@ -306,6 +339,7 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
         if (boxScanData[boxId].w_by) userIds.add(boxScanData[boxId].w_by)
         if (boxScanData[boxId].i_by) userIds.add(boxScanData[boxId].i_by)
         if (boxScanData[boxId].e_by) userIds.add(boxScanData[boxId].e_by)
+        if (boxScanData[boxId].s_by) userIds.add(boxScanData[boxId].s_by)
       }
     })
 
@@ -338,6 +372,8 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
         endorsement_scan_at: scanData ? scanData.e_at : null,
         endorsement_send_name: userMap[s.endorsement_user_send] || null,
         scan_user_name: userMap[s.scan_user_received] || null,
+        storage_user_name: scanData ? (userMap[scanData.s_by] || null) : null,
+        storage_time_assigned: scanData ? scanData.s_at : null,
       }
     })
 
