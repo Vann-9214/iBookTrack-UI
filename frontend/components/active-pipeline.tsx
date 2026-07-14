@@ -14,7 +14,7 @@ const getStatusConfig = (brand: string) => ({
   active: {
     nodeRing: brand === 'jaguar' ? "border-green-400 text-green-500" : "border-blue-400 text-blue-500",
     countColor: brand === 'jaguar' ? "text-green-500" : "text-blue-500",
-    bar: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
+    bar: brand === 'jaguar' ? "bg-gradient-to-r from-green-400 via-green-400/50 to-transparent" : "bg-gradient-to-r from-blue-400 via-blue-400/50 to-transparent",
     cardBg: brand === 'jaguar' ? "bg-green-50" : "bg-blue-50",
     dot: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
     label: "Active",
@@ -22,7 +22,7 @@ const getStatusConfig = (brand: string) => ({
   busy: {
     nodeRing: "border-orange-400 text-orange-500",
     countColor: "text-orange-500",
-    bar: "bg-orange-400",
+    bar: "bg-gradient-to-r from-orange-400 via-orange-400/50 to-transparent",
     cardBg: "bg-orange-50",
     dot: "bg-orange-400",
     label: "Busy",
@@ -30,7 +30,7 @@ const getStatusConfig = (brand: string) => ({
   idle: {
     nodeRing: "border-gray-300 text-gray-400",
     countColor: "text-gray-400",
-    bar: "bg-gray-400",
+    bar: "bg-gradient-to-r from-gray-400 via-gray-400/50 to-transparent",
     cardBg: "bg-gray-50",
     dot: "bg-gray-400",
     label: "Idle",
@@ -76,7 +76,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   if (loading || !stats) {
     return (
-      <Card className={cn("border-border bg-card border-t-2", borderColor)}>
+      <Card className={cn("border-border bg-card border-t-2 shadow-sm", borderColor)}>
         <CardHeader className="pb-4">
           <Skeleton className="h-5 w-40 rounded bg-muted-foreground/20" />
         </CardHeader>
@@ -116,7 +116,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   return (
     <>
-      <Card className={cn("border-border bg-card border-t-2", borderColor)}>
+      <Card className={cn("border-border bg-card border-t-2 shadow-sm", borderColor)}>
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold text-card-foreground">
             Active Pipeline {currentLot && <span className="text-muted-foreground">| {currentLot}</span>}

@@ -15,11 +15,9 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, ClipboardCheck, Archive, Activity,
+import { Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, ClipboardCheck, Archive, Activity,
   Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
-  Loader2, Zap,
-} from "lucide-react"
+  Loader2, Zap, MapPin } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
@@ -1434,7 +1432,7 @@ export default function StationCheckpointsPage() {
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
               <div className="flex items-center gap-4">
                 <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                  <Activity className="h-7 w-7" />
+                  <MapPin className="h-7 w-7" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
-import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Package, BookOpen, ChevronUp, ChevronDown } from 'lucide-react'
+import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Package, BookOpen, ChevronUp, ChevronDown, BarChart3 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from '@/lib/utils'
 import { authFetch } from '@/lib/auth-api'
@@ -119,13 +119,20 @@ export default function ReportsPage() {
         <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
           {/* Header */}
-          <header className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">LOT Status Report</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Real-time movement and completion status of all lots
-                {timestamp && <span className="ml-2">· Updated {timestamp}</span>}
-              </p>
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 flex-wrap">
+            <div className="flex items-center gap-4">
+              <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                <BarChart3 className="h-7 w-7" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                  LOT Status Report
+                </h1>
+                <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                  Real-time movement and completion status of all lots for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                  {timestamp && <span className="ml-2 hidden sm:inline">· Updated {timestamp}</span>}
+                </p>
+              </div>
             </div>
             <RefreshControl onRefresh={fetchData} refreshing={loading} lastUpdated={lastUpdated} storageKey="reports" className="hidden sm:flex" />
           </header>
