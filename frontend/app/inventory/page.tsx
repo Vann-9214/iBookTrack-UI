@@ -155,7 +155,7 @@ export default function InventoryPage() {
 
   // --- Print-completion tracking (per box) ---
   // printedBoxLabels: set of box IDs whose box label has been printed
-  // printedBookSlips: map of boxId â†’ set of book IDs whose slip has been printed
+  // printedBookSlips: map of boxId → set of book IDs whose slip has been printed
   const [printedBoxLabels, setPrintedBoxLabels] = useState<Set<string>>(new Set())
   const [printedBookSlips, setPrintedBookSlips] = useState<Record<string, Set<string>>>({})
   const printProcessRows = [
@@ -320,7 +320,7 @@ export default function InventoryPage() {
       const derivedType = (Array.from(new Set((bookTypeData.books || [])
         .map((book: { book_type?: string }) => (book.book_type || '').trim())
         .filter(Boolean))) as string[])
-        .map(type => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase())[0] || 'â€”'
+        .map(type => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase())[0] || '—'
 
       setPrintBox(box)
       setPrintBooks(books)
@@ -343,12 +343,12 @@ export default function InventoryPage() {
 
   const [movingToStorage, setMovingToStorage] = useState<string | null>(null)
 
-  // â”€â”€ Tab navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Tab navigation ──────────────────────────────────────────────────────────
   const [inventoryTab, setInventoryTab] = useState<'incoming' | 'verification' | 'outgoing'>('incoming')
 
-  // â”€â”€ Verified box IDs (session-complete â†’ outgoing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Verified box IDs (session-complete → outgoing) ─────────────────────────
   // Boxes move here after a verification session is completed (still inventory stage in DB).
-  // â”€â”€ Book Verification list: expandable row state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Book Verification list: expandable row state ───────────────────────────
   const [verifExpandedBoxId, setVerifExpandedBoxId] = useState<string | null>(null)
   const [verifRowBooks, setVerifRowBooks] = useState<Record<string, BookInBox[]>>({})
   const [loadingVerifRowBooks, setLoadingVerifRowBooks] = useState<string | null>(null)
@@ -370,7 +370,7 @@ export default function InventoryPage() {
     }
   }
 
-  // â”€â”€ Incoming: Receive box (warehouse â†’ inventory) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Incoming: Receive box (warehouse → inventory) ──────────────────────────
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
   const handleReceiveBox = async (box: Box) => {
@@ -390,7 +390,7 @@ export default function InventoryPage() {
     }
   }
 
-  // â”€â”€ Book Verification: session state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Book Verification: session state ───────────────────────────────────────
   const [verifSessionActive, setVerifSessionActive] = useState(false)
   const [verifSelectedBoxId, setVerifSelectedBoxId] = useState('')
   const [verifUserName, setVerifUserName] = useState('')
@@ -414,13 +414,13 @@ export default function InventoryPage() {
   const [verifFlagRemarks, setVerifFlagRemarks] = useState('')
   const [verifFlagSaving, setVerifFlagSaving] = useState(false)
 
-  // â”€â”€ Warehouse Data for Side-by-Side View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Warehouse Data for Side-by-Side View ─────────────────────────────────────
   const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
 
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
-  // â”€â”€ Fetch Warehouse Books for Comparison â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Fetch Warehouse Books for Comparison ───────────────────────────────────
   const fetchWarehouseBooks = async (boxId: string) => {
     setLoadingWarehouseBooks(true)
     try {
@@ -792,7 +792,7 @@ export default function InventoryPage() {
     }
   }
 
-  // â”€â”€ Outgoing: Send to Cut (inventory â†’ cut) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Outgoing: Send to Cut (inventory → cut) ────────────────────────────────
   const [sendingToCut, setSendingToCut] = useState<string | null>(null)
 
   const handleSendToCut = async (box: Box) => {
@@ -812,7 +812,7 @@ export default function InventoryPage() {
     }
   }
 
-  // â”€â”€ Outgoing: expand/collapse box to show its books â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Outgoing: expand/collapse box to show its books ───────────────────────────
   const toggleOutgoingBox = async (box: Box) => {
     if (outgoingExpandedBoxId === box.id) {
       setOutgoingExpandedBoxId(null)
@@ -930,7 +930,7 @@ export default function InventoryPage() {
     }
   }, [printBox])
 
-  // â”€â”€ Book slip: render barcode then trigger print â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Book slip: render barcode then trigger print ──────────────────────────────
   useEffect(() => {
     if (!printBook) return
 
@@ -986,23 +986,23 @@ export default function InventoryPage() {
     }
   }, [printBook])
 
-  // Brand filter helper â€” lot.type must match the active brand toggle (case-insensitive)
+  // Brand filter helper — lot.type must match the active brand toggle (case-insensitive)
   const matchesBrand = (b: Box) => !b.lot?.type || b.lot.type.toLowerCase() === brand.toLowerCase()
 
-  // Incoming Boxes â€” warehouse stage, matching brand
+  // Incoming Boxes — warehouse stage, matching brand
   const incomingBoxes = boxes.filter(b => 
     b.current_stage === 'warehouse' && 
     b.box_sessions?.some(s => s.status === 'completed') &&
     matchesBrand(b)
   )
 
-  // Book Verification â€” inventory stage, session is received/in_progress (not yet fully verified), matching brand
-  // Session lifecycle: completed (warehouse) â†’ received (inventory received) â†’ in_progress (verifying) â†’ completed (verified â†’ outgoing)
+  // Book Verification — inventory stage, session is received/in_progress (not yet fully verified), matching brand
+  // Session lifecycle: completed (warehouse) → received (inventory received) → in_progress (verifying) → completed (verified → outgoing)
   const inventoryBoxes = boxes.filter(b => {
     if (b.current_stage !== 'inventory') return false
     if (!matchesBrand(b)) return false
     const sessions = b.box_sessions || []
-    // If there's a completed or sent session it has been verified â†’ goes to outgoing or cut tab instead
+    // If there's a completed or sent session it has been verified → goes to outgoing or cut tab instead
     if (sessions.some(s => s.status === 'completed' || s.status === 'sent')) return false
     // Only hide in_progress boxes that are locked to a DIFFERENT user.
     // If inventory_user_send is null/unset, the box is available to everyone.
@@ -1017,7 +1017,7 @@ export default function InventoryPage() {
     return true
   })
 
-  // Outgoing Boxes â€” inventory stage + verified this session, matching brand
+  // Outgoing Boxes — inventory stage + verified this session, matching brand
   const outgoingBoxes = boxes.filter(b => 
     b.current_stage === 'inventory' && 
     b.box_sessions?.some(s => s.status === 'completed') &&
@@ -1034,7 +1034,7 @@ export default function InventoryPage() {
 
   return (
     <>
-    {/* â”€â”€ DELETE BOX CONFIRM DIALOG â”€â”€ */}
+    {/* ── DELETE BOX CONFIRM DIALOG ── */}
     {deleteConfirm && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden">
         <div className="bg-background border border-border rounded-xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
@@ -1067,12 +1067,12 @@ export default function InventoryPage() {
       </div>
     )}
 
-    {/* â”€â”€ PRINT LABEL OVERLAY (print-only) A6 landscape yellow label â”€â”€ */}
+    {/* ── PRINT LABEL OVERLAY (print-only) A6 landscape yellow label ── */}
     {printBox && (
       <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-start print:justify-start">
         {/*
-          A6 landscape = 148mm â”œÃ¹ 105mm.
-          At 96dpi: 148mm Î“Ã«Ãª 559px, 105mm Î“Ã«Ãª 397px.
+          A6 landscape = 148mm × 105mm.
+          At 96dpi: 148mm ≈ 559px, 105mm ≈ 397px.
           We use mm units via inline style for accurate print sizing.
         */}
         <div
@@ -1091,7 +1091,7 @@ export default function InventoryPage() {
             gap: '3mm',
           }}
         >
-          {/* â”€â”€ LEFT: Process table + Remarks â”€â”€ */}
+          {/* ── LEFT: Process table + Remarks ── */}
           <div style={{ flex: '0 0 52mm', display: 'flex', flexDirection: 'column', border: '1.5px solid #111' }}>
             {/* Header row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', fontSize: '7pt', fontWeight: 700, textAlign: 'center' }}>
@@ -1099,15 +1099,15 @@ export default function InventoryPage() {
               <div style={{ borderRight: '1px solid #111', padding: '1mm' }}></div>
               <div style={{ padding: '1mm', lineHeight: 1.1 }}>No. of<br />Books</div>
             </div>
-            {/* Row 1 Î“Ã‡Ã´ empty circle + book count */}
+            {/* Row 1 - empty circle + book count */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
               <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>Inventory &amp; Registration</div>
               <div style={{ borderRight: '1px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid #111', background: 'transparent', display: 'inline-block' }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books_expected || 'â€”'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books_expected || '—'}</div>
             </div>
-            {/* Rows 2-5 Î“Ã‡Ã´ empty circle, no book count (filled manually) */}
+            {/* Rows 2-5 - empty circle, no book count (filled manually) */}
             {printProcessRows.slice(1).map((label) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
                 <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>{label}</div>
@@ -1129,7 +1129,7 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/* â”€â”€ RIGHT: bordered box with Type/Lot/Box + QR code below â”€â”€ */}
+          {/* ── RIGHT: bordered box with Type/Lot/Box + QR code below ── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5mm' }}>
             {/* Top bordered box: Type, Lot, Box stacked */}
             <div style={{ border: '2px solid #111', display: 'flex', flexDirection: 'column', flex: '0 0 auto' }}>
@@ -1142,7 +1142,7 @@ export default function InventoryPage() {
               {/* Section 2: Lot number */}
               <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.8mm 2mm' }}>
                 <span style={{ fontSize: '15pt', fontWeight: 700, textAlign: 'center', lineHeight: 1.1 }}>
-                  {printBox.lot?.lot_number || 'â€”'}
+                  {printBox.lot?.lot_number || '—'}
                 </span>
               </div>
               {/* Section 3: Box sequence number */}
@@ -1155,7 +1155,7 @@ export default function InventoryPage() {
                 </span>
               </div>
             </div>
-            {/* QR code below â€” square, fills remaining height */}
+            {/* QR code below — square, fills remaining height */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5mm' }}>
               <canvas ref={qrRef} width={300} height={300} style={{ width: 'auto', height: '100%', maxHeight: '42mm', imageRendering: 'pixelated', display: 'block' }} />
               <div style={{ fontSize: '5pt', textAlign: 'center', wordBreak: 'break-all', color: '#555' }}>{printBox.box_number}</div>
@@ -1165,7 +1165,7 @@ export default function InventoryPage() {
       </div>
     )}
 
-    {/* â”€â”€ BOOK SLIP OVERLAY (print-only) A5 portrait â”€â”€ */}
+    {/* ── BOOK SLIP OVERLAY (print-only) A5 portrait ── */}
     {printBook && (
       <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-start print:justify-start">
         <div style={{
@@ -1186,7 +1186,7 @@ export default function InventoryPage() {
             <span style={{ fontSize: '11pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Book Slip</span>
             <span style={{ fontSize: '8pt', color: '#555' }}>
               {printBook.box.lot?.lot_number ? `Lot: ${printBook.box.lot.lot_number}` : ''}
-              {printBook.box.lot?.lot_number && printBook.box.box_number ? '  Â·  ' : ''}
+              {printBook.box.lot?.lot_number && printBook.box.box_number ? '  ·  ' : ''}
               {printBook.box.box_number ? `Box: ${printBook.box.box_number}` : ''}
             </span>
           </div>
@@ -1206,16 +1206,16 @@ export default function InventoryPage() {
               <span style={{ fontWeight: 700, color: '#555' }}>Type</span>
               <span>{printBook.book.book_type
                 ? printBook.book.book_type.charAt(0).toUpperCase() + printBook.book.book_type.slice(1).toLowerCase()
-                : 'â€”'}</span>
+                : '—'}</span>
 
               <span style={{ fontWeight: 700, color: '#555' }}>Status</span>
-              <span style={{ textTransform: 'capitalize' }}>{printBook.book.scan_status?.replace('_', ' ') || 'â€”'}</span>
+              <span style={{ textTransform: 'capitalize' }}>{printBook.book.scan_status?.replace('_', ' ') || '—'}</span>
 
               <span style={{ fontWeight: 700, color: '#555' }}>Box</span>
               <span>{printBook.box.box_number}</span>
 
               <span style={{ fontWeight: 700, color: '#555' }}>Lot</span>
-              <span>{printBook.box.lot?.lot_number || 'â€”'}</span>
+              <span>{printBook.box.lot?.lot_number || '—'}</span>
             </div>
           </div>
 
@@ -1294,7 +1294,7 @@ export default function InventoryPage() {
           </div>
           )}
 
-          {/* â”€â”€ Tab Navigation â”€â”€ */}
+          {/* ── Tab Navigation ── */}
           <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
             {/* Incoming */}
             <button
@@ -1367,9 +1367,9 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/* Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ */}
+          {/* ================================================================== */}
           {/* TAB: INCOMING BOXES                                              */}
-          {/* Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ */}
+          {/* ================================================================== */}
           {inventoryTab === 'incoming' && (
             <div className="flex-1 flex flex-col">
               {loadingBoxes ? (
@@ -1411,7 +1411,7 @@ export default function InventoryPage() {
                                   <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Sent from Warehouse</span>
                                 </div>
-                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || 'â€”'} Â· BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
                               {created && (
                                 <div className="shrink-0 hidden sm:block text-right mr-2">
@@ -1459,7 +1459,7 @@ export default function InventoryPage() {
                                           'text-xs font-medium',
                                           (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
                                         )}>
-                                          {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : 'â€”'}
+                                          {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                         </span>
                                         <div className="flex flex-col gap-0.5">
                                           <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
@@ -1489,9 +1489,9 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {/* Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ */}
+          {/* ================================================================== */}
           {/* TAB: BOOK VERIFICATION                                           */}
-          {/* Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ */}
+          {/* ================================================================== */}
           {inventoryTab === 'verification' && (
             <div className="flex flex-col gap-3 min-h-0 flex-1">
 
@@ -1637,7 +1637,7 @@ export default function InventoryPage() {
                       </h3>
                       <button onClick={() => setVerifFlagModalBook(null)} className="text-muted-foreground hover:text-foreground">âœ•</button>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} â€” {verifFlagModalBook.title}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} — {verifFlagModalBook.title}</p>
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
@@ -1666,7 +1666,7 @@ export default function InventoryPage() {
               )}
 
               {!verifSessionActive ? (
-                /* â”€â”€ Box list for verification â”€â”€ */
+                /* ── Box list for verification ── */
                 <div className="flex-1 flex flex-col">
                   {loadingBoxes ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
@@ -1694,7 +1694,7 @@ export default function InventoryPage() {
                             
                             return (
                               <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
-                                {/* Row header â€” same style as Incoming Boxes */}
+                                {/* Row header — same style as Incoming Boxes */}
                                 <div className="flex items-center px-4 py-3 gap-4">
                                   {/* Expand chevron */}
                                   <button
@@ -1707,10 +1707,10 @@ export default function InventoryPage() {
                                   <div className="bg-primary/10 rounded-lg p-2 shrink-0">
                                     <Package className="h-5 w-5 text-primary" />
                                   </div>
-                                  {/* Info â€” clickable to expand */}
+                                  {/* Info — clickable to expand */}
                                   <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
                                     <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                    <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || 'â€”'} Â· BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                    <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                   </div>
                                   {/* Date + time */}
                                   {created && (
@@ -1761,7 +1761,7 @@ export default function InventoryPage() {
                                               'text-xs font-medium',
                                               (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
                                             )}>
-                                              {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : 'â€”'}
+                                              {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                             </span>
                                             <div className="flex flex-col gap-0.5">
                                               <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
@@ -1791,13 +1791,13 @@ export default function InventoryPage() {
                 </div>
               ) : verifBox && (
                 <>
-                  {/* â”€â”€ Active session bar â”€â”€ */}
+                  {/* ── Active session bar ── */}
                   <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-4">
                     <div className="flex items-center gap-4">
                       <Package className="h-5 w-5 text-primary" />
                       <div>
                         <p className="text-xs text-muted-foreground">Active Lot</p>
-                        <p className="text-sm font-semibold text-foreground">{verifBox.lot?.lot_number || 'â€”'}</p>
+                        <p className="text-sm font-semibold text-foreground">{verifBox.lot?.lot_number || '—'}</p>
                       </div>
                       {verifBox.box_number && (
                         <div>
@@ -1827,7 +1827,7 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* â”€â”€ Book count stats â”€â”€ */}
+                  {/* ── Book count stats ── */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
                       <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
@@ -1858,10 +1858,10 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/* â”€â”€ Scanner â”€â”€ */}
+                  {/* ── Scanner ── */}
                   <ScannerInput onScan={handleVerifScan} />
 
-                  {/* â”€â”€ Side-by-Side Warehouse and Inventory Tables â”€â”€ */}
+                  {/* ── Side-by-Side Warehouse and Inventory Tables ── */}
                   <div className="grid grid-cols-2 gap-4">
                     {/* Warehouse Table (Left) - Read Only */}
                     <div className="bg-card border border-border rounded-xl p-5">
@@ -1968,7 +1968,7 @@ export default function InventoryPage() {
                                   <div className="col-span-6">
                                     <p className="text-[11px] text-foreground truncate">{book.title}</p>
                                     {book.flag_issue && (
-                                      <p className="text-[10px] text-red-600 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` â€” ${book.flag_remarks}` : ''}</p>
+                                      <p className="text-[10px] text-red-600 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                                     )}
                                   </div>
                                   <div className="col-span-3 flex items-center justify-end gap-2">
@@ -2020,9 +2020,9 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {/* Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ */}
+          {/* ================================================================== */}
           {/* TAB: OUTGOING BOXES                                              */}
-          {/* Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰Î“Ã²Ã‰ */}
+          {/* ================================================================== */}
           {inventoryTab === 'outgoing' && (
             <div className="flex-1 flex flex-col">
               {loadingBoxes ? (
@@ -2053,7 +2053,7 @@ export default function InventoryPage() {
                         const allPrinted = boxLabelPrinted
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
-                            {/* â”€â”€ Header row â”€â”€ */}
+                            {/* ── Header row ── */}
                             <div className="flex items-center px-4 py-3 gap-4">
                               <button
                                 onClick={() => toggleOutgoingBox(box)}
@@ -2079,7 +2079,7 @@ export default function InventoryPage() {
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Verified</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                  LOT: {box.lot?.lot_number || 'â€”'} Â· BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" />
+                                  LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" />
                                 </p>
                               </div>
 
@@ -2120,9 +2120,9 @@ export default function InventoryPage() {
                                 />
                               </div>
 
-                              {/* Send button â€” only enabled once all book slips + box label are printed */}
+                              {/* Send button — only enabled once all book slips + box label are printed */}
                               <div className="shrink-0 relative group" onClick={e => e.stopPropagation()}>
-                                {/* Invisible hover capture layer â€” ensures hover works even when button is disabled */}
+                                {/* Invisible hover capture layer — ensures hover works even when button is disabled */}
                                 {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
                                 <button
                                   onClick={(e) => {
@@ -2149,7 +2149,7 @@ export default function InventoryPage() {
                               </div>
                             </div>
 
-                            {/* â”€â”€ Expanded book list â”€â”€ */}
+                            {/* ── Expanded book list ── */}
                             {isExpanded && (
                               <div className="border-t border-border bg-muted/30">
                                 {outgoingLoadingBooks === box.id ? (
@@ -2166,7 +2166,7 @@ export default function InventoryPage() {
                                       <span>Type</span>
                                       <span>Status</span>
                                       <span className="text-center">Print</span>
-                                      <span>{/* Printed â€” no header text */}</span>
+                                      <span>{/* Printed — no header text */}</span>
                                     </div>
                                     {booksForBox.map(book => {
                                       const isBookPrinted = (printedBookSlips[box.id] ?? new Set<string>()).has(book.id)
@@ -2177,7 +2177,7 @@ export default function InventoryPage() {
                                           <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
                                           {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
                                         </div>
-                                        {/* Book type â€” plain text */}
+                                        {/* Book type — plain text */}
                                         <span className={cn(
                                           'text-xs font-medium',
                                           (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar'
@@ -2186,7 +2186,7 @@ export default function InventoryPage() {
                                         )}>
                                           {(book.book_type || box.lot?.type)
                                             ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase()
-                                            : 'â€”'}
+                                            : '—'}
                                         </span>
                                         {/* Status badge */}
                                         <div className="flex flex-col gap-0.5">
@@ -2258,7 +2258,7 @@ export default function InventoryPage() {
                   <Zap className="h-4 w-4 text-primary" />
                   Simflex Transmission Check
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{simflexModal.box.box_number} Â· {simflexModal.box.lot?.lot_number}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{simflexModal.box.box_number} · {simflexModal.box.lot?.lot_number}</p>
               </div>
               {!simflexModal.loading && (
                 <button onClick={() => setSimflexModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">âœ•</button>
@@ -2308,7 +2308,7 @@ export default function InventoryPage() {
                       )}
                     </div>
                     {simflexModal.result.autoAdvanced && (
-                      <p className="text-xs text-green-700 mt-1 font-medium">Box stage updated: Scan â†’ Transmit â†’ Storage</p>
+                      <p className="text-xs text-green-700 mt-1 font-medium">Box stage updated: Scan → Transmit → Storage</p>
                     )}
                   </div>
                 </div>
@@ -2330,7 +2330,7 @@ export default function InventoryPage() {
                         <tr key={r.isbn} className="border-b border-border/40 last:border-0">
                           <td className="py-1.5 px-3 text-muted-foreground">{i + 1}</td>
                           <td className="py-1.5 px-3 text-foreground">{r.isbn}</td>
-                          <td className="py-1.5 px-3 text-muted-foreground">{r.boxNumber || 'â€”'}</td>
+                          <td className="py-1.5 px-3 text-muted-foreground">{r.boxNumber || '—'}</td>
                           <td className="py-1.5 px-3 text-muted-foreground max-w-[180px] truncate" title={r.latestStatus || ''}>
                             {r.latestStatus || <span className="italic">Not in Simflex</span>}
                           </td>

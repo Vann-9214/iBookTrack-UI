@@ -161,12 +161,12 @@ router.get('/', async (req, res) => {
       if (allBookIds.length > 0) {
         const [invRes, endRes] = await Promise.all([
           db.from('book_activity')
-            .select('inventory_scan_at, book_id')
+            .select('inventory_scan_at, inventory_scan_by, book_id')
             .in('book_id', allBookIds)
             .not('inventory_scan_at', 'is', null)
             .order('inventory_scan_at', { ascending: false }),
           db.from('book_activity')
-            .select('endorsement_scan_at, book_id')
+            .select('endorsement_scan_at, endorsement_scan_by, book_id')
             .in('book_id', allBookIds)
             .not('endorsement_scan_at', 'is', null)
             .order('endorsement_scan_at', { ascending: false }),
@@ -178,23 +178,44 @@ router.get('/', async (req, res) => {
       const bookToBox = {};
       (allBooks || []).forEach(b => { bookToBox[b.id] = b.box_id; });
 
+      const userIds = [...new Set([
+        ...(invRows || []).map(r => r.inventory_scan_by),
+        ...(endRows || []).map(r => r.endorsement_scan_by)
+      ].filter(Boolean))];
+
+      let userMap = {};
+      if (userIds.length > 0) {
+        const { data: users } = await db.from('profiles').select('id, name').in('id', userIds);
+        (users || []).forEach(u => { userMap[u.id] = u.name; });
+      }
+
       for (const row of (invRows || [])) {
         const id = bookToBox[row.book_id]
         if (id && !scanTimeMap[id]?.latest_inventory_scan_at) {
-          scanTimeMap[id] = { ...scanTimeMap[id], latest_inventory_scan_at: row.inventory_scan_at }
+          scanTimeMap[id] = { 
+            ...scanTimeMap[id], 
+            latest_inventory_scan_at: row.inventory_scan_at,
+            latest_inventory_scan_by_name: userMap[row.inventory_scan_by] || null
+          }
         }
       }
       for (const row of (endRows || [])) {
         const id = bookToBox[row.book_id]
         if (id && !scanTimeMap[id]?.latest_endorsement_scan_at) {
-          scanTimeMap[id] = { ...scanTimeMap[id], latest_endorsement_scan_at: row.endorsement_scan_at }
+          scanTimeMap[id] = { 
+            ...scanTimeMap[id], 
+            latest_endorsement_scan_at: row.endorsement_scan_at,
+            latest_endorsement_scan_by_name: userMap[row.endorsement_scan_by] || null
+          }
         }
       }
 
       boxes = boxes.map(b => ({
         ...b,
         latest_inventory_scan_at: scanTimeMap[b.id]?.latest_inventory_scan_at || null,
+        latest_inventory_scan_by_name: scanTimeMap[b.id]?.latest_inventory_scan_by_name || null,
         latest_endorsement_scan_at: scanTimeMap[b.id]?.latest_endorsement_scan_at || null,
+        latest_endorsement_scan_by_name: scanTimeMap[b.id]?.latest_endorsement_scan_by_name || null,
       }))
     }
 
