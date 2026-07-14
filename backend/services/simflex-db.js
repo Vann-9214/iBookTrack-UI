@@ -31,10 +31,14 @@ const httpsAgent = new https.Agent({
 })
 
 // ── Configuration — read from .env ────────────────────────────────────────────
-const SIMFLEX_API_URL = process.env.SIMFLEX_API_URL || 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'
-const SIMFLEX_API_KEY = process.env.SIMFLEX_API_KEY || ''
-const SIMFLEX_MUSTANG_CONFIG = process.env.SIMFLEX_MUSTANG_CONFIG || ''
-const SIMFLEX_JAGUAR_CONFIG  = process.env.SIMFLEX_JAGUAR_CONFIG  || ''
+const SIMFLEX_API_URL = process.env.SIMFLEX_API_URL
+const SIMFLEX_API_KEY = process.env.SIMFLEX_API_KEY
+const SIMFLEX_MUSTANG_CONFIG = process.env.SIMFLEX_MUSTANG_CONFIG
+const SIMFLEX_JAGUAR_CONFIG  = process.env.SIMFLEX_JAGUAR_CONFIG
+
+if (!SIMFLEX_API_URL || !SIMFLEX_API_KEY || (!SIMFLEX_MUSTANG_CONFIG && !SIMFLEX_JAGUAR_CONFIG)) {
+  throw new Error('SIMFLEX configuration is missing in environment variables.')
+}
 
 // Default to Mustang. A future UI toggle can pass 'jaguar' to switch configs.
 function getSimflexConfig(location = 'mustang') {
@@ -43,10 +47,6 @@ function getSimflexConfig(location = 'mustang') {
 }
 
 const SIMFLEX_CONFIG = getSimflexConfig()
-
-if (!SIMFLEX_API_KEY || !SIMFLEX_CONFIG) {
-  console.warn('⚠️  SIMFLEX_API_KEY / SIMFLEX_MUSTANG_CONFIG not set in .env — Simflex live data will fail.')
-}
 
 // ── Date sanitizer ────────────────────────────────────────────────────────────
 /**

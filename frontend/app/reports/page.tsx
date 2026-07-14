@@ -10,7 +10,8 @@ import { authFetch } from '@/lib/auth-api'
 import { Button } from '@/components/ui/button'
 import { useBrand } from '@/hooks/use-brand'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 type ComputedStatus = 'closed' | 'open' | 'in-progress'
 

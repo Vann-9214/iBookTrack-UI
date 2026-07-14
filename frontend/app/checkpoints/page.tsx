@@ -23,7 +23,8 @@ import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 

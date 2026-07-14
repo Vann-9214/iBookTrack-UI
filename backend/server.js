@@ -99,9 +99,6 @@ const isDevBrowserOriginAllowed = (origin) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no Origin header (e.g. curl, Postman, server-to-server)
-    if (!origin) return callback(null, true)
-
     if (explicitAllowedOrigins.includes(origin) || isDevBrowserOriginAllowed(origin)) {
       callback(null, true)
     } else {
