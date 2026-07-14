@@ -1377,7 +1377,7 @@ export default function StationCheckpointsPage() {
                   const count = boxesByStage[stage]?.length || 0
                   return (
                     <div key={stage} className="relative flex items-center justify-center">
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] xl:text-xs font-medium border ${meta.color} z-10 bg-background`}>
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] xl:text-xs font-medium border ${meta.color} z-10`}>
                         <meta.icon className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{meta.label}</span>
                         {count > 0 && <span className="ml-0.5 bg-white/60 rounded-full px-1.5 font-bold shrink-0">{count}</span>}
