@@ -860,7 +860,7 @@ export default function StationCheckpointsPage() {
                         {scannedBox?.box.lot?.lot_number} ┬╖ <span className="capitalize">{scannedBox?.box.current_stage}</span> ┬╖ {scannedBox?.box.total_books_expected} books
                       </p>
                     </div>
-                    <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">Γ£ò</button>
+                    <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
                   </div>
 
                   {/* Check Simflex button for scan-stage boxes */}
@@ -872,7 +872,7 @@ export default function StationCheckpointsPage() {
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
                       >
                         {checkingSimflexBoxId === scannedBox.box.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
-                        {checkingSimflexBoxId === scannedBox.box.id ? 'Checking SimflexΓÇª' : 'Check Simflex'}
+                        {checkingSimflexBoxId === scannedBox.box.id ? 'Checking Simflex…' : 'Check Simflex'}
                       </button>
                       {simflexCheckResult?.boxId === scannedBox.box.id && (
                         <div className={`mt-2 text-xs px-3 py-2 rounded-lg border ${simflexCheckResult.success ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
@@ -908,7 +908,7 @@ export default function StationCheckpointsPage() {
                               <tr key={book.id} className="border-b border-border/40 last:border-0">
                                 <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
                                 <td className="py-1.5 pr-3">{book.isbn}</td>
-                                <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || 'ΓÇö'}</td>
+                                <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || '—'}</td>
                                 <td className="py-1.5 pr-3">
                                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                     {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
@@ -916,13 +916,13 @@ export default function StationCheckpointsPage() {
                                 </td>
                                 <td className="py-1.5 pr-3">
                                   <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
-                                    {scannedBox?.box.current_stage || 'ΓÇö'}
+                                    {scannedBox?.box.current_stage || '—'}
                                   </span>
                                 </td>
                                 {(scannedBox?.box.current_stage === 'scan' || scannedBox?.box.current_stage === 'transmit') && (
                                   <td className="py-1.5">
                                     {book.scan_status !== 'processable' ? (
-                                      <span className="text-[10px] text-muted-foreground">ΓÇö</span>
+                                      <span className="text-[10px] text-muted-foreground">—</span>
                                     ) : loadingBoxDetailsSimflex ? (
                                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                                     ) : !simflex ? (
@@ -1426,7 +1426,7 @@ export default function StationCheckpointsPage() {
                   <span className="font-semibold">{undoEntry.box.box_number}</span> moved to <span className="font-semibold capitalize">{STAGE_LABELS[undoEntry.toStage]}</span>
                 </span>
                 <button onClick={handleUndo} className="ml-2 px-3 py-1 rounded-lg bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 text-xs font-semibold transition-colors">Undo</button>
-                <button onClick={() => { setUndoEntry(null); if (undoTimer.current) clearTimeout(undoTimer.current) }} className="text-muted-foreground hover:text-foreground">Γ£ò</button>
+                <button onClick={() => { setUndoEntry(null); if (undoTimer.current) clearTimeout(undoTimer.current) }} className="text-muted-foreground hover:text-foreground">✕</button>
               </div>
             )}
 
