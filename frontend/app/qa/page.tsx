@@ -9,11 +9,9 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import { ScannerInput } from "@/components/scanner-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  AlertTriangle, ChevronDown, ChevronRight, CheckCircle2,
+import { AlertTriangle, ChevronDown, ChevronRight, CheckCircle2,
   Inbox, ClipboardCheck, Send, Package, BookOpen, Loader2, Trash2, ClipboardList,
-  ScanBarcode, CircleCheck, CircleX, Search, X,
-} from "lucide-react"
+  ScanBarcode, CircleCheck, CircleX, Search, X,, CheckCircle } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -522,7 +520,7 @@ export default function BookInspectionPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
               <div className="flex items-center gap-4">
                 <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                  <CheckCircle2 className="h-7 w-7" />
+                  <CheckCircle className="h-7 w-7" />
                 </div>
                 <div>
                   <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">

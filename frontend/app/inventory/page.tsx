@@ -8,7 +8,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
-import { Package, Search, ChevronDown, ChevronRight, X, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw, ScanBarcode, CircleCheck, CircleX, Warehouse } from 'lucide-react'
+import { Package, Search, ChevronDown, ChevronRight, X, BookOpen, Printer, Zap, CheckCircle2, XCircle, Loader2, AlertTriangle, Trash2, Inbox, ClipboardCheck, ArrowRight, Send, ClipboardList, RefreshCw, ScanBarcode, CircleCheck, CircleX, Warehouse, Archive } from "lucide-react"
 import { RefreshControl } from '@/components/refresh-control'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -1238,7 +1238,7 @@ export default function InventoryPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                <Warehouse className="h-7 w-7" />
+                <Archive className="h-7 w-7" />
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
