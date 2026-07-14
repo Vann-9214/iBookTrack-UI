@@ -14,6 +14,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, CheckCircle2,
   Inbox, ClipboardCheck, Send, Package, BookOpen, Loader2, Trash2, ClipboardList,
   ScanBarcode, CircleCheck, CircleX, Search, X, CheckCircle } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
+import { ConfirmActionModal } from "@/components/ui/confirm-action-modal"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -276,6 +277,17 @@ export default function BookInspectionPage() {
     }
   }
 
+  // ── Confirmation modal state ────────────────────────────────────────────────
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean
+    action: 'receive' | 'start_session' | 'send_to_scan' | null
+    box: BoxEntry | null
+  }>({ open: false, action: null, box: null })
+
+  const openConfirm = (action: 'receive' | 'start_session' | 'send_to_scan', box: BoxEntry) =>
+    setConfirmModal({ open: true, action, box })
+  const closeConfirm = () => setConfirmModal({ open: false, action: null, box: null })
+
   // ── Book Inspection: session state ────────────────────────────────────────
   const [inspSessionActive, setInspSessionActive] = useState(false)
   const [inspBox, setInspBox] = useState<BoxEntry | null>(null)
@@ -511,6 +523,7 @@ export default function BookInspectionPage() {
     : 'Not updated yet'
 
   return (
+    <>
     <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={inspSessionActive} />
       <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
@@ -707,7 +720,7 @@ export default function BookInspectionPage() {
                                 </div>
                                 {/* Receive Box button: full-width on mobile */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                                  onClick={(e) => { e.stopPropagation(); openConfirm('receive', box) }}
                                   disabled={receivingBox === box.id}
                                   className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                                 >
@@ -919,7 +932,7 @@ export default function BookInspectionPage() {
                                     {/* Start Session button: desktop only */}
                                     {!isMobile && (
                                       <button
-                                        onClick={() => handleStartInspSession(box.id)}
+                                        onClick={() => openConfirm('start_session', box)}
                                         disabled={loadingInspSession}
                                         className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                                       >
@@ -1204,7 +1217,7 @@ export default function BookInspectionPage() {
                                 </div>
                                 {/* Send button: full-width on mobile, always visible */}
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); handleSendToScan(box) }}
+                                  onClick={(e) => { e.stopPropagation(); openConfirm('send_to_scan', box) }}
                                   disabled={sendingToScan === box.id}
                                   className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                                 >
@@ -1253,5 +1266,57 @@ export default function BookInspectionPage() {
         </main>
       </div>
     </div>
+
+    {/* ── Confirmation Modal ─────────────────────────────────────────────────── */}
+    <ConfirmActionModal
+      open={confirmModal.open}
+      title={
+        confirmModal.action === 'receive' ? 'Confirm Receipt' :
+        confirmModal.action === 'start_session' ? 'Start Inspection Session' :
+        'Send to Scan'
+      }
+      description={
+        confirmModal.action === 'receive' ? (
+          <><strong>{inspUserName || 'You'}</strong> will receive <strong>{confirmModal.box?.box_number}</strong> from <strong>Cut</strong>.</>
+        ) : confirmModal.action === 'start_session' ? (
+          <>Begin an inspection session on <strong>{confirmModal.box?.box_number}</strong>. Make sure the box is physically with you.</>
+        ) : (
+          <>Send <strong>{confirmModal.box?.box_number}</strong> to <strong>Scan</strong>? This cannot be undone.</>
+        )
+      }
+      hint={
+        confirmModal.action === 'receive' ? 'Make sure you have physically received the box.' :
+        confirmModal.action === 'send_to_scan' ? 'Ensure all books have been inspected and endorsed before sending.' :
+        undefined
+      }
+      flow={
+        confirmModal.action === 'receive'
+          ? { from: 'Cut', to: 'Book Endorsement', fromColor: 'bg-orange-100 text-orange-700 border-orange-300', toColor: 'bg-purple-100 text-purple-700 border-purple-300' }
+          : confirmModal.action === 'send_to_scan'
+          ? { from: 'Book Endorsement', to: 'Scan', fromColor: 'bg-purple-100 text-purple-700 border-purple-300', toColor: 'bg-green-100 text-green-700 border-green-300' }
+          : undefined
+      }
+      confirmLabel={
+        confirmModal.action === 'receive' ? 'Yes, Receive' :
+        confirmModal.action === 'start_session' ? 'Start Session' :
+        'Yes, Send to Scan'
+      }
+      variant={confirmModal.action === 'send_to_scan' ? 'destructive' : 'default'}
+      loading={
+        (confirmModal.action === 'receive' && !!receivingBox) ||
+        (confirmModal.action === 'start_session' && loadingInspSession) ||
+        (confirmModal.action === 'send_to_scan' && !!sendingToScan)
+      }
+      onCancel={closeConfirm}
+      onConfirm={() => {
+        if (!confirmModal.box) return
+        const box = confirmModal.box
+        closeConfirm()
+        if (confirmModal.action === 'receive') handleReceiveBox(box)
+        else if (confirmModal.action === 'start_session') handleStartInspSession(box.id)
+        else handleSendToScan(box)
+      }}
+    />
+    </>
   )
 }

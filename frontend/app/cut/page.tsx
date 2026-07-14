@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { authFetch } from "@/lib/auth-api"
+import { authFetch, fetchUserProfile } from "@/lib/auth-api"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useBrand } from "@/hooks/use-brand"
@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ConfirmActionModal } from "@/components/ui/confirm-action-modal"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -50,6 +51,26 @@ export default function CutPage() {
 
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
   const [sendingBox, setSendingBox] = useState<string | null>(null)
+
+  // ── User profile ───────────────────────────────────────────────────────────
+  const [userName, setUserName] = useState('')
+
+  useEffect(() => {
+    fetchUserProfile().then(profile => {
+      if (profile?.name) setUserName(profile.name)
+    })
+  }, [])
+
+  // ── Confirmation modal state ────────────────────────────────────────────────
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean
+    action: 'receive' | 'send' | null
+    box: BoxEntry | null
+  }>({ open: false, action: null, box: null })
+
+  const openConfirm = (action: 'receive' | 'send', box: BoxEntry) =>
+    setConfirmModal({ open: true, action, box })
+  const closeConfirm = () => setConfirmModal({ open: false, action: null, box: null })
 
   const [expandedBoxId, setExpandedBoxId] = useState<string | null>(null)
   const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
@@ -168,6 +189,7 @@ export default function CutPage() {
   const filteredOutgoing = outgoingBoxes.filter(matchesSearch)
 
   return (
+    <>
     <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
       <DashboardSidebar />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
@@ -329,7 +351,7 @@ export default function CutPage() {
                               </div>
                               {/* Receive Box button: full-width on mobile */}
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                                onClick={(e) => { e.stopPropagation(); openConfirm('receive', box) }}
                                 disabled={receivingBox === box.id}
                                 className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                               >
@@ -424,7 +446,7 @@ export default function CutPage() {
                               </div>
                               {/* Send to Endorsement button: full-width on mobile, always visible */}
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleSendBox(box) }}
+                                onClick={(e) => { e.stopPropagation(); openConfirm('send', box) }}
                                 disabled={sendingBox === box.id}
                                 className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                               >
@@ -480,5 +502,42 @@ export default function CutPage() {
         </main>
       </div>
     </div>
+
+    {/* ── Confirmation Modal ─────────────────────────────────────────────────── */}
+    <ConfirmActionModal
+      open={confirmModal.open}
+      title={confirmModal.action === 'receive' ? 'Confirm Receipt' : 'Send to Endorsement'}
+      description={
+        confirmModal.action === 'receive' ? (
+          <><strong>{userName || 'You'}</strong> will receive <strong>{confirmModal.box?.box_number}</strong> from <strong>Inventory</strong>.</>
+        ) : (
+          <>Send <strong>{confirmModal.box?.box_number}</strong> to <strong>Book Endorsement</strong>? This cannot be undone.</>
+        )
+      }
+      hint={
+        confirmModal.action === 'receive' ? 'Make sure you have physically received the box.' :
+        'Ensure all cutting for this box is complete before sending.'
+      }
+      flow={
+        confirmModal.action === 'receive'
+          ? { from: 'Inventory', to: 'Cut', fromColor: 'bg-blue-100 text-blue-700 border-blue-300', toColor: 'bg-orange-100 text-orange-700 border-orange-300' }
+          : { from: 'Cut', to: 'Book Endorsement', fromColor: 'bg-orange-100 text-orange-700 border-orange-300', toColor: 'bg-purple-100 text-purple-700 border-purple-300' }
+      }
+      confirmLabel={confirmModal.action === 'receive' ? 'Yes, Receive' : 'Yes, Send'}
+      variant={confirmModal.action === 'send' ? 'destructive' : 'default'}
+      loading={
+        (confirmModal.action === 'receive' && !!receivingBox) ||
+        (confirmModal.action === 'send' && !!sendingBox)
+      }
+      onCancel={closeConfirm}
+      onConfirm={() => {
+        if (!confirmModal.box) return
+        const box = confirmModal.box
+        closeConfirm()
+        if (confirmModal.action === 'receive') handleReceiveBox(box)
+        else handleSendBox(box)
+      }}
+    />
+    </>
   )
 }

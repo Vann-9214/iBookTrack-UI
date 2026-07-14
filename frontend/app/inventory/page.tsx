@@ -13,6 +13,7 @@ import { Package, Search, ChevronDown, ChevronRight, X, BookOpen, Printer, Zap, 
 import { RefreshControl } from '@/components/refresh-control'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { ConfirmActionModal } from '@/components/ui/confirm-action-modal'
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bwipjs = require('bwip-js')
 
@@ -371,6 +372,17 @@ export default function InventoryPage() {
       }
     }
   }
+
+  // ── Confirmation modal state ────────────────────────────────────────────────
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean
+    action: 'receive' | 'start_session' | 'send_to_cut' | null
+    box: Box | null
+  }>({ open: false, action: null, box: null })
+
+  const openConfirm = (action: 'receive' | 'start_session' | 'send_to_cut', box: Box) =>
+    setConfirmModal({ open: true, action, box })
+  const closeConfirm = () => setConfirmModal({ open: false, action: null, box: null })
 
   // ── Incoming: Receive box (warehouse → inventory) ──────────────────────────
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
@@ -1423,7 +1435,7 @@ export default function InventoryPage() {
                               )}
                               {/* Button: full-width on mobile, auto on desktop */}
                               <button
-                                onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                                onClick={(e) => { e.stopPropagation(); openConfirm('receive', box) }}
                                 disabled={receivingBox === box.id}
                                 className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                               >
@@ -1720,7 +1732,7 @@ export default function InventoryPage() {
                                   {/* Start Session button: desktop only */}
                                   {!isMobile && (
                                     <button
-                                      onClick={() => handleStartVerifSession(box.id)}
+                                      onClick={() => openConfirm('start_session', box)}
                                       disabled={loadingVerifBooks}
                                       className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                                     >
@@ -2172,7 +2184,7 @@ export default function InventoryPage() {
                                   <div className="relative group flex-1 sm:flex-none" onClick={e => e.stopPropagation()}>
                                     {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
                                     <button
-                                      onClick={(e) => { e.stopPropagation(); handleSendToCut(box) }}
+                                      onClick={(e) => { e.stopPropagation(); openConfirm('send_to_cut', box) }}
                                       disabled={sendingToCut === box.id || !allPrinted}
                                       className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                     >
@@ -2411,6 +2423,55 @@ export default function InventoryPage() {
       )}
       </div>
     </div>
+
+    {/* ── Confirmation Modal ─────────────────────────────────────────────────── */}
+    <ConfirmActionModal
+      open={confirmModal.open}
+      title={
+        confirmModal.action === 'receive' ? 'Confirm Receipt' :
+        confirmModal.action === 'start_session' ? 'Start Verification Session' :
+        'Send to Cut'
+      }
+      description={
+        confirmModal.action === 'receive' ? (
+          <><strong>{verifUserName || 'You'}</strong> will receive <strong>{confirmModal.box?.box_number}</strong> from <strong>Warehouse</strong>.</>
+        ) : confirmModal.action === 'start_session' ? (
+          <>Begin a verification session on <strong>{confirmModal.box?.box_number}</strong>. Make sure the box is physically with you.</>
+        ) : (
+          <>Send <strong>{confirmModal.box?.box_number}</strong> to <strong>Cut</strong>? This cannot be undone.</>
+        )
+      }
+      hint={
+        confirmModal.action === 'receive' ? 'Make sure you have physically received the box.' :
+        confirmModal.action === 'send_to_cut' ? 'Ensure all book slips have been printed before sending.' :
+        undefined
+      }
+      flow={
+        confirmModal.action === 'receive' ? { from: 'Warehouse', to: 'Inventory', fromColor: 'bg-amber-100 text-amber-700 border-amber-300', toColor: 'bg-blue-100 text-blue-700 border-blue-300' } :
+        confirmModal.action === 'send_to_cut' ? { from: 'Inventory', to: 'Cut', fromColor: 'bg-blue-100 text-blue-700 border-blue-300', toColor: 'bg-orange-100 text-orange-700 border-orange-300' } :
+        undefined
+      }
+      confirmLabel={
+        confirmModal.action === 'receive' ? 'Yes, Receive' :
+        confirmModal.action === 'start_session' ? 'Start Session' :
+        'Yes, Send to Cut'
+      }
+      variant={confirmModal.action === 'send_to_cut' ? 'destructive' : 'default'}
+      loading={
+        (confirmModal.action === 'receive' && !!receivingBox) ||
+        (confirmModal.action === 'start_session' && loadingVerifBooks) ||
+        (confirmModal.action === 'send_to_cut' && !!sendingToCut)
+      }
+      onCancel={closeConfirm}
+      onConfirm={() => {
+        if (!confirmModal.box) return
+        const box = confirmModal.box
+        closeConfirm()
+        if (confirmModal.action === 'receive') handleReceiveBox(box)
+        else if (confirmModal.action === 'start_session') handleStartVerifSession(box.id)
+        else if (confirmModal.action === 'send_to_cut') handleSendToCut(box)
+      }}
+    />
     </>
   )
 }

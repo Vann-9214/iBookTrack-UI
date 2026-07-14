@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { authFetch } from "@/lib/auth-api"
+import { authFetch, fetchUserProfile } from "@/lib/auth-api"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { useBrand } from "@/hooks/use-brand"
@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ConfirmActionModal } from "@/components/ui/confirm-action-modal"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -48,6 +49,24 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(true)
 
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
+
+  // ── User profile ───────────────────────────────────────────────────────────
+  const [userName, setUserName] = useState('')
+
+  useEffect(() => {
+    fetchUserProfile().then(profile => {
+      if (profile?.name) setUserName(profile.name)
+    })
+  }, [])
+
+  // ── Confirmation modal state ────────────────────────────────────────────────
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean
+    box: BoxEntry | null
+  }>({ open: false, box: null })
+
+  const openConfirm = (box: BoxEntry) => setConfirmModal({ open: true, box })
+  const closeConfirm = () => setConfirmModal({ open: false, box: null })
 
   const [expandedBoxId, setExpandedBoxId] = useState<string | null>(null)
   const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
@@ -130,6 +149,7 @@ export default function ScanPage() {
   }
 
   return (
+    <>
     <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
       <DashboardSidebar />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
@@ -271,7 +291,7 @@ export default function ScanPage() {
                             </div>
                             {/* Receive Box button: full-width on mobile */}
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
+                              onClick={(e) => { e.stopPropagation(); openConfirm(box) }}
                               disabled={receivingBox === box.id}
                               className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                             >
@@ -326,5 +346,26 @@ export default function ScanPage() {
         </main>
       </div>
     </div>
+
+    {/* ── Confirmation Modal ─────────────────────────────────────────────────── */}
+    <ConfirmActionModal
+      open={confirmModal.open}
+      title="Confirm Receipt"
+      description={
+        <><strong>{userName || 'You'}</strong> will receive <strong>{confirmModal.box?.box_number}</strong> from <strong>Book Endorsement</strong>.</>
+      }
+      hint="Make sure you have physically received the box."
+      flow={{ from: 'Book Endorsement', to: 'Scan', fromColor: 'bg-purple-100 text-purple-700 border-purple-300', toColor: 'bg-green-100 text-green-700 border-green-300' }}
+      confirmLabel="Yes, Receive"
+      loading={!!receivingBox}
+      onCancel={closeConfirm}
+      onConfirm={() => {
+        if (!confirmModal.box) return
+        const box = confirmModal.box
+        closeConfirm()
+        handleReceiveBox(box)
+      }}
+    />
+    </>
   )
 }
