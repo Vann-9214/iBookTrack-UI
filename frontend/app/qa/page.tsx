@@ -219,12 +219,12 @@ export default function BookInspectionPage() {
     try {
       const res = await authFetch(`${API_URL}/api/boxes/${box.id}/send-forward`, {
         method: 'POST',
-        body: JSON.stringify({ notes: 'Sent to Scan from Book Inspection & Endorsement' }),
+        body: JSON.stringify({ notes: 'Sent from Book Inspection & Endorsement' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to send to scan')
       fetchEndorsementBoxes()
-      toast.success(`${box.box_number} sent to Scan`)
+      toast.success(`${box.box_number} sent`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to send to scan')
     } finally {
@@ -1154,7 +1154,7 @@ export default function BookInspectionPage() {
                                   className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                                 >
                                   {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                  {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
+                                  {sendingToScan === box.id ? 'Sending…' : 'Send'}
                                 </button>
                               </div>
                               {isExpanded && (
