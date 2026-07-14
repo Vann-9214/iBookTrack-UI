@@ -1410,7 +1410,10 @@ export default function InventoryPage() {
                                 <div className="bg-primary/10 rounded-lg p-2 shrink-0">
                                   <Package className="h-5 w-5 text-primary" />
                                 </div>
-                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                </div>
                               </div>
                               {created && (
                                 <div className="shrink-0 hidden sm:block text-right mr-2">
