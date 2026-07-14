@@ -1821,7 +1821,7 @@ export default function StationCheckpointsPage() {
                         holderStage = 'Warehouse';
                         if (!isCompleted) {
                           if (t.warehouse_scan_name) {
-                            statusText = 'Completed';
+                            statusText = 'Received • Completed • Sent';
                             statusColor = 'bg-green-100 text-green-700';
                           } else {
                             statusText = 'Received';
@@ -1919,8 +1919,8 @@ export default function StationCheckpointsPage() {
                             </div>
 
                             {/* Status */}
-                            <div className="w-[110px] shrink-0">
-                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wide ${statusColor}`}>
+                            <div className="w-[180px] shrink-0">
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wide whitespace-nowrap ${statusColor}`}>
                                 {statusText}
                               </span>
                             </div>
