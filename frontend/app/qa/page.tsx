@@ -11,7 +11,7 @@ import { ScannerInput } from "@/components/scanner-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertTriangle, ChevronDown, ChevronRight, CheckCircle2,
   Inbox, ClipboardCheck, Send, Package, BookOpen, Loader2, Trash2, ClipboardList,
-  ScanBarcode, CircleCheck, CircleX, Search, X,, CheckCircle } from "lucide-react"
+  ScanBarcode, CircleCheck, CircleX, Search, X, CheckCircle } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'

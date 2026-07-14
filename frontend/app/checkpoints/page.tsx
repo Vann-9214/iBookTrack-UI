@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, ClipboardCheck, Archive, Activity,
   Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
-  Loader2, Zap,, MapPin } from "lucide-react"
+  Loader2, Zap, MapPin } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"

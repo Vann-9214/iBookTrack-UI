@@ -7,7 +7,7 @@ import { RefreshControl } from "@/components/refresh-control"
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
 import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
-import { AlertTriangle, Package, PackagePlus, PackageMinus, Trash2, Check, ChevronsUpDown, ScanBarcode, CircleCheck, CircleX, BookOpen, Activity, X, RefreshCw, Loader2 } from 'lucide-react'
+import { AlertTriangle, Package, PackagePlus, PackageMinus, Trash2, Check, ChevronsUpDown, ScanBarcode, CircleCheck, CircleX, BookOpen, Activity, X, RefreshCw, Loader2, Warehouse } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
