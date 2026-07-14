@@ -1414,20 +1414,10 @@ export default function InventoryPage() {
                               </div>
                               {created && (
                                 <div className="shrink-0 hidden sm:block text-right mr-2">
-                                  <p className="text-xs text-muted-foreground">
-                                    {created.toLocaleDateString()}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground/80">
-                                    {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                  </p>
+                                  <p className="text-xs text-muted-foreground">{created.toLocaleDateString()}</p>
+                                  <p className="text-[10px] text-muted-foreground/80">{created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
                                 </div>
-                                {created && (
-                                  <div className="shrink-0 hidden sm:block text-right mr-2">
-                                    <p className="text-xs text-muted-foreground">{created.toLocaleDateString()}</p>
-                                    <p className="text-[10px] text-muted-foreground/80">{created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
-                                  </div>
-                                )}
-                              </div>
+                              )}
                               {/* Button: full-width on mobile, auto on desktop */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
@@ -1700,45 +1690,23 @@ export default function InventoryPage() {
                             
                             return (
                               <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
-                                {/* Row header — same style as Incoming Boxes */}
-                                <div className="flex items-center px-4 py-3 gap-4">
-                                  {/* Expand chevron */}
-                                  <button
-                                    onClick={() => toggleVerifRow(box.id)}
-                                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                                  >
-                                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                  </button>
-                                  {/* Icon */}
-                                  <div className="bg-primary/10 rounded-lg p-2 shrink-0">
-                                    <Package className="h-5 w-5 text-primary" />
-                                  </div>
-                                  {/* Info — clickable to expand */}
-                                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
-                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                    <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                                  </div>
-                                  {/* Date + time */}
-                                  {created && (
-                                    <div className="shrink-0 hidden sm:block text-right mr-2">
-                                      <p className="text-xs text-muted-foreground">
-                                        {created.toLocaleDateString()}
-                                      </p>
-                                      <p className="text-[10px] text-muted-foreground/80">
-                                        {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                      </p>
+                                {/* Row header */}
+                                <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
+                                  {/* Top row: chevron + icon + info + date */}
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <button
+                                      onClick={() => toggleVerifRow(box.id)}
+                                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </button>
+                                    <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                      <Package className="h-5 w-5 text-primary" />
                                     </div>
-                                    {/* Info -- clickable to expand */}
                                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                        {isMobile && (
-                                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium whitespace-nowrap">View Only</span>
-                                        )}
-                                      </div>
-                                      <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '--'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                      <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                      <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                     </div>
-                                    {/* Date + time */}
                                     {created && (
                                       <div className="shrink-0 hidden sm:block text-right mr-2">
                                         <p className="text-xs text-muted-foreground">{created.toLocaleDateString()}</p>
@@ -1746,17 +1714,15 @@ export default function InventoryPage() {
                                       </div>
                                     )}
                                   </div>
-                                  {/* Start Session button: hidden on mobile (desktop only) */}
-                                  {!isMobile && (
-                                    <button
-                                      onClick={() => handleStartVerifSession(box.id)}
-                                      disabled={loadingVerifBooks}
-                                      className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
-                                    >
-                                      {loadingVerifBooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
-                                      {loadingVerifBooks ? 'Starting...' : 'Start Session'}
-                                    </button>
-                                  )}
+                                  {/* Start Session button: full-width on mobile */}
+                                  <button
+                                    onClick={() => handleStartVerifSession(box.id)}
+                                    disabled={loadingVerifBooks}
+                                    className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+                                  >
+                                    {loadingVerifBooks ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                                    {loadingVerifBooks ? 'Starting...' : 'Start Session'}
+                                  </button>
                                 </div>
                                 {/* Expandable books list */}
                                 {isExpanded && (
@@ -2149,48 +2115,9 @@ export default function InventoryPage() {
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
                             {/* ── Header row ── */}
-                            <div className="flex items-center px-4 py-3 gap-4">
-                              <button
-                                onClick={() => toggleOutgoingBox(box)}
-                                disabled={outgoingLoadingBooks === box.id}
-                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
-                              >
-                                {outgoingLoadingBooks === box.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : isExpanded ? (
-                                  <ChevronDown className="h-4 w-4" />
-                                ) : (
-                                  <ChevronRight className="h-4 w-4" />
-                                )}
-                              </button>
-
-                              <div className="bg-primary/10 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-primary" />
-                              </div>
-
-                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleOutgoingBox(box)}>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Verified</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" />
-                                </p>
-                              </div>
-
-                              {created && (
-                                <div className="shrink-0 hidden sm:block text-right mr-2">
-                                  <p className="text-xs text-muted-foreground">
-                                    {created.toLocaleDateString()}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground/80">
-                                    {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                  </p>
-                                </div>
-                              )}
-
-                              {/* Print label button + printed checkbox */}
-                              <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                            <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
+                              {/* Top row: chevron + icon + info + date */}
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <button
                                   onClick={() => toggleOutgoingBox(box)}
                                   disabled={outgoingLoadingBooks === box.id}
@@ -2198,84 +2125,63 @@ export default function InventoryPage() {
                                 >
                                   {outgoingLoadingBooks === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                 </button>
-                                <input
-                                  type="checkbox"
-                                  checked={boxLabelPrinted}
-                                  readOnly
-                                  className="h-4 w-4 rounded border-border accent-primary cursor-default"
-                                  title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
-                                />
-                              </div>
-
-                              {/* Send button — only enabled once all book slips + box label are printed */}
-                              <div className="shrink-0 relative group" onClick={e => e.stopPropagation()}>
-                                {/* Invisible hover capture layer — ensures hover works even when button is disabled */}
-                                {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleSendToCut(box)
-                                  }}
-                                  disabled={sendingToCut === box.id || !allPrinted}
-                                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                >
-                                  {sendingToCut === box.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Send className="h-4 w-4" />
-                                  )}
-                                  {sendingToCut === box.id ? 'Sendingâ€¦' : 'Send to Cut'}
-                                </button>
-                                {!allPrinted && (
-                                  <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
-                                    <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
-                                      Print the box label first
-                                    </div>
+                                <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                  <Package className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleOutgoingBox(box)}>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Verified</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                </div>
+                                {created && (
+                                  <div className="shrink-0 hidden sm:block text-right mr-2">
+                                    <p className="text-xs text-muted-foreground">{created.toLocaleDateString()}</p>
+                                    <p className="text-[10px] text-muted-foreground/80">{created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
                                   </div>
                                 )}
                               </div>
-                              {/* Action buttons: desktop only (hidden on mobile) */}
-                              {!isMobile && (
-                                <div className="flex gap-2 sm:shrink-0" onClick={e => e.stopPropagation()}>
-                                  {/* Print label + checkbox */}
-                                  <div className="flex items-center gap-2 flex-1 sm:flex-none">
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handlePrintLabel(box); }}
-                                      disabled={loadingPrint === box.id}
-                                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
-                                    >
-                                      {loadingPrint === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                                      {loadingPrint === box.id ? 'Loading...' : 'Print Label'}
-                                    </button>
-                                    <input
-                                      type="checkbox"
-                                      checked={boxLabelPrinted}
-                                      readOnly
-                                      className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
-                                      title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
-                                    />
-                                  </div>
-                                  {/* Send to Cut */}
-                                  <div className="relative group flex-1 sm:flex-none" onClick={e => e.stopPropagation()}>
-                                    {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleSendToCut(box) }}
-                                      disabled={sendingToCut === box.id || !allPrinted}
-                                      className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                      {sendingToCut === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                      {sendingToCut === box.id ? 'Sending...' : 'Send to Cut'}
-                                    </button>
-                                    {!allPrinted && (
-                                      <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
-                                        <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
-                                          Print the box label first
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
+                              {/* Action buttons: side-by-side, full-width on mobile */}
+                              <div className="flex gap-2 sm:shrink-0" onClick={e => e.stopPropagation()}>
+                                {/* Print Label + checkbox */}
+                                <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handlePrintLabel(box); }}
+                                    disabled={loadingPrint === box.id}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-background text-foreground hover:bg-muted disabled:opacity-60 transition-colors"
+                                  >
+                                    {loadingPrint === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                                    {loadingPrint === box.id ? 'Loading...' : 'Print Label'}
+                                  </button>
+                                  <input
+                                    type="checkbox"
+                                    checked={boxLabelPrinted}
+                                    readOnly
+                                    className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
+                                    title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
+                                  />
                                 </div>
-                              )}
+                                {/* Send to Cut */}
+                                <div className="relative group flex-1 sm:flex-none" onClick={e => e.stopPropagation()}>
+                                  {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleSendToCut(box) }}
+                                    disabled={sendingToCut === box.id || !allPrinted}
+                                    className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    {sendingToCut === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                                    {sendingToCut === box.id ? 'Sending...' : 'Send to Cut'}
+                                  </button>
+                                  {!allPrinted && (
+                                    <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
+                                      <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
+                                        Print the box label first
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
 
                             {/* ── Expanded book list ── */}
