@@ -161,12 +161,12 @@ router.get('/', async (req, res) => {
       if (allBookIds.length > 0) {
         const [invRes, endRes] = await Promise.all([
           db.from('book_activity')
-            .select('inventory_scan_at, book_id')
+            .select('inventory_scan_at, inventory_scan_by, book_id')
             .in('book_id', allBookIds)
             .not('inventory_scan_at', 'is', null)
             .order('inventory_scan_at', { ascending: false }),
           db.from('book_activity')
-            .select('endorsement_scan_at, book_id')
+            .select('endorsement_scan_at, endorsement_scan_by, book_id')
             .in('book_id', allBookIds)
             .not('endorsement_scan_at', 'is', null)
             .order('endorsement_scan_at', { ascending: false }),
@@ -178,23 +178,44 @@ router.get('/', async (req, res) => {
       const bookToBox = {};
       (allBooks || []).forEach(b => { bookToBox[b.id] = b.box_id; });
 
+      const userIds = [...new Set([
+        ...(invRows || []).map(r => r.inventory_scan_by),
+        ...(endRows || []).map(r => r.endorsement_scan_by)
+      ].filter(Boolean))];
+
+      let userMap = {};
+      if (userIds.length > 0) {
+        const { data: users } = await db.from('profiles').select('id, name').in('id', userIds);
+        (users || []).forEach(u => { userMap[u.id] = u.name; });
+      }
+
       for (const row of (invRows || [])) {
         const id = bookToBox[row.book_id]
         if (id && !scanTimeMap[id]?.latest_inventory_scan_at) {
-          scanTimeMap[id] = { ...scanTimeMap[id], latest_inventory_scan_at: row.inventory_scan_at }
+          scanTimeMap[id] = { 
+            ...scanTimeMap[id], 
+            latest_inventory_scan_at: row.inventory_scan_at,
+            latest_inventory_scan_by_name: userMap[row.inventory_scan_by] || null
+          }
         }
       }
       for (const row of (endRows || [])) {
         const id = bookToBox[row.book_id]
         if (id && !scanTimeMap[id]?.latest_endorsement_scan_at) {
-          scanTimeMap[id] = { ...scanTimeMap[id], latest_endorsement_scan_at: row.endorsement_scan_at }
+          scanTimeMap[id] = { 
+            ...scanTimeMap[id], 
+            latest_endorsement_scan_at: row.endorsement_scan_at,
+            latest_endorsement_scan_by_name: userMap[row.endorsement_scan_by] || null
+          }
         }
       }
 
       boxes = boxes.map(b => ({
         ...b,
         latest_inventory_scan_at: scanTimeMap[b.id]?.latest_inventory_scan_at || null,
+        latest_inventory_scan_by_name: scanTimeMap[b.id]?.latest_inventory_scan_by_name || null,
         latest_endorsement_scan_at: scanTimeMap[b.id]?.latest_endorsement_scan_at || null,
+        latest_endorsement_scan_by_name: scanTimeMap[b.id]?.latest_endorsement_scan_by_name || null,
       }))
     }
 
@@ -224,42 +245,160 @@ router.get('/', async (req, res) => {
 
 
 // Get recent pipeline transitions (for Checkpoint Monitor logs)
+// Now returns 1 row per box session to avoid flooding the UI with events
 router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   try {
-    const { limit = 50, stage, box_type } = req.query
+    const { limit = 50, offset = 0, stage, box_type, search, date_from, date_to } = req.query
+    const limitNum = parseInt(limit)
+    const offsetNum = parseInt(offset)
 
     const db = supabaseAdmin || supabase
-    const boxSelect = box_type 
-      ? `box:boxes!inner(box_number, lot:lots(lot_number), box_type)`
-      : `box:boxes(box_number, lot:lots(lot_number))`
-
+    
+    // We use inner join on boxes to allow filtering by box_number and stage
+    let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_books_expected`
+    
     let query = db
-      .from('pipeline_events')
+      .from('box_sessions')
       .select(`
         id,
-        from_stage,
-        to_stage,
-        moved_by_name,
-        notes,
-        created_at,
-        ${boxSelect}
-      `)
-      .order('created_at', { ascending: false })
-      .limit(parseInt(limit))
-
-    if (stage) {
-      query = query.or(`from_stage.eq.${stage},to_stage.eq.${stage}`)
-    }
+        warehouse_time_received, warehouse_user_received,
+        inventory_time_received, inventory_user_received,
+        inventory_time_send, inventory_user_send,
+        cut_time_received, cut_user_received,
+        cut_time_send, cut_user_send,
+        endorsement_time_received, endorsement_user_received,
+        endorsement_time_send, endorsement_user_send,
+        scan_time_received, scan_user_received,
+        total_scanned,
+        updated_at,
+        box:boxes!inner(${boxSelect})
+      `, { count: 'exact' })
 
     if (box_type) {
       query = query.eq('boxes.box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     }
+    
+    if (stage && stage !== 'all') {
+      query = query.eq('boxes.current_stage', stage)
+    }
 
-    const { data, error } = await query
+    if (date_from) {
+      query = query.gte('updated_at', `${date_from}T00:00:00.000Z`)
+    }
+    
+    if (date_to) {
+      query = query.lte('updated_at', `${date_to}T23:59:59.999Z`)
+    }
+    
+    if (search) {
+      // Find matching lots first so we can include them in an OR query on the boxes table
+      const { data: matchedLots } = await db.from('lots').select('id').ilike('lot_number', `%${search}%`)
+      const lotIds = (matchedLots || []).map(l => l.id)
+      
+      if (lotIds.length > 0) {
+        query = query.or(`box_number.ilike.%${search}%,lot_id.in.(${lotIds.join(',')})`, { foreignTable: 'boxes' })
+      } else {
+        query = query.ilike('boxes.box_number', `%${search}%`)
+      }
+    }
 
+    query = query.order('updated_at', { ascending: false })
+                 .range(offsetNum, offsetNum + limitNum - 1)
+    
+    const { data: sessions, count, error } = await query
     if (error) throw error
 
-    res.json({ success: true, transitions: data })
+    let filteredSessions = sessions || []
+    
+    // Fetch user names for all users involved in these sessions
+    const userIds = new Set()
+    
+    // Fetch 1 book_activity per box_id manually
+    const boxIds = Array.from(new Set(filteredSessions.map(s => s.box?.id).filter(Boolean)))
+    let boxScanData = {}
+    if (boxIds.length > 0) {
+      const { data: bookActivities } = await db
+        .from('book_activity')
+        .select('warehouse_scan_by, warehouse_scan_at, inventory_scan_by, inventory_scan_at, endorsement_scan_by, endorsement_scan_at, books!inner(box_id)')
+        .in('books.box_id', boxIds)
+      
+      for (const ba of bookActivities || []) {
+        const boxId = ba.books?.box_id
+        if (boxId && !boxScanData[boxId]) {
+          boxScanData[boxId] = { 
+            w_by: ba.warehouse_scan_by, w_at: ba.warehouse_scan_at,
+            i_by: ba.inventory_scan_by, i_at: ba.inventory_scan_at,
+            e_by: ba.endorsement_scan_by, e_at: ba.endorsement_scan_at
+          }
+        }
+      }
+
+      const { data: storageAssignments } = await db
+        .from('storage_assignments')
+        .select('box_id, assigned_by, assigned_at')
+        .in('box_id', boxIds)
+
+      for (const sa of storageAssignments || []) {
+        if (!boxScanData[sa.box_id]) boxScanData[sa.box_id] = {}
+        boxScanData[sa.box_id].s_by = sa.assigned_by
+        boxScanData[sa.box_id].s_at = sa.assigned_at
+      }
+    }
+
+    filteredSessions.forEach(s => {
+      if (s.warehouse_user_received) userIds.add(s.warehouse_user_received)
+      if (s.inventory_user_received) userIds.add(s.inventory_user_received)
+      if (s.inventory_user_send) userIds.add(s.inventory_user_send)
+      if (s.cut_user_received) userIds.add(s.cut_user_received)
+      if (s.cut_user_send) userIds.add(s.cut_user_send)
+      if (s.endorsement_user_received) userIds.add(s.endorsement_user_received)
+      if (s.endorsement_user_send) userIds.add(s.endorsement_user_send)
+      if (s.scan_user_received) userIds.add(s.scan_user_received)
+      
+      const boxId = s.box?.id
+      if (boxId && boxScanData[boxId]) {
+        if (boxScanData[boxId].w_by) userIds.add(boxScanData[boxId].w_by)
+        if (boxScanData[boxId].i_by) userIds.add(boxScanData[boxId].i_by)
+        if (boxScanData[boxId].e_by) userIds.add(boxScanData[boxId].e_by)
+        if (boxScanData[boxId].s_by) userIds.add(boxScanData[boxId].s_by)
+      }
+    })
+
+    let userMap = {}
+    if (userIds.size > 0) {
+      const { data: profiles } = await db.from('profiles').select('id, name, email').in('id', Array.from(userIds))
+      for (const p of profiles || []) {
+        userMap[p.id] = p.name || p.email
+      }
+    }
+
+    // Assign names to session objects
+    const pagedEvents = filteredSessions.map(s => {
+      const boxId = s.box?.id
+      const scanData = boxId ? boxScanData[boxId] : null
+      
+      return {
+        ...s,
+        warehouse_user_name: userMap[s.warehouse_user_received] || null,
+        warehouse_scan_name: scanData ? (userMap[scanData.w_by] || null) : null,
+        warehouse_scan_at: scanData ? scanData.w_at : null,
+        inventory_user_name: userMap[s.inventory_user_received] || null,
+        inventory_scan_name: scanData ? (userMap[scanData.i_by] || null) : null,
+        inventory_scan_at: scanData ? scanData.i_at : null,
+        inventory_send_name: userMap[s.inventory_user_send] || null,
+        cut_user_name: userMap[s.cut_user_received] || null,
+        cut_send_name: userMap[s.cut_user_send] || null,
+        endorsement_user_name: userMap[s.endorsement_user_received] || null,
+        endorsement_scan_name: scanData ? (userMap[scanData.e_by] || null) : null,
+        endorsement_scan_at: scanData ? scanData.e_at : null,
+        endorsement_send_name: userMap[s.endorsement_user_send] || null,
+        scan_user_name: userMap[s.scan_user_received] || null,
+        storage_user_name: scanData ? (userMap[scanData.s_by] || null) : null,
+        storage_time_assigned: scanData ? scanData.s_at : null,
+      }
+    })
+
+    res.json({ success: true, transitions: pagedEvents })
   } catch (error) {
     console.error('Get pipeline transitions error:', error)
     res.status(500).json({ error: error.message })
@@ -422,16 +561,6 @@ router.post('/:id/receive', requireAuth, async (req, res) => {
 
     if (updateError) throw updateError
 
-    // Log receipt event
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage: box.current_stage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: `Received at ${box.current_stage}`
-    })
 
     res.json({ success: true, box: updatedBox })
   } catch (error) {
@@ -614,16 +743,6 @@ router.post('/:id/advance', requireAuth, async (req, res) => {
       }
     }
 
-    // Log pipeline event
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage: nextStage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: notes || null
-    })
 
     res.json({ success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage })
   } catch (error) {
@@ -691,16 +810,7 @@ router.post('/:id/send-forward', requireAuth, async (req, res) => {
 
     if (updateError) throw updateError
 
-    // Log the pipeline event for audit
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage: nextStage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: notes || `Sent to ${nextStage} from ${box.current_stage}`
-    })
+
 
     res.json({ success: true, box, session_status: 'sent', current_stage: box.current_stage })
   } catch (error) {
@@ -739,15 +849,7 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
 
     if (updateError) throw updateError
 
-    await db.from('pipeline_events').insert({
-      box_id: id,
-      lot_id: box.lot_id,
-      from_stage: box.current_stage,
-      to_stage,
-      moved_by: req.user.id,
-      moved_by_name: req.user.user_metadata?.full_name || req.user.email,
-      notes: 'Rolled back (undo)'
-    })
+
 
     res.json({ success: true, box: updatedBox })
   } catch (error) {
@@ -960,7 +1062,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       await db.from('books').delete().in('id', booksToDelete.map(b => b.id))
     }
     await db.from('storage_assignments').delete().eq('box_id', id)
-    await db.from('pipeline_events').delete().eq('box_id', id)
+
 
     // Delete the box itself
     const { error: deleteError } = await db.from('boxes').delete().eq('id', id)

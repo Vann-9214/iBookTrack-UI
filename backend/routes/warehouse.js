@@ -114,8 +114,7 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
             lot_id: lot.id,
             box_type: 'processable',
             current_stage: 'warehouse',
-            total_books_expected: 0,
-            is_sealed: false
+            total_books_expected: 0
           })
           .select()
           .single()
@@ -240,8 +239,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
           lot_id: lotId,
           box_type: boxType,
           current_stage: 'warehouse',
-          total_books_expected: 0,
-          is_sealed: false
+          total_books_expected: 0
         })
         .select()
         .single()
@@ -287,18 +285,8 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
         .eq('id', session.box_id)
         .single()
 
-      if (boxData && boxData.is_sealed && boxData.current_stage === 'warehouse') {
-        // Box is full — create a new one and update session
-        currentBox = await createBoxIfNeeded(book_type || null, lotNumber)
-        assignedBoxId = currentBox.id
-        await supabaseAdmin
-          .from('box_sessions')
-          .update({ box_id: currentBox.id })
-          .eq('id', session_id)
-      } else {
-        assignedBoxId = session.box_id
-        currentBox = boxData
-      }
+      assignedBoxId = session.box_id
+      currentBox = boxData
     }
 
     // Find existing book in the box or insert a new one to get book_id
@@ -412,8 +400,7 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
     res.status(201).json({ 
       scanLog,
       currentBox: currentBox ? {
-        box_number: currentBox.box_number,
-        is_sealed: currentBox.is_sealed
+        box_number: currentBox.box_number
       } : null
     })
   } catch (error) {
@@ -444,11 +431,6 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
     // Update box based on stage
     if (session.box_id) {
       if (stage === 'inventory') {
-        // Mark box as sealed so it's recognized as verified by inventory
-        await supabaseAdmin
-          .from('boxes')
-          .update({ is_sealed: true })
-          .eq('id', session.box_id)
           
         const { data: booksInBox } = await supabaseAdmin
           .from('books')
@@ -646,7 +628,7 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
     } else {
       const { data: newBox } = await supabaseAdmin
         .from('boxes')
-        .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0, is_sealed: false })
+        .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0 })
         .select()
         .single();
       assignedBoxId = newBox.id;

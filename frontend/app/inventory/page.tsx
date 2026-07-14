@@ -157,7 +157,7 @@ export default function InventoryPage() {
 
   // --- Print-completion tracking (per box) ---
   // printedBoxLabels: set of box IDs whose box label has been printed
-  // printedBookSlips: map of boxId -> set of book IDs whose slip has been printed
+  // printedBookSlips: map of boxId → set of book IDs whose slip has been printed
   const [printedBoxLabels, setPrintedBoxLabels] = useState<Set<string>>(new Set())
   const [printedBookSlips, setPrintedBookSlips] = useState<Record<string, Set<string>>>({})
   const printProcessRows = [
@@ -322,7 +322,7 @@ export default function InventoryPage() {
       const derivedType = (Array.from(new Set((bookTypeData.books || [])
         .map((book: { book_type?: string }) => (book.book_type || '').trim())
         .filter(Boolean))) as string[])
-        .map(type => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase())[0] || '--'
+        .map(type => type.charAt(0).toUpperCase() + type.slice(1).toLowerCase())[0] || '—'
 
       setPrintBox(box)
       setPrintBooks(books)
@@ -345,12 +345,12 @@ export default function InventoryPage() {
 
   const [movingToStorage, setMovingToStorage] = useState<string | null>(null)
 
-  // ------ Tab navigation ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  // ── Tab navigation ──────────────────────────────────────────────────────────
   const [inventoryTab, setInventoryTab] = useState<'incoming' | 'verification' | 'outgoing'>('incoming')
 
-  // ------ Verified box IDs (session-complete -> outgoing) ---------------------------------------------------------------------------
+  // ── Verified box IDs (session-complete → outgoing) ─────────────────────────
   // Boxes move here after a verification session is completed (still inventory stage in DB).
-  // ------ Book Verification list: expandable row state ---------------------------------------------------------------------------------
+  // ── Book Verification list: expandable row state ───────────────────────────
   const [verifExpandedBoxId, setVerifExpandedBoxId] = useState<string | null>(null)
   const [verifRowBooks, setVerifRowBooks] = useState<Record<string, BookInBox[]>>({})
   const [loadingVerifRowBooks, setLoadingVerifRowBooks] = useState<string | null>(null)
@@ -372,7 +372,7 @@ export default function InventoryPage() {
     }
   }
 
-  // ------ Incoming: Receive box (warehouse -> inventory) ------------------------------------------------------------------------------
+  // ── Incoming: Receive box (warehouse → inventory) ──────────────────────────
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
   const handleReceiveBox = async (box: Box) => {
@@ -392,7 +392,7 @@ export default function InventoryPage() {
     }
   }
 
-  // ------ Book Verification: session state ---------------------------------------------------------------------------------------------------------------------
+  // ── Book Verification: session state ───────────────────────────────────────
   const [verifSessionActive, setVerifSessionActive] = useState(false)
   const [verifSelectedBoxId, setVerifSelectedBoxId] = useState('')
   const [verifUserName, setVerifUserName] = useState('')
@@ -416,13 +416,13 @@ export default function InventoryPage() {
   const [verifFlagRemarks, setVerifFlagRemarks] = useState('')
   const [verifFlagSaving, setVerifFlagSaving] = useState(false)
 
-  // ------ Warehouse Data for Side-by-Side View ---------------------------------------------------------------------------------------------------------------
+  // ── Warehouse Data for Side-by-Side View ─────────────────────────────────────
   const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
 
   const issueLabel = (val: string) => FLAG_ISSUES.find(i => i.value === val)?.label || val
 
-  // ------ Fetch Warehouse Books for Comparison ---------------------------------------------------------------------------------------------------------
+  // ── Fetch Warehouse Books for Comparison ───────────────────────────────────
   const fetchWarehouseBooks = async (boxId: string) => {
     setLoadingWarehouseBooks(true)
     try {
@@ -794,7 +794,7 @@ export default function InventoryPage() {
     }
   }
 
-  // ------ Outgoing: Send to Cut (inventory -> cut) ------------------------------------------------------------------------------------------------
+  // ── Outgoing: Send to Cut (inventory → cut) ────────────────────────────────
   const [sendingToCut, setSendingToCut] = useState<string | null>(null)
 
   const handleSendToCut = async (box: Box) => {
@@ -814,7 +814,7 @@ export default function InventoryPage() {
     }
   }
 
-  // ------ Outgoing: expand/collapse box to show its books ---------------------------------------------------------------------------------
+  // ── Outgoing: expand/collapse box to show its books ───────────────────────────
   const toggleOutgoingBox = async (box: Box) => {
     if (outgoingExpandedBoxId === box.id) {
       setOutgoingExpandedBoxId(null)
@@ -932,7 +932,7 @@ export default function InventoryPage() {
     }
   }, [printBox])
 
-  // ------ Book slip: render barcode then trigger print ------------------------------------------------------------------------------------------
+  // ── Book slip: render barcode then trigger print ──────────────────────────────
   useEffect(() => {
     if (!printBook) return
 
@@ -988,23 +988,23 @@ export default function InventoryPage() {
     }
   }, [printBook])
 
-  // Brand filter helper -- lot.type must match the active brand toggle (case-insensitive)
+  // Brand filter helper — lot.type must match the active brand toggle (case-insensitive)
   const matchesBrand = (b: Box) => !b.lot?.type || b.lot.type.toLowerCase() === brand.toLowerCase()
 
-  // Incoming Boxes -- warehouse stage, matching brand
+  // Incoming Boxes — warehouse stage, matching brand
   const incomingBoxes = boxes.filter(b => 
     b.current_stage === 'warehouse' && 
     b.box_sessions?.some(s => s.status === 'completed') &&
     matchesBrand(b)
   )
 
-  // Book Verification -- inventory stage, session is received/in_progress (not yet fully verified), matching brand
-  // Session lifecycle: completed (warehouse) -> received (inventory received) -> in_progress (verifying) -> completed (verified -> outgoing)
+  // Book Verification — inventory stage, session is received/in_progress (not yet fully verified), matching brand
+  // Session lifecycle: completed (warehouse) → received (inventory received) → in_progress (verifying) → completed (verified → outgoing)
   const inventoryBoxes = boxes.filter(b => {
     if (b.current_stage !== 'inventory') return false
     if (!matchesBrand(b)) return false
     const sessions = b.box_sessions || []
-    // If there's a completed or sent session it has been verified -> goes to outgoing or cut tab instead
+    // If there's a completed or sent session it has been verified → goes to outgoing or cut tab instead
     if (sessions.some(s => s.status === 'completed' || s.status === 'sent')) return false
     // Only hide in_progress boxes that are locked to a DIFFERENT user.
     // If inventory_user_send is null/unset, the box is available to everyone.
@@ -1019,7 +1019,7 @@ export default function InventoryPage() {
     return true
   })
 
-  // Outgoing Boxes -- inventory stage + verified this session, matching brand
+  // Outgoing Boxes — inventory stage + verified this session, matching brand
   const outgoingBoxes = boxes.filter(b => 
     b.current_stage === 'inventory' && 
     b.box_sessions?.some(s => s.status === 'completed') &&
@@ -1036,7 +1036,7 @@ export default function InventoryPage() {
 
   return (
     <>
-    {/*  DELETE BOX CONFIRM DIALOG  */}
+    {/* ── DELETE BOX CONFIRM DIALOG ── */}
     {deleteConfirm && (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 print:hidden">
         <div className="bg-background border border-border rounded-xl shadow-2xl p-6 w-full max-w-sm flex flex-col gap-4">
@@ -1069,12 +1069,12 @@ export default function InventoryPage() {
       </div>
     )}
 
-    {/*  PRINT LABEL OVERLAY (print-only) A6 landscape yellow label  */}
+    {/* ── PRINT LABEL OVERLAY (print-only) A6 landscape yellow label ── */}
     {printBox && (
       <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-start print:justify-start">
         {/*
-          A6 landscape = 148mm  105mm.
-          At 96dpi: 148mm  559px, 105mm  397px.
+          A6 landscape = 148mm × 105mm.
+          At 96dpi: 148mm ≈ 559px, 105mm ≈ 397px.
           We use mm units via inline style for accurate print sizing.
         */}
         <div
@@ -1093,7 +1093,7 @@ export default function InventoryPage() {
             gap: '3mm',
           }}
         >
-          {/*  LEFT: Process table + Remarks  */}
+          {/* ── LEFT: Process table + Remarks ── */}
           <div style={{ flex: '0 0 52mm', display: 'flex', flexDirection: 'column', border: '1.5px solid #111' }}>
             {/* Header row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', fontSize: '7pt', fontWeight: 700, textAlign: 'center' }}>
@@ -1101,15 +1101,15 @@ export default function InventoryPage() {
               <div style={{ borderRight: '1px solid #111', padding: '1mm' }}></div>
               <div style={{ padding: '1mm', lineHeight: 1.1 }}>No. of<br />Books</div>
             </div>
-            {/* Row 1  empty circle + book count */}
+            {/* Row 1 - empty circle + book count */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
               <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>Inventory &amp; Registration</div>
               <div style={{ borderRight: '1px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid #111', background: 'transparent', display: 'inline-block' }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books_expected || '--'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books_expected || '—'}</div>
             </div>
-            {/* Rows 2-5  empty circle, no book count (filled manually) */}
+            {/* Rows 2-5 - empty circle, no book count (filled manually) */}
             {printProcessRows.slice(1).map((label) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '1fr 8mm 12mm', borderBottom: '1px solid #111', flex: 1 }}>
                 <div style={{ borderRight: '1px solid #111', padding: '1.5mm 2mm', fontSize: '8pt', lineHeight: 1.15 }}>{label}</div>
@@ -1131,7 +1131,7 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/*  RIGHT: bordered box with Type/Lot/Box + QR code below  */}
+          {/* ── RIGHT: bordered box with Type/Lot/Box + QR code below ── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5mm' }}>
             {/* Top bordered box: Type, Lot, Box stacked */}
             <div style={{ border: '2px solid #111', display: 'flex', flexDirection: 'column', flex: '0 0 auto' }}>
@@ -1144,7 +1144,7 @@ export default function InventoryPage() {
               {/* Section 2: Lot number */}
               <div style={{ borderBottom: '2px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.8mm 2mm' }}>
                 <span style={{ fontSize: '15pt', fontWeight: 700, textAlign: 'center', lineHeight: 1.1 }}>
-                  {printBox.lot?.lot_number || '--'}
+                  {printBox.lot?.lot_number || '—'}
                 </span>
               </div>
               {/* Section 3: Box sequence number */}
@@ -1157,7 +1157,7 @@ export default function InventoryPage() {
                 </span>
               </div>
             </div>
-            {/* QR code below -- square, fills remaining height */}
+            {/* QR code below — square, fills remaining height */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5mm' }}>
               <canvas ref={qrRef} width={300} height={300} style={{ width: 'auto', height: '100%', maxHeight: '42mm', imageRendering: 'pixelated', display: 'block' }} />
               <div style={{ fontSize: '5pt', textAlign: 'center', wordBreak: 'break-all', color: '#555' }}>{printBox.box_number}</div>
@@ -1167,7 +1167,7 @@ export default function InventoryPage() {
       </div>
     )}
 
-    {/*  BOOK SLIP OVERLAY (print-only) A5 portrait  */}
+    {/* ── BOOK SLIP OVERLAY (print-only) A5 portrait ── */}
     {printBook && (
       <div className="hidden print:flex print:fixed print:inset-0 print:bg-white print:z-[9999] print:items-start print:justify-start">
         <div style={{
@@ -1188,7 +1188,7 @@ export default function InventoryPage() {
             <span style={{ fontSize: '11pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Book Slip</span>
             <span style={{ fontSize: '8pt', color: '#555' }}>
               {printBook.box.lot?.lot_number ? `Lot: ${printBook.box.lot.lot_number}` : ''}
-              {printBook.box.lot?.lot_number && printBook.box.box_number ? '  Â·  ' : ''}
+              {printBook.box.lot?.lot_number && printBook.box.box_number ? '  ·  ' : ''}
               {printBook.box.box_number ? `Box: ${printBook.box.box_number}` : ''}
             </span>
           </div>
@@ -1208,16 +1208,16 @@ export default function InventoryPage() {
               <span style={{ fontWeight: 700, color: '#555' }}>Type</span>
               <span>{printBook.book.book_type
                 ? printBook.book.book_type.charAt(0).toUpperCase() + printBook.book.book_type.slice(1).toLowerCase()
-                : '--'}</span>
+                : '—'}</span>
 
               <span style={{ fontWeight: 700, color: '#555' }}>Status</span>
-              <span style={{ textTransform: 'capitalize' }}>{printBook.book.scan_status?.replace('_', ' ') || '--'}</span>
+              <span style={{ textTransform: 'capitalize' }}>{printBook.book.scan_status?.replace('_', ' ') || '—'}</span>
 
               <span style={{ fontWeight: 700, color: '#555' }}>Box</span>
               <span>{printBook.box.box_number}</span>
 
               <span style={{ fontWeight: 700, color: '#555' }}>Lot</span>
-              <span>{printBook.box.lot?.lot_number || '--'}</span>
+              <span>{printBook.box.lot?.lot_number || '—'}</span>
             </div>
           </div>
 
@@ -1235,7 +1235,7 @@ export default function InventoryPage() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar disableBrandToggle={verifSessionActive} navigationLocked={verifSessionActive} />
         <main className="flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
+          <div className={cn("mx-auto w-full flex-1 flex flex-col", verifSessionActive ? "max-w-full" : "max-w-6xl")}>
 
           <div className="flex flex-col gap-2 mb-6">
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
@@ -1247,7 +1247,8 @@ export default function InventoryPage() {
           </div>
 
           {/* Search bar */}
-          <div className="flex items-center gap-2 mb-6">
+          {!verifSessionActive && (
+            <div className="flex items-center gap-2 mb-6">
             <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
               <SelectTrigger className="w-[130px] shrink-0 hover:text-primary-foreground hover:bg-primary transition-colors">
                 <SelectValue />
@@ -1293,8 +1294,9 @@ export default function InventoryPage() {
               )}
             </div>
           </div>
+          )}
 
-          {/*  Tab Navigation  */}
+          {/* ── Tab Navigation ── */}
           <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
             {/* Incoming */}
             <button
@@ -1367,9 +1369,9 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/*  */}
+          {/* ================================================================== */}
           {/* TAB: INCOMING BOXES                                              */}
-          {/*  */}
+          {/* ================================================================== */}
           {inventoryTab === 'incoming' && (
             <div className="flex-1 flex flex-col">
               {loadingBoxes ? (
@@ -1408,12 +1410,16 @@ export default function InventoryPage() {
                                 <div className="bg-primary/10 rounded-lg p-2 shrink-0">
                                   <Package className="h-5 w-5 text-primary" />
                                 </div>
-                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium whitespace-nowrap">Sent from Warehouse</span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '--'} | BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                              </div>
+                              {created && (
+                                <div className="shrink-0 hidden sm:block text-right mr-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    {created.toLocaleDateString()}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground/80">
+                                    {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                  </p>
                                 </div>
                                 {created && (
                                   <div className="shrink-0 hidden sm:block text-right mr-2">
@@ -1459,7 +1465,7 @@ export default function InventoryPage() {
                                           'text-xs font-medium',
                                           (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
                                         )}>
-                                          {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '--'}
+                                          {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                         </span>
                                         <div className="flex flex-col gap-0.5">
                                           <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
@@ -1489,9 +1495,9 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {/*  */}
+          {/* ================================================================== */}
           {/* TAB: BOOK VERIFICATION                                           */}
-          {/*  */}
+          {/* ================================================================== */}
           {inventoryTab === 'verification' && (
             <div className="flex flex-col gap-3 min-h-0 flex-1">
 
@@ -1637,7 +1643,7 @@ export default function InventoryPage() {
                       </h3>
                       <button onClick={() => setVerifFlagModalBook(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} -- {verifFlagModalBook.title}</p>
+                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} — {verifFlagModalBook.title}</p>
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
@@ -1666,7 +1672,7 @@ export default function InventoryPage() {
               )}
 
               {!verifSessionActive ? (
-                /*  Box list for verification  */
+                /* ── Box list for verification ── */
                 <div className="flex-1 flex flex-col">
                   {loadingBoxes ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
@@ -1694,20 +1700,33 @@ export default function InventoryPage() {
                             
                             return (
                               <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
-                                {/* Row header -- same style as Incoming Boxes */}
-                                <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
-                                  {/* Top row: chevron + icon + info + date */}
-                                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    {/* Expand chevron */}
-                                    <button
-                                      onClick={() => toggleVerifRow(box.id)}
-                                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                                    >
-                                      {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                                    </button>
-                                    {/* Icon */}
-                                    <div className="bg-primary/10 rounded-lg p-2 shrink-0">
-                                      <Package className="h-5 w-5 text-primary" />
+                                {/* Row header — same style as Incoming Boxes */}
+                                <div className="flex items-center px-4 py-3 gap-4">
+                                  {/* Expand chevron */}
+                                  <button
+                                    onClick={() => toggleVerifRow(box.id)}
+                                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                                  >
+                                    {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                  </button>
+                                  {/* Icon */}
+                                  <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                    <Package className="h-5 w-5 text-primary" />
+                                  </div>
+                                  {/* Info — clickable to expand */}
+                                  <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
+                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                    <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                  </div>
+                                  {/* Date + time */}
+                                  {created && (
+                                    <div className="shrink-0 hidden sm:block text-right mr-2">
+                                      <p className="text-xs text-muted-foreground">
+                                        {created.toLocaleDateString()}
+                                      </p>
+                                      <p className="text-[10px] text-muted-foreground/80">
+                                        {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                      </p>
                                     </div>
                                     {/* Info -- clickable to expand */}
                                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleVerifRow(box.id)}>
@@ -1765,7 +1784,7 @@ export default function InventoryPage() {
                                               'text-xs font-medium',
                                               (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600'
                                             )}>
-                                              {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '--'}
+                                              {(book.book_type || box.lot?.type) ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase() : '—'}
                                             </span>
                                             <div className="flex flex-col gap-0.5">
                                               <span className={`text-[10px] px-2 py-0.5 rounded font-medium w-fit ${
@@ -1867,13 +1886,13 @@ export default function InventoryPage() {
                 </div>
               ) : verifBox && (
                 <>
-                  {/*  Active session bar  */}
+                  {/* ── Active session bar ── */}
                   <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-4">
                     <div className="flex items-center gap-4">
                       <Package className="h-5 w-5 text-primary" />
                       <div>
                         <p className="text-xs text-muted-foreground">Active Lot</p>
-                        <p className="text-sm font-semibold text-foreground">{verifBox.lot?.lot_number || '--'}</p>
+                        <p className="text-sm font-semibold text-foreground">{verifBox.lot?.lot_number || '—'}</p>
                       </div>
                       {verifBox.box_number && (
                         <div>
@@ -1903,7 +1922,7 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/*  Book count stats  */}
+                  {/* ── Book count stats ── */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
                       <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
@@ -1934,10 +1953,10 @@ export default function InventoryPage() {
                     </div>
                   </div>
 
-                  {/*  Scanner  */}
+                  {/* ── Scanner ── */}
                   <ScannerInput onScan={handleVerifScan} />
 
-                  {/*  Side-by-Side Warehouse and Inventory Tables  */}
+                  {/* ── Side-by-Side Warehouse and Inventory Tables ── */}
                   <div className="grid grid-cols-2 gap-4">
                     {/* Warehouse Table (Left) - Read Only */}
                     <div className="bg-card border border-border rounded-xl p-5">
@@ -2044,7 +2063,7 @@ export default function InventoryPage() {
                                   <div className="col-span-6">
                                     <p className="text-[11px] text-foreground truncate">{book.title}</p>
                                     {book.flag_issue && (
-                                      <p className="text-[10px] text-red-600 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` -- ${book.flag_remarks}` : ''}</p>
+                                      <p className="text-[10px] text-red-600 mt-0.5">{issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}</p>
                                     )}
                                   </div>
                                   <div className="col-span-3 flex items-center justify-end gap-2">
@@ -2096,9 +2115,9 @@ export default function InventoryPage() {
             </div>
           )}
 
-          {/*  */}
+          {/* ================================================================== */}
           {/* TAB: OUTGOING BOXES                                              */}
-          {/*  */}
+          {/* ================================================================== */}
           {inventoryTab === 'outgoing' && (
             <div className="flex-1 flex flex-col">
               {loadingBoxes ? (
@@ -2129,10 +2148,49 @@ export default function InventoryPage() {
                         const allPrinted = boxLabelPrinted
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden">
-                            {/*  Header row  */}
-                            <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
-                              {/* Top row: chevron + icon + info + date */}
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {/* ── Header row ── */}
+                            <div className="flex items-center px-4 py-3 gap-4">
+                              <button
+                                onClick={() => toggleOutgoingBox(box)}
+                                disabled={outgoingLoadingBooks === box.id}
+                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
+                              >
+                                {outgoingLoadingBooks === box.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : isExpanded ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </button>
+
+                              <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                <Package className="h-5 w-5 text-primary" />
+                              </div>
+
+                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleOutgoingBox(box)}>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Verified</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" />
+                                </p>
+                              </div>
+
+                              {created && (
+                                <div className="shrink-0 hidden sm:block text-right mr-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    {created.toLocaleDateString()}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground/80">
+                                    {created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Print label button + printed checkbox */}
+                              <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                                 <button
                                   onClick={() => toggleOutgoingBox(box)}
                                   disabled={outgoingLoadingBooks === box.id}
@@ -2140,20 +2198,39 @@ export default function InventoryPage() {
                                 >
                                   {outgoingLoadingBooks === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                 </button>
-                                <div className="bg-primary/10 rounded-lg p-2 shrink-0">
-                                  <Package className="h-5 w-5 text-primary" />
-                                </div>
-                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleOutgoingBox(box)}>
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Verified</span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '--'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                                </div>
-                                {created && (
-                                  <div className="shrink-0 hidden sm:block text-right mr-2">
-                                    <p className="text-xs text-muted-foreground">{created.toLocaleDateString()}</p>
-                                    <p className="text-[10px] text-muted-foreground/80">{created.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+                                <input
+                                  type="checkbox"
+                                  checked={boxLabelPrinted}
+                                  readOnly
+                                  className="h-4 w-4 rounded border-border accent-primary cursor-default"
+                                  title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
+                                />
+                              </div>
+
+                              {/* Send button — only enabled once all book slips + box label are printed */}
+                              <div className="shrink-0 relative group" onClick={e => e.stopPropagation()}>
+                                {/* Invisible hover capture layer — ensures hover works even when button is disabled */}
+                                {!allPrinted && <span className="absolute inset-0 z-10 cursor-not-allowed" />}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleSendToCut(box)
+                                  }}
+                                  disabled={sendingToCut === box.id || !allPrinted}
+                                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  {sendingToCut === box.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Send className="h-4 w-4" />
+                                  )}
+                                  {sendingToCut === box.id ? 'Sendingâ€¦' : 'Send to Cut'}
+                                </button>
+                                {!allPrinted && (
+                                  <div className="absolute bottom-full right-0 mb-1 hidden group-hover:block z-10 pointer-events-none">
+                                    <div className="bg-popover border border-border text-foreground text-[11px] rounded-md px-2.5 py-1.5 shadow-md whitespace-nowrap">
+                                      Print the box label first
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -2201,7 +2278,7 @@ export default function InventoryPage() {
                               )}
                             </div>
 
-                            {/*  Expanded book list  */}
+                            {/* ── Expanded book list ── */}
                             {isExpanded && (
                               <div className="border-t border-border bg-muted/30">
                                 {outgoingLoadingBooks === box.id ? (
@@ -2222,8 +2299,8 @@ export default function InventoryPage() {
                                       <span>ISBN / Title</span>
                                       <span>Type</span>
                                       <span>Status</span>
-                                      {!isMobile && <span className="text-center">Print</span>}
-                                      {!isMobile && <span>{/* Printed -- no header text */}</span>}
+                                      <span className="text-center">Print</span>
+                                      <span>{/* Printed — no header text */}</span>
                                     </div>
                                     {booksForBox.map(book => {
                                       const isBookPrinted = (printedBookSlips[box.id] ?? new Set<string>()).has(book.id)
@@ -2239,7 +2316,7 @@ export default function InventoryPage() {
                                           <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
                                           {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
                                         </div>
-                                        {/* Book type -- plain text */}
+                                        {/* Book type — plain text */}
                                         <span className={cn(
                                           'text-xs font-medium',
                                           (book.book_type || box.lot?.type)?.toLowerCase() === 'jaguar'
@@ -2248,7 +2325,7 @@ export default function InventoryPage() {
                                         )}>
                                           {(book.book_type || box.lot?.type)
                                             ? (book.book_type || box.lot?.type)!.charAt(0).toUpperCase() + (book.book_type || box.lot?.type)!.slice(1).toLowerCase()
-                                            : '--'}
+                                            : '—'}
                                         </span>
                                         {/* Status badge */}
                                         <div className="flex flex-col gap-0.5">
@@ -2324,7 +2401,7 @@ export default function InventoryPage() {
                   <Zap className="h-4 w-4 text-primary" />
                   Simflex Transmission Check
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{simflexModal.box.box_number} Â· {simflexModal.box.lot?.lot_number}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{simflexModal.box.box_number} · {simflexModal.box.lot?.lot_number}</p>
               </div>
               {!simflexModal.loading && (
                 <button onClick={() => setSimflexModal(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
@@ -2374,7 +2451,7 @@ export default function InventoryPage() {
                       )}
                     </div>
                     {simflexModal.result.autoAdvanced && (
-                      <p className="text-xs text-green-700 mt-1 font-medium">Box stage updated: Scan &rarr; Transmit &rarr; Storage</p>
+                      <p className="text-xs text-green-700 mt-1 font-medium">Box stage updated: Scan → Transmit → Storage</p>
                     )}
                   </div>
                 </div>
@@ -2396,7 +2473,7 @@ export default function InventoryPage() {
                         <tr key={r.isbn} className="border-b border-border/40 last:border-0">
                           <td className="py-1.5 px-3 text-muted-foreground">{i + 1}</td>
                           <td className="py-1.5 px-3 text-foreground">{r.isbn}</td>
-                          <td className="py-1.5 px-3 text-muted-foreground">{r.boxNumber || '--'}</td>
+                          <td className="py-1.5 px-3 text-muted-foreground">{r.boxNumber || '—'}</td>
                           <td className="py-1.5 px-3 text-muted-foreground max-w-[180px] truncate" title={r.latestStatus || ''}>
                             {r.latestStatus || <span className="italic">Not in Simflex</span>}
                           </td>

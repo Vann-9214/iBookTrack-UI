@@ -48,17 +48,6 @@ const POLL_CYCLE_TIMEOUT_MS = 5 * 60 * 1000
 async function advanceBoxStage(boxId, lotId, fromStage, toStage, notes) {
   // Update the box's current stage
   await db().from('boxes').update({ current_stage: toStage }).eq('id', boxId)
-
-  // Log the transition so operators can see the auto-advance in the pipeline history
-  await db().from('pipeline_events').insert({
-    box_id:        boxId,
-    lot_id:        lotId,
-    from_stage:    fromStage,
-    to_stage:      toStage,
-    moved_by:      null,                   // null = automated, not a human user
-    moved_by_name: 'Auto (Simflex Poller)',
-    notes,
-  })
 }
 
 /**

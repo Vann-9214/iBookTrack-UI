@@ -16,7 +16,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Scan, Package, Scissors, CheckCircle, Camera,
+  Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, ClipboardCheck, Archive, Activity,
   Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
   Loader2, Zap,
 } from "lucide-react"
@@ -32,18 +32,17 @@ const todayStr = () => new Date().toISOString().split('T')[0]
 const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'] as const
 type Stage = typeof STAGE_ORDER[number]
 
-const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color: string }> = {
-  warehouse:   { label: 'Warehouse',   icon: Package,     color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
-  inventory:   { label: 'Inventory',   icon: Warehouse,   color: 'bg-cyan-100 text-cyan-700 border-cyan-300' },
-  cut:         { label: 'Cut',         icon: Scissors,    color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  endorsement: { label: 'Endorsement', icon: CheckCircle, color: 'bg-amber-100 text-amber-700 border-amber-300' },
-  scan:        { label: 'Scan',        icon: Camera,      color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  transmit:    { label: 'Transmit',    icon: Radio,       color: 'bg-violet-100 text-violet-700 border-violet-300' },
-  storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color: string; solidBg: string }> = {
+  warehouse:   { label: 'Warehouse',   icon: Package,     color: 'bg-indigo-100 text-indigo-700 border-indigo-300',     solidBg: 'bg-indigo-500' },
+  inventory:   { label: 'Inventory',   icon: Warehouse,   color: 'bg-cyan-100 text-cyan-700 border-cyan-300',           solidBg: 'bg-cyan-500' },
+  cut:         { label: 'Cut',         icon: Scissors,    color: 'bg-orange-100 text-orange-700 border-orange-300',     solidBg: 'bg-orange-500' },
+  endorsement: { label: 'Endorsement', icon: CheckCircle, color: 'bg-amber-100 text-amber-700 border-amber-300',        solidBg: 'bg-amber-500' },
+  scan:        { label: 'Scan',        icon: Camera,      color: 'bg-blue-100 text-blue-700 border-blue-300',           solidBg: 'bg-blue-500' },
+  transmit:    { label: 'Transmit',    icon: Radio,       color: 'bg-violet-100 text-violet-700 border-violet-300',     solidBg: 'bg-violet-500' },
+  storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300',  solidBg: 'bg-emerald-500' },
 }
 
 const getStepStatus = (count: number) => {
-  if (count >= 100) return "busy"
   if (count === 0) return "idle"
   return "active"
 }
@@ -62,29 +61,17 @@ const getStatusConfig = (status: string, brand: string) => {
       iconColorCls: brand === 'jaguar' ? "bg-green-100 text-green-700 border-green-200" : "bg-blue-100 text-blue-700 border-blue-200",
     }
   }
-  if (status === 'busy') {
-    return {
-      nodeRing: "border-orange-400 text-orange-500",
-      countColor: "text-orange-500",
-      bar: "bg-orange-400",
-      cardBg: "bg-orange-50",
-      dot: "bg-orange-400",
-      label: "Busy",
-      borderTop: "border-t-orange-400",
-      borderGradient: "",
-      iconColorCls: "bg-orange-100 text-orange-700 border-orange-200",
-    }
-  }
+  // idle
   return {
-    nodeRing: "border-gray-300 text-gray-400",
+    nodeRing: "border-gray-200 text-gray-400",
     countColor: "text-gray-400",
-    bar: "bg-gray-400",
-    cardBg: "bg-gray-50",
-    dot: "bg-gray-400",
+    bar: "bg-gray-200",
+    cardBg: "bg-background",
+    dot: "bg-gray-300",
     label: "Idle",
-    borderTop: "border-t-gray-300",
+    borderTop: "border-t-transparent",
     borderGradient: "",
-    iconColorCls: "bg-gray-100 text-gray-500 border-gray-200",
+    iconColorCls: "bg-gray-50 text-gray-400 border-gray-200",
   }
 }
 
@@ -155,16 +142,21 @@ export default function StationCheckpointsPage() {
   const { brand } = useBrand()
   const [boxes, setBoxes] = useState<BoxItem[]>([])
   const [transitions, setTransitions] = useState<Transition[]>([])
-  const [loading, setLoading] = useState(true)
+  const [totalTransitions, setTotalTransitions] = useState(0)
+  const [topLoading, setTopLoading] = useState(true)
+  const [transitionsLoading, setTransitionsLoading] = useState(true)
   const [advancing, setAdvancing] = useState<string | null>(null)
   const [receiving, setReceiving] = useState<string | null>(null)
   const [sendingForward, setSendingForward] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [scanInput, setScanInput] = useState('')
   const [highlightBox, setHighlightBox] = useState<string | null>(null)
+  const [transitionSearchInput, setTransitionSearchInput] = useState('')
   const [transitionSearch, setTransitionSearch] = useState('')
-  const [transitionDateFrom, setTransitionDateFrom] = useState(todayStr())
-  const [transitionDateTo, setTransitionDateTo] = useState(todayStr())
+  const [transitionDateFrom, setTransitionDateFrom] = useState('')
+  const [transitionDateTo, setTransitionDateTo] = useState('')
+  const transitionsPagination = usePagination({ totalItems: totalTransitions, defaultPageSize: 50 })
+  const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null)
   const [fromDateOpen, setFromDateOpen] = useState(false)
   const [toDateOpen, setToDateOpen] = useState(false)
   const [confirmBox, setConfirmBox] = useState<BoxItem | null>(null)
@@ -175,6 +167,7 @@ export default function StationCheckpointsPage() {
   const [loadingScannedBox, setLoadingScannedBox] = useState(false)
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null)
   const [stageModalSearch, setStageModalSearch] = useState('')
+  const [stageModalPage, setStageModalPage] = useState(1)
   // Simflex status per ISBN for the open box details modal
   const [boxDetailsSimflex, setBoxDetailsSimflex] = useState<Record<string, { latestStatus: string | null; transmissionCompleted: boolean }>>({})
   const [loadingBoxDetailsSimflex, setLoadingBoxDetailsSimflex] = useState(false)
@@ -231,11 +224,23 @@ export default function StationCheckpointsPage() {
   const prevBoxesRef = useRef<BoxItem[]>([])
   const prevTransitionsRef = useRef<Transition[]>([])
 
-  // Keep latest filter/brand in refs so fetchData doesn't need to re-create
   const transitionStageFilterRef = useRef(transitionStageFilter)
+  const transitionSearchRef = useRef(transitionSearch)
+  const transitionDateFromRef = useRef(transitionDateFrom)
+  const transitionDateToRef = useRef(transitionDateTo)
+  const transitionOffsetRef = useRef(transitionsPagination.offset)
   const brandRef = useRef(brand)
   useEffect(() => { transitionStageFilterRef.current = transitionStageFilter }, [transitionStageFilter])
+  useEffect(() => { transitionSearchRef.current = transitionSearch }, [transitionSearch])
+  useEffect(() => { transitionDateFromRef.current = transitionDateFrom }, [transitionDateFrom])
+  useEffect(() => { transitionDateToRef.current = transitionDateTo }, [transitionDateTo])
+  useEffect(() => { transitionOffsetRef.current = transitionsPagination.offset }, [transitionsPagination.offset])
   useEffect(() => { brandRef.current = brand }, [brand])
+
+  // Reset pagination when stage opens
+  useEffect(() => {
+    if (selectedStage) setStageModalPage(1)
+  }, [selectedStage])
 
   // Helper to check if data actually changed
   const hasDataChanged = useCallback((oldData: any[], newData: any[]): boolean => {
@@ -243,74 +248,98 @@ export default function StationCheckpointsPage() {
     return oldData.some((item, i) => JSON.stringify(item) !== JSON.stringify(newData[i]))
   }, [])
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (opts?: { skipTop?: boolean }) => {
+    if (!opts?.skipTop) setTopLoading(true)
+    setTransitionsLoading(true)
     try {
       const currentFilter = transitionStageFilterRef.current
+      const currentSearch = transitionSearchRef.current
+      const currentDateFrom = transitionDateFromRef.current
+      const currentDateTo = transitionDateToRef.current
       const currentBrand = brandRef.current
-      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?limit=50&box_type=${currentBrand}${currentFilter ? `&stage=${currentFilter}` : ''}`
-      const [boxRes, transRes, liveRes, scanRowsRes, transmitRowsRes] = await Promise.all([
-        authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true&box_type=${currentBrand}`),
-        authFetch(transitionUrl),
-        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}&wipOnly=true`).catch(() => null),
-        authFetch(`${API_URL}/api/scanning/scan-rows?location=${currentBrand}`).catch(() => null),
-        authFetch(`${API_URL}/api/scanning/transmit-rows?location=${currentBrand}`).catch(() => null),
-      ])
-      const boxData = await boxRes.json()
-      const transData = await transRes.json()
+      
+      const transitionParams = new URLSearchParams({
+        limit: '50',
+        offset: String(transitionOffsetRef.current || 0),
+        box_type: currentBrand
+      })
+      if (currentFilter && currentFilter !== 'all') transitionParams.append('stage', currentFilter)
+      if (currentSearch) transitionParams.append('search', currentSearch)
+      if (currentDateFrom) transitionParams.append('date_from', currentDateFrom)
+      if (currentDateTo) transitionParams.append('date_to', currentDateTo)
+
+      const transitionUrl = `${API_URL}/api/boxes/pipeline-transitions?${transitionParams.toString()}`
+      
+      let boxData, liveData, scanRowsData, transmitRowsData;
+      let transData;
+
+      if (!opts?.skipTop) {
+        const [boxRes, transRes, liveRes, scanRowsRes, transmitRowsRes] = await Promise.all([
+          authFetch(`${API_URL}/api/boxes?exclude_assigned_storage=true&box_type=${currentBrand}`),
+          authFetch(transitionUrl),
+          authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${currentBrand}&wipOnly=true`).catch(() => null),
+          authFetch(`${API_URL}/api/scanning/scan-rows?location=${currentBrand}`).catch(() => null),
+          authFetch(`${API_URL}/api/scanning/transmit-rows?location=${currentBrand}`).catch(() => null),
+        ])
+        boxData = await boxRes.json()
+        transData = await transRes.json()
+        if (liveRes && liveRes.ok) liveData = await liveRes.json()
+        if (scanRowsRes && scanRowsRes.ok) scanRowsData = await scanRowsRes.json()
+        if (transmitRowsRes && transmitRowsRes.ok) transmitRowsData = await transmitRowsRes.json()
+      } else {
+        const transRes = await authFetch(transitionUrl)
+        transData = await transRes.json()
+      }
       
       // Only update state if data actually changed
-      if (boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
+      if (boxData && boxData.boxes && hasDataChanged(prevBoxesRef.current, boxData.boxes)) {
         setBoxes(boxData.boxes)
         prevBoxesRef.current = boxData.boxes
       }
       if (transData.success && hasDataChanged(prevTransitionsRef.current, transData.transitions)) {
         setTransitions(transData.transitions)
+        setTotalTransitions(transData.totalCount || 0)
         prevTransitionsRef.current = transData.transitions
       }
 
       // Pull Simflex book counts for Scan card.
-      if (liveRes && liveRes.ok) {
-        const liveData = await liveRes.json()
-        if (liveData.success) {
-          setScanBooks(liveData.scanWipCount ?? null)
-        }
+      if (liveData && liveData.success) {
+        setScanBooks(liveData.scanWipCount ?? null)
       }
 
       // Populate the set of box numbers that have at least one book in the
       // scan-WIP status range (Scanning ONGOING → Preval COMPLETED).
       // This is used both for the card count and the modal box list.
-      if (scanRowsRes && scanRowsRes.ok) {
-        const scanRowsData = await scanRowsRes.json()
-        if (scanRowsData.success) {
-          const eligible = new Set<string>(
-            (scanRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
-          )
-          setScanEligibleBoxNums(eligible)
-        }
+      if (scanRowsData && scanRowsData.success) {
+        const eligible = new Set<string>(
+          (scanRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
+        )
+        setScanEligibleBoxNums(eligible)
       }
 
       // Transmit card count: use DB-validated transmit-rows count so it matches
       // the modal list (only books in our DB whose box is still in scan stage,
       // correct brand, and confirmed processable).
-      if (transmitRowsRes && transmitRowsRes.ok) {
-        const transmitRowsData = await transmitRowsRes.json()
-        if (transmitRowsData.success) {
-          setTransmitBooks(transmitRowsData.count ?? 0)
-          const transmitEligible = new Set<string>(
-            (transmitRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
-          )
-          setTransmitEligibleBoxNums(transmitEligible)
-        }
+      if (transmitRowsData && transmitRowsData.success) {
+        setTransmitBooks(transmitRowsData.count ?? 0)
+        const transmitEligible = new Set<string>(
+          (transmitRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean)
+        )
+        setTransmitEligibleBoxNums(transmitEligible)
       }
 
       setLastUpdated(new Date())
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
-      setLoading(false)
+      if (!opts?.skipTop) setTopLoading(false)
+      setTransitionsLoading(false)
     }
   }, [hasDataChanged])
+
+  useEffect(() => {
+    fetchData({ skipTop: true })
+  }, [fetchData, transitionStageFilter, transitionSearch, transitionDateFrom, transitionDateTo, transitionsPagination.offset])
 
   useEffect(() => {
     fetchData()
@@ -433,6 +462,7 @@ export default function StationCheckpointsPage() {
 
   const renderBoxAction = (box: BoxItem) => {
     const stage = box.current_stage
+    const isFirst = stage === 'warehouse'
     const isLast = stage === 'storage'
     if (isLast) {
       return (
@@ -726,17 +756,18 @@ export default function StationCheckpointsPage() {
       const books: ScannedBook[] = data.box?.books || []
       const details: any = { books, simflex: {}, loading: false, loadingSimflex: false }
 
-      if ((box.current_stage === 'scan' || box.current_stage === 'transmit' || box.current_stage === 'storage') && books.length > 0) {
+      if ((box.current_stage === 'scan') && books.length > 0) {
         const processableIsbns = [...new Set(books.filter(b => b.scan_status === 'processable').map(b => b.isbn))]
         if (processableIsbns.length > 0) {
           details.loadingSimflex = true
           setStageBoxDetails(prev => ({ ...prev, [box.id]: { ...details, loadingSimflex: true } }))
           try {
-            const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}&location=${brand}`)
-            const simData = await simRes.json()
-            if (simData.success && simData.statuses) {
-              details.simflex = simData.statuses
-            }
+            // Disabled Simflex check for now based on request
+            // const simRes = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${processableIsbns.join(',')}&location=${brand}`)
+            // const simData = await simRes.json()
+            // if (simData.success && simData.statuses) {
+            //   details.simflex = simData.statuses
+            // }
           } catch {
             // Simflex status is optional
           }
@@ -786,22 +817,9 @@ export default function StationCheckpointsPage() {
     return new Date(year, month - 1, day)
   }
 
-  // Filter and pagination for transitions log
-  const filteredTransitions = transitions.filter(t => {
-    const q = transitionSearch.toLowerCase().trim()
-    const matchesSearch = !q ||
-      (t.box?.box_number || '').toLowerCase().includes(q) ||
-      (t.box?.lot?.lot_number || '').toLowerCase().includes(q)
-    const tDate = new Date(t.created_at)
-    const from = transitionDateFrom ? parseDateLocal(transitionDateFrom) : null
-    const to = transitionDateTo ? parseDateLocal(transitionDateTo) : null
-    // Include the full day for the "to" date
-    if (to) to.setHours(23, 59, 59, 999)
-    const matchesDate = (!from || tDate >= from) && (!to || tDate <= to)
-    return matchesSearch && matchesDate
-  })
-  const transitionsPagination = usePagination({ totalItems: filteredTransitions.length, defaultPageSize: 50 })
-  const paginatedTransitions = filteredTransitions.slice(transitionsPagination.offset, transitionsPagination.offset + transitionsPagination.limit)
+  // Filter and pagination for transitions log is now handled SERVER-SIDE
+  const filteredTransitions = transitions
+  const paginatedTransitions = transitions
 
   const formatTime = (iso: string) => {
     const d = new Date(iso)
@@ -809,12 +827,12 @@ export default function StationCheckpointsPage() {
     if (diff < 60) return `${diff}s ago`
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-    return d.toLocaleString()
+    return `${Math.floor(diff / 86400)}d ago`
   }
 
   const STAGE_LABELS: Record<string, string> = {
     warehouse: 'Warehouse', inventory: 'Inventory', cut: 'Cut',
-    endorsement: 'Endorsement', scan: 'Scan', transmit: 'Transmit', storage: 'Storage'
+    endorsement: 'Endorsement', scan: 'Scan', storage: 'Storage'
   }
 
   const lastUpdateLabel = lastUpdated
@@ -842,7 +860,7 @@ export default function StationCheckpointsPage() {
                         {scannedBox?.box.lot?.lot_number} ┬╖ <span className="capitalize">{scannedBox?.box.current_stage}</span> ┬╖ {scannedBox?.box.total_books_expected} books
                       </p>
                     </div>
-                    <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">Γ£ò</button>
+                    <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
                   </div>
 
                   {/* Check Simflex button for scan-stage boxes */}
@@ -854,7 +872,7 @@ export default function StationCheckpointsPage() {
                         className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50"
                       >
                         {checkingSimflexBoxId === scannedBox.box.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
-                        {checkingSimflexBoxId === scannedBox.box.id ? 'Checking SimflexΓÇª' : 'Check Simflex'}
+                        {checkingSimflexBoxId === scannedBox.box.id ? 'Checking Simflex…' : 'Check Simflex'}
                       </button>
                       {simflexCheckResult?.boxId === scannedBox.box.id && (
                         <div className={`mt-2 text-xs px-3 py-2 rounded-lg border ${simflexCheckResult.success ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
@@ -890,7 +908,7 @@ export default function StationCheckpointsPage() {
                               <tr key={book.id} className="border-b border-border/40 last:border-0">
                                 <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
                                 <td className="py-1.5 pr-3">{book.isbn}</td>
-                                <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || 'ΓÇö'}</td>
+                                <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">{book.title || '—'}</td>
                                 <td className="py-1.5 pr-3">
                                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                     {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
@@ -898,13 +916,13 @@ export default function StationCheckpointsPage() {
                                 </td>
                                 <td className="py-1.5 pr-3">
                                   <span className="px-1.5 py-0.5 rounded text-[10px] font-medium capitalize bg-gray-100 text-gray-700">
-                                    {scannedBox?.box.current_stage || 'ΓÇö'}
+                                    {scannedBox?.box.current_stage || '—'}
                                   </span>
                                 </td>
                                 {(scannedBox?.box.current_stage === 'scan' || scannedBox?.box.current_stage === 'transmit') && (
                                   <td className="py-1.5">
                                     {book.scan_status !== 'processable' ? (
-                                      <span className="text-[10px] text-muted-foreground">ΓÇö</span>
+                                      <span className="text-[10px] text-muted-foreground">—</span>
                                     ) : loadingBoxDetailsSimflex ? (
                                       <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
                                     ) : !simflex ? (
@@ -1028,23 +1046,29 @@ export default function StationCheckpointsPage() {
                 const stageBoxes = boxesByStage[selectedStage]
                 const meta = STAGE_META[selectedStage]
 
-                // stageBoxes for 'scan' is already pre-filtered to scan-WIP
-                // eligible boxes via boxesByStage (which uses scanEligibleBoxNums
-                // populated at page load). No extra filtering needed here.
                 const filteredBoxes = stageBoxes.filter(box => {
                   const q = stageModalSearch.toLowerCase().trim()
                   if (!q) return true
                   return box.box_number.toLowerCase().includes(q) || (box.lot?.lot_number || '').toLowerCase().includes(q)
                 })
+                const filteredSimflex = simflexRows.filter(row => {
+                    const q = simflexRowsSearch.toLowerCase().trim()
+                    return !q ||
+                        row.ISBN?.toLowerCase().includes(q) ||
+                        row.BoxNumber?.toLowerCase().includes(q) ||
+                        row.LotNumber?.toLowerCase().includes(q) ||
+                        row.ScanUser?.toLowerCase().includes(q)
+                })
+                const totalItems = selectedStage === 'transmit' || selectedStage === 'scan' && (simflexRows.length > 0) ? filteredSimflex.length : filteredBoxes.length
                 const borderClass = meta.color.split(' ').find(c => c.startsWith('border-')) || 'border-gray-300'
                 const textClass = meta.color.split(' ').find(c => c.startsWith('text-')) || 'text-gray-700'
                 const StageIcon = meta.icon
                 return (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedStage(null)}>
-                    <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-6xl mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-6xl mx-4 h-[700px] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                       {/* Header */}
-                      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                        <div className="flex items-center gap-3">
+                      <div className={cn("flex items-center justify-between px-6 py-5 border-b border-border/50", brand === 'jaguar' ? "bg-gradient-to-r from-green-50/50 to-transparent" : "bg-gradient-to-r from-blue-50/50 to-transparent")}>
+                        <div className="flex items-center gap-4">
                           <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg border", meta.color)}>
                             <StageIcon className="h-5 w-5" />
                           </div>
@@ -1065,20 +1089,27 @@ export default function StationCheckpointsPage() {
                       </div>
 
                       {/* Search */}
-                      <div className="p-4 border-b border-border">
+                      <div className="px-6 py-4 border-b border-border/50 bg-muted/10">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             placeholder={selectedStage === 'scan' || selectedStage === 'transmit' ? 'Search ISBN, box, or user…' : 'Search box number or lot...'}
                             value={selectedStage === 'scan' || selectedStage === 'transmit' ? simflexRowsSearch : stageModalSearch}
-                            onChange={e => selectedStage === 'scan' || selectedStage === 'transmit' ? setSimflexRowsSearch(e.target.value) : setStageModalSearch(e.target.value)}
-                            className="pl-9"
+                            onChange={e => {
+                              if (selectedStage === 'scan' || selectedStage === 'transmit') {
+                                setSimflexRowsSearch(e.target.value)
+                              } else {
+                                setStageModalSearch(e.target.value)
+                              }
+                              setStageModalPage(1)
+                            }}
+                            className="pl-10 h-11 bg-background border-border/50 focus-visible:border-primary focus-visible:ring-1 hover:border-border transition-colors rounded-xl shadow-sm text-sm"
                           />
                         </div>
                       </div>
 
                       {/* Box list for all stages */}
-                      <div className="flex-1 overflow-y-auto p-4">
+                      <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
                           {filteredBoxes.length === 0 && selectedStage !== 'transmit' ? (
                             <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                               {stageModalSearch ? 'No matching boxes found.' : 'No boxes at this station.'}
@@ -1087,21 +1118,15 @@ export default function StationCheckpointsPage() {
                             <div className="flex flex-col gap-2">
                               {simflexRowsLoading ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">Loading books...</div>
-                              ) : simflexRows.length === 0 ? (
+                              ) : filteredSimflex.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                                   {simflexRowsSearch ? 'No matching books found.' : 'No books currently in transmission.'}
                                 </div>
                               ) : (
-                                simflexRows
-                                .filter(row => {
-                                  const q = simflexRowsSearch.toLowerCase().trim()
-                                  return !q ||
-                                    row.ISBN?.toLowerCase().includes(q) ||
-                                    row.BoxNumber?.toLowerCase().includes(q) ||
-                                    row.LotNumber?.toLowerCase().includes(q) ||
-                                    row.ScanUser?.toLowerCase().includes(q)
-                                }).map((row, idx) => (
-                                  <div key={idx} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between hover:shadow-sm transition-all">
+                                filteredSimflex
+                                .slice((stageModalPage - 1) * 50, stageModalPage * 50)
+                                .map((row, idx) => (
+                                  <div key={idx} className="rounded-xl border border-border/70 bg-card p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
                                     <div className="flex items-center gap-4">
                                       <div className="flex flex-col">
                                         <span className="font-mono font-bold text-foreground text-sm">{row.ISBN}</span>
@@ -1129,7 +1154,7 @@ export default function StationCheckpointsPage() {
                             </div>
                           ) : (
                             <div className="flex flex-col gap-2">
-                              {filteredBoxes.map(box => {
+                              {filteredBoxes.slice((stageModalPage - 1) * 50, stageModalPage * 50).map(box => {
                                   const isExpanded = expandedStageBoxId === box.id
                                   const details = stageBoxDetails[box.id]
                                   const latestTransition = transitions.find(t => t.box?.box_number === box.box_number && t.to_stage === box.current_stage)
@@ -1170,6 +1195,10 @@ export default function StationCheckpointsPage() {
                                       byName = (session as any)?.inventory_send_profile?.name || byName
                                       timeStr = session?.inventory_time_send || timeStr
                                     }
+                                    if (byName === 'N/A' && (box as any).latest_inventory_scan_by_name) {
+                                      byName = (box as any).latest_inventory_scan_by_name
+                                      timeStr = (box as any).latest_inventory_scan_at || timeStr
+                                    }
                                   } else if (stage === 'cut') {
                                     if (sessionStatus === 'completed') {
                                       actionLabel = 'Processed'
@@ -1198,6 +1227,10 @@ export default function StationCheckpointsPage() {
                                       byName = (session as any)?.endorsement_send_profile?.name || byName
                                       timeStr = session?.endorsement_time_send || timeStr
                                     }
+                                    if (byName === 'N/A' && (box as any).latest_endorsement_scan_by_name) {
+                                      byName = (box as any).latest_endorsement_scan_by_name
+                                      timeStr = (box as any).latest_endorsement_scan_at || timeStr
+                                    }
                                   } else if (stage === 'scan') {
                                     actionLabel = 'Scanned'
                                     byName = (session as any)?.scan_received_profile?.name || byName
@@ -1206,18 +1239,26 @@ export default function StationCheckpointsPage() {
                                     actionLabel = 'Completed'
                                   }
 
+                                  const diffDays = session?.updated_at ? (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24) : 0
+                                  const isDelayed = diffDays >= 1 && stage !== 'storage'
+                                  
+                                  const rowBg = isDelayed ? "bg-orange-50/50" : (brand === 'jaguar' ? "bg-green-50/30" : "bg-blue-50/30")
+                                  const rowBorder = isDelayed ? "border-orange-300 hover:border-orange-400" : (brand === 'jaguar' ? "border-green-300 hover:border-green-400" : "border-blue-300 hover:border-blue-400")
+                                  const rowHoverBg = isDelayed ? "hover:bg-orange-50" : (brand === 'jaguar' ? "hover:bg-green-50" : "hover:bg-blue-50")
+
                                   return (
                                     <div
                                       key={box.id}
                                       id={`box-${box.id}`}
                                       className={cn(
-                                        "rounded-lg border overflow-hidden transition-all bg-card hover:shadow-sm",
-                                        highlightBox === box.id ? 'border-primary' : 'border-border',
-                                        isExpanded && `border-l-4 ${borderClass}`
+                                        "rounded-lg border overflow-hidden transition-all",
+                                        rowBg, rowBorder,
+                                        highlightBox === box.id && 'ring-2 ring-primary',
+                                        isExpanded && "shadow-md"
                                       )}
                                     >
                                       <div 
-                                        className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 cursor-pointer group hover:bg-slate-50 transition-colors gap-3"
+                                        className={cn("flex flex-col sm:flex-row sm:items-center justify-between px-4 py-2 cursor-pointer group transition-colors gap-3", rowHoverBg)}
                                         onClick={() => toggleStageBoxDetails(box)}
                                       >
                                         {/* Left side: Box & Lot */}
@@ -1228,10 +1269,17 @@ export default function StationCheckpointsPage() {
                                             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
                                           )}
                                           <div className="min-w-0">
-                                            <p className="text-sm font-bold text-foreground truncate">
-                                              BOX: {box.box_number}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground truncate">
+                                            <div className="flex items-center gap-2">
+                                              <p className={cn("text-sm font-bold truncate", isDelayed ? "text-orange-900" : "text-foreground")}>
+                                                BOX: {box.box_number}
+                                              </p>
+                                              {isDelayed && (
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm">
+                                                  Delayed
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className={cn("text-xs truncate mt-0.5", isDelayed ? "text-orange-700/80" : "text-muted-foreground")}>
                                               {box.lot?.lot_number || 'N/A'}
                                             </p>
                                           </div>
@@ -1242,7 +1290,7 @@ export default function StationCheckpointsPage() {
                                           <div className="min-w-[80px]">
                                             <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
                                             <span className="text-xs font-semibold text-foreground">
-                                              {box.total_books_expected} expected
+                                              {box.box_sessions?.[0]?.total_scanned ?? 0} / {box.total_books_expected ?? 0}
                                             </span>
                                           </div>
 
@@ -1291,14 +1339,8 @@ export default function StationCheckpointsPage() {
                                                 </tr>
                                               </thead>
                                               <tbody className="block w-full">
-                                                {details.books.filter(book => {
-                                                  const status = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || '';
-                                                  if (selectedStage === 'transmit') {
-                                                    return status.includes('Transmission_Archive') || status === 'COMPLETED';
-                                                  }
-                                                  return true;
-                                                  }).map((book) => {
-                                                    const rawStatus = details.simflex?.[book.isbn];
+                                                {details.books.map((book) => {
+                                                    const rawStatus = details.simflex?.[book.isbn] || book.transmission_status;
                                                     const simflexStatus = typeof rawStatus === 'string' ? rawStatus : (rawStatus?.latestStatus || 'Pending');
                                                     const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
                                                     return (
@@ -1314,7 +1356,7 @@ export default function StationCheckpointsPage() {
                                                       book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                                         {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
                                                       </span>
-                                                      {(selectedStage === 'scan' || selectedStage === 'transmit' || selectedStage === 'storage') && (
+                                                      {(selectedStage === 'scan' || selectedStage === 'storage') && (
                                                         <span className="text-[9px] text-muted-foreground font-normal truncate" title={`Simflex: ${book.scan_status === 'non_processable' ? 'Not Included' : formatSimflexStatus(simflexStatus)}`}>
                                                           Simflex: {book.scan_status === 'non_processable' ? 'Not Included' : formatSimflexStatus(simflexStatus)}
                                                         </span>
@@ -1342,9 +1384,34 @@ export default function StationCheckpointsPage() {
 
 
                       {/* Footer */}
-                      <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{filteredBoxes.length} {filteredBoxes.length === 1 ? 'box' : 'boxes'} shown</span>
-                        <button onClick={() => setSelectedStage(null)} className="text-primary hover:text-primary/80 font-medium">Close</button>
+                      <div className="border-t border-border/50 bg-muted/30 flex items-center justify-between text-xs text-muted-foreground rounded-b-xl flex-wrap">
+                        {(() => {
+                          let totalItems = filteredBoxes.length;
+                          if (selectedStage === 'transmit') {
+                            const q = simflexRowsSearch.toLowerCase().trim();
+                            totalItems = simflexRows.filter(row => !q || row.ISBN?.toLowerCase().includes(q) || row.BoxNumber?.toLowerCase().includes(q) || row.LotNumber?.toLowerCase().includes(q) || row.ScanUser?.toLowerCase().includes(q)).length;
+                          }
+                          const totalPages = Math.max(1, Math.ceil(totalItems / 50));
+                          
+                          return (
+                            <div className="w-full flex items-center justify-between p-4">
+                              <span className="font-medium shrink-0">{totalItems} {totalItems === 1 ? 'entry' : 'entries'} shown</span>
+                              {totalItems > 0 && (
+                                <div className="scale-90 origin-right">
+                                  <Pagination
+                                    currentPage={stageModalPage}
+                                    totalPages={totalPages}
+                                    pageSize={50}
+                                    onPageChange={setStageModalPage}
+                                    canPrevPage={stageModalPage > 1}
+                                    canNextPage={stageModalPage < totalPages}
+                                  />
+                                </div>
+                              )}
+                              <Button variant="outline" size="sm" onClick={() => setSelectedStage(null)} className="rounded-lg shadow-sm border-border/50 hover:bg-muted/50 font-medium ml-4">Close</Button>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -1359,80 +1426,131 @@ export default function StationCheckpointsPage() {
                   <span className="font-semibold">{undoEntry.box.box_number}</span> moved to <span className="font-semibold capitalize">{STAGE_LABELS[undoEntry.toStage]}</span>
                 </span>
                 <button onClick={handleUndo} className="ml-2 px-3 py-1 rounded-lg bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 text-xs font-semibold transition-colors">Undo</button>
-                <button onClick={() => { setUndoEntry(null); if (undoTimer.current) clearTimeout(undoTimer.current) }} className="text-muted-foreground hover:text-foreground">Γ£ò</button>
+                <button onClick={() => { setUndoEntry(null); if (undoTimer.current) clearTimeout(undoTimer.current) }} className="text-muted-foreground hover:text-foreground">✕</button>
               </div>
             )}
 
             {/* Header */}
-            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Station Checkpoint Monitor</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Manually receive boxes at each station to advance them through the pipeline.
-                </p>
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                  <Activity className="h-7 w-7" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                    Station Monitor
+                  </h1>
+                  <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                    Live pipeline tracking for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                  </p>
+                </div>
               </div>
-              <RefreshControl onRefresh={fetchData} refreshing={loading} lastUpdated={lastUpdated} storageKey="checkpoints" className="hidden sm:flex" />
+              <RefreshControl onRefresh={() => fetchData()} refreshing={topLoading || transitionsLoading} lastUpdated={lastUpdated} storageKey="checkpoints" className="hidden sm:flex" />
             </header>
 
             {/* Pipeline Stage Flow */}
-            <div className="flex flex-col gap-3">
+            <div className="relative mt-2 mb-8">
+              {/* Continuous connecting line */}
+              <div className="hidden lg:block absolute top-[20px] left-[7%] right-[7%] h-[3px] bg-border/40 rounded-full z-0" />
+              
               {/* Desktop perfectly aligned headers */}
-              <div className="hidden lg:grid grid-cols-7 gap-3 px-5">
-                {STAGE_ORDER.map((stage, i) => {
+              <div className="hidden lg:grid grid-cols-7 gap-3 relative z-10">
+                {STAGE_ORDER.map((stage) => {
                   const meta = STAGE_META[stage]
-                  const count = boxesByStage[stage]?.length || 0
+                  const count = stage === 'transmit' ? (transmitBooks ?? 0) : (boxesByStage[stage]?.length || 0)
+                  
+                  // Extract colors from meta.color (e.g. 'bg-indigo-100 text-indigo-700 border-indigo-300')
+                  const bgClass = meta.color.match(/bg-\w+-100/)?.[0] || 'bg-gray-100'
+                  const solidBgClass = meta.solidBg
+                  const textClass = meta.color.match(/text-\w+-700/)?.[0] || 'text-gray-700'
+                  const borderClass = meta.color.match(/border-\w+-300/)?.[0] || 'border-gray-300'
+                  
                   return (
-                    <div key={stage} className="relative flex items-center justify-center">
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] xl:text-xs font-medium border ${meta.color} z-10 bg-background`}>
-                        <meta.icon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{meta.label}</span>
-                        {count > 0 && <span className="ml-0.5 bg-white/60 rounded-full px-1.5 font-bold shrink-0">{count}</span>}
+                    <div key={stage} className="flex flex-col items-center justify-center gap-2 group cursor-default">
+                      {/* Node Circle */}
+                      <div className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center border-2 bg-background transition-transform duration-300 group-hover:scale-110 shadow-sm relative",
+                        borderClass, textClass
+                      )}>
+                        <meta.icon className="h-4 w-4" />
+                        {/* Count Badge overlay */}
+                        {count > 0 && (
+                          <div className={cn(
+                            "absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-background shadow-sm",
+                            solidBgClass
+                          )}>
+                            {count}
+                          </div>
+                        )}
                       </div>
-                      {/* Arrow to the next stage */}
-                      {i < STAGE_ORDER.length - 1 && (
-                        <div className="absolute top-1/2 -right-3 translate-x-1/2 -translate-y-1/2 z-0 text-muted-foreground flex items-center justify-center w-6 h-6">
-                          <ChevronRight className="h-4 w-4 opacity-50" />
-                        </div>
-                      )}
+                      
+                      {/* Label below node */}
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition-colors group-hover:text-foreground">
+                        {meta.label}
+                      </span>
                     </div>
                   )
                 })}
               </div>
               
               {/* Mobile wrapping headers */}
-              <div className="flex lg:hidden items-center gap-1 flex-wrap">
-                {STAGE_ORDER.map((stage, i) => {
-                  const meta = STAGE_META[stage]
-                  const count = stage === 'transmit' ? (transmitBooks ?? 0) : (boxesByStage[stage]?.length || 0)
-                  return (
-                    <div key={stage} className="flex items-center gap-1">
-                      <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${meta.color}`}>
-                        <meta.icon className="h-3 w-3" />
-                        {meta.label}
-                        {count > 0 && <span className="ml-1 bg-white/60 rounded-full px-1.5 font-bold">{count}</span>}
-                      </span>
-                      {i < STAGE_ORDER.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
-                    </div>
-                  )
-                })}
+              <div className="flex lg:hidden flex-col gap-3 py-2">
+                 <div className="flex items-center gap-2 flex-wrap">
+                   {STAGE_ORDER.map((stage, i) => {
+                     const meta = STAGE_META[stage]
+                     const count = stage === 'transmit' ? (transmitBooks ?? 0) : (boxesByStage[stage]?.length || 0)
+                     
+                     const bgClass = meta.color.match(/bg-\w+-100/)?.[0] || 'bg-gray-100'
+                     const solidBgClass = meta.solidBg
+                     const textClass = meta.color.match(/text-\w+-700/)?.[0] || 'text-gray-700'
+                     const borderClass = meta.color.match(/border-\w+-300/)?.[0] || 'border-gray-300'
+                     
+                     return (
+                       <div key={stage} className="flex items-center gap-2">
+                         <div className={cn(
+                           "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 bg-background shadow-sm",
+                           borderClass, textClass
+                         )}>
+                           <meta.icon className="h-3.5 w-3.5" />
+                           {meta.label}
+                           {count > 0 && (
+                             <span className={cn("ml-1 px-1.5 py-0.5 rounded-full text-[10px] text-white", solidBgClass)}>
+                               {count}
+                             </span>
+                           )}
+                         </div>
+                         {i < STAGE_ORDER.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />}
+                       </div>
+                     )
+                   })}
+                 </div>
               </div>
             </div>
 
 
             {/* Station Cards Grid */}
-            {loading ? (
-              <div className="text-center py-16 text-sm text-muted-foreground">Loading stations...</div>
-            ) : (
-              <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative">
+              {topLoading && <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                 {/* Desktop: 7 inline columns */}
                 <div className="hidden lg:flex items-stretch gap-3">
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    // For Transmit: use DB-validated book count so card matches modal
-                    const count = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
                     
-                    const status = getStepStatus(count)
+                    const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter(b => {
+                      const session = b.box_sessions?.[0]
+                      if (!session?.updated_at) return false
+                      const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+                      return diffDays >= 1
+                    }).length
+                    
+                    // For Transmit: use DB-validated book count so card matches modal
+                    const totalCount = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
+                    // If it's transmit, we are showing books, so we don't subtract delayed boxes from books.
+                    // Otherwise, subtract delayed boxes to get active boxes.
+                    const activeCount = stage === 'transmit' ? totalCount : Math.max(0, totalCount - bottleneckCount)
+                    
+                    const status = getStepStatus(totalCount)
                     const cfg = getStatusConfig(status, brand)
 
                     return (
@@ -1451,16 +1569,34 @@ export default function StationCheckpointsPage() {
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
-                          <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                            {count}
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className={cn("text-2xl font-black leading-none truncate tracking-tight", cfg.countColor)} title={stage === 'transmit' ? `${totalCount} total books` : `${totalCount} total boxes`}>
+                              {activeCount}
+                            </span>
+                            {bottleneckCount > 0 && (
+                              <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${bottleneckCount} boxes delayed > 1 day`}>
+                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                <span className="text-[10px] font-bold leading-none text-orange-600">
+                                  {bottleneckCount} delayed
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
                           {meta.label}
                         </h3>
-                        <div className="flex items-center gap-1 mt-1.5 shrink-0">
-                          <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
-                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                        <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0">
+                          <div className="flex items-center gap-1">
+                            <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                          </div>
+                          {bottleneckCount > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">Delayed</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -1472,10 +1608,19 @@ export default function StationCheckpointsPage() {
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    // For Transmit: use DB-validated book count so card matches modal
-                    const count = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
                     
-                    const status = getStepStatus(count)
+                    const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter(b => {
+                      const session = b.box_sessions?.[0]
+                      if (!session?.updated_at) return false
+                      const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+                      return diffDays >= 1
+                    }).length
+                    
+                    // For Transmit: use DB-validated book count so card matches modal
+                    const totalCount = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
+                    const activeCount = stage === 'transmit' ? totalCount : Math.max(0, totalCount - bottleneckCount)
+                    
+                    const status = getStepStatus(totalCount)
                     const cfg = getStatusConfig(status, brand)
 
                     return (
@@ -1494,16 +1639,34 @@ export default function StationCheckpointsPage() {
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
-                          <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                            {count}
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className={cn("text-2xl font-black leading-none truncate tracking-tight", cfg.countColor)} title={stage === 'transmit' ? `${totalCount} books` : `${totalCount} boxes`}>
+                              {activeCount}
+                            </span>
+                            {bottleneckCount > 0 && (
+                              <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${bottleneckCount} boxes delayed > 1 day`}>
+                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                <span className="text-[10px] font-bold leading-none text-orange-600">
+                                  {bottleneckCount} delayed
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
                           {meta.label}
                         </h3>
-                        <div className="flex items-center gap-1 mt-1.5 shrink-0">
-                          <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
-                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                        <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0">
+                          <div className="flex items-center gap-1">
+                            <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                          </div>
+                          {bottleneckCount > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">Delayed</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -1511,14 +1674,14 @@ export default function StationCheckpointsPage() {
                 </div>
 
                 {/* Status Legend */}
-                <div className="flex items-center gap-4 text-xs mt-4">
+                <div className="flex items-center gap-4 text-xs mt-4 px-2">
                   <div className="flex items-center gap-1.5">
                     <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-400" : "bg-blue-400")} />
-                    <span className="text-xs text-muted-foreground">Active</span>
+                    <span className="text-xs text-muted-foreground">Active (Moving normally)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-orange-400" />
-                    <span className="text-xs text-muted-foreground">Busy / Bottleneck</span>
+                    <span className="h-2 w-2 rounded-full bg-orange-500" />
+                    <span className="text-xs text-muted-foreground">Delayed (Stuck &gt; 24h)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-gray-400" />
@@ -1526,148 +1689,371 @@ export default function StationCheckpointsPage() {
                   </div>
                 </div>
               </div>
-            )}
 
             {/* Pipeline Transition Logs */}
-            <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-              <div className={cn("flex items-center justify-between px-5 py-4 border-b", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
-                <div className="flex items-center gap-3">
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
+            <Card className="border-border/50 bg-card overflow-hidden py-0 gap-0 shadow-xl shadow-black/[0.03] ring-1 ring-black/5 rounded-2xl">
+              <div className={cn("flex items-center justify-between px-6 py-5 border-b border-border/50", brand === 'jaguar' ? "bg-gradient-to-r from-green-50/50 to-transparent" : "bg-gradient-to-r from-blue-50/50 to-transparent")}>
+                <div className="flex items-center gap-4">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
                     <Scan className="h-5 w-5" />
                   </div>
                   <div>
-                    <CardTitle className="text-base font-semibold text-card-foreground">Pipeline Transition Log</CardTitle>
-                    <p className="text-xs text-muted-foreground">
-                      {filteredTransitions.length} of {transitions.length} entries
+                    <h2 className="text-base font-bold text-foreground tracking-tight">Box Pipeline Tracker</h2>
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                      Showing page {transitionsPagination.currentPage} of {Math.max(1, transitionsPagination.totalPages)}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Filters */}
-              <div className="px-5 py-3 border-b border-border bg-card flex flex-wrap items-end gap-3">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search box or lot..."
-                    value={transitionSearch}
-                    onChange={e => setTransitionSearch(e.target.value)}
-                    className="pl-9 h-9 border-primary/30 focus-visible:border-primary focus-visible:ring-primary/50"
-                  />
+              <div className="px-5 py-4 border-b border-border/50 bg-muted/20 flex flex-col md:flex-row gap-4 items-end">
+                {/* Search */}
+                <div className="relative flex-1 w-full md:min-w-[250px]">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Search</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search box or lot (Press Enter)"
+                      value={transitionSearchInput}
+                      onChange={e => setTransitionSearchInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          setTransitionSearch(transitionSearchInput)
+                          transitionsPagination.goToPage(1)
+                        }
+                      }}
+                      className="pl-9 h-10 bg-background border-border/50 focus-visible:border-primary focus-visible:ring-1 hover:border-border transition-colors rounded-xl shadow-sm"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Stage</label>
+
+                {/* Stage */}
+                <div className="w-full md:w-[180px]">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Stage</label>
                   <Select value={transitionStageFilter || 'all'} onValueChange={v => setTransitionStageFilter(v === 'all' ? '' : v as Stage)}>
-                    <SelectTrigger className="h-9 w-[150px] text-sm hover:bg-primary hover:text-primary-foreground transition-colors">
+                    <SelectTrigger className="h-10 bg-background border-border/50 focus:ring-1 focus:ring-primary rounded-xl shadow-sm hover:border-border transition-colors">
                       <SelectValue placeholder="All stages" />
                     </SelectTrigger>  
                     <SelectContent>
                       <SelectItem value="all">All stages</SelectItem>
-                      {STAGE_ORDER.map(stage => (
+                      {STAGE_ORDER.filter(s => s !== 'transmit').map(stage => (
                         <SelectItem key={stage} value={stage}>{STAGE_META[stage].label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">From</span>
-                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                        {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Pick date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={transitionDateFrom ? new Date(transitionDateFrom) : undefined}
-                        onSelect={date => { setTransitionDateFrom(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">To</span>
-                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                        {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'Pick date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={transitionDateTo ? new Date(transitionDateTo) : undefined}
-                        onSelect={date => { setTransitionDateTo(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+
+                {/* Date Range */}
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="w-full md:w-[140px]">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date From</label>
+                    <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition-all", !transitionDateFrom && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Start date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={transitionDateFrom ? new Date(transitionDateFrom) : undefined}
+                          onSelect={date => { setTransitionDateFrom(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div className="w-full md:w-[140px]">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date To</label>
+                    <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition-all", !transitionDateTo && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'End date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={transitionDateTo ? new Date(transitionDateTo) : undefined}
+                          onSelect={date => { setTransitionDateTo(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
               </div>
 
-              <CardContent className="p-0">
+              <CardContent className="p-0 relative">
+                {transitionsLoading && <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center min-h-[100px]"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
                 {transitions.length === 0 ? (
                   <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                    No transitions logged yet. Use &quot;Receive&quot; buttons above to advance boxes.
+                    No transitions logged yet. Use "Receive" buttons above to advance boxes.
                   </div>
                 ) : filteredTransitions.length === 0 ? (
                   <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                     No transitions match your search or date filters.
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent bg-muted/30">
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Box</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Lot</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">From</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">To</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3">Received By</TableHead>
-                        <TableHead className="text-xs text-muted-foreground font-medium px-4 py-3 text-right">Time</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedTransitions.map((t) => (
-                        <TableRow key={t.id} className="border-border hover:bg-muted/30">
-                          <TableCell className="text-xs text-card-foreground px-4 py-3">
-                            {t.box?.box_number || 'ΓÇö'}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-4 py-3">
-                            {t.box?.lot?.lot_number || 'ΓÇö'}
-                          </TableCell>
-                          <TableCell className="px-4 py-3">
-                            {t.from_stage ? (
-                              <Badge variant="outline" className={cn("text-[10px] font-normal capitalize border", STAGE_META[t.from_stage as Stage]?.color || '')}>
-                                {STAGE_META[t.from_stage as Stage]?.label || t.from_stage}
-                              </Badge>
-                            ) : (
-                              <span className="text-xs text-muted-foreground italic">ΓÇö</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="px-4 py-3">
-                            <Badge variant="outline" className={cn("text-[10px] font-normal capitalize border", STAGE_META[t.to_stage as Stage]?.color || '')}>
-                              {STAGE_META[t.to_stage as Stage]?.label || t.to_stage}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground px-4 py-3">
-                            {t.moved_by_name || 'ΓÇö'}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground text-right px-4 py-3">
-                            {formatTime(t.created_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="flex flex-col border-t border-border/50 max-h-[600px] overflow-y-auto overflow-x-hidden">
+                    {paginatedTransitions.map((t) => {
+                      const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage'];
+                      const isExpanded = expandedTimelineId === t.id;
+                      const box = t.box;
+                      if (!box) return null;
+                      
+                      let stageIdx = PIPELINE_STAGES.indexOf(box.current_stage);
+                      if (box.current_stage === 'transmit') stageIdx = 4;
+                      const isCompleted = box.current_stage === 'storage' && t.storage_time_assigned != null;
+
+                      // Determine status and holder
+                      let statusText = 'In progress';
+                      let statusColor = 'bg-blue-100 text-blue-700';
+                      let holderName = '—';
+                      let holderStage = '';
+
+                      if (box.current_stage === 'warehouse') {
+                        holderName = t.warehouse_user_name || '—';
+                        holderStage = 'Warehouse';
+                        if (!isCompleted) {
+                          if (t.warehouse_scan_name) {
+                            statusText = 'Received • Completed • Sent';
+                            statusColor = 'bg-green-100 text-green-700';
+                          } else {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
+                        }
+                      } else if (box.current_stage === 'inventory') {
+                        holderName = t.inventory_user_name || '—';
+                        holderStage = 'Inventory';
+                        if (!isCompleted) {
+                          if (t.inventory_send_name) {
+                            statusText = 'Sent';
+                            statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.inventory_scan_name) {
+                            statusText = 'Completed';
+                            statusColor = 'bg-green-100 text-green-700';
+                          } else if (t.inventory_time_received) {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
+                        }
+                      } else if (box.current_stage === 'cut') {
+                        holderName = t.cut_user_name || '—';
+                        holderStage = 'Cut';
+                        if (!isCompleted) {
+                          if (t.cut_send_name) {
+                            statusText = 'Sent';
+                            statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.cut_time_received) {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
+                        }
+                      } else if (box.current_stage === 'endorsement') {
+                        holderName = t.endorsement_user_name || '—';
+                        holderStage = 'Endorsement';
+                        if (!isCompleted) {
+                          if (t.endorsement_send_name) {
+                            statusText = 'Sent';
+                            statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.endorsement_scan_name) {
+                            statusText = 'Completed';
+                            statusColor = 'bg-green-100 text-green-700';
+                          } else if (t.endorsement_time_received) {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
+                        }
+                      } else if (box.current_stage === 'scan' || box.current_stage === 'transmit') {
+                        holderName = t.scan_user_name || '—';
+                        holderStage = box.current_stage === 'transmit' ? 'Transmit' : 'Scan';
+                        if (box.current_stage === 'transmit') {
+                          statusText = 'Transmitted';
+                          statusColor = 'bg-blue-100 text-blue-700';
+                        } else if (t.scan_time_received) {
+                          statusText = 'Received';
+                          statusColor = 'bg-yellow-100 text-yellow-700';
+                        }
+                      } else if (box.current_stage === 'storage') {
+                        holderName = t.storage_user_name || t.scan_user_name || '—';
+                        holderStage = 'Storage';
+                      }
+
+                      if (isCompleted) {
+                        statusText = 'Completed';
+                        statusColor = 'bg-green-100 text-green-700';
+                      }
+
+                      return (
+                        <div key={t.id} className="border-b border-border/50 last:border-0 flex flex-col bg-card hover:bg-muted/30 transition-colors">
+                          {/* Main Row */}
+                          <div 
+                            className="flex items-center px-6 py-4 cursor-pointer gap-4"
+                            onClick={() => setExpandedTimelineId(isExpanded ? null : t.id)}
+                          >
+                            {/* Box & Stage Dots */}
+                            <div className="w-[220px] shrink-0 flex items-center">
+                              <div className="w-[80px] shrink-0 flex flex-col mr-2">
+                                <span className="font-bold text-foreground text-sm truncate">{box.box_number}</span>
+                                {box.lot?.lot_number && (
+                                  <span className="text-[10px] text-muted-foreground font-semibold truncate">{box.lot.lot_number}</span>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-1 w-[130px]">
+                                <div className="flex items-center gap-1.5">
+                                  {PIPELINE_STAGES.map((s, i) => {
+                                    let dotColor = "bg-muted-foreground/30";
+                                    if (isCompleted || i < stageIdx) dotColor = "bg-green-500";
+                                    else if (i === stageIdx) dotColor = "bg-blue-500";
+                                    return <div key={s} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                  })}
+                                </div>
+                                <span className="text-[10px] text-muted-foreground capitalize font-medium truncate">{box.current_stage}</span>
+                              </div>
+                            </div>
+
+                            {/* Status */}
+                            <div className="w-[180px] shrink-0">
+                              <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wide whitespace-nowrap ${statusColor}`}>
+                                {statusText}
+                              </span>
+                            </div>
+
+                            {/* Scan / Expected */}
+                            <div className="w-[130px] shrink-0 flex flex-col">
+                              <span className="text-sm font-semibold text-foreground">
+                                {t.total_scanned ?? 0} / {box.total_books_expected ?? 0}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">Books</span>
+                            </div>
+
+                            {/* Holder */}
+                            <div className="w-[150px] shrink-0 flex flex-col min-w-0">
+                              <span className="text-sm font-semibold text-foreground truncate" title={holderName}>{holderName}</span>
+                              <span className="text-[11px] text-muted-foreground">{holderStage}</span>
+                            </div>
+
+                            {/* Updated */}
+                            <div className="w-[100px] shrink-0 flex flex-col items-end justify-center ml-auto pr-4">
+                              <span className="text-xs text-muted-foreground">{formatTime(t.updated_at)}</span>
+                              {box.created_at && <span className="text-[10px] text-muted-foreground opacity-75 mt-0.5">{new Date(box.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>}
+                            </div>
+
+                            {/* Chevron */}
+                            <div className="text-muted-foreground">
+                               <ChevronDown className={cn("h-4 w-4 transition-transform duration-300", isExpanded && "rotate-180")} />
+                            </div>
+                          </div>
+
+                          {/* Expanded Timeline */}
+                          {isExpanded && (
+                            <div className="px-6 py-4 bg-muted/20 border-t border-border overflow-hidden">
+                              <div className="flex items-start justify-between relative px-2">
+                                {/* Connecting background line */}
+                                <div className="absolute top-3 left-10 right-10 h-[2px] bg-border z-0" />
+                                {/* Progress line */}
+                                <div 
+                                  className="absolute top-3 left-10 h-[2px] bg-green-500 z-0 transition-all duration-500" 
+                                  style={{ width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 80px)` }} 
+                                />
+                                
+                                {PIPELINE_STAGES.map((s, i) => {
+                                  const isPast = isCompleted || i < stageIdx;
+                                  const isCurrent = i === stageIdx;
+                                  const isFuture = !isCompleted && i > stageIdx;
+
+                                  let icon = <div className="w-6 h-6 rounded-full bg-muted border-2 border-background z-10" />;
+                                  if (isPast) {
+                                    icon = (
+                                      <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center z-10 border-2 border-background shadow-sm">
+                                        <CheckCircle className="w-3.5 h-3.5" />
+                                      </div>
+                                    );
+                                  } else if (isCurrent) {
+                                    icon = (
+                                      <div className="w-6 h-6 rounded-full bg-blue-500 z-10 border-2 border-background shadow-sm flex items-center justify-center">
+                                        <div className="w-2 h-2 rounded-full bg-white" />
+                                      </div>
+                                    );
+                                  }
+
+                                  // Get times based on stage
+                                  let recvTime = null;
+                                  let recvUser = null;
+                                  let scanTime = null;
+                                  let scanUser = null;
+                                  let sendTime = null;
+                                  let sendUser = null;
+
+                                  if (s === 'warehouse') {
+                                    recvTime = t.warehouse_time_received; recvUser = t.warehouse_user_name;
+                                    scanTime = t.warehouse_scan_at; scanUser = t.warehouse_scan_name;
+                                  } else if (s === 'inventory') {
+                                    recvTime = t.inventory_time_received; recvUser = t.inventory_user_name;
+                                    scanTime = t.inventory_scan_at; scanUser = t.inventory_scan_name;
+                                    sendTime = t.inventory_time_send; sendUser = t.inventory_send_name;
+                                  } else if (s === 'cut') {
+                                    recvTime = t.cut_time_received; recvUser = t.cut_user_name;
+                                    sendTime = t.cut_time_send; sendUser = t.cut_send_name;
+                                  } else if (s === 'endorsement') {
+                                    recvTime = t.endorsement_time_received; recvUser = t.endorsement_user_name;
+                                    scanTime = t.endorsement_scan_at; scanUser = t.endorsement_scan_name;
+                                    sendTime = t.endorsement_time_send; sendUser = t.endorsement_send_name;
+                                  } else if (s === 'scan') {
+                                    recvTime = t.scan_time_received; recvUser = t.scan_user_name;
+                                  } else if (s === 'storage') {
+                                    recvTime = t.storage_time_assigned; recvUser = t.storage_user_name;
+                                  }
+
+                                  return (
+                                    <div key={s} className="flex flex-col items-center flex-1 z-10 relative">
+                                       {icon}
+                                       <span className={cn("text-[11px] font-bold mt-2 capitalize", (isPast || isCurrent) ? "text-foreground" : "text-muted-foreground")}>{s}</span>
+                                       <div className="mt-1 flex flex-col items-center text-[10px] text-muted-foreground text-center">
+                                         {!recvTime && !sendTime && !scanTime && (
+                                           <span className="opacity-50">not logged</span>
+                                         )}
+                                         <div className="flex flex-col text-[10px] text-muted-foreground">
+                                         {s === 'warehouse' ? (
+                                           (recvTime || scanTime) && (
+                                             <span className="whitespace-nowrap">↓ ✓ ↑ {(scanUser || recvUser)?.split(' ')[0] || 'System'}, {new Date(scanTime || recvTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                           )
+                                         ) : (
+                                           <>
+                                             {recvTime && (
+                                               <span className="whitespace-nowrap">↓ {recvUser?.split(' ')[0] || 'System'}, {new Date(recvTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                             )}
+                                             {scanTime && (
+                                               <span className="whitespace-nowrap mt-0.5">✓ {scanUser?.split(' ')[0] || 'System'}, {new Date(scanTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                             )}
+                                             {sendTime && (
+                                               <span className="whitespace-nowrap mt-0.5">↑ {sendUser?.split(' ')[0] || 'System'}, {new Date(sendTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                             )}
+                                           </>
+                                         )}
+                                         </div>
+                                       </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
                 {filteredTransitions.length > 0 && (
                   <Pagination
                     currentPage={transitionsPagination.currentPage}
-                    totalPages={transitionsPagination.totalPages}
+                    totalPages={Math.max(1, transitionsPagination.totalPages)}
                     pageSize={transitionsPagination.pageSize}
                     onPageChange={transitionsPagination.goToPage}
                     onPageSizeChange={transitionsPagination.setPageSize}
