@@ -167,6 +167,7 @@ export default function StationCheckpointsPage() {
   const [loadingScannedBox, setLoadingScannedBox] = useState(false)
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null)
   const [stageModalSearch, setStageModalSearch] = useState('')
+  const [stageModalPage, setStageModalPage] = useState(1)
   // Simflex status per ISBN for the open box details modal
   const [boxDetailsSimflex, setBoxDetailsSimflex] = useState<Record<string, { latestStatus: string | null; transmissionCompleted: boolean }>>({})
   const [loadingBoxDetailsSimflex, setLoadingBoxDetailsSimflex] = useState(false)
@@ -235,6 +236,11 @@ export default function StationCheckpointsPage() {
   useEffect(() => { transitionDateToRef.current = transitionDateTo }, [transitionDateTo])
   useEffect(() => { transitionOffsetRef.current = transitionsPagination.offset }, [transitionsPagination.offset])
   useEffect(() => { brandRef.current = brand }, [brand])
+
+  // Reset pagination when stage opens
+  useEffect(() => {
+    if (selectedStage) setStageModalPage(1)
+  }, [selectedStage])
 
   // Helper to check if data actually changed
   const hasDataChanged = useCallback((oldData: any[], newData: any[]): boolean => {
@@ -1040,23 +1046,29 @@ export default function StationCheckpointsPage() {
                 const stageBoxes = boxesByStage[selectedStage]
                 const meta = STAGE_META[selectedStage]
 
-                // stageBoxes for 'scan' is already pre-filtered to scan-WIP
-                // eligible boxes via boxesByStage (which uses scanEligibleBoxNums
-                // populated at page load). No extra filtering needed here.
                 const filteredBoxes = stageBoxes.filter(box => {
                   const q = stageModalSearch.toLowerCase().trim()
                   if (!q) return true
                   return box.box_number.toLowerCase().includes(q) || (box.lot?.lot_number || '').toLowerCase().includes(q)
                 })
+                const filteredSimflex = simflexRows.filter(row => {
+                    const q = simflexRowsSearch.toLowerCase().trim()
+                    return !q ||
+                        row.ISBN?.toLowerCase().includes(q) ||
+                        row.BoxNumber?.toLowerCase().includes(q) ||
+                        row.LotNumber?.toLowerCase().includes(q) ||
+                        row.ScanUser?.toLowerCase().includes(q)
+                })
+                const totalItems = selectedStage === 'transmit' || selectedStage === 'scan' && (simflexRows.length > 0) ? filteredSimflex.length : filteredBoxes.length
                 const borderClass = meta.color.split(' ').find(c => c.startsWith('border-')) || 'border-gray-300'
                 const textClass = meta.color.split(' ').find(c => c.startsWith('text-')) || 'text-gray-700'
                 const StageIcon = meta.icon
                 return (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedStage(null)}>
-                    <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-6xl mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-6xl mx-4 h-[700px] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
                       {/* Header */}
-                      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                        <div className="flex items-center gap-3">
+                      <div className={cn("flex items-center justify-between px-6 py-5 border-b border-border/50", brand === 'jaguar' ? "bg-gradient-to-r from-green-50/50 to-transparent" : "bg-gradient-to-r from-blue-50/50 to-transparent")}>
+                        <div className="flex items-center gap-4">
                           <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg border", meta.color)}>
                             <StageIcon className="h-5 w-5" />
                           </div>
@@ -1077,20 +1089,27 @@ export default function StationCheckpointsPage() {
                       </div>
 
                       {/* Search */}
-                      <div className="p-4 border-b border-border">
+                      <div className="px-6 py-4 border-b border-border/50 bg-muted/10">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             placeholder={selectedStage === 'scan' || selectedStage === 'transmit' ? 'Search ISBN, box, or user…' : 'Search box number or lot...'}
                             value={selectedStage === 'scan' || selectedStage === 'transmit' ? simflexRowsSearch : stageModalSearch}
-                            onChange={e => selectedStage === 'scan' || selectedStage === 'transmit' ? setSimflexRowsSearch(e.target.value) : setStageModalSearch(e.target.value)}
-                            className="pl-9"
+                            onChange={e => {
+                              if (selectedStage === 'scan' || selectedStage === 'transmit') {
+                                setSimflexRowsSearch(e.target.value)
+                              } else {
+                                setStageModalSearch(e.target.value)
+                              }
+                              setStageModalPage(1)
+                            }}
+                            className="pl-10 h-11 bg-background border-border/50 focus-visible:border-primary focus-visible:ring-1 hover:border-border transition-colors rounded-xl shadow-sm text-sm"
                           />
                         </div>
                       </div>
 
                       {/* Box list for all stages */}
-                      <div className="flex-1 overflow-y-auto p-4">
+                      <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
                           {filteredBoxes.length === 0 && selectedStage !== 'transmit' ? (
                             <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                               {stageModalSearch ? 'No matching boxes found.' : 'No boxes at this station.'}
@@ -1099,21 +1118,15 @@ export default function StationCheckpointsPage() {
                             <div className="flex flex-col gap-2">
                               {simflexRowsLoading ? (
                                 <div className="text-center py-8 text-muted-foreground text-sm">Loading books...</div>
-                              ) : simflexRows.length === 0 ? (
+                              ) : filteredSimflex.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-sm text-muted-foreground">
                                   {simflexRowsSearch ? 'No matching books found.' : 'No books currently in transmission.'}
                                 </div>
                               ) : (
-                                simflexRows
-                                .filter(row => {
-                                  const q = simflexRowsSearch.toLowerCase().trim()
-                                  return !q ||
-                                    row.ISBN?.toLowerCase().includes(q) ||
-                                    row.BoxNumber?.toLowerCase().includes(q) ||
-                                    row.LotNumber?.toLowerCase().includes(q) ||
-                                    row.ScanUser?.toLowerCase().includes(q)
-                                }).map((row, idx) => (
-                                  <div key={idx} className="rounded-lg border border-border bg-card p-4 flex items-center justify-between hover:shadow-sm transition-all">
+                                filteredSimflex
+                                .slice((stageModalPage - 1) * 50, stageModalPage * 50)
+                                .map((row, idx) => (
+                                  <div key={idx} className="rounded-xl border border-border/70 bg-card p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
                                     <div className="flex items-center gap-4">
                                       <div className="flex flex-col">
                                         <span className="font-mono font-bold text-foreground text-sm">{row.ISBN}</span>
@@ -1141,7 +1154,7 @@ export default function StationCheckpointsPage() {
                             </div>
                           ) : (
                             <div className="flex flex-col gap-2">
-                              {filteredBoxes.map(box => {
+                              {filteredBoxes.slice((stageModalPage - 1) * 50, stageModalPage * 50).map(box => {
                                   const isExpanded = expandedStageBoxId === box.id
                                   const details = stageBoxDetails[box.id]
                                   const latestTransition = transitions.find(t => t.box?.box_number === box.box_number && t.to_stage === box.current_stage)
@@ -1218,18 +1231,26 @@ export default function StationCheckpointsPage() {
                                     actionLabel = 'Completed'
                                   }
 
+                                  const diffDays = session?.updated_at ? (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24) : 0
+                                  const isDelayed = diffDays >= 1 && stage !== 'storage'
+                                  
+                                  const rowBg = isDelayed ? "bg-orange-50/50" : (brand === 'jaguar' ? "bg-green-50/30" : "bg-blue-50/30")
+                                  const rowBorder = isDelayed ? "border-orange-300 hover:border-orange-400" : (brand === 'jaguar' ? "border-green-300 hover:border-green-400" : "border-blue-300 hover:border-blue-400")
+                                  const rowHoverBg = isDelayed ? "hover:bg-orange-50" : (brand === 'jaguar' ? "hover:bg-green-50" : "hover:bg-blue-50")
+
                                   return (
                                     <div
                                       key={box.id}
                                       id={`box-${box.id}`}
                                       className={cn(
-                                        "rounded-lg border overflow-hidden transition-all bg-card hover:shadow-sm",
-                                        highlightBox === box.id ? 'border-primary' : 'border-border',
-                                        isExpanded && `border-l-4 ${borderClass}`
+                                        "rounded-lg border overflow-hidden transition-all",
+                                        rowBg, rowBorder,
+                                        highlightBox === box.id && 'ring-2 ring-primary',
+                                        isExpanded && "shadow-md"
                                       )}
                                     >
                                       <div 
-                                        className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-2 cursor-pointer group hover:bg-slate-50 transition-colors gap-3"
+                                        className={cn("flex flex-col sm:flex-row sm:items-center justify-between px-4 py-2 cursor-pointer group transition-colors gap-3", rowHoverBg)}
                                         onClick={() => toggleStageBoxDetails(box)}
                                       >
                                         {/* Left side: Box & Lot */}
@@ -1240,10 +1261,17 @@ export default function StationCheckpointsPage() {
                                             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-hover:translate-x-0.5" />
                                           )}
                                           <div className="min-w-0">
-                                            <p className="text-sm font-bold text-foreground truncate">
-                                              BOX: {box.box_number}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground truncate">
+                                            <div className="flex items-center gap-2">
+                                              <p className={cn("text-sm font-bold truncate", isDelayed ? "text-orange-900" : "text-foreground")}>
+                                                BOX: {box.box_number}
+                                              </p>
+                                              {isDelayed && (
+                                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-orange-100 text-orange-600 border border-orange-200 shadow-sm">
+                                                  Delayed
+                                                </span>
+                                              )}
+                                            </div>
+                                            <p className={cn("text-xs truncate mt-0.5", isDelayed ? "text-orange-700/80" : "text-muted-foreground")}>
                                               {box.lot?.lot_number || 'N/A'}
                                             </p>
                                           </div>
@@ -1354,9 +1382,34 @@ export default function StationCheckpointsPage() {
 
 
                       {/* Footer */}
-                      <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{filteredBoxes.length} {filteredBoxes.length === 1 ? 'box' : 'boxes'} shown</span>
-                        <button onClick={() => setSelectedStage(null)} className="text-primary hover:text-primary/80 font-medium">Close</button>
+                      <div className="border-t border-border/50 bg-muted/30 flex items-center justify-between text-xs text-muted-foreground rounded-b-xl flex-wrap">
+                        {(() => {
+                          let totalItems = filteredBoxes.length;
+                          if (selectedStage === 'transmit') {
+                            const q = simflexRowsSearch.toLowerCase().trim();
+                            totalItems = simflexRows.filter(row => !q || row.ISBN?.toLowerCase().includes(q) || row.BoxNumber?.toLowerCase().includes(q) || row.LotNumber?.toLowerCase().includes(q) || row.ScanUser?.toLowerCase().includes(q)).length;
+                          }
+                          const totalPages = Math.max(1, Math.ceil(totalItems / 50));
+                          
+                          return (
+                            <div className="w-full flex items-center justify-between p-4">
+                              <span className="font-medium shrink-0">{totalItems} {totalItems === 1 ? 'entry' : 'entries'} shown</span>
+                              {totalItems > 0 && (
+                                <div className="scale-90 origin-right">
+                                  <Pagination
+                                    currentPage={stageModalPage}
+                                    totalPages={totalPages}
+                                    pageSize={50}
+                                    onPageChange={setStageModalPage}
+                                    canPrevPage={stageModalPage > 1}
+                                    canNextPage={stageModalPage < totalPages}
+                                  />
+                                </div>
+                              )}
+                              <Button variant="outline" size="sm" onClick={() => setSelectedStage(null)} className="rounded-lg shadow-sm border-border/50 hover:bg-muted/50 font-medium ml-4">Close</Button>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
                   </div>
