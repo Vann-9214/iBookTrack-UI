@@ -1331,13 +1331,7 @@ export default function StationCheckpointsPage() {
                                                 </tr>
                                               </thead>
                                               <tbody className="block w-full">
-                                                {details.books.filter(book => {
-                                                  const status = details.simflex?.[book.isbn]?.latestStatus || book.transmission_status || '';
-                                                  if (selectedStage === 'transmit') {
-                                                    return status.includes('Transmission_Archive') || status === 'COMPLETED';
-                                                  }
-                                                  return true;
-                                                  }).map((book) => {
+                                                {details.books.map((book) => {
                                                     const rawStatus = details.simflex?.[book.isbn];
                                                     const simflexStatus = typeof rawStatus === 'string' ? rawStatus : (rawStatus?.latestStatus || 'Pending');
                                                     const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
@@ -1354,7 +1348,7 @@ export default function StationCheckpointsPage() {
                                                       book.scan_status === 'non_processable' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                                         {book.scan_status === 'processable' ? 'Processable' : book.scan_status === 'non_processable' ? 'Non-Processable' : book.scan_status}
                                                       </span>
-                                                      {(selectedStage === 'scan' || selectedStage === 'transmit' || selectedStage === 'storage') && (
+                                                      {(selectedStage === 'scan' || selectedStage === 'storage') && (
                                                         <span className="text-[9px] text-muted-foreground font-normal truncate" title={`Simflex: ${book.scan_status === 'non_processable' ? 'Not Included' : formatSimflexStatus(simflexStatus)}`}>
                                                           Simflex: {book.scan_status === 'non_processable' ? 'Not Included' : formatSimflexStatus(simflexStatus)}
                                                         </span>

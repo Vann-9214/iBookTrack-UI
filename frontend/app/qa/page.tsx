@@ -516,7 +516,7 @@ export default function BookInspectionPage() {
       <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
         <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
         <main className="flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
+          <div className={cn("mx-auto w-full flex-1 flex flex-col", inspSessionActive ? "max-w-full" : "max-w-6xl")}>
 
             {/* Header */}
             <div className="flex flex-col gap-2 mb-6">
@@ -529,6 +529,7 @@ export default function BookInspectionPage() {
             </div>
 
             {/* Search bar */}
+            {!inspSessionActive && (
             <div className="flex items-center gap-2 mb-6">
               <Select value={searchType} onValueChange={(v) => setSearchType(v as 'box' | 'lot' | 'isbn')}>
                 <SelectTrigger className="w-[130px] shrink-0 hover:text-primary-foreground hover:bg-primary transition-colors">
@@ -575,6 +576,7 @@ export default function BookInspectionPage() {
                 )}
               </div>
             </div>
+            )}
 
             {/* ── Tab Navigation ── */}
             <div className="flex items-center gap-1 mb-6 border-b border-border/50 pb-px">
