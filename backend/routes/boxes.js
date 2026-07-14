@@ -227,13 +227,15 @@ router.get('/', async (req, res) => {
 // Now returns 1 row per box session to avoid flooding the UI with events
 router.get('/pipeline-transitions', requireAuth, async (req, res) => {
   try {
-    const { limit = 50, stage, box_type } = req.query
+    const { limit = 50, offset = 0, stage, box_type, search, date_from, date_to } = req.query
+    const limitNum = parseInt(limit)
+    const offsetNum = parseInt(offset)
 
     const db = supabaseAdmin || supabase
-    const boxSelect = box_type 
-      ? `box:boxes!inner(box_number, lot:lots(lot_number), box_type, current_stage)`
-      : `box:boxes(box_number, lot:lots(lot_number), box_type, current_stage)`
-
+    
+    // We use inner join on boxes to allow filtering by box_number and stage
+    let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_books_expected`
+    
     let query = db
       .from('box_sessions')
       .select(`
@@ -246,29 +248,82 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
         endorsement_time_received, endorsement_user_received,
         endorsement_time_send, endorsement_user_send,
         scan_time_received, scan_user_received,
+        total_scanned,
         updated_at,
-        ${boxSelect}
-      `)
-      .order('updated_at', { ascending: false })
-      .limit(parseInt(limit))
+        box:boxes!inner(${boxSelect})
+      `, { count: 'exact' })
 
     if (box_type) {
       query = query.eq('boxes.box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
     }
     
-    // Note: To perfectly filter by stage, we could add complex OR logic.
-    // For now, if stage is selected, filter in JS to keep it simple, or just return all and let UI filter.
+    if (stage && stage !== 'all') {
+      query = query.eq('boxes.current_stage', stage)
+    }
+
+    if (date_from) {
+      query = query.gte('updated_at', `${date_from}T00:00:00.000Z`)
+    }
     
-    const { data: sessions, error } = await query
+    if (date_to) {
+      query = query.lte('updated_at', `${date_to}T23:59:59.999Z`)
+    }
+    
+    if (search) {
+      // Find matching lots first so we can include them in an OR query on the boxes table
+      const { data: matchedLots } = await db.from('lots').select('id').ilike('lot_number', `%${search}%`)
+      const lotIds = (matchedLots || []).map(l => l.id)
+      
+      if (lotIds.length > 0) {
+        query = query.or(`box_number.ilike.%${search}%,lot_id.in.(${lotIds.join(',')})`, { foreignTable: 'boxes' })
+      } else {
+        query = query.ilike('boxes.box_number', `%${search}%`)
+      }
+    }
+
+    query = query.order('updated_at', { ascending: false })
+                 .range(offsetNum, offsetNum + limitNum - 1)
+    
+    const { data: sessions, count, error } = await query
     if (error) throw error
 
     let filteredSessions = sessions || []
-    if (stage) {
-      filteredSessions = filteredSessions.filter(s => s.box?.current_stage === stage)
-    }
-
+    
     // Fetch user names for all users involved in these sessions
     const userIds = new Set()
+    
+    // Fetch 1 book_activity per box_id manually
+    const boxIds = Array.from(new Set(filteredSessions.map(s => s.box?.id).filter(Boolean)))
+    let boxScanData = {}
+    if (boxIds.length > 0) {
+      const { data: bookActivities } = await db
+        .from('book_activity')
+        .select('warehouse_scan_by, warehouse_scan_at, inventory_scan_by, inventory_scan_at, endorsement_scan_by, endorsement_scan_at, books!inner(box_id)')
+        .in('books.box_id', boxIds)
+      
+      for (const ba of bookActivities || []) {
+        const boxId = ba.books?.box_id
+        if (boxId && !boxScanData[boxId]) {
+          boxScanData[boxId] = { 
+            w_by: ba.warehouse_scan_by, w_at: ba.warehouse_scan_at,
+            i_by: ba.inventory_scan_by, i_at: ba.inventory_scan_at,
+            e_by: ba.endorsement_scan_by, e_at: ba.endorsement_scan_at
+          }
+        }
+      }
+
+      const { data: storageAssignments } = await db
+        .from('storage_assignments')
+        .select('box_id, assigned_by, assigned_at')
+        .in('box_id', boxIds)
+
+      for (const sa of storageAssignments || []) {
+        if (!boxScanData[sa.box_id]) boxScanData[sa.box_id] = {}
+        boxScanData[sa.box_id].s_by = sa.assigned_by
+        boxScanData[sa.box_id].s_at = sa.assigned_at
+      }
+    }
+
     filteredSessions.forEach(s => {
       if (s.warehouse_user_received) userIds.add(s.warehouse_user_received)
       if (s.inventory_user_received) userIds.add(s.inventory_user_received)
@@ -278,28 +333,47 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
       if (s.endorsement_user_received) userIds.add(s.endorsement_user_received)
       if (s.endorsement_user_send) userIds.add(s.endorsement_user_send)
       if (s.scan_user_received) userIds.add(s.scan_user_received)
+      
+      const boxId = s.box?.id
+      if (boxId && boxScanData[boxId]) {
+        if (boxScanData[boxId].w_by) userIds.add(boxScanData[boxId].w_by)
+        if (boxScanData[boxId].i_by) userIds.add(boxScanData[boxId].i_by)
+        if (boxScanData[boxId].e_by) userIds.add(boxScanData[boxId].e_by)
+        if (boxScanData[boxId].s_by) userIds.add(boxScanData[boxId].s_by)
+      }
     })
 
     let userMap = {}
     if (userIds.size > 0) {
-      const { data: profiles } = await db.from('profiles').select('id, full_name, email').in('id', Array.from(userIds))
+      const { data: profiles } = await db.from('profiles').select('id, name, email').in('id', Array.from(userIds))
       for (const p of profiles || []) {
-        userMap[p.id] = p.full_name || p.email
+        userMap[p.id] = p.name || p.email
       }
     }
 
     // Assign names to session objects
     const pagedEvents = filteredSessions.map(s => {
+      const boxId = s.box?.id
+      const scanData = boxId ? boxScanData[boxId] : null
+      
       return {
         ...s,
-        warehouse_user_name: userMap[s.warehouse_user_received] || 'Automated',
-        inventory_user_name: userMap[s.inventory_user_received] || 'Automated',
-        inventory_send_name: userMap[s.inventory_user_send] || 'Automated',
-        cut_user_name: userMap[s.cut_user_received] || 'Automated',
-        cut_send_name: userMap[s.cut_user_send] || 'Automated',
-        endorsement_user_name: userMap[s.endorsement_user_received] || 'Automated',
-        endorsement_send_name: userMap[s.endorsement_user_send] || 'Automated',
-        scan_user_name: userMap[s.scan_user_received] || 'Automated',
+        warehouse_user_name: userMap[s.warehouse_user_received] || null,
+        warehouse_scan_name: scanData ? (userMap[scanData.w_by] || null) : null,
+        warehouse_scan_at: scanData ? scanData.w_at : null,
+        inventory_user_name: userMap[s.inventory_user_received] || null,
+        inventory_scan_name: scanData ? (userMap[scanData.i_by] || null) : null,
+        inventory_scan_at: scanData ? scanData.i_at : null,
+        inventory_send_name: userMap[s.inventory_user_send] || null,
+        cut_user_name: userMap[s.cut_user_received] || null,
+        cut_send_name: userMap[s.cut_user_send] || null,
+        endorsement_user_name: userMap[s.endorsement_user_received] || null,
+        endorsement_scan_name: scanData ? (userMap[scanData.e_by] || null) : null,
+        endorsement_scan_at: scanData ? scanData.e_at : null,
+        endorsement_send_name: userMap[s.endorsement_user_send] || null,
+        scan_user_name: userMap[s.scan_user_received] || null,
+        storage_user_name: scanData ? (userMap[scanData.s_by] || null) : null,
+        storage_time_assigned: scanData ? scanData.s_at : null,
       }
     })
 

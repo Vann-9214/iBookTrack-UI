@@ -26,7 +26,7 @@ export function Pagination({
   canPrevPage,
   canNextPage,
   className,
-  pageSizeOptions = [10, 50, 100],
+  pageSizeOptions = [],
   showPageInfo = true
 }: PaginationProps) {
   const options = pageSizeOptions
