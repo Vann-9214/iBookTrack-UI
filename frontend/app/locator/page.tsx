@@ -5,7 +5,7 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, Map } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
@@ -555,12 +555,19 @@ export default function WarehouseLocatorPage() {
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6 max-w-4xl mx-auto">
 
             {/* Header */}
-            <header className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Storage Locator</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Assign incoming boxes to rack slots. Search by ISBN or box number to find their location.
-                </p>
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                  <Map className="h-7 w-7" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                    Storage Locator
+                  </h1>
+                  <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                    Find the physical location of any box for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                  </p>
+                </div>
               </div>
               <RefreshControl onRefresh={fetchLocations} refreshing={loadingLocations} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
             </header>

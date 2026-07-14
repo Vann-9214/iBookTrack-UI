@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Search, Book, Package, Barcode, X, RefreshCw, CheckCircle2, Clock, AlertCircle } from "lucide-react"
+import { Search, Book, Package, Barcode, X, RefreshCw, CheckCircle2, Clock, AlertCircle, LayoutDashboard } from "lucide-react"
 import { DashboardMain } from "./DashboardMain"
 import { useToast } from "@/hooks/use-toast"
 import { RefreshControl } from "@/components/refresh-control"
@@ -251,14 +251,19 @@ export default function DashboardPage() {
             {/* Page Header */}
             <header className="flex flex-col gap-3">
               {/* Title row — always visible */}
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                    Command Center
-                  </h1>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Real-time overview of the 8-step pipeline, transmissions, and warehouse activity.
-                  </p>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                    <LayoutDashboard className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                      Command Center
+                    </h1>
+                    <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      Overview of operations for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                    </p>
+                  </div>
                 </div>
                 {/* Refresh + timestamp — hidden on mobile */}
                 <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} lastUpdated={lastStatsUpdate} storageKey="dashboard" className="hidden sm:flex" />
