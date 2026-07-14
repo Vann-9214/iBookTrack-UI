@@ -1820,8 +1820,13 @@ export default function StationCheckpointsPage() {
                         holderName = t.warehouse_user_name || '—';
                         holderStage = 'Warehouse';
                         if (!isCompleted) {
-                          statusText = 'Completed';
-                          statusColor = 'bg-green-100 text-green-700';
+                          if (t.warehouse_scan_name) {
+                            statusText = 'Completed';
+                            statusColor = 'bg-green-100 text-green-700';
+                          } else {
+                            statusText = 'Received';
+                            statusColor = 'bg-yellow-100 text-yellow-700';
+                          }
                         }
                       } else if (box.current_stage === 'inventory') {
                         holderName = t.inventory_user_name || '—';
@@ -1830,6 +1835,9 @@ export default function StationCheckpointsPage() {
                           if (t.inventory_send_name) {
                             statusText = 'Sent';
                             statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.inventory_scan_name) {
+                            statusText = 'Completed';
+                            statusColor = 'bg-green-100 text-green-700';
                           } else if (t.inventory_time_received) {
                             statusText = 'Received';
                             statusColor = 'bg-yellow-100 text-yellow-700';
@@ -1854,6 +1862,9 @@ export default function StationCheckpointsPage() {
                           if (t.endorsement_send_name) {
                             statusText = 'Sent';
                             statusColor = 'bg-indigo-100 text-indigo-700';
+                          } else if (t.endorsement_scan_name) {
+                            statusText = 'Completed';
+                            statusColor = 'bg-green-100 text-green-700';
                           } else if (t.endorsement_time_received) {
                             statusText = 'Received';
                             statusColor = 'bg-yellow-100 text-yellow-700';
