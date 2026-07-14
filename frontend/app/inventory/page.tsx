@@ -1409,7 +1409,7 @@ export default function InventoryPage() {
                                   <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Sent from Warehouse</span>
                                 </div>
-                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || 'â€”'} Â· BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || 'â€”'} | BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                               </div>
                               {created && (
                                 <div className="shrink-0 hidden sm:block text-right mr-2">
