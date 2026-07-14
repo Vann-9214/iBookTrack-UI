@@ -37,10 +37,14 @@ import dotenv from 'dotenv'
 dotenv.config({ path: new URL('../.env', import.meta.url) })
 
 // ── Simflex connection ────────────────────────────────────────────────────────
-const SIMFLEX_API_URL        = process.env.SIMFLEX_API_URL        || 'https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset'
-const SIMFLEX_API_KEY        = process.env.SIMFLEX_API_KEY        || ''
-const SIMFLEX_MUSTANG_CONFIG = process.env.SIMFLEX_MUSTANG_CONFIG || ''
-const SIMFLEX_JAGUAR_CONFIG  = process.env.SIMFLEX_JAGUAR_CONFIG  || ''
+const SIMFLEX_API_URL        = process.env.SIMFLEX_API_URL
+const SIMFLEX_API_KEY        = process.env.SIMFLEX_API_KEY
+const SIMFLEX_MUSTANG_CONFIG = process.env.SIMFLEX_MUSTANG_CONFIG
+const SIMFLEX_JAGUAR_CONFIG  = process.env.SIMFLEX_JAGUAR_CONFIG
+
+if (!SIMFLEX_API_URL || !SIMFLEX_API_KEY || (!SIMFLEX_MUSTANG_CONFIG && !SIMFLEX_JAGUAR_CONFIG)) {
+  throw new Error('SIMFLEX configuration is missing in environment variables.')
+}
 
 function getSimflexConfig(location = 'mustang') {
   return location === 'jaguar' ? SIMFLEX_JAGUAR_CONFIG : SIMFLEX_MUSTANG_CONFIG

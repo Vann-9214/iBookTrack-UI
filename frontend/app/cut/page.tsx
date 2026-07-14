@@ -14,7 +14,8 @@ import {
 import { RefreshControl } from "@/components/refresh-control"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 interface BookInBox {
   id: string

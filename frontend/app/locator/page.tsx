@@ -12,7 +12,8 @@ import { authFetch } from "@/lib/auth-api"
 import { DashboardNavbar } from "@/components/top-bar"
 import { useBrand } from "@/hooks/use-brand"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 const RACK_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split('')
 const DEFAULT_RACKS = ["A", "B", "C", "D"]

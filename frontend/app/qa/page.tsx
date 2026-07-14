@@ -14,7 +14,8 @@ import { AlertTriangle, ChevronDown, ChevronRight, CheckCircle2,
   ScanBarcode, CircleCheck, CircleX, Search, X, CheckCircle } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 const FLAG_ISSUES = [
   { value: "bleed-through",          label: "Bleed-through on page" },

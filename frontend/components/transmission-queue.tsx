@@ -20,7 +20,8 @@ import { authFetch } from "@/lib/auth-api"
 import { useBrand } from "@/hooks/use-brand"
 import { Skeleton } from "@/components/ui/skeleton"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 // Utility function to cleanly format stage identifiers
 function formatPipelineStage(stage: string) {

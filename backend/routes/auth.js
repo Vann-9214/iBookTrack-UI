@@ -317,9 +317,13 @@ router.patch('/profile', requireAuth, async (req, res) => {
 
 // ── GET /api/auth/innodata (Initiate OAuth Flow) ─────────────
 router.get('/innodata', (req, res) => {
-  const authorizeUrl = process.env.OAUTH_AUTHORIZE_URL || 'https://unifiedworkflow.innodata.com/oauth/authorize'
-  const clientId = process.env.OAUTH_CLIENT_ID || 'ibooktrack-client-id'
-  const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:5000/api/auth/innodata/callback'
+  const authorizeUrl = process.env.OAUTH_AUTHORIZE_URL
+  const clientId = process.env.OAUTH_CLIENT_ID
+  const redirectUri = process.env.OAUTH_REDIRECT_URI
+  
+  if (!authorizeUrl || !clientId || !redirectUri) {
+    return res.status(500).send('OAuth configuration is missing in environment variables.')
+  }
   
   const url = new URL(authorizeUrl)
   url.searchParams.append('response_type', 'code')
@@ -338,40 +342,47 @@ router.get('/innodata/callback', async (req, res) => {
   }
 
   try {
-    const tokenUrl = process.env.OAUTH_TOKEN_URL || 'https://unifiedworkflow.innodata.com/oauth/token'
-    const userInfoUrl = process.env.OAUTH_USERINFO_URL || 'https://unifiedworkflow.innodata.com/oauth/userinfo'
-    const clientId = process.env.OAUTH_CLIENT_ID || 'ibooktrack-client-id'
-    const clientSecret = process.env.OAUTH_CLIENT_SECRET || 'ibooktrack-client-secret'
-    const redirectUri = process.env.OAUTH_REDIRECT_URI || 'http://localhost:5000/api/auth/innodata/callback'
+    const tokenUrl = process.env.OAUTH_TOKEN_URL
+    const userInfoUrl = process.env.OAUTH_USERINFO_URL
+    const clientId = process.env.OAUTH_CLIENT_ID
+    const clientSecret = process.env.OAUTH_CLIENT_SECRET
+    const redirectUri = process.env.OAUTH_REDIRECT_URI
 
-    // Mock exchange for dev if real endpoint fails or isn't set up
-    let userInfo = { id: 'mock-sso-id', email: 'sso.user@innodata.com', name: 'Innodata SSO User' }
-
-    if (process.env.OAUTH_AUTHORIZE_URL) {
-      try {
-        const tokenRes = await fetch(tokenUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            grant_type: 'authorization_code',
-            code,
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uri: redirectUri
-          })
-        })
-        const tokenData = await tokenRes.json()
-
-        if (tokenData.access_token) {
-          const userRes = await fetch(userInfoUrl, {
-            headers: { Authorization: `Bearer ${tokenData.access_token}` }
-          })
-          userInfo = await userRes.json()
-        }
-      } catch (err) {
-        console.error('Failed real OAuth exchange, falling back to mock data', err)
-      }
+    if (!tokenUrl || !userInfoUrl || !clientId || !clientSecret || !redirectUri) {
+      throw new Error('OAuth configuration is missing in environment variables.')
     }
+
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri
+      })
+    })
+
+    if (!tokenRes.ok) {
+      throw new Error(`OAuth token exchange failed with status ${tokenRes.status}`)
+    }
+
+    const tokenData = await tokenRes.json()
+
+    if (!tokenData.access_token) {
+      throw new Error('No access token returned from OAuth provider')
+    }
+
+    const userRes = await fetch(userInfoUrl, {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+    })
+
+    if (!userRes.ok) {
+      throw new Error(`Failed to fetch user info with status ${userRes.status}`)
+    }
+
+    const userInfo = await userRes.json()
 
     // Dynamically import jsonwebtoken to avoid top-level require errors if not setup
     const jwt = (await import('jsonwebtoken')).default

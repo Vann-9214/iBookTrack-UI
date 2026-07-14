@@ -8,7 +8,8 @@ import { Search, Loader2, CheckCircle, XCircle } from 'lucide-react'
 import bwipjs from 'bwip-js'
 import { authFetch } from '@/lib/auth-api'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 export function ILMSTestPanel() {
   const [isbn, setIsbn] = useState('')

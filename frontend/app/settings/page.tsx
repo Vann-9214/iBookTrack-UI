@@ -117,7 +117,8 @@ export default function SettingsPage() {
     setMessage('')
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      if (!apiUrl) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
       const response = await authFetch(`${apiUrl}/api/auth/profile`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -173,7 +174,8 @@ export default function SettingsPage() {
     }
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      if (!apiUrl) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
       const response = await authFetch(`${apiUrl}/api/auth/password`, {
         method: 'POST',
         body: JSON.stringify({

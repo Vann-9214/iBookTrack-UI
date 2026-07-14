@@ -89,7 +89,8 @@ interface WarehouseBook {
 
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 const STAGE_COLORS: Record<string, string> = {
   warehouse:  'bg-gray-100 text-gray-700',
@@ -177,7 +178,8 @@ export default function InventoryPage() {
     if (processable.length === 0) return
     setLoadingSimflexStatus(box.id)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+      const API_URL = process.env.NEXT_PUBLIC_API_URL
+      if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
       const isbns = processable.map(b => b.isbn).join(',')
       const res = await authFetch(`${API_URL}/api/scanning/simflex-status?isbns=${isbns}&location=${brand}`)
       const data = await res.json()
@@ -199,7 +201,8 @@ export default function InventoryPage() {
     if (!deleteConfirm) return
     setDeleting(true)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+      const API_URL = process.env.NEXT_PUBLIC_API_URL
+      if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
       const res = await authFetch(`${API_URL}/api/boxes/${deleteConfirm.id}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Delete failed')
