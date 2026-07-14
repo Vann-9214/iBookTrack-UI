@@ -243,10 +243,10 @@ export default function CutPage() {
               <button
                 onClick={() => setActiveTab('incoming')}
                 className={cn(
-                  'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all',
+                  'flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
                   activeTab === 'incoming'
-                    ? 'border-primary text-primary bg-primary/10 rounded-t-lg'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-t-lg'
+                    ? 'border-primary text-primary bg-primary/5'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 )}
               >
                 <Inbox className="h-4 w-4" /> Incoming
@@ -258,10 +258,10 @@ export default function CutPage() {
               <button
                 onClick={() => setActiveTab('outgoing')}
                 className={cn(
-                  'flex items-center gap-2 px-5 py-2.5 text-sm font-semibold border-b-2 transition-all',
+                  'flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-5 py-2.5 text-sm font-semibold border-b-2 transition-all rounded-t-lg',
                   activeTab === 'outgoing'
-                    ? 'border-primary text-primary bg-primary/10 rounded-t-lg'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-t-lg'
+                    ? 'border-primary text-primary bg-primary/5'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 )}
               >
                 <Send className="h-4 w-4" /> Outgoing
@@ -272,7 +272,7 @@ export default function CutPage() {
               </button>
               
               <div className="ml-auto">
-                <RefreshControl onRefresh={fetchBoxes} refreshing={loading} lastUpdated={lastUpdated} />
+                <RefreshControl onRefresh={fetchBoxes} refreshing={loading} lastUpdated={lastUpdated} className="hidden sm:flex" />
               </div>
             </div>
 
@@ -299,37 +299,37 @@ export default function CutPage() {
                         const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
-                            <div className="flex items-center px-4 py-3 gap-4">
-                              <button
-                                onClick={() => toggleBox(box.id)}
-                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                              </button>
-                              <div className="bg-primary/10 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-primary" />
-                              </div>
-                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Sent from Inventory</span>
+                            <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
+                              {/* Top row: chevron + icon + info + date */}
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <button
+                                  onClick={() => toggleBox(box.id)}
+                                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </button>
+                                <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                  <Package className="h-5 w-5 text-primary" />
                                 </div>
-                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                              </div>
-                              {box.box_sessions?.[0]?.inventory_time_send && (
-                                <div className="shrink-0 hidden sm:block text-right mr-2">
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(box.box_sessions[0].inventory_time_send).toLocaleDateString()}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground/80">
-                                    {new Date(box.box_sessions[0].inventory_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                  </p>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Sent from Inventory</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
-                              )}
+                                {box.box_sessions?.[0]?.inventory_time_send && (
+                                  <div className="shrink-0 hidden sm:block text-right mr-2">
+                                    <p className="text-xs text-muted-foreground">{new Date(box.box_sessions[0].inventory_time_send).toLocaleDateString()}</p>
+                                    <p className="text-[10px] text-muted-foreground/80">{new Date(box.box_sessions[0].inventory_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {/* Receive Box button: full-width on mobile */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleReceiveBox(box) }}
                                 disabled={receivingBox === box.id}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                               >
                                 {receivingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
                                 {receivingBox === box.id ? 'Receiving...' : 'Receive Box'}
@@ -394,37 +394,37 @@ export default function CutPage() {
                         const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
-                            <div className="flex items-center px-4 py-3 gap-4">
-                              <button
-                                onClick={() => toggleBox(box.id)}
-                                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                              </button>
-                              <div className="bg-primary/10 rounded-lg p-2 shrink-0">
-                                <Package className="h-5 w-5 text-primary" />
-                              </div>
-                              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Ready to Send</span>
+                            <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
+                              {/* Top row: chevron + icon + info + date */}
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <button
+                                  onClick={() => toggleBox(box.id)}
+                                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                </button>
+                                <div className="bg-primary/10 rounded-lg p-2 shrink-0">
+                                  <Package className="h-5 w-5 text-primary" />
                                 </div>
-                                <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
-                              </div>
-                              {box.box_sessions?.[0]?.cut_time_received && (
-                                <div className="shrink-0 hidden sm:block text-right mr-2">
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(box.box_sessions[0].cut_time_received).toLocaleDateString()}
-                                  </p>
-                                  <p className="text-[10px] text-muted-foreground/80">
-                                    {new Date(box.box_sessions[0].cut_time_received).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                  </p>
+                                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleBox(box.id)}>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">Ready to Send</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {bookCount} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                 </div>
-                              )}
+                                {box.box_sessions?.[0]?.cut_time_received && (
+                                  <div className="shrink-0 hidden sm:block text-right mr-2">
+                                    <p className="text-xs text-muted-foreground">{new Date(box.box_sessions[0].cut_time_received).toLocaleDateString()}</p>
+                                    <p className="text-[10px] text-muted-foreground/80">{new Date(box.box_sessions[0].cut_time_received).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {/* Send to Endorsement button: full-width on mobile, always visible */}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleSendBox(box) }}
                                 disabled={sendingBox === box.id}
-                                className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+                                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                               >
                                 {sendingBox === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                                 {sendingBox === box.id ? 'Sending...' : 'Send to Endorsement'}
