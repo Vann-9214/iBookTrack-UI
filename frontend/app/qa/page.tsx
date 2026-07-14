@@ -756,23 +756,57 @@ export default function BookInspectionPage() {
 
                       {/* Scan Log Summary */}
                       <div className="mb-4">
-                        <label className="text-sm font-medium text-foreground mb-2 block">Scanned Books Summary</label>
-                        <div className="max-h-80 overflow-y-auto border border-border rounded-lg bg-card divide-y divide-border">
-                          {inspScannedBooks.length === 0 ? (
-                            <div className="p-4 text-center text-xs text-muted-foreground">No books scanned.</div>
-                          ) : (
-                            inspScannedBooks.map((book, idx) => (
-                              <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
-                                <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
-                                <span className="text-[11px] break-words flex-1">{book.title}</span>
-                                <span className={`text-[10px] px-2 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-                                </span>
+                        <label className="text-sm font-medium text-foreground mb-4 block">Scanned Books Summary</label>
+                        {inspScannedBooks.length === 0 ? (
+                          <div className="border border-border rounded-lg bg-card p-4 text-center text-xs text-muted-foreground">No books scanned.</div>
+                        ) : (
+                          <div className="flex flex-col gap-6">
+                            {/* Processable Books */}
+                            {inspScannedBooks.filter(b => b.scan_status === 'processable').length > 0 && (
+                              <div>
+                                <label className="text-[11px] font-bold text-muted-foreground mb-2 block uppercase tracking-wider">Processable Books</label>
+                                <div className="max-h-60 overflow-y-auto border border-border rounded-lg bg-card divide-y divide-border">
+                                  {inspScannedBooks.filter(b => b.scan_status === 'processable').map((book, idx) => (
+                                    <div key={`proc-${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
+                                      <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
+                                      <span className="text-[11px] break-words flex-1">{book.title}</span>
+                                      <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-green-100 text-green-700">
+                                        Processable
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            ))
-                          )}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-2">
+                            )}
+
+                            {/* Flagged Books */}
+                            {inspScannedBooks.filter(b => b.scan_status === 'non_processable').length > 0 && (
+                              <div>
+                                <label className="text-[11px] font-bold text-red-600 mb-1 block uppercase tracking-wider">Newly Flagged Books</label>
+                                <p className="text-[10px] text-muted-foreground mb-2">These books here are the ones you newly flagged.</p>
+                                <div className="max-h-60 overflow-y-auto border border-red-200 rounded-lg bg-red-50/50 divide-y divide-red-100">
+                                  {inspScannedBooks.filter(b => b.scan_status === 'non_processable').map((book, idx) => (
+                                    <div key={`flag-${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2">
+                                      <span className="text-xs font-semibold w-24 shrink-0 text-red-900">{book.isbn}</span>
+                                      <div className="flex flex-col flex-1 min-w-0">
+                                        <span className="text-[11px] break-words text-red-900 font-medium">{book.title}</span>
+                                        {(book.flag_issue || book.flag_remarks) && (
+                                          <span className="text-[10px] text-red-700 mt-0.5 truncate">
+                                            {book.flag_issue} {book.flag_remarks ? `— ${book.flag_remarks}` : ''}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-red-100 text-red-700 shrink-0">
+                                        Flagged
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-4">
                           * Total {inspScannedBooks.length} scanned books will be saved to the database when you confirm.
                         </p>
                       </div>

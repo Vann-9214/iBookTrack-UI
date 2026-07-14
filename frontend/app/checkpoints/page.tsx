@@ -1340,7 +1340,7 @@ export default function StationCheckpointsPage() {
                                               </thead>
                                               <tbody className="block w-full">
                                                 {details.books.map((book) => {
-                                                    const rawStatus = details.simflex?.[book.isbn];
+                                                    const rawStatus = details.simflex?.[book.isbn] || book.transmission_status;
                                                     const simflexStatus = typeof rawStatus === 'string' ? rawStatus : (rawStatus?.latestStatus || 'Pending');
                                                     const isTransmissionCompleted = simflexStatus === 'COMPLETED' || simflexStatus === 'Transmission_Archive COMPLETED';
                                                     return (
