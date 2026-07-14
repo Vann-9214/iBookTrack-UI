@@ -16,7 +16,7 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
-  Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, ClipboardCheck, Archive,
+  Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, ClipboardCheck, Archive, Activity,
   Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
   Loader2, Zap,
 } from "lucide-react"
@@ -32,18 +32,17 @@ const todayStr = () => new Date().toISOString().split('T')[0]
 const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'] as const
 type Stage = typeof STAGE_ORDER[number]
 
-const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color: string }> = {
-  warehouse:   { label: 'Warehouse',   icon: Package,     color: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
-  inventory:   { label: 'Inventory',   icon: Warehouse,   color: 'bg-cyan-100 text-cyan-700 border-cyan-300' },
-  cut:         { label: 'Cut',         icon: Scissors,    color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  endorsement: { label: 'Endorsement', icon: CheckCircle, color: 'bg-amber-100 text-amber-700 border-amber-300' },
-  scan:        { label: 'Scan',        icon: Camera,      color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  transmit:    { label: 'Transmit',    icon: Radio,       color: 'bg-violet-100 text-violet-700 border-violet-300' },
-  storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+const STAGE_META: Record<Stage, { label: string; icon: React.ElementType; color: string; solidBg: string }> = {
+  warehouse:   { label: 'Warehouse',   icon: Package,     color: 'bg-indigo-100 text-indigo-700 border-indigo-300',     solidBg: 'bg-indigo-500' },
+  inventory:   { label: 'Inventory',   icon: Warehouse,   color: 'bg-cyan-100 text-cyan-700 border-cyan-300',           solidBg: 'bg-cyan-500' },
+  cut:         { label: 'Cut',         icon: Scissors,    color: 'bg-orange-100 text-orange-700 border-orange-300',     solidBg: 'bg-orange-500' },
+  endorsement: { label: 'Endorsement', icon: CheckCircle, color: 'bg-amber-100 text-amber-700 border-amber-300',        solidBg: 'bg-amber-500' },
+  scan:        { label: 'Scan',        icon: Camera,      color: 'bg-blue-100 text-blue-700 border-blue-300',           solidBg: 'bg-blue-500' },
+  transmit:    { label: 'Transmit',    icon: Radio,       color: 'bg-violet-100 text-violet-700 border-violet-300',     solidBg: 'bg-violet-500' },
+  storage:     { label: 'Storage',     icon: Warehouse,   color: 'bg-emerald-100 text-emerald-700 border-emerald-300',  solidBg: 'bg-emerald-500' },
 }
 
 const getStepStatus = (count: number) => {
-  if (count >= 100) return "busy"
   if (count === 0) return "idle"
   return "active"
 }
@@ -62,29 +61,17 @@ const getStatusConfig = (status: string, brand: string) => {
       iconColorCls: brand === 'jaguar' ? "bg-green-100 text-green-700 border-green-200" : "bg-blue-100 text-blue-700 border-blue-200",
     }
   }
-  if (status === 'busy') {
-    return {
-      nodeRing: "border-orange-400 text-orange-500",
-      countColor: "text-orange-500",
-      bar: "bg-orange-400",
-      cardBg: "bg-orange-50",
-      dot: "bg-orange-400",
-      label: "Busy",
-      borderTop: "border-t-orange-400",
-      borderGradient: "",
-      iconColorCls: "bg-orange-100 text-orange-700 border-orange-200",
-    }
-  }
+  // idle
   return {
-    nodeRing: "border-gray-300 text-gray-400",
+    nodeRing: "border-gray-200 text-gray-400",
     countColor: "text-gray-400",
-    bar: "bg-gray-400",
-    cardBg: "bg-gray-50",
-    dot: "bg-gray-400",
+    bar: "bg-gray-200",
+    cardBg: "bg-background",
+    dot: "bg-gray-300",
     label: "Idle",
-    borderTop: "border-t-gray-300",
+    borderTop: "border-t-transparent",
     borderGradient: "",
-    iconColorCls: "bg-gray-100 text-gray-500 border-gray-200",
+    iconColorCls: "bg-gray-50 text-gray-400 border-gray-200",
   }
 }
 
@@ -166,8 +153,8 @@ export default function StationCheckpointsPage() {
   const [highlightBox, setHighlightBox] = useState<string | null>(null)
   const [transitionSearchInput, setTransitionSearchInput] = useState('')
   const [transitionSearch, setTransitionSearch] = useState('')
-  const [transitionDateFrom, setTransitionDateFrom] = useState(todayStr())
-  const [transitionDateTo, setTransitionDateTo] = useState(todayStr())
+  const [transitionDateFrom, setTransitionDateFrom] = useState('')
+  const [transitionDateTo, setTransitionDateTo] = useState('')
   const transitionsPagination = usePagination({ totalItems: totalTransitions, defaultPageSize: 50 })
   const [expandedTimelineId, setExpandedTimelineId] = useState<string | null>(null)
   const [fromDateOpen, setFromDateOpen] = useState(false)
@@ -1389,57 +1376,99 @@ export default function StationCheckpointsPage() {
             )}
 
             {/* Header */}
-            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">Station Checkpoint Monitor</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Manually receive boxes at each station to advance them through the pipeline.
-                </p>
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                  <Activity className="h-7 w-7" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                    Station Monitor
+                  </h1>
+                  <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                    Live pipeline tracking for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                  </p>
+                </div>
               </div>
               <RefreshControl onRefresh={() => fetchData()} refreshing={topLoading || transitionsLoading} lastUpdated={lastUpdated} storageKey="checkpoints" className="hidden sm:flex" />
             </header>
 
             {/* Pipeline Stage Flow */}
-            <div className="flex flex-col gap-3">
+            <div className="relative mt-2 mb-8">
+              {/* Continuous connecting line */}
+              <div className="hidden lg:block absolute top-[20px] left-[7%] right-[7%] h-[3px] bg-border/40 rounded-full z-0" />
+              
               {/* Desktop perfectly aligned headers */}
-              <div className="hidden lg:grid grid-cols-7 gap-3 px-5">
-                {STAGE_ORDER.map((stage, i) => {
+              <div className="hidden lg:grid grid-cols-7 gap-3 relative z-10">
+                {STAGE_ORDER.map((stage) => {
                   const meta = STAGE_META[stage]
-                  const count = boxesByStage[stage]?.length || 0
+                  const count = stage === 'transmit' ? (transmitBooks ?? 0) : (boxesByStage[stage]?.length || 0)
+                  
+                  // Extract colors from meta.color (e.g. 'bg-indigo-100 text-indigo-700 border-indigo-300')
+                  const bgClass = meta.color.match(/bg-\w+-100/)?.[0] || 'bg-gray-100'
+                  const solidBgClass = meta.solidBg
+                  const textClass = meta.color.match(/text-\w+-700/)?.[0] || 'text-gray-700'
+                  const borderClass = meta.color.match(/border-\w+-300/)?.[0] || 'border-gray-300'
+                  
                   return (
-                    <div key={stage} className="relative flex items-center justify-center">
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] xl:text-xs font-medium border ${meta.color} z-10 bg-background`}>
-                        <meta.icon className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{meta.label}</span>
-                        {count > 0 && <span className="ml-0.5 bg-white/60 rounded-full px-1.5 font-bold shrink-0">{count}</span>}
+                    <div key={stage} className="flex flex-col items-center justify-center gap-2 group cursor-default">
+                      {/* Node Circle */}
+                      <div className={cn(
+                        "h-10 w-10 rounded-full flex items-center justify-center border-2 bg-background transition-transform duration-300 group-hover:scale-110 shadow-sm relative",
+                        borderClass, textClass
+                      )}>
+                        <meta.icon className="h-4 w-4" />
+                        {/* Count Badge overlay */}
+                        {count > 0 && (
+                          <div className={cn(
+                            "absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-background shadow-sm",
+                            solidBgClass
+                          )}>
+                            {count}
+                          </div>
+                        )}
                       </div>
-                      {/* Arrow to the next stage */}
-                      {i < STAGE_ORDER.length - 1 && (
-                        <div className="absolute top-1/2 -right-3 translate-x-1/2 -translate-y-1/2 z-0 text-muted-foreground flex items-center justify-center w-6 h-6">
-                          <ChevronRight className="h-4 w-4 opacity-50" />
-                        </div>
-                      )}
+                      
+                      {/* Label below node */}
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition-colors group-hover:text-foreground">
+                        {meta.label}
+                      </span>
                     </div>
                   )
                 })}
               </div>
               
               {/* Mobile wrapping headers */}
-              <div className="flex lg:hidden items-center gap-1 flex-wrap">
-                {STAGE_ORDER.map((stage, i) => {
-                  const meta = STAGE_META[stage]
-                  const count = stage === 'transmit' ? (transmitBooks ?? 0) : (boxesByStage[stage]?.length || 0)
-                  return (
-                    <div key={stage} className="flex items-center gap-1">
-                      <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${meta.color}`}>
-                        <meta.icon className="h-3 w-3" />
-                        {meta.label}
-                        {count > 0 && <span className="ml-1 bg-white/60 rounded-full px-1.5 font-bold">{count}</span>}
-                      </span>
-                      {i < STAGE_ORDER.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />}
-                    </div>
-                  )
-                })}
+              <div className="flex lg:hidden flex-col gap-3 py-2">
+                 <div className="flex items-center gap-2 flex-wrap">
+                   {STAGE_ORDER.map((stage, i) => {
+                     const meta = STAGE_META[stage]
+                     const count = stage === 'transmit' ? (transmitBooks ?? 0) : (boxesByStage[stage]?.length || 0)
+                     
+                     const bgClass = meta.color.match(/bg-\w+-100/)?.[0] || 'bg-gray-100'
+                     const solidBgClass = meta.solidBg
+                     const textClass = meta.color.match(/text-\w+-700/)?.[0] || 'text-gray-700'
+                     const borderClass = meta.color.match(/border-\w+-300/)?.[0] || 'border-gray-300'
+                     
+                     return (
+                       <div key={stage} className="flex items-center gap-2">
+                         <div className={cn(
+                           "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 bg-background shadow-sm",
+                           borderClass, textClass
+                         )}>
+                           <meta.icon className="h-3.5 w-3.5" />
+                           {meta.label}
+                           {count > 0 && (
+                             <span className={cn("ml-1 px-1.5 py-0.5 rounded-full text-[10px] text-white", solidBgClass)}>
+                               {count}
+                             </span>
+                           )}
+                         </div>
+                         {i < STAGE_ORDER.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />}
+                       </div>
+                     )
+                   })}
+                 </div>
               </div>
             </div>
 
@@ -1452,10 +1481,21 @@ export default function StationCheckpointsPage() {
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    // For Transmit: use DB-validated book count so card matches modal
-                    const count = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
                     
-                    const status = getStepStatus(count)
+                    const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter(b => {
+                      const session = b.box_sessions?.[0]
+                      if (!session?.updated_at) return false
+                      const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+                      return diffDays >= 1
+                    }).length
+                    
+                    // For Transmit: use DB-validated book count so card matches modal
+                    const totalCount = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
+                    // If it's transmit, we are showing books, so we don't subtract delayed boxes from books.
+                    // Otherwise, subtract delayed boxes to get active boxes.
+                    const activeCount = stage === 'transmit' ? totalCount : Math.max(0, totalCount - bottleneckCount)
+                    
+                    const status = getStepStatus(totalCount)
                     const cfg = getStatusConfig(status, brand)
 
                     return (
@@ -1474,16 +1514,34 @@ export default function StationCheckpointsPage() {
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
-                          <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                            {count}
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className={cn("text-2xl font-black leading-none truncate tracking-tight", cfg.countColor)} title={stage === 'transmit' ? `${totalCount} total books` : `${totalCount} total boxes`}>
+                              {activeCount}
+                            </span>
+                            {bottleneckCount > 0 && (
+                              <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${bottleneckCount} boxes delayed > 1 day`}>
+                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                <span className="text-[10px] font-bold leading-none text-orange-600">
+                                  {bottleneckCount} delayed
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
                           {meta.label}
                         </h3>
-                        <div className="flex items-center gap-1 mt-1.5 shrink-0">
-                          <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
-                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                        <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0">
+                          <div className="flex items-center gap-1">
+                            <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                          </div>
+                          {bottleneckCount > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">Delayed</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -1495,10 +1553,19 @@ export default function StationCheckpointsPage() {
                   {STAGE_ORDER.map((stage) => {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
-                    // For Transmit: use DB-validated book count so card matches modal
-                    const count = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
                     
-                    const status = getStepStatus(count)
+                    const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter(b => {
+                      const session = b.box_sessions?.[0]
+                      if (!session?.updated_at) return false
+                      const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+                      return diffDays >= 1
+                    }).length
+                    
+                    // For Transmit: use DB-validated book count so card matches modal
+                    const totalCount = stage === 'transmit' ? (transmitBooks ?? 0) : stageBoxes.length
+                    const activeCount = stage === 'transmit' ? totalCount : Math.max(0, totalCount - bottleneckCount)
+                    
+                    const status = getStepStatus(totalCount)
                     const cfg = getStatusConfig(status, brand)
 
                     return (
@@ -1517,16 +1584,34 @@ export default function StationCheckpointsPage() {
                           <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg border shrink-0", cfg.iconColorCls)}>
                             <meta.icon className="h-4 w-4" />
                           </div>
-                          <span className={cn("text-xl font-extrabold leading-none truncate", cfg.countColor)}>
-                            {count}
-                          </span>
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className={cn("text-2xl font-black leading-none truncate tracking-tight", cfg.countColor)} title={stage === 'transmit' ? `${totalCount} books` : `${totalCount} boxes`}>
+                              {activeCount}
+                            </span>
+                            {bottleneckCount > 0 && (
+                              <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${bottleneckCount} boxes delayed > 1 day`}>
+                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                <span className="text-[10px] font-bold leading-none text-orange-600">
+                                  {bottleneckCount} delayed
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <h3 className="text-xs font-bold text-card-foreground mt-auto truncate" title={meta.label}>
                           {meta.label}
                         </h3>
-                        <div className="flex items-center gap-1 mt-1.5 shrink-0">
-                          <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
-                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                        <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0">
+                          <div className="flex items-center gap-1">
+                            <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{cfg.label}</span>
+                          </div>
+                          {bottleneckCount > 0 && (
+                            <div className="flex items-center gap-1">
+                              <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">Delayed</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
@@ -1534,14 +1619,14 @@ export default function StationCheckpointsPage() {
                 </div>
 
                 {/* Status Legend */}
-                <div className="flex items-center gap-4 text-xs mt-4">
+                <div className="flex items-center gap-4 text-xs mt-4 px-2">
                   <div className="flex items-center gap-1.5">
                     <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-400" : "bg-blue-400")} />
-                    <span className="text-xs text-muted-foreground">Active</span>
+                    <span className="text-xs text-muted-foreground">Active (Moving normally)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-orange-400" />
-                    <span className="text-xs text-muted-foreground">Busy / Bottleneck</span>
+                    <span className="h-2 w-2 rounded-full bg-orange-500" />
+                    <span className="text-xs text-muted-foreground">Delayed (Stuck &gt; 24h)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-gray-400" />
@@ -1560,33 +1645,39 @@ export default function StationCheckpointsPage() {
                   <div>
                     <h2 className="text-base font-bold text-foreground tracking-tight">Box Pipeline Tracker</h2>
                     <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                      Showing page {transitionsPagination.currentPage} of {transitionsPagination.totalPages || 1} ({totalTransitions} total matching entries)
+                      Showing page {transitionsPagination.currentPage} of {Math.max(1, transitionsPagination.totalPages)}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Filters */}
-              <div className="px-5 py-3 border-b border-border bg-card flex flex-wrap items-end gap-3">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Search box or lot (Press Enter)"
-                    value={transitionSearchInput}
-                    onChange={e => setTransitionSearchInput(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') {
-                        setTransitionSearch(transitionSearchInput)
-                        transitionsPagination.goToPage(1)
-                      }
-                    }}
-                    className="pl-9 h-9 border-primary/30 focus-visible:border-primary focus-visible:ring-primary/50"
-                  />
+              <div className="px-5 py-4 border-b border-border/50 bg-muted/20 flex flex-col md:flex-row gap-4 items-end">
+                {/* Search */}
+                <div className="relative flex-1 w-full md:min-w-[250px]">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Search</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Search box or lot (Press Enter)"
+                      value={transitionSearchInput}
+                      onChange={e => setTransitionSearchInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          setTransitionSearch(transitionSearchInput)
+                          transitionsPagination.goToPage(1)
+                        }
+                      }}
+                      className="pl-9 h-10 bg-background border-border/50 focus-visible:border-primary focus-visible:ring-1 hover:border-border transition-colors rounded-xl shadow-sm"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Stage</label>
+
+                {/* Stage */}
+                <div className="w-full md:w-[180px]">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Stage</label>
                   <Select value={transitionStageFilter || 'all'} onValueChange={v => setTransitionStageFilter(v === 'all' ? '' : v as Stage)}>
-                    <SelectTrigger className="h-9 w-[150px] text-sm hover:bg-primary hover:text-primary-foreground transition-colors">
+                    <SelectTrigger className="h-10 bg-background border-border/50 focus:ring-1 focus:ring-primary rounded-xl shadow-sm hover:border-border transition-colors">
                       <SelectValue placeholder="All stages" />
                     </SelectTrigger>  
                     <SelectContent>
@@ -1597,43 +1688,48 @@ export default function StationCheckpointsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">From</span>
-                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                        {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Pick date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={transitionDateFrom ? new Date(transitionDateFrom) : undefined}
-                        onSelect={date => { setTransitionDateFrom(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">To</span>
-                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                        {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'Pick date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={transitionDateTo ? new Date(transitionDateTo) : undefined}
-                        onSelect={date => { setTransitionDateTo(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+
+                {/* Date Range */}
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="w-full md:w-[140px]">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date From</label>
+                    <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition-all", !transitionDateFrom && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          {transitionDateFrom ? format(new Date(transitionDateFrom), 'MMM dd, yyyy') : 'Start date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={transitionDateFrom ? new Date(transitionDateFrom) : undefined}
+                          onSelect={date => { setTransitionDateFrom(date ? format(date, 'yyyy-MM-dd') : ''); setFromDateOpen(false) }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  
+                  <div className="w-full md:w-[140px]">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Date To</label>
+                    <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition-all", !transitionDateTo && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          {transitionDateTo ? format(new Date(transitionDateTo), 'MMM dd, yyyy') : 'End date'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={transitionDateTo ? new Date(transitionDateTo) : undefined}
+                          onSelect={date => { setTransitionDateTo(date ? format(date, 'yyyy-MM-dd') : ''); setToDateOpen(false) }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
               </div>
 
@@ -1648,7 +1744,7 @@ export default function StationCheckpointsPage() {
                     No transitions match your search or date filters.
                   </div>
                 ) : (
-                  <div className="flex flex-col border-t border-border/50">
+                  <div className="flex flex-col border-t border-border/50 max-h-[600px] overflow-y-auto overflow-x-hidden">
                     {paginatedTransitions.map((t) => {
                       const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage'];
                       const isExpanded = expandedTimelineId === t.id;
@@ -1891,7 +1987,7 @@ export default function StationCheckpointsPage() {
                 {filteredTransitions.length > 0 && (
                   <Pagination
                     currentPage={transitionsPagination.currentPage}
-                    totalPages={transitionsPagination.totalPages}
+                    totalPages={Math.max(1, transitionsPagination.totalPages)}
                     pageSize={transitionsPagination.pageSize}
                     onPageChange={transitionsPagination.goToPage}
                     onPageSizeChange={transitionsPagination.setPageSize}
