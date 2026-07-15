@@ -33,6 +33,8 @@ import {
   ChevronRight,
   AlertTriangle,
   BookOpen,
+  Clock,
+  UploadCloud,
 } from "lucide-react"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
@@ -266,9 +268,9 @@ export default function TransmissionMonitorPage() {
   }, [fetchLiveData])
 
   // --- LOT transmission summary fetch ---
-  const fetchLotSummary = async () => {
-    const q = lotInput.trim()
-    if (!q) return
+  const fetchLotSummary = useCallback(async (defaultQ?: any) => {
+    const qStr = typeof defaultQ === 'string' ? defaultQ : ''
+    const q = qStr || lotInput.trim() || 'latest'
     setLotLoading(true)
     setLotError(null)
     setLotSummary(null)
@@ -277,12 +279,17 @@ export default function TransmissionMonitorPage() {
       const data = await res.json()
       if (!data.success) { setLotError(data.error || 'Failed to load LOT data'); return }
       setLotSummary(data)
+      if (q === 'latest') setLotInput(data.lot_number)
     } catch (e: any) {
       setLotError(e.message || 'Failed to load LOT data')
     } finally {
       setLotLoading(false)
     }
-  }
+  }, [lotInput])
+
+  useEffect(() => {
+    fetchLotSummary('latest')
+  }, []) // Fetch latest lot on initial mount
 
   // --- Box transmission fetch ---
   const fetchBoxTransmission = async () => {
@@ -366,7 +373,7 @@ export default function TransmissionMonitorPage() {
     r.isbn?.toLowerCase().includes(lotIsbnSearch.toLowerCase()) ||
     r.title?.toLowerCase().includes(lotIsbnSearch.toLowerCase())
   )
-  const lotIsbnPagination = usePagination({ totalItems: filteredLotIsbns.length, defaultPageSize: 50 })
+  const lotIsbnPagination = usePagination({ totalItems: filteredLotIsbns.length, defaultPageSize: 20 })
   const paginatedLotIsbns = filteredLotIsbns.slice(lotIsbnPagination.offset, lotIsbnPagination.offset + lotIsbnPagination.limit)
 
   // Box isbn filtered list
@@ -1018,41 +1025,73 @@ export default function TransmissionMonitorPage() {
                           </div>
                         </div>
                         <CardContent className="p-0">
-                          <table className="w-full text-xs">
-                            <thead className="bg-muted/30 sticky top-0">
-                              <tr className="border-b border-border">
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">ISBN</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Title</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Scan Status</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Simflex Status</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Transmission Date</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedLotIsbns.length === 0 ? (
-                                <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">No ISBNs found</td></tr>
-                              ) : paginatedLotIsbns.map((r: any, i: number) => (
-                                <tr key={r.scan_id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                                  <td className="font-mono px-4 py-2.5 text-foreground">{r.isbn}</td>
-                                  <td className="px-4 py-2.5 text-muted-foreground truncate max-w-[180px]">{r.title || '—'}</td>
-                                  <td className="px-4 py-2.5">{getScanStatusBadge(r.scan_status)}</td>
-                                  <td className="px-4 py-2.5">{getSimflexBadge(r.simflex_status, r.transmission_completed)}</td>
-                                  <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
-                                    {r.transmission_date ? format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm') : '—'}
-                                  </td>
-                                  <td className="px-4 py-2.5">
-                                    {isManager && r.scan_status === 'processable' && (
-                                      <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-amber-600 hover:bg-amber-50"
-                                        onClick={() => { setTagModalScan(r); setTagStatus('reject'); setTagRemarks(''); setTagError(null) }}>
-                                        Tag
-                                      </Button>
-                                    )}
-                                  </td>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                              <thead className="bg-muted/30 sticky top-0 z-10">
+                                <tr className="border-b border-border">
+                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[150px]">ISBN</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3">Book Details</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[140px]">Scan Status</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[140px]">Simflex Status</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[180px]">Transmission Date</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[80px]">Action</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                {paginatedLotIsbns.length === 0 ? (
+                                  <tr>
+                                    <td colSpan={6} className="text-center py-12 text-muted-foreground bg-muted/10 border-b border-border border-dashed">
+                                      <BookOpen className="h-6 w-6 mx-auto mb-2 text-muted-foreground/50" />
+                                      No ISBNs found in this LOT
+                                    </td>
+                                  </tr>
+                                ) : paginatedLotIsbns.map((r: any, i: number) => (
+                                  <tr key={r.scan_id || i} className="border-b border-border/50 hover:bg-indigo-50/50 transition-colors group">
+                                    <td className="px-5 py-4 align-top">
+                                      <p className="font-mono font-bold text-foreground">{r.isbn}</p>
+                                    </td>
+                                    <td className="px-5 py-4 align-top">
+                                      <p className="font-medium text-foreground mb-1">{r.title || 'Unknown Title'}</p>
+                                      {r.rejection_reason && (
+                                        <div className="mt-1.5 p-2 rounded bg-red-50 border border-red-100 flex items-start gap-1.5 max-w-md">
+                                          <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5" />
+                                          <p className="text-[11px] text-red-700 leading-tight">Reason: {r.rejection_reason}</p>
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="px-5 py-4 align-top">
+                                      <div className="flex flex-col gap-1.5">
+                                        {getScanStatusBadge(r.scan_status)}
+                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                          <Clock className="h-3 w-3" />
+                                          {r.warehouse_scan_at ? format(new Date(r.warehouse_scan_at), 'MMM d, HH:mm') : '—'}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="px-5 py-4 align-top">
+                                      {getSimflexBadge(r.simflex_status, r.transmission_completed)}
+                                    </td>
+                                    <td className="px-5 py-4 align-top whitespace-nowrap">
+                                      <div className="flex items-center gap-1.5">
+                                        {r.transmission_completed ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <UploadCloud className="h-3.5 w-3.5 text-muted-foreground" />}
+                                        <p className={`${r.transmission_completed ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}`}>
+                                          {r.transmission_date ? format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm') : '—'}
+                                        </p>
+                                      </div>
+                                    </td>
+                                    <td className="px-5 py-4 align-top">
+                                      {isManager && r.scan_status === 'processable' && (
+                                        <Button variant="outline" size="sm" className="h-6 text-[10px] px-2.5 rounded-full border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                          onClick={() => { setTagModalScan(r); setTagStatus('reject'); setTagRemarks(''); setTagError(null) }}>
+                                          Tag
+                                        </Button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                           {filteredLotIsbns.length > 0 && lotIsbnPagination.totalPages > 1 && (
                             <Pagination
                               currentPage={lotIsbnPagination.currentPage}

@@ -52,14 +52,18 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
     const db = supabaseAdmin || supabase
 
     // 1. Resolve lot
-    const { data: lot, error: lotError } = await db
-      .from('lots')
-      .select('id, lot_number')
-      .ilike('lot_number', lot_number)
-      .maybeSingle()
+    let lotQuery = db.from('lots').select('id, lot_number')
+    
+    if (lot_number.toLowerCase() === 'latest') {
+      lotQuery = lotQuery.order('created_at', { ascending: false }).limit(1).single()
+    } else {
+      lotQuery = lotQuery.ilike('lot_number', lot_number).maybeSingle()
+    }
 
-    if (lotError) throw lotError
-    if (!lot) return res.status(404).json({ success: false, error: 'Lot not found' })
+    const { data: lot, error: lotError } = await lotQuery
+
+    if (lotError && lot_number.toLowerCase() !== 'latest') throw lotError
+    if (lotError || !lot) return res.status(404).json({ success: false, error: 'Lot not found' })
 
     // 2. Get all book_activity for this lot (via boxes)
     const { data: boxes } = await db
@@ -109,7 +113,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
     }
 
     // 4. Build per-ISBN rows
-    const isbnRows = processableScans.map(s => {
+    const isbnRows = allScans.map(s => {
       const isbn = s.books?.isbn
       const sf = simflexMap[isbn] || {}
       const latestStatus = sf.latestStatus || null
@@ -120,6 +124,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
         isbn: isbn,
         title: s.books?.title || null,
         scan_status: s.scan_status,
+        rejection_reason: s.user_flags?.rejection_reason || null,
         warehouse_scan_at: s.warehouse_scan_at,
         assigned_box_id: s.books?.box_id,
         simflex_status: latestStatus,
