@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { getValidAccessToken } from "@/lib/auth-api"
+import { fetchUserProfile } from "@/lib/auth-api"
 import { Loader2 } from "lucide-react"
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -12,9 +12,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
     async function checkAuth() {
-      const token = await getValidAccessToken()
+      const user = await fetchUserProfile()
       if (!mounted) return
-      if (!token) {
+      if (!user) {
         setIsAuthenticated(false)
         router.replace(`/login?redirect=${encodeURIComponent(pathname)}`)
       } else {

@@ -22,6 +22,7 @@ dotenv.config({ path: '.env' })
 
 import express from 'express'
 import cors from 'cors'
+import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import { testConnection } from './utils/testConnection.js'
 import authRoutes      from './routes/auth.js'
@@ -122,6 +123,7 @@ app.use(globalLimiter)
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json())
+app.use(cookieParser())
 
 // ── Root health-check ─────────────────────────────────────────────────────────
 app.get('/', (_, res) => {

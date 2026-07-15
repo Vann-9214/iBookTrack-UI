@@ -134,22 +134,40 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   const profile = await fetchProfileByUserId(data.user?.id)
 
+  const isProd = process.env.NODE_ENV === 'production'
+  const cookieOpts = {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'lax'
+  }
+  
+  if (data.session?.access_token) {
+    res.cookie('access_token', data.session.access_token, { ...cookieOpts, maxAge: 3600 * 1000 })
+  }
+  if (data.session?.refresh_token) {
+    res.cookie('refresh_token', data.session.refresh_token, { ...cookieOpts, maxAge: 7 * 24 * 3600 * 1000 })
+  }
+
   return res.json({
     message: 'Login successful.',
     user: {
       id:    data.user?.id,
       email: profile?.email || data.user?.email,
       name:  profile?.name || data.user?.user_metadata?.name,
-    },
-    access_token:  data.session?.access_token,
-    refresh_token: data.session?.refresh_token,
-    expires_at:    data.session?.expires_at,
+    }
   })
+})
+
+// ── POST /api/auth/logout ──────────────────────────────────
+router.post('/logout', (req, res) => {
+  res.clearCookie('access_token')
+  res.clearCookie('refresh_token')
+  res.json({ message: 'Logged out successfully.' })
 })
 
 // ── POST /api/auth/refresh ─────────────────────────────────
 router.post('/refresh', async (req, res) => {
-  const refreshToken = req.body.refresh_token
+  const refreshToken = req.cookies?.refresh_token || req.body.refresh_token
 
   if (!refreshToken) {
     return res.status(400).json({ error: 'Refresh token is required.' })
@@ -174,14 +192,24 @@ router.post('/refresh', async (req, res) => {
     const data = await response.json()
 
     if (!response.ok || data.error) {
+      res.clearCookie('access_token')
+      res.clearCookie('refresh_token')
       return res.status(401).json({ error: 'Invalid or expired refresh token.' })
     }
 
-    return res.json({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expires_at: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
-    })
+    const isProd = process.env.NODE_ENV === 'production'
+    const cookieOpts = {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax'
+    }
+
+    res.cookie('access_token', data.access_token, { ...cookieOpts, maxAge: (data.expires_in || 3600) * 1000 })
+    if (data.refresh_token) {
+      res.cookie('refresh_token', data.refresh_token, { ...cookieOpts, maxAge: 7 * 24 * 3600 * 1000 })
+    }
+
+    return res.json({ message: 'Token refreshed successfully.' })
   } catch (error) {
     console.error('Token refresh error:', error)
     return res.status(401).json({ error: 'Failed to refresh token.' })
@@ -398,9 +426,17 @@ router.get('/innodata/callback', async (req, res) => {
       { expiresIn: '8h' }
     )
 
+    const isProd = process.env.NODE_ENV === 'production'
+    res.cookie('access_token', token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      maxAge: 8 * 3600 * 1000
+    })
+
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
     const returnUrl = new URL('/login', frontendUrl)
-    returnUrl.searchParams.append('sso_token', token)
+    returnUrl.searchParams.append('sso_success', 'true')
     returnUrl.searchParams.append('email', userInfo.email)
     returnUrl.searchParams.append('name', userInfo.name || '')
     
