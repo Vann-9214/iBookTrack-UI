@@ -395,10 +395,13 @@ export default function TransmissionMonitorPage() {
     if (!matchesSearch) return false
     if (!stageFilter) return true
     const { stage, state } = parseStatus(item.Status || '')
+    if (stageFilter.category === 'ALL') {
+      return stage === stageFilter.stage
+    }
     return stage === stageFilter.stage && state === stageFilter.category
   })
 
-  const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 10 })
+  const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 50 })
   const paginatedRecentScans = filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit)
 
   // Reset to page 1 when filters change
@@ -643,7 +646,13 @@ export default function TransmissionMonitorPage() {
                   {ordered.map((s: any) => {
                     const pct = s.Total > 0 ? (s.Completed / s.Total) * 100 : 0
                     return (
-                      <div key={s.Stage} className="rounded-2xl border border-gray-200 bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-1.5 sm:gap-3 relative overflow-hidden">
+                      <div 
+                        key={s.Stage} 
+                        onClick={() => setStageFilter(stageFilter?.stage === s.Stage && stageFilter?.category === 'ALL' ? null : { stage: s.Stage, category: 'ALL' })}
+                        className={cn("cursor-pointer rounded-2xl border bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-1.5 sm:gap-3 relative overflow-hidden text-left",
+                          stageFilter?.stage === s.Stage && stageFilter?.category === 'ALL' ? 'border-indigo-400 ring-2 ring-indigo-400/20' : 'border-gray-200'
+                        )}
+                      >
                         {s.Total > 0 && <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />}
                         {/* Stage name + total */}
                         <div className="flex items-start justify-between gap-1">
@@ -663,9 +672,12 @@ export default function TransmissionMonitorPage() {
                           ].map((p) => {
                             const isActive = stageFilter?.stage === s.Stage && stageFilter?.category === p.key
                             return (
-                              <button
-                                key={p.key}
-                                onClick={() => setStageFilter(isActive ? null : { stage: s.Stage, category: p.key as any })}
+                                <button
+                                  key={p.key}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setStageFilter(isActive ? null : { stage: s.Stage, category: p.key as any })
+                                  }}
                                 className={cn(
                                   'flex flex-col items-center rounded-lg border px-0.5 py-1 sm:px-1.5 sm:py-1.5 transition-colors focus:outline-none',
                                   p.bg, p.border, p.hover,
@@ -808,12 +820,13 @@ export default function TransmissionMonitorPage() {
                     </div>
                   )}
                   <CardContent className="p-0">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
                       <table className="w-full text-sm min-w-[600px]">
                         <thead className="bg-white">
                           <tr className="border-b border-gray-100">
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
+                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Lot</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Status</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
@@ -822,11 +835,11 @@ export default function TransmissionMonitorPage() {
                         </thead>
                         <tbody>
                           {loading ? (
-                            <tr><td colSpan={6} className="text-center py-12">
+                            <tr><td colSpan={7} className="text-center py-12">
                               <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                             </td></tr>
                           ) : filteredScans.length === 0 ? (
-                            <tr><td colSpan={6} className="text-center py-12 text-gray-400">No scans found</td></tr>
+                            <tr><td colSpan={7} className="text-center py-12 text-gray-400">No scans found</td></tr>
                           ) : paginatedRecentScans.map((item: any, i: number) => {
                             const isOngoing = item.Status?.includes('ONGOING')
                             const isWip = item.isWip
@@ -839,6 +852,7 @@ export default function TransmissionMonitorPage() {
                               <tr key={i} className={`${rowCls} transition-colors`}>
                                 <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
                                 <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
+                                <td className="text-xs text-gray-600 px-4 py-3">{item.LotNumber || '—'}</td>
                                 <td className="px-4 py-3">{getPipelineStatusBadge(item.Status || '')}</td>
                                 <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
                                 <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
@@ -851,17 +865,18 @@ export default function TransmissionMonitorPage() {
                         </tbody>
                       </table>
                     </div>
-                    {filteredScans.length > 0 && recentScansPagination.totalPages > 1 && (
-                      <Pagination
-                        currentPage={recentScansPagination.currentPage}
-                        totalPages={recentScansPagination.totalPages}
-                        pageSize={recentScansPagination.pageSize}
-                        onPageChange={recentScansPagination.goToPage}
-                        onPageSizeChange={recentScansPagination.setPageSize}
-                        canPrevPage={recentScansPagination.canPrevPage}
-                        canNextPage={recentScansPagination.canNextPage}
-                        pageSizeOptions={[10]}
-                      />
+                    {filteredScans.length > 0 && (
+                      <div className="w-full border-t border-border bg-muted/10 p-2 text-muted-foreground">
+                        <Pagination
+                          currentPage={recentScansPagination.currentPage}
+                          totalPages={recentScansPagination.totalPages}
+                          pageSize={recentScansPagination.pageSize}
+                          onPageChange={recentScansPagination.goToPage}
+                          onPageSizeChange={recentScansPagination.setPageSize}
+                          canPrevPage={recentScansPagination.canPrevPage}
+                          canNextPage={recentScansPagination.canNextPage}
+                        />
+                      </div>
                     )}
                   </CardContent>
                 </Card>
@@ -960,7 +975,6 @@ export default function TransmissionMonitorPage() {
                         onPageSizeChange={machinesPagination.setPageSize}
                         canPrevPage={machinesPagination.canPrevPage}
                         canNextPage={machinesPagination.canNextPage}
-                        pageSizeOptions={[10]}
                       />
                     )}
                   </CardContent>
@@ -1316,7 +1330,7 @@ export default function TransmissionMonitorPage() {
                             </table>
                           </div>
                           {filteredLotIsbns.length > 0 && (
-                            <div className="flex justify-center border-t border-border bg-muted/10 p-2 text-muted-foreground">
+                            <div className="w-full border-t border-border bg-muted/10 p-2 text-muted-foreground">
                               <Pagination
                                 currentPage={lotIsbnPagination.currentPage}
                                 totalPages={lotIsbnPagination.totalPages}
