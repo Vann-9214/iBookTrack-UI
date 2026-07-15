@@ -164,11 +164,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                       <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
                       <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
                     </div>
-                    {!step.isBookStage && step.jaguar > 0 && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium" title="Jaguar">J {step.jaguar}</span>
-                      </div>
-                    )}
                   </div>
                 </>
               )
@@ -214,11 +209,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                     <span className="text-xs text-muted-foreground">{step.active} {step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
                     {step.delayed > 0 && (
                       <span className="text-xs text-orange-600 font-medium">{step.delayed} delayed</span>
-                    )}
-                    {!step.isBookStage && step.jaguar > 0 && (
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">J {step.jaguar}</span>
-                      </div>
                     )}
                   </div>
                   <div className="ml-auto flex items-center gap-1">

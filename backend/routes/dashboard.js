@@ -118,7 +118,16 @@ router.get('/stats', requireAuth, async (req, res) => {
     const adminDb = supabaseAdmin || db
     let unaccountedQuery = adminDb
       .from('user_flags')
-      .select('id', { count: 'exact', head: true })
+      .select(`
+        id,
+        book_activity!inner(
+          books!inner(
+            boxes!inner(
+              box_type
+            )
+          )
+        )
+      `, { count: 'exact', head: true })
       .or(`and(warehouse_flag_at.gte.${startIso},warehouse_flag_at.lt.${endIso}),and(inventory_flag_at.gte.${startIso},inventory_flag_at.lt.${endIso}),and(endorsement_flag_at.gte.${startIso},endorsement_flag_at.lt.${endIso})`)
 
     if (box_type) {
