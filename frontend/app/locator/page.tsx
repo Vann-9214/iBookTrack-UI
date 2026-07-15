@@ -826,22 +826,24 @@ export default function WarehouseLocatorPage() {
                         <div key={r} className="flex-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
                       ))}
                       {/* Rack controls */}
-                      <div className="w-7 flex flex-col items-center gap-0.5 pt-0.5">
+                      <div className="w-16 flex items-center justify-end gap-0.5">
                         <button
                           onClick={handleAddRack}
                           disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
-                          title="Add rack"
-                          className="p-1 rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                          title="Add a new rack"
+                          aria-label="Add a new rack"
+                          className="p-1.5 rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
                         >
-                          {addingRack ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                          {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         </button>
                         <button
                           onClick={() => handleRemoveRack()}
                           disabled={removingRack || sectionRacks.length <= 1}
-                          title={`Remove rack ${sectionRacks.at(-1)}`}
-                          className="p-1 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                          title={`Remove last rack (${sectionRacks.at(-1)})`}
+                          aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
+                          className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
                         >
-                          {removingRack ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                          {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
                         </button>
                       </div>
                     </div>
