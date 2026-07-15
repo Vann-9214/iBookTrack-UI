@@ -1642,36 +1642,44 @@ export default function InventoryPage() {
 
               {/* Flag / Edit Flag Modal */}
               {verifFlagModalBook && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setVerifFlagModalBook(null)}>
-                  <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-destructive" />
-                        {verifFlagModalBook.scan_status === 'non_processable' ? 'Edit Flag' : 'Flag as Non-Processable'}
-                      </h3>
-                      <button onClick={() => setVerifFlagModalBook(null)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setVerifFlagModalBook(null)}>
+                  <div className="bg-card border border-border rounded-xl shadow-2xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex gap-3">
+                        <div className="p-2 bg-destructive/10 rounded-full h-fit">
+                          <AlertTriangle className="h-5 w-5 text-destructive" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-foreground">
+                            {verifFlagModalBook.scan_status === 'non_processable' ? 'Edit Flag' : 'Flag as Non-Processable'}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            <span className="font-medium text-foreground">{verifFlagModalBook.isbn}</span> — {verifFlagModalBook.title}
+                          </p>
+                        </div>
+                      </div>
+                      <button onClick={() => setVerifFlagModalBook(null)} className="text-muted-foreground hover:bg-muted p-1.5 rounded-md transition-colors"><X className="h-4 w-4" /></button>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-3">{verifFlagModalBook.isbn} — {verifFlagModalBook.title}</p>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <div>
-                        <label className="text-xs font-medium text-foreground mb-1 block">Issue</label>
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Issue <span className="text-destructive">*</span></label>
                         <select value={verifFlagIssue} onChange={e => setVerifFlagIssue(e.target.value)}
-                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
+                          className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30">
                           <option value="">Select issue...</option>
                           {FLAG_ISSUES.map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-foreground mb-1 block">Remarks / Page No. (optional)</label>
-                        <input type="text" value={verifFlagRemarks} onChange={e => setVerifFlagRemarks(e.target.value)}
-                          placeholder="e.g. page 42"
-                          className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                        <label className="text-sm font-medium text-foreground mb-1.5 block">Remarks / Page No. <span className="text-destructive">*</span></label>
+                        <textarea value={verifFlagRemarks} onChange={e => setVerifFlagRemarks(e.target.value)}
+                          placeholder="e.g. Page 42, bottom margin"
+                          className="w-full min-h-[80px] resize-y rounded-md border border-input bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
                       </div>
                     </div>
-                    <div className="flex gap-2 justify-end mt-4">
-                      <button onClick={() => setVerifFlagModalBook(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted">Cancel</button>
-                      <button onClick={saveVerifFlagFromLog} disabled={!verifFlagIssue || verifFlagSaving}
-                        className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50">
+                    <div className="flex gap-2 justify-end mt-6">
+                      <button onClick={() => setVerifFlagModalBook(null)} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted font-medium transition-colors">Cancel</button>
+                      <button onClick={saveVerifFlagFromLog} disabled={!verifFlagIssue || !verifFlagRemarks.trim() || verifFlagSaving}
+                        className="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50 transition-colors">
                         {verifFlagSaving ? 'Saving...' : verifFlagModalBook.scan_status === 'non_processable' ? 'Save Changes' : 'Confirm Flag'}
                       </button>
                     </div>
