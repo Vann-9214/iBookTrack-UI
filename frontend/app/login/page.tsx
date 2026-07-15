@@ -34,15 +34,13 @@ export default function LoginPage() {
     // Handle SSO token callback
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
-      const ssoToken = params.get('sso_token')
+      const ssoSuccess = params.get('sso_success')
       const ssoEmail = params.get('email')
       const ssoName = params.get('name')
 
-      if (ssoToken) {
+      if (ssoSuccess) {
         setLoading(true)
-        // For Innodata SSO, we use the JWT for both access and refresh token placeholders
-        const expiresAt = Math.floor(Date.now() / 1000) + 8 * 3600 // 8 hours
-        storeTokenData(ssoToken, ssoToken, expiresAt)
+        // Tokens are now stored as HttpOnly cookies automatically by the backend
         
         const emailToUse = ssoEmail || 'user@innodata.com'
         localStorage.setItem(
@@ -84,9 +82,7 @@ export default function LoginPage() {
         endpoint: '/api/auth/login',
         payload: { email, password },
       })
-      if (data.access_token && data.refresh_token && data.expires_at) {
-        storeTokenData(data.access_token, data.refresh_token, data.expires_at)
-      }
+      // Tokens are now stored as HttpOnly cookies automatically by the backend
       localStorage.setItem(
         'ibooktrack_user',
         JSON.stringify({

@@ -9,7 +9,7 @@ interface PaginationProps {
   totalPages: number
   pageSize: number
   onPageChange: (page: number) => void
-  onPageSizeChange: (size: number) => void
+  onPageSizeChange?: (size: number) => void
   canPrevPage: boolean
   canNextPage: boolean
   className?: string
@@ -38,7 +38,7 @@ export function Pagination({
           <span className="text-xs text-muted-foreground">Items per page:</span>
           <select
             value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
             className="text-xs px-2 py-1 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           >
             {options.map((size) => (
