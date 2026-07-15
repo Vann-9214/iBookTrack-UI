@@ -74,6 +74,37 @@ const getStatusConfig = (status: string, brand: string) => {
   }
 }
 
+const getRelevantTimeForBox = (box: any, stage: string): string | null => {
+  const session = box.box_sessions?.[0]
+  if (!session) return null
+  
+  const status = session.status
+  
+  if (stage === 'warehouse') {
+    if (status === 'completed') return session.updated_at
+    if (status === 'received') return session.warehouse_time_received || session.updated_at
+    if (status === 'sent') return session.updated_at
+  } else if (stage === 'inventory') {
+    if (status === 'completed') return session.inventory_time_send || session.updated_at
+    if (status === 'received') return session.inventory_time_received || session.updated_at
+    if (status === 'sent') return session.inventory_time_send || session.updated_at
+    if (box.latest_inventory_scan_at) return box.latest_inventory_scan_at
+  } else if (stage === 'cut') {
+    if (status === 'completed') return session.cut_time_send || session.updated_at
+    if (status === 'received') return session.cut_time_received || session.updated_at
+    if (status === 'sent') return session.cut_time_send || session.updated_at
+  } else if (stage === 'endorsement') {
+    if (status === 'completed') return session.endorsement_time_send || session.updated_at
+    if (status === 'received') return session.endorsement_time_received || session.updated_at
+    if (status === 'sent') return session.endorsement_time_send || session.updated_at
+    if (box.latest_endorsement_scan_at) return box.latest_endorsement_scan_at
+  } else if (stage === 'scan') {
+    return session.scan_time_received || session.updated_at
+  }
+  
+  return session.updated_at
+}
+
 interface BoxItem {
   id: string
   box_number: string
@@ -1238,7 +1269,8 @@ export default function StationCheckpointsPage() {
                                     actionLabel = 'Completed'
                                   }
 
-                                  const diffDays = session?.updated_at ? (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24) : 0
+                                  const parsedTime = timeStr && timeStr !== 'N/A' ? new Date(timeStr).getTime() : 0
+                                  const diffDays = parsedTime ? (Date.now() - parsedTime) / (1000 * 60 * 60 * 24) : 0
                                   const isDelayed = diffDays >= 1
                                   
                                   const rowBg = isDelayed ? "bg-orange-50/50" : (brand === 'jaguar' ? "bg-green-50/30" : "bg-blue-50/30")
@@ -1404,6 +1436,7 @@ export default function StationCheckpointsPage() {
                                     onPageChange={setStageModalPage}
                                     canPrevPage={stageModalPage > 1}
                                     canNextPage={stageModalPage < totalPages}
+                                    showPageInfo={false}
                                   />
                                 </div>
                               )}
@@ -1537,9 +1570,9 @@ export default function StationCheckpointsPage() {
                     const stageBoxes = boxesByStage[stage]
                     
                     const bottleneckCount = (stage === 'transmit') ? 0 : stageBoxes.filter(b => {
-                      const session = b.box_sessions?.[0]
-                      if (!session?.updated_at) return false
-                      const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+                      const relevantTime = getRelevantTimeForBox(b, stage)
+                      if (!relevantTime) return false
+                      const diffDays = (Date.now() - new Date(relevantTime).getTime()) / (1000 * 60 * 60 * 24)
                       return diffDays >= 1
                     }).length
                     
@@ -1609,9 +1642,9 @@ export default function StationCheckpointsPage() {
                     const stageBoxes = boxesByStage[stage]
                     
                     const bottleneckCount = (stage === 'transmit') ? 0 : stageBoxes.filter(b => {
-                      const session = b.box_sessions?.[0]
-                      if (!session?.updated_at) return false
-                      const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+                      const relevantTime = getRelevantTimeForBox(b, stage)
+                      if (!relevantTime) return false
+                      const diffDays = (Date.now() - new Date(relevantTime).getTime()) / (1000 * 60 * 60 * 24)
                       return diffDays >= 1
                     }).length
                     
