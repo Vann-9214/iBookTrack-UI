@@ -265,6 +265,26 @@ router.get('/transmit-rows', requireAuth, async (req, res) => {
   }
 })
 
+router.get('/machine-books', requireAuth, async (req, res) => {
+  try {
+    const machine = String(req.query.machine || '').trim()
+    if (!machine) return res.status(400).json({ success: false, error: 'machine query param required' })
+
+    const result = await simflexDb.getBooksByMachine(
+      req.query.from,
+      req.query.to,
+      machine,
+      req.query.location || 'mustang',
+      req.query.newProcessOnly === 'true'
+    )
+    if (!result.success) return res.status(502).json(result)
+    res.json(result)
+  } catch (error) {
+    console.error('Error in /machine-books:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 /**
  * GET /api/scanning/ranking?date=2026-04-16
  * Get performance ranking by scan user

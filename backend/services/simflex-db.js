@@ -395,23 +395,51 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT ScanMachineName AS MachineName, ScanUser AS [User], COUNT(*) AS TotalScans
+      `SELECT MachineName, COUNT(*) AS TotalScans
        FROM zeusz_IsbnStatus
        WHERE ${dateWhere} AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
-       GROUP BY ScanMachineName, ScanUser
+       GROUP BY MachineName
        ORDER BY TotalScans DESC`,
       location
     )
     const data = (Array.isArray(rows) ? rows : []).map(r => ({
       MachineName: r.MachineName,
       MachineID: MACHINE_ID_MAP[r.MachineName] || r.MachineName,
-      User: r.User,
       TotalScans: r.TotalScans,
     }))
     return { success: true, data }
   } catch (error) {
     console.error('Error fetching machine stats:', error)
     return { success: false, error: error.message }
+  }
+}
+
+export async function getBooksByMachine(startDate, endDate, machineName, location = 'mustang', newProcessOnly = false) {
+  try {
+    const dateWhere = startDate && endDate
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+    const safeMachineName = String(machineName).replace(/'/g, "''")
+    const rows = await query(
+      `SELECT TOP 5000 ISBN, Status, Updated, ScanDate, ScanUser
+       FROM zeusz_IsbnStatus
+       WHERE ${dateWhere} AND MachineName = '${safeMachineName}'
+         AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
+       ORDER BY Updated DESC`,
+      location
+    )
+    const latestByIsbn = new Map()
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+      if (!row.ISBN || latestByIsbn.has(row.ISBN)) continue
+      const status = normalizeStatus(row.Status)
+      if (!isMonitoredStatus(status)) continue
+      latestByIsbn.set(row.ISBN, { ...row, Status: status })
+    }
+    const books = [...latestByIsbn.values()]
+    return { success: true, books, totalBooks: books.length }
+  } catch (error) {
+    console.error('Error fetching machine books:', error)
+    return { success: false, books: [], totalBooks: 0, error: error.message }
   }
 }
 
@@ -922,6 +950,7 @@ export default {
   getTodayScanningSummary,
   getScanningData,
   getScanningByMachine,
+  getBooksByMachine,
   getScanningByStage,
   getScanningRanking,
   getScanningExportData,

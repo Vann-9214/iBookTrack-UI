@@ -146,6 +146,10 @@ export default function TransmissionMonitorPage() {
   const [tableView, setTableView] = useState<'books' | 'wip'>('books')
   const [stageFilter, setStageFilter] = useState<{ stage: string, category: 'COMPLETED' | 'ONGOING' | 'FAILED' | 'ALL' } | null>(null)
   const [byMachine, setByMachine] = useState<any[]>([])
+  const [selectedMachine, setSelectedMachine] = useState<string | null>(null)
+  const [selectedMachineBooks, setSelectedMachineBooks] = useState<any[]>([])
+  const [selectedMachineBooksLoading, setSelectedMachineBooksLoading] = useState(false)
+  const [selectedMachineBooksError, setSelectedMachineBooksError] = useState<string | null>(null)
   const [showRanking, setShowRanking] = useState(false)
   const [ranking, setRanking] = useState<any>(null)
   const [rankingLoading, setRankingLoading] = useState(false)
@@ -200,11 +204,38 @@ export default function TransmissionMonitorPage() {
   const filteredByMachine = byMachine.filter((m: any) =>
     !machineSearch ||
     m.MachineName?.toLowerCase().includes(machineSearch.toLowerCase()) ||
-    m.User?.toLowerCase().includes(machineSearch.toLowerCase()) ||
     m.MachineID?.toLowerCase().includes(machineSearch.toLowerCase())
   )
   const machinesPagination = usePagination({ totalItems: filteredByMachine.length, defaultPageSize: 10 })
   const paginatedByMachine = filteredByMachine.slice(machinesPagination.offset, machinesPagination.offset + machinesPagination.limit)
+  const machineBooksPagination = usePagination({ totalItems: selectedMachineBooks.length, defaultPageSize: 50 })
+  const paginatedMachineBooks = selectedMachineBooks.slice(machineBooksPagination.offset, machineBooksPagination.offset + machineBooksPagination.limit)
+
+  const fetchMachineBooks = async (machine: string) => {
+    if (selectedMachine === machine) {
+      setSelectedMachine(null)
+      setSelectedMachineBooks([])
+      setSelectedMachineBooksError(null)
+      return
+    }
+
+    setSelectedMachine(machine)
+    setSelectedMachineBooks([])
+    setSelectedMachineBooksError(null)
+    setSelectedMachineBooksLoading(true)
+    machineBooksPagination.goToPage(1)
+    try {
+      const params = new URLSearchParams({ machine, from: fromDate, to: toDate, location: brand, newProcessOnly: String(newProcessOnly) })
+      const res = await authFetch(`${API_URL}/api/scanning/machine-books?${params}`)
+      const data = await res.json()
+      if (!data.success) { setSelectedMachineBooksError(data.error || 'Failed to load machine books'); return }
+      setSelectedMachineBooks(data.books || [])
+    } catch (e: any) {
+      setSelectedMachineBooksError(e.message || 'Failed to load machine books')
+    } finally {
+      setSelectedMachineBooksLoading(false)
+    }
+  }
 
   const fetchLiveData = useCallback(async (from?: string, to?: string) => {
     setLoading(true)
@@ -271,6 +302,12 @@ export default function TransmissionMonitorPage() {
   useEffect(() => {
     fetchLiveData()
   }, [fetchLiveData])
+
+  useEffect(() => {
+    setSelectedMachine(null)
+    setSelectedMachineBooks([])
+    setSelectedMachineBooksError(null)
+  }, [fromDate, toDate, brand, newProcessOnly])
 
   // --- Search lots with server-side pagination ---
   const searchLots = useCallback(async (query: string, page = 1, pageSize = 50) => {
@@ -903,7 +940,7 @@ export default function TransmissionMonitorPage() {
                     <div className="relative hidden sm:block">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
-                        placeholder="Search machine or user..."
+                        placeholder="Search machine..."
                         value={machineSearch}
                         onChange={(e) => setMachineSearch(e.target.value)}
                         className="w-56 pl-9 h-8 text-sm bg-white"
@@ -923,7 +960,7 @@ export default function TransmissionMonitorPage() {
                     <div className="sm:hidden px-4 py-2 border-b border-teal-100 bg-teal-50/60">
                       <Input
                         autoFocus
-                        placeholder="Search machine or user..."
+                        placeholder="Search machine..."
                         value={machineSearch}
                         onChange={(e) => setMachineSearch(e.target.value)}
                         className="h-8 text-sm bg-white w-full"
@@ -932,30 +969,33 @@ export default function TransmissionMonitorPage() {
                   )}
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-sm min-w-[500px]">
+                      <table className="w-full text-sm min-w-[400px]">
                         <thead className="bg-white">
                           <tr className="border-b border-gray-100">
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine Name</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine ID</th>
-                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left w-48">Activity</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Total Scans</th>
                           </tr>
                         </thead>
                         <tbody>
                           {loading ? (
-                            <tr><td colSpan={5} className="text-center py-12">
+                            <tr><td colSpan={4} className="text-center py-12">
                               <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                             </td></tr>
                           ) : filteredByMachine.length === 0 ? (
-                            <tr><td colSpan={5} className="text-center py-12 text-gray-400">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</td></tr>
+                            <tr><td colSpan={4} className="text-center py-12 text-gray-400">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</td></tr>
                           ) : paginatedByMachine.map((m: any, i: number) => {
                             const maxScans = filteredByMachine[0]?.TotalScans || 1
+                            const isSelected = selectedMachine === m.MachineName
                             return (
-                              <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                              <tr
+                                key={i}
+                                className={`border-b border-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-teal-50 hover:bg-teal-100' : 'hover:bg-gray-50'}`}
+                                onClick={() => fetchMachineBooks(m.MachineName)}
+                              >
                                 <td className="font-semibold text-xs text-gray-800 px-4 py-3">{m.MachineName}</td>
                                 <td className="text-xs text-gray-500 px-4 py-3">{m.MachineID}</td>
-                                <td className="text-xs text-gray-700 px-4 py-3">{m.User}</td>
                                 <td className="px-4 py-3"><Progress value={(m.TotalScans / maxScans) * 100} className="h-2" /></td>
                                 <td className="text-xs font-bold text-right text-gray-800 px-4 py-3">{m.TotalScans.toLocaleString()}</td>
                               </tr>
@@ -977,6 +1017,69 @@ export default function TransmissionMonitorPage() {
                     )}
                   </CardContent>
                 </Card>
+
+                {selectedMachine && (
+                  <Card className="border-border bg-card overflow-hidden py-0 gap-0 mt-4">
+                    <div className="flex items-center justify-between px-5 py-3 bg-teal-50 border-b border-teal-100">
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">Books scanned on {selectedMachine}</p>
+                        <p className="text-xs text-gray-500">ISBNs reported by Simflex for the selected date range</p>
+                      </div>
+                      <Badge variant="outline" className="border-teal-200 bg-white text-teal-700 text-xs">
+                        {selectedMachineBooks.length} book{selectedMachineBooks.length === 1 ? '' : 's'}
+                      </Badge>
+                    </div>
+                    <CardContent className="p-0">
+                      {selectedMachineBooksLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : selectedMachineBooksError ? (
+                        <p className="px-5 py-8 text-center text-sm text-destructive">{selectedMachineBooksError}</p>
+                      ) : (
+                        <>
+                          <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
+                            <table className="w-full text-sm min-w-[600px]">
+                              <thead className="bg-white sticky top-0 z-10">
+                                <tr className="border-b border-gray-100">
+                                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
+                                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Status</th>
+                                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
+                                  <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {selectedMachineBooks.length === 0 ? (
+                                  <tr><td colSpan={4} className="text-center py-12 text-gray-400">No books found for this machine</td></tr>
+                                ) : paginatedMachineBooks.map((book: any) => (
+                                  <tr key={book.ISBN} className="border-b border-gray-50 hover:bg-gray-50">
+                                    <td className="font-mono text-xs text-gray-800 px-4 py-3">{book.ISBN}</td>
+                                    <td className="px-4 py-3">{getPipelineStatusBadge(book.Status || '')}</td>
+                                    <td className="text-xs text-gray-600 px-4 py-3">{book.ScanUser || '—'}</td>
+                                    <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
+                                      {book.Updated ? format(new Date(book.Updated), 'MMM d, HH:mm') : book.ScanDate ? format(new Date(book.ScanDate), 'MMM d') : '—'}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          {selectedMachineBooks.length > 0 && (
+                            <Pagination
+                              currentPage={machineBooksPagination.currentPage}
+                              totalPages={machineBooksPagination.totalPages}
+                              pageSize={machineBooksPagination.pageSize}
+                              onPageChange={machineBooksPagination.goToPage}
+                              onPageSizeChange={machineBooksPagination.setPageSize}
+                              canPrevPage={machineBooksPagination.canPrevPage}
+                              canNextPage={machineBooksPagination.canNextPage}
+                            />
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               {/* ── LOT Visibility ── */}
