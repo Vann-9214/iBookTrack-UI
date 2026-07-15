@@ -82,6 +82,44 @@ const isValidIsbn = (isbn: string): boolean => {
   return digits.length === 10 || digits.length === 13
 }
 
+// Normalize lot names for comparison: Lot 1, lot-1, Lot-3(1), 1, 1(1) all become "lot1" / "lot3(1)"
+function normalizeLotNumber(lot: string): string {
+  let cleaned = lot.toLowerCase().replace(/\s+/g, '').trim()
+  if (!cleaned.startsWith('lot')) {
+    if (/^\d/.test(cleaned)) cleaned = `lot${cleaned}`
+  } else {
+    cleaned = cleaned.replace(/^lot[-\s]*/, 'lot')
+  }
+  return cleaned
+}
+
+function findSimilarLot(typedLot: string, existingLots: { lot_number: string }[]): string | null {
+  const normalized = normalizeLotNumber(typedLot)
+  if (!normalized) return null
+  for (const l of existingLots) {
+    if (normalizeLotNumber(l.lot_number) === normalized) {
+      return l.lot_number
+    }
+  }
+  return null
+}
+
+function normalizeBoxNumber(box: string): string {
+  return box.toLowerCase().replace(/\s+/g, '').trim()
+}
+
+function ilmsLotBoxMismatch(ilmsLot: string | undefined, ilmsBox: string | undefined, expectedLot: string, expectedBox: string): { mismatched: boolean, ilmsLot: string, ilmsBox: string } {
+  const ilmsLotValue = ilmsLot || ''
+  const ilmsBoxValue = ilmsBox || ''
+  const lotMismatch = normalizeLotNumber(ilmsLotValue) !== normalizeLotNumber(expectedLot)
+  const boxMismatch = normalizeBoxNumber(ilmsBoxValue) !== normalizeBoxNumber(expectedBox)
+  return {
+    mismatched: (ilmsLotValue ? lotMismatch : false) || (ilmsBoxValue ? boxMismatch : false),
+    ilmsLot: ilmsLotValue || expectedLot,
+    ilmsBox: ilmsBoxValue || expectedBox
+  }
+}
+
 export default function WarehousePage() {
   const { brand } = useBrand()
   const [activeLot, setActiveLot] = useState<string>('')
@@ -121,7 +159,23 @@ export default function WarehousePage() {
     message: string,
     boxInfo?: any
   }>({ open: false, type: null, message: '' })
-  
+  const [similarLotModal, setSimilarLotModal] = useState<{
+    open: boolean,
+    typedLot: string,
+    matchedLot: string,
+    onContinue: () => void
+  }>({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} })
+  const [ilmsMismatchModal, setIlmsMismatchModal] = useState<{
+    open: boolean,
+    isbn: string,
+    title: string,
+    expectedLot: string,
+    expectedBox: string,
+    ilmsLot: string,
+    ilmsBox: string,
+    onConfirm: () => void
+  }>({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
+
   // Combobox states
   const [lotOpen, setLotOpen] = useState(false)
   const [boxOpen, setBoxOpen] = useState(false)
@@ -238,11 +292,27 @@ export default function WarehousePage() {
   // Boxes for the currently selected lot
   const availableBoxes = lots.find(l => l.lot_number === activeLot)?.boxes ?? []
 
-  const handleNewSession = async (force: boolean = false) => {
+  const handleNewSession = async (force: boolean = false, skipSimilarLotCheck: boolean = false) => {
     setSessionError(null)
     setLoading(true)
     let formattedLot = activeLot.trim()
+
     if (!formattedLot) { setSessionError('Please select a lot first'); setLoading(false); return }
+
+    if (!skipSimilarLotCheck) {
+      const matchedLot = findSimilarLot(formattedLot, lots)
+      if (matchedLot && matchedLot !== formattedLot) {
+        setLoading(false)
+        setSimilarLotModal({
+          open: true,
+          typedLot: formattedLot,
+          matchedLot,
+          onContinue: () => handleNewSession(force, true)
+        })
+        return
+      }
+    }
+
     if (!formattedLot.toLowerCase().startsWith('lot')) {
       setSessionError("The Lot Number must start with the word 'Lot' (e.g. Lot-109).")
       setLoading(false)
@@ -318,10 +388,23 @@ export default function WarehousePage() {
     setConfirmCompleteOpen(true)
   }
 
-  const confirmCloseSession = async () => {
+  const confirmCloseSession = async (skipSimilarLotCheck: boolean = false) => {
     if (!currentSession) return
     if (loading) return
-    
+
+    if (!skipSimilarLotCheck) {
+      const matchedLot = findSimilarLot(activeLot, lots)
+      if (matchedLot && matchedLot !== activeLot) {
+        setSimilarLotModal({
+          open: true,
+          typedLot: activeLot,
+          matchedLot,
+          onContinue: () => confirmCloseSession(true)
+        })
+        return
+      }
+    }
+
     if (!totalBooksExpected.trim()) {
       setSessionError('Please enter the total books expected.')
       return
@@ -515,6 +598,28 @@ export default function WarehousePage() {
       }
 
       const bookData = ilmsData.data as ILMSBookData
+      const mismatch = ilmsLotBoxMismatch(bookData?.LotNo, bookData?.BoxNo, activeLot, currentBoxNumber)
+
+      if (mismatch.mismatched) {
+        setIsbnLoading(false)
+        setIlmsMismatchModal({
+          open: true,
+          isbn: cleanIsbn,
+          title: bookData?.Title || 'Unknown Title',
+          expectedLot: activeLot,
+          expectedBox: currentBoxNumber,
+          ilmsLot: mismatch.ilmsLot,
+          ilmsBox: mismatch.ilmsBox,
+          onConfirm: () => {
+            saveBookToLocal(
+              { isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || 'Unknown Author', ilmsData: bookData },
+              'processable', null, null
+            )
+          }
+        })
+        return
+      }
+
       saveBookToLocal(
         { isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || 'Unknown Author', ilmsData: bookData },
         'processable', null, null
@@ -809,7 +914,7 @@ export default function WarehousePage() {
                       setIssueIsbn('')
                       setIssues([])
                     }} className="flex-1 sm:flex-none px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-                    <button onClick={confirmCloseSession} disabled={loading} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors shadow-sm">
+                    <button onClick={() => confirmCloseSession()} disabled={loading} className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50 transition-colors shadow-sm">
                       <CircleCheck className="h-4 w-4" />
                       {loading ? 'Completing...' : 'Confirm Complete'}
                     </button>
@@ -895,6 +1000,113 @@ export default function WarehousePage() {
                   ) : (
                     <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-muted font-medium transition-colors">Close</button>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Similar Lot Warning Modal */}
+          {similarLotModal.open && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSimilarLotModal({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} })}>
+              <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Similar Lot Found</h3>
+                      <p className="text-[11px] text-muted-foreground">Check lot name</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSimilarLotModal({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} })}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* Body */}
+                <div className="px-5 py-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">{similarLotModal.typedLot}</span> is similar to the existing lot <span className="font-semibold text-foreground">{similarLotModal.matchedLot}</span>.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Is this the same lot? If so, use the existing name. If not, continue with the new name.
+                  </p>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
+                  <button
+                    onClick={() => { setActiveLot(similarLotModal.matchedLot); setSimilarLotModal({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} }) }}
+                    className="px-4 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-muted font-medium transition-colors"
+                  >
+                    Use {similarLotModal.matchedLot}
+                  </button>
+                  <button
+                    onClick={() => { setSimilarLotModal({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} }); similarLotModal.onContinue() }}
+                    className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors"
+                  >
+                    Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* iLMS Lot/Box Mismatch Modal */}
+          {ilmsMismatchModal.open && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })}>
+              <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Lot / Box Mismatch</h3>
+                      <p className="text-[11px] text-muted-foreground">iLMS data differs from session</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* Body */}
+                <div className="px-5 py-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    ISBN <span className="font-semibold text-foreground">{ilmsMismatchModal.isbn}</span> ({ilmsMismatchModal.title || 'Unknown Title'}) in iLMS belongs to:
+                  </p>
+                  <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-1 text-sm">
+                    <p className="text-foreground"><span className="font-medium text-muted-foreground">Lot:</span> {ilmsMismatchModal.ilmsLot || '—'}</p>
+                    <p className="text-foreground"><span className="font-medium text-muted-foreground">Box:</span> {ilmsMismatchModal.ilmsBox || '—'}</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    But your current session is set to <span className="font-semibold text-foreground">{ilmsMismatchModal.expectedLot}</span> / <span className="font-semibold text-foreground">{ilmsMismatchModal.expectedBox}</span>.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Are you sure this is the right book?
+                  </p>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
+                  <button
+                    onClick={() => setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })}
+                    className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} }); ilmsMismatchModal.onConfirm() }}
+                    className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors"
+                  >
+                    Confirm
+                  </button>
                 </div>
               </div>
             </div>

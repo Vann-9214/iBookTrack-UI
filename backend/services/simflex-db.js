@@ -306,6 +306,53 @@ export async function getTodayScanningSummary(startDate, endDate, location = 'mu
 }
 
 /**
+ * For a list of ISBNs, return the latest Simflex row per ISBN that has a
+ * machine or user. This enriches status-only rows with the actual scan
+ * workstation and operator that Scan Manager reports for the book.
+ *
+ * @param {string[]} isbns
+ * @param {'mustang'|'jaguar'} [location='mustang']
+ * @returns {Object<string, {ScanMachineName: string|null, ScanUser: string|null}>}
+ */
+async function getLatestMachineUserForISBNs(isbns, location = 'mustang') {
+  if (!Array.isArray(isbns) || isbns.length === 0) return {}
+
+  const result = {}
+  const chunkSize = 1000
+  for (let i = 0; i < isbns.length; i += chunkSize) {
+    const chunk = isbns.slice(i, i + chunkSize)
+    const safelist = chunk
+      .map(isbn => `'${String(isbn).replace(/[^a-zA-Z0-9\-]/g, '')}'`)
+      .join(',')
+
+    const rows = await query(
+      `SELECT t.ISBN, t.MachineName AS ScanMachineName, t.ScanUser
+       FROM zeusz_IsbnStatus t
+       INNER JOIN (
+         SELECT ISBN, MAX(Updated) AS MaxUpdated
+         FROM zeusz_IsbnStatus
+         WHERE ISBN IN (${safelist})
+           AND (MachineName IS NOT NULL OR ScanUser IS NOT NULL)
+         GROUP BY ISBN
+       ) m ON t.ISBN = m.ISBN AND t.Updated = m.MaxUpdated
+       WHERE t.MachineName IS NOT NULL OR t.ScanUser IS NOT NULL`,
+      location
+    )
+
+    for (const r of (Array.isArray(rows) ? rows : [])) {
+      if (r.ISBN) {
+        result[r.ISBN] = {
+          ScanMachineName: r.ScanMachineName || null,
+          ScanUser: r.ScanUser || null,
+        }
+      }
+    }
+  }
+
+  return result
+}
+
+/**
  * Get individual scan records within a date range (up to 100 rows).
  * Columns: ISBN, Status, MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber.
  *
@@ -348,23 +395,51 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT ScanMachineName AS MachineName, ScanUser AS [User], COUNT(*) AS TotalScans
+      `SELECT MachineName, COUNT(*) AS TotalScans
        FROM zeusz_IsbnStatus
        WHERE ${dateWhere} AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
-       GROUP BY ScanMachineName, ScanUser
+       GROUP BY MachineName
        ORDER BY TotalScans DESC`,
       location
     )
     const data = (Array.isArray(rows) ? rows : []).map(r => ({
       MachineName: r.MachineName,
       MachineID: MACHINE_ID_MAP[r.MachineName] || r.MachineName,
-      User: r.User,
       TotalScans: r.TotalScans,
     }))
     return { success: true, data }
   } catch (error) {
     console.error('Error fetching machine stats:', error)
     return { success: false, error: error.message }
+  }
+}
+
+export async function getBooksByMachine(startDate, endDate, machineName, location = 'mustang', newProcessOnly = false) {
+  try {
+    const dateWhere = startDate && endDate
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+    const safeMachineName = String(machineName).replace(/'/g, "''")
+    const rows = await query(
+      `SELECT TOP 5000 ISBN, Status, Updated, ScanDate, ScanUser
+       FROM zeusz_IsbnStatus
+       WHERE ${dateWhere} AND MachineName = '${safeMachineName}'
+         AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
+       ORDER BY Updated DESC`,
+      location
+    )
+    const latestByIsbn = new Map()
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+      if (!row.ISBN || latestByIsbn.has(row.ISBN)) continue
+      const status = normalizeStatus(row.Status)
+      if (!isMonitoredStatus(status)) continue
+      latestByIsbn.set(row.ISBN, { ...row, Status: status })
+    }
+    const books = [...latestByIsbn.values()]
+    return { success: true, books, totalBooks: books.length }
+  } catch (error) {
+    console.error('Error fetching machine books:', error)
+    return { success: false, books: [], totalBooks: 0, error: error.message }
   }
 }
 
@@ -792,7 +867,7 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT TOP 5000 ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate` +
+      `SELECT TOP 5000 ISBN, Status, Updated, ScanUser, MachineName AS ScanMachineName, BoxNumber, PageCount, ScanDate` +
       ` FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
       location
     )
@@ -810,7 +885,7 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
       }
     }
 
-    const books = [...latestByIsbn.values()].map(r => ({
+    let books = [...latestByIsbn.values()].map(r => ({
       ...r,
       isWip: r.Status !== 'Transmission_Archive COMPLETED',
     }))
@@ -821,6 +896,17 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
       if (!a.isWip && b.isWip) return 1
       return new Date(b.Updated) - new Date(a.Updated)
     })
+
+    // Enrich with the real machine/user from the latest Simflex scan event
+    // for each ISBN. The latest status row may not have either value populated,
+    // so we look back for the newest row with a machine or user.
+    const isbns = books.map(b => b.ISBN).filter(Boolean)
+    const machineUserMap = await getLatestMachineUserForISBNs(isbns, location)
+    books = books.map(b => ({
+      ...b,
+      ScanMachineName: machineUserMap[b.ISBN]?.ScanMachineName || b.ScanMachineName || null,
+      ScanUser: machineUserMap[b.ISBN]?.ScanUser || b.ScanUser || null,
+    }))
 
     const totalBooks = books.length
     const wipCount   = books.filter(b => b.isWip).length
@@ -864,6 +950,7 @@ export default {
   getTodayScanningSummary,
   getScanningData,
   getScanningByMachine,
+  getBooksByMachine,
   getScanningByStage,
   getScanningRanking,
   getScanningExportData,
