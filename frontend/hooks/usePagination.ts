@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 interface UsePaginationProps {
   totalItems: number
@@ -8,6 +8,11 @@ interface UsePaginationProps {
 export function usePagination({ totalItems, defaultPageSize = 50 }: UsePaginationProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(defaultPageSize)
+
+  // Sync pageSize when defaultPageSize changes
+  useEffect(() => {
+    setPageSize(defaultPageSize)
+  }, [defaultPageSize])
 
   const totalPages = Math.ceil(totalItems / pageSize)
 

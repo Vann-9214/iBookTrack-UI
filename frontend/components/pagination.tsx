@@ -30,11 +30,9 @@ export function Pagination({
   showPageInfo = true
 }: PaginationProps) {
   const options = pageSizeOptions
-  const hasSideContent = options.length > 0 || showPageInfo
-  const justifyClass = hasSideContent ? 'justify-center sm:justify-between' : 'justify-center'
 
   return (
-    <div className={cn('flex items-center py-4 px-4 border-t border-border', justifyClass, className)}>
+    <div className={cn('relative flex w-full items-center justify-center py-4 px-4 border-t border-border', className)}>
       {options.length > 0 && (
         <div className="hidden sm:flex items-center gap-2">
           <span className="text-xs text-muted-foreground">Items per page:</span>
@@ -136,7 +134,7 @@ export function Pagination({
       </div>
 
       {showPageInfo && (
-        <span className="hidden sm:inline text-xs text-muted-foreground">
+        <span className="absolute right-4 hidden sm:inline text-xs text-muted-foreground font-medium">
           Page {currentPage} of {totalPages}
         </span>
       )}

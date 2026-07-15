@@ -18,26 +18,43 @@ import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// Get all lots
+// Get lots with search + pagination (scalable for 10k+ lots)
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { status } = req.query
+    const { search, limit: rawLimit, offset: rawOffset } = req.query
+    const limit = Math.min(parseInt(rawLimit) || 50, 100)
+    const offset = parseInt(rawOffset) || 0
 
-    let query = supabase
+    const db = supabaseAdmin || supabase
+
+    // Count query (for total)
+    let countQuery = db.from('lots').select('*', { count: 'exact', head: true })
+    if (search) countQuery = countQuery.ilike('lot_number', `%${search}%`)
+    const { count: totalCount } = await countQuery
+
+    // Data query with pagination
+    let query = db
       .from('lots')
       .select(`
-        *,
+        id, lot_number, total_boxes, type, created_at,
         boxes:boxes(count)
       `)
       .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
 
-    if (status) query = query.eq('status', status)
+    if (search) query = query.ilike('lot_number', `%${search}%`)
 
     const { data, error } = await query
 
     if (error) throw error
 
-    res.json({ lots: data })
+    res.json({
+      lots: data,
+      total: totalCount || 0,
+      limit,
+      offset,
+      hasMore: offset + limit < (totalCount || 0),
+    })
   } catch (error) {
     console.error('Get lots error:', error)
     res.status(500).json({ error: error.message })
@@ -52,14 +69,18 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
     const db = supabaseAdmin || supabase
 
     // 1. Resolve lot
-    const { data: lot, error: lotError } = await db
-      .from('lots')
-      .select('id, lot_number')
-      .ilike('lot_number', lot_number)
-      .maybeSingle()
+    let lotQuery = db.from('lots').select('id, lot_number')
+    
+    if (lot_number.toLowerCase() === 'latest') {
+      lotQuery = lotQuery.order('created_at', { ascending: false }).limit(1).single()
+    } else {
+      lotQuery = lotQuery.ilike('lot_number', lot_number).maybeSingle()
+    }
 
-    if (lotError) throw lotError
-    if (!lot) return res.status(404).json({ success: false, error: 'Lot not found' })
+    const { data: lot, error: lotError } = await lotQuery
+
+    if (lotError && lot_number.toLowerCase() !== 'latest') throw lotError
+    if (lotError || !lot) return res.status(404).json({ success: false, error: 'Lot not found' })
 
     // 2. Get all book_activity for this lot (via boxes)
     const { data: boxes } = await db
@@ -84,7 +105,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
 
     const { data: scans, error: scansError } = await db
       .from('book_activity')
-      .select('id, scan_status, user_flags(rejection_reason), warehouse_scan_at, books!inner(isbn, title, box_id)')
+      .select('id, scan_status, user_flags(rejection_reason), warehouse_scan_at, books!inner(isbn, title, box_id, boxes(box_number))')
       .in('books.box_id', boxIds)
       .order('warehouse_scan_at', { ascending: false })
 
@@ -109,7 +130,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
     }
 
     // 4. Build per-ISBN rows
-    const isbnRows = processableScans.map(s => {
+    const isbnRows = allScans.map(s => {
       const isbn = s.books?.isbn
       const sf = simflexMap[isbn] || {}
       const latestStatus = sf.latestStatus || null
@@ -120,8 +141,10 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
         isbn: isbn,
         title: s.books?.title || null,
         scan_status: s.scan_status,
+        rejection_reason: s.user_flags?.rejection_reason || null,
         warehouse_scan_at: s.warehouse_scan_at,
         assigned_box_id: s.books?.box_id,
+        box_number: s.books?.boxes?.box_number || null,
         simflex_status: latestStatus,
         transmission_completed: transmissionCompleted,
         transmission_date: transmissionDate,
