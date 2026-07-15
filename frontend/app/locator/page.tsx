@@ -808,7 +808,7 @@ export default function WarehouseLocatorPage() {
                           onClick={handleAddLevel}
                           disabled={addingLevel}
                           title="Add level"
-                          className="p-1 rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                          className="p-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
                         >
                           {addingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
                         </button>
@@ -816,7 +816,7 @@ export default function WarehouseLocatorPage() {
                           onClick={() => handleRemoveLevel()}
                           disabled={removingLevel || sectionLevels.length <= 1}
                           title={`Remove level ${Math.max(...sectionLevels)}`}
-                          className="p-1 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                          className="p-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
                         >
                           {removingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
                         </button>
@@ -832,7 +832,7 @@ export default function WarehouseLocatorPage() {
                           disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
                           title="Add a new rack"
                           aria-label="Add a new rack"
-                          className="p-1.5 rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
                         >
                           {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         </button>
@@ -841,7 +841,7 @@ export default function WarehouseLocatorPage() {
                           disabled={removingRack || sectionRacks.length <= 1}
                           title={`Remove last rack (${sectionRacks.at(-1)})`}
                           aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
-                          className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
                         >
                           {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
