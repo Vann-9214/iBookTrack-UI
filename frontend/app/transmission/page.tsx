@@ -164,6 +164,8 @@ export default function TransmissionMonitorPage() {
   const [lotSummary, setLotSummary] = useState<any>(null)
   const [lotError, setLotError] = useState<string | null>(null)
   const [lotIsbnSearch, setLotIsbnSearch] = useState("")
+  const [allLots, setAllLots] = useState<any[]>([])
+  const [lotsListLoading, setLotsListLoading] = useState(false)
   const [lotExpandedSections, setLotExpandedSections] = useState<Record<string, boolean>>({
     transmitted: false, wip: true, non_processable: false,
   })
@@ -267,6 +269,17 @@ export default function TransmissionMonitorPage() {
     fetchLiveData()
   }, [fetchLiveData])
 
+  // --- Fetch all lots for picker ---
+  const fetchAllLots = useCallback(async () => {
+    setLotsListLoading(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/lots`)
+      const data = await res.json()
+      setAllLots(data.lots || [])
+    } catch { /* silent */ }
+    finally { setLotsListLoading(false) }
+  }, [])
+
   // --- LOT transmission summary fetch ---
   const fetchLotSummary = useCallback(async (defaultQ?: any) => {
     const qStr = typeof defaultQ === 'string' ? defaultQ : ''
@@ -274,12 +287,13 @@ export default function TransmissionMonitorPage() {
     setLotLoading(true)
     setLotError(null)
     setLotSummary(null)
+    setLotIsbnSearch('')
     try {
       const res = await authFetch(`${API_URL}/api/lots/${encodeURIComponent(q)}/transmission-summary`)
       const data = await res.json()
       if (!data.success) { setLotError(data.error || 'Failed to load LOT data'); return }
       setLotSummary(data)
-      if (q === 'latest') setLotInput(data.lot_number)
+      setLotInput(data.lot_number)
     } catch (e: any) {
       setLotError(e.message || 'Failed to load LOT data')
     } finally {
@@ -288,8 +302,9 @@ export default function TransmissionMonitorPage() {
   }, [lotInput])
 
   useEffect(() => {
+    fetchAllLots()
     fetchLotSummary('latest')
-  }, []) // Fetch latest lot on initial mount
+  }, []) // Fetch lot list + latest lot on mount
 
   // --- Box transmission fetch ---
   const fetchBoxTransmission = async () => {
@@ -922,32 +937,71 @@ export default function TransmissionMonitorPage() {
 
               {/* ── LOT Visibility ── */}
               <TabsContent value="lot" className="mt-4">
-                <div className="flex flex-col gap-4">
-                  {/* Search bar */}
+                <div className="flex flex-col gap-3">
+
+                  {/* ── LOT Picker ── */}
                   <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-indigo-50">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500 text-white shrink-0">
+                    <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-gradient-to-r from-indigo-50/70 to-white">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-white shrink-0">
                         <Package className="h-4 w-4" />
                       </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-gray-800">LOT-Level Transmission</p>
-                        <p className="text-xs text-gray-500">Enter a LOT number to view Simflex status for all books in that LOT</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-800">LOT Transmission</p>
+                        <p className="text-[11px] text-gray-500">Select a LOT to view book pipeline status</p>
                       </div>
-                    </div>
-                    <div className="px-5 py-4">
-                      <div className="flex gap-2">
+                      {/* Inline manual search */}
+                      <div className="flex gap-1.5 shrink-0">
                         <Input
-                          placeholder="e.g. Lot-101 or 101"
+                          placeholder="Search lot…"
                           value={lotInput}
                           onChange={e => setLotInput(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') fetchLotSummary() }}
-                          className="max-w-xs text-sm"
+                          className="w-36 h-8 text-xs"
                         />
-                        <Button onClick={fetchLotSummary} disabled={lotLoading || !lotInput.trim()} className="gap-1.5">
-                          {lotLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                          Search
+                        <Button size="sm" onClick={fetchLotSummary} disabled={lotLoading || !lotInput.trim()} className="h-8 px-3 gap-1">
+                          {lotLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                         </Button>
                       </div>
+                    </div>
+
+                    {/* Lot chips */}
+                    <div className="px-5 py-3">
+                      {lotsListLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading lots…
+                        </div>
+                      ) : allLots.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-1">No lots found</p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {allLots.map((lot: any) => {
+                            const isActive = lotSummary?.lot_number?.toLowerCase() === lot.lot_number?.toLowerCase()
+                            const boxCount = lot.boxes?.[0]?.count ?? lot.total_boxes ?? 0
+                            return (
+                              <button
+                                key={lot.id}
+                                onClick={() => { setLotInput(lot.lot_number); fetchLotSummary(lot.lot_number) }}
+                                disabled={lotLoading}
+                                className={`
+                                  inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                                  transition-all duration-150 border cursor-pointer
+                                  ${isActive
+                                    ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-200'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700'
+                                  }
+                                  ${lotLoading ? 'opacity-60 cursor-wait' : ''}
+                                `}
+                              >
+                                <Package className="h-3 w-3" />
+                                <span className="font-semibold">{lot.lot_number}</span>
+                                <span className={`text-[10px] ${isActive ? 'text-indigo-100' : 'text-gray-400'}`}>
+                                  {boxCount} box{boxCount !== 1 ? 'es' : ''}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                       {lotError && (
                         <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
                           <XCircle className="h-3.5 w-3.5" />{lotError}
@@ -956,132 +1010,167 @@ export default function TransmissionMonitorPage() {
                     </div>
                   </Card>
 
-                  {/* LOT summary results */}
+                  {/* ── Loading state ── */}
+                  {lotLoading && !lotSummary && (
+                    <div className="flex items-center justify-center py-12 text-muted-foreground gap-2 text-sm">
+                      <Loader2 className="h-5 w-5 animate-spin" /> Loading lot data…
+                    </div>
+                  )}
+
+                  {/* ── LOT Summary Dashboard ── */}
                   {lotSummary && (
                     <>
-                      {/* Stats row */}
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                        {[
-                          { label: 'Total Books', value: lotSummary.total, color: 'gray' },
-                          { label: 'Processable', value: lotSummary.processable, color: 'blue' },
-                          { label: 'Transmitted', value: lotSummary.transmitted, color: 'emerald' },
-                          { label: 'WIP', value: (lotSummary.processable || 0) - (lotSummary.transmitted || 0), color: 'amber' },
-                          { label: 'Non-Processable', value: lotSummary.non_processable, color: 'red' },
-                          { label: 'Rejected', value: lotSummary.rejected, color: 'orange' },
-                        ].map(stat => (
-                          <div key={stat.label} className={`rounded-xl border p-3 bg-${stat.color}-50 border-${stat.color}-200`}>
-                            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{stat.label}</p>
-                            <p className={`text-2xl font-black text-${stat.color}-600 mt-0.5`}>{stat.value}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* WIP stage breakdown */}
-                      {lotSummary.wip && (
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                          {[
-                            { label: 'Done Scan', value: lotSummary.wip.done_scan, color: 'cyan' },
-                            { label: 'Pre-Validation', value: lotSummary.wip.pre_validation, color: 'amber' },
-                            { label: 'PDF Conversion', value: lotSummary.wip.pdf_conversion, color: 'violet' },
-                            { label: 'Validation', value: lotSummary.wip.validation, color: 'blue' },
-                          ].map(s => (
-                            <div key={s.label} className={`rounded-xl border bg-${s.color}-50 border-${s.color}-200 p-3`}>
-                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{s.label}</p>
-                              <p className={`text-xl font-black text-${s.color}-600 mt-0.5`}>{s.value}</p>
-                              <p className="text-[10px] text-gray-400 mt-0.5">WIP</p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Transmission progress bar */}
-                      {lotSummary.processable > 0 && (
-                        <div className="rounded-xl border border-border bg-card p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-semibold text-foreground">Transmission Progress</p>
-                            <p className="text-xs text-muted-foreground">
-                              {lotSummary.transmitted} / {lotSummary.processable} processable books
+                      {/* ── Analytics Card ── */}
+                      <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
+                        {/* Lot header */}
+                        <div className="px-5 py-3 border-b border-border bg-gradient-to-r from-indigo-50/80 to-white flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-2.5 w-2.5 rounded-full bg-indigo-500 animate-pulse" />
+                            <p className="text-sm font-bold text-gray-800 tracking-tight">
+                              {lotSummary.lot_number}
                             </p>
+                            <Badge variant="outline" className="text-[10px] border-indigo-200 bg-indigo-50 text-indigo-600 font-semibold">
+                              {lotSummary.total} {lotSummary.total === 1 ? 'book' : 'books'}
+                            </Badge>
                           </div>
-                          <Progress value={(lotSummary.transmitted / lotSummary.processable) * 100} className="h-3" />
-                          <p className="text-xs text-muted-foreground mt-1.5">
-                            {((lotSummary.transmitted / lotSummary.processable) * 100).toFixed(1)}% complete
-                          </p>
+                          {lotSummary.processable > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {((lotSummary.transmitted / lotSummary.processable) * 100).toFixed(0)}% transmitted
+                            </p>
+                          )}
                         </div>
-                      )}
 
-                      {/* ISBN list */}
+                        <div className="p-4 space-y-4">
+                          {/* ── Stats Row (5 stats, no rejected) ── */}
+                          <div className="grid grid-cols-5 gap-2">
+                            <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2.5">
+                              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Total</p>
+                              <p className="text-xl font-black text-gray-700 leading-tight mt-0.5">{lotSummary.total}</p>
+                            </div>
+                            <div className="rounded-lg border border-blue-200 bg-blue-50/80 px-3 py-2.5">
+                              <p className="text-[10px] font-medium text-blue-400 uppercase tracking-wider">Processable</p>
+                              <p className="text-xl font-black text-blue-600 leading-tight mt-0.5">{lotSummary.processable}</p>
+                            </div>
+                            <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5">
+                              <p className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">Transmitted</p>
+                              <p className="text-xl font-black text-emerald-600 leading-tight mt-0.5">{lotSummary.transmitted}</p>
+                            </div>
+                            <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2.5">
+                              <p className="text-[10px] font-medium text-amber-400 uppercase tracking-wider">WIP</p>
+                              <p className="text-xl font-black text-amber-600 leading-tight mt-0.5">{(lotSummary.processable || 0) - (lotSummary.transmitted || 0)}</p>
+                            </div>
+                            <div className="rounded-lg border border-red-200 bg-red-50/80 px-3 py-2.5">
+                              <p className="text-[10px] font-medium text-red-400 uppercase tracking-wider">Non-Proc.</p>
+                              <p className="text-xl font-black text-red-600 leading-tight mt-0.5">{lotSummary.non_processable}</p>
+                            </div>
+                          </div>
+
+                          {/* ── Transmission Progress ── */}
+                          {lotSummary.processable > 0 && (
+                            <div className="px-1">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <p className="text-[11px] font-semibold text-gray-500">Transmission Progress</p>
+                                <p className="text-[11px] font-medium text-muted-foreground">
+                                  <span className="text-emerald-600 font-bold">{lotSummary.transmitted}</span>
+                                  <span className="text-gray-400"> / </span>
+                                  <span>{lotSummary.processable}</span>
+                                </p>
+                              </div>
+                              <Progress value={(lotSummary.transmitted / lotSummary.processable) * 100} className="h-2" />
+                            </div>
+                          )}
+
+                          {/* ── WIP Pipeline Breakdown ── */}
+                          {lotSummary.wip && ((lotSummary.wip.done_scan + lotSummary.wip.pre_validation + lotSummary.wip.pdf_conversion + lotSummary.wip.validation) > 0) && (
+                            <div className="flex items-center gap-1.5 px-1">
+                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider shrink-0 mr-1">WIP Pipeline</p>
+                              {[
+                                { label: 'Scan', value: lotSummary.wip.done_scan, color: 'cyan' },
+                                { label: 'Pre-Val', value: lotSummary.wip.pre_validation, color: 'amber' },
+                                { label: 'PDF', value: lotSummary.wip.pdf_conversion, color: 'violet' },
+                                { label: 'Validate', value: lotSummary.wip.validation, color: 'blue' },
+                              ].map(s => (
+                                <Badge key={s.label} variant="outline" className={`text-[10px] gap-1 border-${s.color}-200 bg-${s.color}-50 text-${s.color}-700`}>
+                                  {s.label}: <span className="font-black">{s.value}</span>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* ── ISBN Table ── */}
                       <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-                        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-                          <p className="text-sm font-semibold text-foreground">All ISBNs — {lotSummary.lot_number}</p>
+                        <div className="flex items-center justify-between px-5 py-2.5 border-b border-border">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground">Books</p>
+                            <Badge variant="secondary" className="text-[10px] font-mono">{filteredLotIsbns.length}</Badge>
+                          </div>
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                              placeholder="Search ISBN or title..."
+                              placeholder="Filter ISBN or title…"
                               value={lotIsbnSearch}
                               onChange={e => setLotIsbnSearch(e.target.value)}
-                              className="w-56 pl-9 h-8 text-xs bg-white"
+                              className="w-52 pl-9 h-8 text-xs bg-white"
                             />
                           </div>
                         </div>
                         <CardContent className="p-0">
                           <div className="overflow-x-auto">
                             <table className="w-full text-xs">
-                              <thead className="bg-muted/30 sticky top-0 z-10">
+                              <thead className="bg-muted/40 sticky top-0 z-10">
                                 <tr className="border-b border-border">
-                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[150px]">ISBN</th>
-                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3">Book Details</th>
-                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[140px]">Scan Status</th>
-                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[140px]">Simflex Status</th>
-                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[180px]">Transmission Date</th>
-                                  <th className="text-left font-semibold text-muted-foreground px-5 py-3 w-[80px]">Action</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[140px]">ISBN</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-4 py-2">Title</th>
+                                  <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Scan</th>
+                                  <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Simflex</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-3 py-2 w-[150px]">Transmitted</th>
+                                  <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[60px]"></th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {paginatedLotIsbns.length === 0 ? (
                                   <tr>
-                                    <td colSpan={6} className="text-center py-12 text-muted-foreground bg-muted/10 border-b border-border border-dashed">
-                                      <BookOpen className="h-6 w-6 mx-auto mb-2 text-muted-foreground/50" />
-                                      No ISBNs found in this LOT
+                                    <td colSpan={6} className="text-center py-10 text-muted-foreground">
+                                      <BookOpen className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground/40" />
+                                      No ISBNs found
                                     </td>
                                   </tr>
                                 ) : paginatedLotIsbns.map((r: any, i: number) => (
-                                  <tr key={r.scan_id || i} className="border-b border-border/50 hover:bg-indigo-50/50 transition-colors group">
-                                    <td className="px-5 py-4 align-top">
-                                      <p className="font-mono font-bold text-foreground">{r.isbn}</p>
+                                  <tr key={r.scan_id || i} className="border-b border-border/40 hover:bg-indigo-50/40 transition-colors group h-[42px]">
+                                    <td className="px-4 py-2 align-middle">
+                                      <p className="font-mono text-[11px] font-bold text-foreground leading-none">{r.isbn}</p>
                                     </td>
-                                    <td className="px-5 py-4 align-top">
-                                      <p className="font-medium text-foreground mb-1">{r.title || 'Unknown Title'}</p>
+                                    <td className="px-4 py-2 align-middle">
+                                      <p className="text-foreground truncate max-w-[300px] leading-tight" title={r.title || '—'}>{r.title || '—'}</p>
                                       {r.rejection_reason && (
-                                        <div className="mt-1.5 p-2 rounded bg-red-50 border border-red-100 flex items-start gap-1.5 max-w-md">
-                                          <AlertTriangle className="h-3.5 w-3.5 text-red-600 shrink-0 mt-0.5" />
-                                          <p className="text-[11px] text-red-700 leading-tight">Reason: {r.rejection_reason}</p>
-                                        </div>
+                                        <p className="text-[10px] text-red-600 mt-0.5 truncate max-w-[300px]" title={r.rejection_reason}>
+                                          ⚠ {r.rejection_reason}
+                                        </p>
                                       )}
                                     </td>
-                                    <td className="px-5 py-4 align-top">
-                                      <div className="flex flex-col gap-1.5">
-                                        {getScanStatusBadge(r.scan_status)}
-                                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                                          <Clock className="h-3 w-3" />
-                                          {r.warehouse_scan_at ? format(new Date(r.warehouse_scan_at), 'MMM d, HH:mm') : '—'}
-                                        </div>
-                                      </div>
+                                    <td className="px-3 py-2 align-middle text-center">
+                                      {getScanStatusBadge(r.scan_status)}
                                     </td>
-                                    <td className="px-5 py-4 align-top">
+                                    <td className="px-3 py-2 align-middle text-center">
                                       {getSimflexBadge(r.simflex_status, r.transmission_completed)}
                                     </td>
-                                    <td className="px-5 py-4 align-top whitespace-nowrap">
-                                      <div className="flex items-center gap-1.5">
-                                        {r.transmission_completed ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : <UploadCloud className="h-3.5 w-3.5 text-muted-foreground" />}
-                                        <p className={`${r.transmission_completed ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}`}>
-                                          {r.transmission_date ? format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm') : '—'}
-                                        </p>
-                                      </div>
+                                    <td className="px-3 py-2 align-middle whitespace-nowrap">
+                                      {r.transmission_completed ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                          <span className="text-emerald-700 font-medium">
+                                            {r.transmission_date ? format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm') : '—'}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
                                     </td>
-                                    <td className="px-5 py-4 align-top">
+                                    <td className="px-3 py-2 align-middle text-center">
                                       {isManager && r.scan_status === 'processable' && (
-                                        <Button variant="outline" size="sm" className="h-6 text-[10px] px-2.5 rounded-full border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-amber-600 hover:bg-amber-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
                                           onClick={() => { setTagModalScan(r); setTagStatus('reject'); setTagRemarks(''); setTagError(null) }}>
                                           Tag
                                         </Button>
