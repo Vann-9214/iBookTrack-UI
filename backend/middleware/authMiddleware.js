@@ -28,12 +28,14 @@ import { supabase } from '../config/supabase.js'
 export const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization
 
-  // Accept token from Authorization header OR ?token= query param (SSE/EventSource can't send headers)
+  // Accept token from Authorization header OR ?token= query param OR access_token cookie
   let token = null
   if (authHeader?.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1]
   } else if (req.query.token) {
     token = req.query.token
+  } else if (req.cookies && req.cookies.access_token) {
+    token = req.cookies.access_token
   }
 
   if (!token) {

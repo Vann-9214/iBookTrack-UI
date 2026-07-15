@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useBrand, BRAND_COLORS, type Brand } from '@/hooks/use-brand'
+import { clearTokenData } from '@/lib/auth-api'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -127,10 +128,9 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
   useEffect(() => {
     const syncUser = () => {
       const storedUser = parseStoredUser(window.localStorage.getItem('ibooktrack_user'))
-      const tokenUser = decodeTokenUser(window.localStorage.getItem('access_token'))
       const profilePicture = window.localStorage.getItem('ibooktrack_profile_picture')
       setUser({
-        ...(storedUser ?? tokenUser ?? fallbackUser),
+        ...(storedUser ?? fallbackUser),
         profilePicture: storedUser?.profilePicture ?? profilePicture,
       })
     }
@@ -143,7 +143,8 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
     }
   }, [])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await clearTokenData()
     window.localStorage.removeItem('access_token')
     window.localStorage.removeItem('ibooktrack_user')
     window.sessionStorage.removeItem('from_login')

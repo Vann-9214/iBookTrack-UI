@@ -36,119 +36,86 @@ export function getApiBaseUrl() {
   return 'http://localhost:5000'
 }
 
-// Store token data
-export function storeTokenData(accessToken: string, refreshToken: string, expiresAt: number) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('access_token', accessToken)
-    localStorage.setItem('refresh_token', refreshToken)
-    localStorage.setItem('token_expires_at', expiresAt.toString())
-  }
+// Store token data (Tokens are now handled by HttpOnly cookies, no need to store manually)
+export function storeTokenData() {
+  // No-op
 }
 
-// Retrieve token data
+// Retrieve token data (Not available to JS, handled via cookies)
 export function getTokenData(): TokenData | null {
-  if (typeof window === 'undefined') return null
-  
-  const accessToken = localStorage.getItem('access_token')
-  const refreshToken = localStorage.getItem('refresh_token')
-  const expiresAtStr = localStorage.getItem('token_expires_at')
-
-  if (!accessToken || !refreshToken || !expiresAtStr) return null
-
-  return {
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    expires_at: parseInt(expiresAtStr, 10),
-  }
+  return null
 }
 
 // Clear token data
-export function clearTokenData() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('token_expires_at')
+export async function clearTokenData() {
+  try {
+    await fetch(`${getApiBaseUrl()}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+  } catch (err) {
+    console.error('Logout failed:', err)
   }
 }
 
-// Check if token is expired (with 5-minute buffer)
+// Check if token is expired
 export function isTokenExpired(): boolean {
-  const tokenData = getTokenData()
-  if (!tokenData) return true
-
-  const now = Math.floor(Date.now() / 1000)
-  const buffer = 5 * 60 // 5 minutes
-  return tokenData.expires_at - buffer < now
+  return false // Can't check client-side, let API return 401
 }
 
 // Refresh the access token
 export async function refreshAccessToken(): Promise<boolean> {
-  const tokenData = getTokenData()
-  if (!tokenData) return false
-
   try {
     const response = await fetch(`${getApiBaseUrl()}/api/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: tokenData.refresh_token }),
+      credentials: 'include'
     })
 
     if (!response.ok) {
-      clearTokenData()
+      await clearTokenData()
       return false
     }
 
-    const data = await response.json()
-    if (data.access_token && data.expires_at) {
-      storeTokenData(data.access_token, tokenData.refresh_token, data.expires_at)
-      return true
-    }
-
-    return false
+    return true
   } catch (error) {
     console.error('Token refresh failed:', error)
-    // Only clear token data on auth failures, not network errors.
-    // A network error (e.g. backend unreachable) should not wipe a still-valid token.
     const isNetworkError = error instanceof TypeError && (error.message === 'Failed to fetch' || error.message.includes('NetworkError'))
     if (!isNetworkError) {
-      clearTokenData()
+      await clearTokenData()
     }
     return false
   }
 }
 
-// Get a valid access token (refresh if needed)
+// Get a valid access token
 export async function getValidAccessToken(): Promise<string | null> {
-  if (isTokenExpired()) {
-    const refreshed = await refreshAccessToken()
-    if (!refreshed) return null
-  }
-
-  const tokenData = getTokenData()
-  return tokenData?.access_token || null
+  // We can't access the token directly anymore. 
+  // We just assume we have one in cookies.
+  return "cookie-handled"
 }
 
 // Drop-in fetch wrapper — refreshes token if expired, redirects to /login on 401
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = await getValidAccessToken()
-  if (!token) {
-    if (typeof window !== 'undefined') window.location.href = '/login'
-    throw new Error('Session expired. Please log in again.')
-  }
-
+  options.credentials = 'include'
   const headers = new Headers(options.headers)
-  headers.set('Authorization', `Bearer ${token}`)
   if (!headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json')
   }
 
-  const res = await fetch(url, { ...options, headers })
+  let res = await fetch(url, { ...options, headers })
 
   if (res.status === 401) {
-    // Token was just refreshed but still 401 — clear and redirect
-    clearTokenData()
-    if (typeof window !== 'undefined') window.location.href = '/login'
-    throw new Error('Session expired. Please log in again.')
+    const refreshed = await refreshAccessToken()
+    if (refreshed) {
+      res = await fetch(url, { ...options, headers })
+    }
+
+    if (res.status === 401) {
+      await clearTokenData()
+      if (typeof window !== 'undefined') window.location.href = '/login'
+      throw new Error('Session expired. Please log in again.')
+    }
   }
 
   return res
@@ -159,6 +126,7 @@ export async function authRequest({ endpoint, payload }: AuthRequestOptions): Pr
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    credentials: 'include',
   })
 
   const contentType = response.headers.get('content-type') || ''
@@ -186,12 +154,9 @@ export async function authRequest({ endpoint, payload }: AuthRequestOptions): Pr
 
 // Fetch user profile
 export async function fetchUserProfile(): Promise<{ id: string; name: string; email: string } | null> {
-  const token = await getValidAccessToken()
-  if (!token) return null
-
   try {
     const response = await fetch(`${getApiBaseUrl()}/api/auth/profile`, {
-      headers: { 'Authorization': `Bearer ${token}` }
+      credentials: 'include'
     })
 
     if (!response.ok) return null
