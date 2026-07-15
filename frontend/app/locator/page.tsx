@@ -843,7 +843,7 @@ export default function WarehouseLocatorPage() {
                           aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
                           className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
                         >
-                          {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
+                          {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
                       </div>
                     </div>
