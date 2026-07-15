@@ -123,57 +123,56 @@ const STAGE_DEFINITIONS = [
 export async function getStageCounts(startDate, endDate, location = 'mustang') {
   try {
     const dateFilter = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
-    // Use a CTE to strip the known keyword suffix (COMPLETED/ONGOING/FAILED)
-    // from the right of Status, and LTRIM/RTRIM everything, before grouping.
-    // The old LEFT/RIGHT/CHARINDEX/REVERSE approach was sensitive to stray
-    // whitespace: a doubled space or leading space shifted the split point,
-    // producing ' Tif2PDF' vs 'Tif2PDF' as separate GROUP BY buckets —
-    // so the same book got counted once per bucket and summed twice.
+    // Fetch all rows added today (or in range), then resolve the latest status per ISBN.
+    // Using DateAdded means status updates that happened today are included even if the
+    // book was first scanned on an earlier day. Deduplicating by Updated ensures the
+    // count reflects the current status, not a stale historical row.
     const rows = await query(
-      `WITH Parsed AS (
-         SELECT
-           LTRIM(RTRIM(ISBN)) AS ISBN,
-           CASE
-             WHEN RTRIM(Status) LIKE '%COMPLETED' THEN 'COMPLETED'
-             WHEN RTRIM(Status) LIKE '%ONGOING'   THEN 'ONGOING'
-             WHEN RTRIM(Status) LIKE '%FAILED'    THEN 'FAILED'
-           END AS Keyword,
-           LTRIM(RTRIM(
-             CASE
-               WHEN RTRIM(Status) LIKE '%COMPLETED' THEN LEFT(RTRIM(Status), LEN(RTRIM(Status)) - LEN('COMPLETED'))
-               WHEN RTRIM(Status) LIKE '%ONGOING'   THEN LEFT(RTRIM(Status), LEN(RTRIM(Status)) - LEN('ONGOING'))
-               WHEN RTRIM(Status) LIKE '%FAILED'    THEN LEFT(RTRIM(Status), LEN(RTRIM(Status)) - LEN('FAILED'))
-             END
-           )) AS StageName
-         FROM zeusz_IsbnStatus
-         WHERE ${dateFilter}
-           AND Status IS NOT NULL AND Status <> ''
-           AND IsRework = 'False'
-       )
-       SELECT StageName, Keyword, COUNT(DISTINCT ISBN) AS cnt
-       FROM Parsed
-       WHERE StageName <> '' AND Keyword IS NOT NULL
-       GROUP BY StageName, Keyword
-       ORDER BY StageName, Keyword`,
+      `SELECT TOP 5000 ISBN, Status, Updated
+       FROM zeusz_IsbnStatus
+       WHERE ${dateFilter}
+         AND Status IS NOT NULL AND Status <> ''
+         AND IsRework = 'False'
+       ORDER BY Updated DESC`,
       location
     )
 
     const data = Array.isArray(rows) ? rows : []
 
+    // Resolve latest row per ISBN
+    const latestByIsbn = new Map()
+    for (const r of data) {
+      const isbn = String(r.ISBN || '').trim()
+      if (!isbn) continue
+      const existing = latestByIsbn.get(isbn)
+      if (!existing || new Date(r.Updated) > new Date(existing.Updated)) {
+        latestByIsbn.set(isbn, r)
+      }
+    }
+
     // Build a lookup: stageName → { Completed, Ongoing, Failed }
     const lookup = {}
-    data.forEach(r => {
-      const stageName = (r.StageName || '').trim()
-      const keyword   = (r.Keyword   || '').trim().toUpperCase()
-      if (!stageName) return
+    for (const r of latestByIsbn.values()) {
+      const status = String(r.Status || '').trim()
+      if (!status) continue
+
+      let keyword = ''
+      if (status.endsWith('COMPLETED')) keyword = 'COMPLETED'
+      else if (status.endsWith('ONGOING')) keyword = 'ONGOING'
+      else if (status.endsWith('FAILED')) keyword = 'FAILED'
+      else continue
+
+      const stageName = status.slice(0, status.length - keyword.length).trim()
+      if (!stageName) continue
+
       if (!lookup[stageName]) lookup[stageName] = { Completed: 0, Ongoing: 0, Failed: 0 }
-      if      (keyword === 'COMPLETED') lookup[stageName].Completed += r.cnt
-      else if (keyword === 'ONGOING')   lookup[stageName].Ongoing   += r.cnt
-      else if (keyword === 'FAILED')    lookup[stageName].Failed    += r.cnt
-    })
+      if      (keyword === 'COMPLETED') lookup[stageName].Completed += 1
+      else if (keyword === 'ONGOING')   lookup[stageName].Ongoing   += 1
+      else if (keyword === 'FAILED')    lookup[stageName].Failed    += 1
+    }
 
     // Build ordered result using STAGE_DEFINITIONS so the order is always consistent
     const stages = STAGE_DEFINITIONS.map(({ stage, label }) => {

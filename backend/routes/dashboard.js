@@ -116,10 +116,27 @@ router.get('/stats', requireAuth, async (req, res) => {
     // Get flagged books count from user_flags (always use admin to bypass RLS)
     // Count only flags that were created/updated today
     const adminDb = supabaseAdmin || db
-    const { count: unaccountedBooks, error: flagCountError } = await adminDb
+    let unaccountedQuery = adminDb
       .from('user_flags')
-      .select('id', { count: 'exact', head: true })
+      .select(`
+        id,
+        book_activity!inner(
+          books!inner(
+            boxes!inner(
+              box_type
+            )
+          )
+        )
+      `, { count: 'exact', head: true })
       .or(`and(warehouse_flag_at.gte.${startIso},warehouse_flag_at.lt.${endIso}),and(inventory_flag_at.gte.${startIso},inventory_flag_at.lt.${endIso}),and(endorsement_flag_at.gte.${startIso},endorsement_flag_at.lt.${endIso})`)
+
+    if (box_type) {
+      const normalizedBoxType = box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase()
+      unaccountedQuery = unaccountedQuery
+        .eq('book_activity.books.boxes.box_type', normalizedBoxType)
+    }
+
+    const { count: unaccountedBooks, error: flagCountError } = await unaccountedQuery
     if (flagCountError) console.warn('user_flags count error:', flagCountError.message)
 
     // Get active lots count
@@ -248,6 +265,8 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
     const requestedPage = parseInt(req.query.page || '1', 10)
     const requestedLimit = parseInt(req.query.limit || '50', 10)
     const todayOnly = req.query.today === 'true'
+    const boxType = req.query.box_type ?
+      req.query.box_type.charAt(0).toUpperCase() + req.query.box_type.slice(1).toLowerCase() : null
     const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1
     const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50
     const start = (page - 1) * limit
@@ -271,16 +290,23 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
         endorsement_user:profiles!endorsement_flag_by(name),
         book_activity(
           id,
-          books!inner(
+          books(
             isbn,
             title,
-            box:boxes(
+            boxes(
               box_number,
+              box_type,
               lot:lots(lot_number)
             )
           )
         )
       `, { count: 'exact' })
+
+    if (boxType) {
+      query = query.eq('book_activity.books.boxes.box_type', boxType)
+    } else {
+      query = query.in('book_activity.books.boxes.box_type', ['Mustang', 'Jaguar'])
+    }
 
     if (todayOnly) {
       const now = new Date()
@@ -301,7 +327,7 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
     const mappedFlags = (data || []).map(f => {
       const ba = firstRel(f.book_activity) || {}
       const book = firstRel(ba.books) || {}
-      const box = firstRel(book.box) || {}
+      const box = firstRel(book.boxes) || {}
       const lot = firstRel(box.lot) || {}
 
       const flagCandidates = [
@@ -323,7 +349,7 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
         flagged_at: latestFlag?.at || f.warehouse_flag_at || null,
         flagged_by_name: latestFlag?.by || null,
         assigned_box: box.box_number
-          ? { box_number: box.box_number, lot: lot.lot_number ? { lot_number: lot.lot_number } : null }
+          ? { box_number: box.box_number, box_type: box.box_type || null, lot: lot.lot_number ? { lot_number: lot.lot_number } : null }
           : null,
       }
     })

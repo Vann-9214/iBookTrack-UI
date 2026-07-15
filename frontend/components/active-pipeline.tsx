@@ -4,28 +4,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-function getStepStatus(count: number, delayed: number) {
-  if (delayed > 0) return "delayed"
+function getStepStatus(count: number) {
   if (count === 0) return "idle"
   return "active"
 }
 
-const getStatusConfig = (brand: string) => ({
+const getBrandColor = (brand: string, type: 'nodeRing' | 'count' | 'bar' | 'cardBg' | 'dot') => {
+  if (brand === 'jaguar') {
+    return {
+      nodeRing: 'border-green-400 text-green-500',
+      count: 'text-green-500',
+      bar: 'bg-gradient-to-r from-green-400 via-green-400/50 to-transparent',
+      cardBg: 'bg-green-50',
+      dot: 'bg-green-400',
+    }[type]
+  }
+  return {
+    nodeRing: 'border-blue-400 text-blue-500',
+    count: 'text-blue-500',
+    bar: 'bg-gradient-to-r from-blue-400 via-blue-400/50 to-transparent',
+    cardBg: 'bg-blue-50',
+    dot: 'bg-blue-400',
+  }[type]
+}
+
+const getStatusConfig = (brand: string, active: number) => ({
   active: {
-    nodeRing: brand === 'jaguar' ? "border-green-400 text-green-500" : "border-blue-400 text-blue-500",
-    countColor: brand === 'jaguar' ? "text-green-500" : "text-blue-500",
-    bar: brand === 'jaguar' ? "bg-gradient-to-r from-green-400 via-green-400/50 to-transparent" : "bg-gradient-to-r from-blue-400 via-blue-400/50 to-transparent",
-    cardBg: brand === 'jaguar' ? "bg-green-50" : "bg-blue-50",
-    dot: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
+    nodeRing: getBrandColor(brand, 'nodeRing'),
+    countColor: active > 0 ? getBrandColor(brand, 'count') : 'text-gray-400',
+    bar: getBrandColor(brand, 'bar'),
+    cardBg: getBrandColor(brand, 'cardBg'),
+    dot: getBrandColor(brand, 'dot'),
     label: "Active",
-  },
-  delayed: {
-    nodeRing: "border-orange-400 text-orange-500",
-    countColor: "text-orange-500",
-    bar: "bg-gradient-to-r from-orange-400 via-orange-400/50 to-transparent",
-    cardBg: "bg-orange-50",
-    dot: "bg-orange-400",
-    label: "Delayed",
   },
   idle: {
     nodeRing: "border-gray-300 text-gray-400",
@@ -129,8 +139,8 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Desktop: card layout */}
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.delayed)
-              const cfg = getStatusConfig(brand)[status]
+              const status = getStepStatus(step.count)
+              const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
                   {/* Step number circle */}
@@ -154,11 +164,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                       <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
                       <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
                     </div>
-                    {!step.isBookStage && step.jaguar > 0 && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium" title="Jaguar">J {step.jaguar}</span>
-                      </div>
-                    )}
                   </div>
                 </>
               )
@@ -192,8 +197,8 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.delayed)
-              const cfg = getStatusConfig(brand)[status]
+              const status = getStepStatus(step.count)
+              const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
                   <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold", cfg.nodeRing)}>
@@ -204,11 +209,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                     <span className="text-xs text-muted-foreground">{step.active} {step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
                     {step.delayed > 0 && (
                       <span className="text-xs text-orange-600 font-medium">{step.delayed} delayed</span>
-                    )}
-                    {!step.isBookStage && step.jaguar > 0 && (
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">J {step.jaguar}</span>
-                      </div>
                     )}
                   </div>
                   <div className="ml-auto flex items-center gap-1">

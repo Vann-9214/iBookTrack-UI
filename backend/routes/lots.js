@@ -18,18 +18,22 @@ import { requireAuth } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
+const VALID_LOT_TYPES = ['Mustang', 'Jaguar']
+
 // Get lots with search + pagination (scalable for 10k+ lots)
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { search, limit: rawLimit, offset: rawOffset } = req.query
+    const { search, limit: rawLimit, offset: rawOffset, type } = req.query
     const limit = Math.min(parseInt(rawLimit) || 50, 100)
     const offset = parseInt(rawOffset) || 0
+    const lotType = VALID_LOT_TYPES.includes(type) ? type : null
 
     const db = supabaseAdmin || supabase
 
     // Count query (for total)
     let countQuery = db.from('lots').select('*', { count: 'exact', head: true })
     if (search) countQuery = countQuery.ilike('lot_number', `%${search}%`)
+    if (lotType) countQuery = countQuery.eq('type', lotType)
     const { count: totalCount } = await countQuery
 
     // Data query with pagination
@@ -43,6 +47,7 @@ router.get('/', requireAuth, async (req, res) => {
       .range(offset, offset + limit - 1)
 
     if (search) query = query.ilike('lot_number', `%${search}%`)
+    if (lotType) query = query.eq('type', lotType)
 
     const { data, error } = await query
 
@@ -66,10 +71,12 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) => {
   try {
     const { lot_number } = req.params
+    const lotType = VALID_LOT_TYPES.includes(req.query.type) ? req.query.type : null
     const db = supabaseAdmin || supabase
 
     // 1. Resolve lot
     let lotQuery = db.from('lots').select('id, lot_number')
+    if (lotType) lotQuery = lotQuery.eq('type', lotType)
     
     if (lot_number.toLowerCase() === 'latest') {
       lotQuery = lotQuery.order('created_at', { ascending: false }).limit(1).single()

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import { RefreshControl } from "@/components/refresh-control"
@@ -200,11 +200,45 @@ export default function TransmissionMonitorPage() {
     }
   }, [])
 
+  // Normalize missing machine names and group duplicates so each row is unique.
+  const NONE_MACHINE = '__NONE__'
+  const normalizeMachineName = (name: any) => {
+    const s = String(name ?? '').trim()
+    return s ? s : NONE_MACHINE
+  }
+  const machineDisplayName = (key: string) => key === NONE_MACHINE ? '—' : key
+
+  const groupedByMachine = useMemo(() => {
+    const map = new Map<string, { MachineName: string; TotalScans: number }>()
+    for (const m of byMachine) {
+      const key = normalizeMachineName(m.MachineName)
+      const existing = map.get(key)
+      if (existing) {
+        existing.TotalScans += Number(m.TotalScans || 0)
+      } else {
+        map.set(key, { MachineName: key, TotalScans: Number(m.TotalScans || 0) })
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.TotalScans - a.TotalScans)
+  }, [byMachine])
+
+  // Per-machine transmission completion stats from the distinct books feed.
+  const machineBookStats = useMemo(() => {
+    const map = new Map<string, { total: number; completed: number }>()
+    for (const b of allBooks) {
+      const key = normalizeMachineName(b.ScanMachineName)
+      const existing = map.get(key) || { total: 0, completed: 0 }
+      existing.total += 1
+      if (b.Status === 'Transmission_Archive COMPLETED') existing.completed += 1
+      map.set(key, existing)
+    }
+    return map
+  }, [allBooks])
+
   // Pagination for by machine table
-  const filteredByMachine = byMachine.filter((m: any) =>
+  const filteredByMachine = groupedByMachine.filter((m: any) =>
     !machineSearch ||
-    m.MachineName?.toLowerCase().includes(machineSearch.toLowerCase()) ||
-    m.MachineID?.toLowerCase().includes(machineSearch.toLowerCase())
+    machineDisplayName(m.MachineName).toLowerCase().includes(machineSearch.toLowerCase())
   )
   const machinesPagination = usePagination({ totalItems: filteredByMachine.length, defaultPageSize: 10 })
   const paginatedByMachine = filteredByMachine.slice(machinesPagination.offset, machinesPagination.offset + machinesPagination.limit)
@@ -309,12 +343,14 @@ export default function TransmissionMonitorPage() {
     setSelectedMachineBooksError(null)
   }, [fromDate, toDate, brand, newProcessOnly])
 
+  const lotTypeForBrand = (b: string) => b === 'jaguar' ? 'Jaguar' : 'Mustang'
+
   // --- Search lots with server-side pagination ---
   const searchLots = useCallback(async (query: string, page = 1, pageSize = 50) => {
     setLotSearchLoading(true)
     try {
       const offset = (page - 1) * pageSize
-      const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) })
+      const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset), type: lotTypeForBrand(brand) })
       if (query.trim()) params.set('search', query.trim())
       const res = await authFetch(`${API_URL}/api/lots?${params}`)
       const data = await res.json()
@@ -325,7 +361,7 @@ export default function TransmissionMonitorPage() {
       setLotSearchPageSize(pageSize)
     } catch { /* silent */ }
     finally { setLotSearchLoading(false) }
-  }, [])
+  }, [brand])
 
   // Debounced lot search
   const handleLotSearchChange = useCallback((value: string) => {
@@ -349,7 +385,8 @@ export default function TransmissionMonitorPage() {
     setLotBoxFilter('all')
     setLotBoxSearch('')
     try {
-      const res = await authFetch(`${API_URL}/api/lots/${encodeURIComponent(q)}/transmission-summary`)
+      const params = new URLSearchParams({ type: lotTypeForBrand(brand) })
+      const res = await authFetch(`${API_URL}/api/lots/${encodeURIComponent(q)}/transmission-summary?${params}`)
       const data = await res.json()
       if (!data.success) { setLotError(data.error || 'Failed to load LOT data'); return }
       setLotSummary(data)
@@ -360,7 +397,7 @@ export default function TransmissionMonitorPage() {
     } finally {
       setLotLoading(false)
     }
-  }, [lotInput])
+  }, [lotInput, brand])
 
   // Load initial lot list on mount (empty search = most recent)
   useEffect(() => {
@@ -973,20 +1010,20 @@ export default function TransmissionMonitorPage() {
                         <thead className="bg-white">
                           <tr className="border-b border-gray-100">
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine Name</th>
-                            <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine ID</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left w-48">Activity</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Total Scans</th>
                           </tr>
                         </thead>
                         <tbody>
                           {loading ? (
-                            <tr><td colSpan={4} className="text-center py-12">
+                            <tr><td colSpan={3} className="text-center py-12">
                               <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
                             </td></tr>
                           ) : filteredByMachine.length === 0 ? (
-                            <tr><td colSpan={4} className="text-center py-12 text-gray-400">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</td></tr>
+                            <tr><td colSpan={3} className="text-center py-12 text-gray-400">{byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}</td></tr>
                           ) : paginatedByMachine.map((m: any, i: number) => {
-                            const maxScans = filteredByMachine[0]?.TotalScans || 1
+                            const stats = machineBookStats.get(m.MachineName) || { total: 0, completed: 0 }
+                            const pct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
                             const isSelected = selectedMachine === m.MachineName
                             return (
                               <tr
@@ -994,9 +1031,13 @@ export default function TransmissionMonitorPage() {
                                 className={`border-b border-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-teal-50 hover:bg-teal-100' : 'hover:bg-gray-50'}`}
                                 onClick={() => fetchMachineBooks(m.MachineName)}
                               >
-                                <td className="font-semibold text-xs text-gray-800 px-4 py-3">{m.MachineName}</td>
-                                <td className="text-xs text-gray-500 px-4 py-3">{m.MachineID}</td>
-                                <td className="px-4 py-3"><Progress value={(m.TotalScans / maxScans) * 100} className="h-2" /></td>
+                                <td className="font-semibold text-xs text-gray-800 px-4 py-3">{machineDisplayName(m.MachineName)}</td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-3">
+                                    <Progress value={pct} className="h-2 flex-1" />
+                                    <span className="text-xs font-semibold text-gray-500 w-9 text-right">{pct}%</span>
+                                  </div>
+                                </td>
                                 <td className="text-xs font-bold text-right text-gray-800 px-4 py-3">{m.TotalScans.toLocaleString()}</td>
                               </tr>
                             )
@@ -1022,7 +1063,7 @@ export default function TransmissionMonitorPage() {
                   <Card className="border-border bg-card overflow-hidden py-0 gap-0 mt-4">
                     <div className="flex items-center justify-between px-5 py-3 bg-teal-50 border-b border-teal-100">
                       <div>
-                        <p className="text-sm font-bold text-gray-800">Books scanned on {selectedMachine}</p>
+                        <p className="text-sm font-bold text-gray-800">Books scanned on {machineDisplayName(selectedMachine)}</p>
                         <p className="text-xs text-gray-500">ISBNs reported by Simflex for the selected date range</p>
                       </div>
                       <Badge variant="outline" className="border-teal-200 bg-white text-teal-700 text-xs">
