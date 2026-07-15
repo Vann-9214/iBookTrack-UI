@@ -6,7 +6,7 @@ import { DashboardNavbar } from '@/components/top-bar'
 import { RefreshControl } from "@/components/refresh-control"
 import { ScannerInput } from '@/components/scanner-input'
 import { useToast } from '@/hooks/use-toast'
-import { getValidAccessToken, fetchUserProfile } from '@/lib/auth-api'
+import { authFetch, fetchUserProfile } from '@/lib/auth-api'
 import { AlertTriangle, Package, PackagePlus, PackageMinus, Trash2, Check, ChevronsUpDown, ScanBarcode, CircleCheck, CircleX, BookOpen, Activity, X, RefreshCw, Loader2, Warehouse } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from '@/components/ui/popover'
@@ -199,9 +199,7 @@ export default function WarehousePage() {
   // Open SSE connection when a session starts, close when it ends
   useEffect(() => {
     if (sessionActive) {
-      const token = localStorage.getItem('access_token')
-      if (!token) return
-      const es = new EventSource(`${API_URL}/api/warehouse/isbn-stream?token=${encodeURIComponent(token)}`)
+      const es = new EventSource(`${API_URL}/api/warehouse/isbn-stream`, { withCredentials: true })
       es.addEventListener('connected', () => console.log('📡 ISBN stream connected'))
       es.onerror = () => console.warn('ISBN stream error — will retry automatically')
       sseRef.current = es
@@ -216,15 +214,12 @@ export default function WarehousePage() {
   useEffect(() => {
     const cleanupSession = () => {
       if (sessionActiveRef.current && currentSessionRef.current && currentSessionRef.current.id !== 'pending') {
-        const token = localStorage.getItem('access_token')
-        if (token) {
-          // Use keepalive: true to ensure the request is completed even if the page unloads
-          fetch(`${API_URL}/api/warehouse/sessions/${currentSessionRef.current.id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` },
-            keepalive: true
-          }).catch(console.error)
-        }
+        // Use keepalive: true to ensure the request is completed even if the page unloads
+        fetch(`${API_URL}/api/warehouse/sessions/${currentSessionRef.current.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+          keepalive: true
+        }).catch(console.error)
       }
     }
 
@@ -253,11 +248,7 @@ export default function WarehousePage() {
     setLotsLoading(true)
     setLotsError(null)
     try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Not authenticated')
-      const res = await fetch(`${API_URL}/api/warehouse/ilms-lots`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await authFetch(`${API_URL}/api/warehouse/ilms-lots`)
       const data = await res.json()
       if (data.success) {
         setLots(data.lots || [])
@@ -337,12 +328,8 @@ export default function WarehousePage() {
 
     // Prevent duplicate box numbers within the same lot
     try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
       const params = new URLSearchParams({ lot_number: formattedLot, box_number: selectedBox, type: brand })
-      const checkRes = await fetch(`${API_URL}/api/warehouse/box-exists?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const checkRes = await authFetch(`${API_URL}/api/warehouse/box-exists?${params.toString()}`)
       const checkData = await checkRes.json()
       if (checkRes.ok && checkData.exists) {
         setSessionError(`Box ${selectedBox} already exists in ${formattedLot.toLowerCase().startsWith('lot') ? formattedLot : `Lot ${formattedLot}`}. Please use a different box number.`)
@@ -428,13 +415,10 @@ export default function WarehousePage() {
     setConfirmCompleteOpen(false)
     setLoading(true)
     try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-
       // 1. Single Bulk Request
-      const bulkRes = await fetch(`${API_URL}/api/warehouse/sessions/bulk-save`, {
+      const bulkRes = await authFetch(`${API_URL}/api/warehouse/sessions/bulk-save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lot_number: activeLot,
           box_number: currentBoxNumber,
@@ -472,13 +456,9 @@ export default function WarehousePage() {
     
     try {
       if (!currentSession.id.startsWith('pending')) {
-        const token = await getValidAccessToken()
-        if (token) {
-          await fetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${token}` }
-          })
-        }
+        await authFetch(`${API_URL}/api/warehouse/sessions/${currentSession.id}`, {
+          method: 'DELETE'
+        })
       }
     } catch (e) {
       console.error('Failed to delete session', e)
@@ -521,12 +501,9 @@ export default function WarehousePage() {
     setFetchingIssueBook(true)
     setSessionError(null)
     try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-
-      const response = await fetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
+      const response = await authFetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isbn: cleanIsbn, type: currentSession?.type, allowExisting: true })
       })
       const data = await response.json()
@@ -581,13 +558,10 @@ export default function WarehousePage() {
 
     setIsbnLoading(true)
     try {
-      const token = await getValidAccessToken()
-      if (!token) throw new Error('Authentication required.')
-
       // Use the SSE query endpoint — lightweight POST that returns iLMS data
-      const ilmsRes = await fetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
+      const ilmsRes = await authFetch(`${API_URL}/api/warehouse/isbn-stream/query`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isbn: cleanIsbn, type: currentSession.type })
       })
       const ilmsData = await ilmsRes.json()
@@ -1189,13 +1163,12 @@ export default function WarehousePage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No. <span className="text-muted-foreground font-normal">(optional)</span></label>
-                    <input
-                      type="text"
+                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No. <span className="text-destructive">*</span></label>
+                    <textarea
                       value={flagRemarks}
                       onChange={e => setFlagRemarks(e.target.value)}
                       placeholder="e.g. Page 42, bottom margin"
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full min-h-[80px] resize-y rounded-md border border-input bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
                 </div>
@@ -1210,7 +1183,7 @@ export default function WarehousePage() {
                   </button>
                   <button
                     onClick={saveFlagFromLog}
-                    disabled={!flagIssue || flagSaving}
+                    disabled={!flagIssue || !flagRemarks.trim() || flagSaving}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50 transition-colors"
                   >
                     <AlertTriangle className="h-3.5 w-3.5" />

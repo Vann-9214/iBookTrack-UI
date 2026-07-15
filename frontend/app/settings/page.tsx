@@ -94,12 +94,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const storedUser = parseStoredUser(window.localStorage.getItem(USER_STORAGE_KEY))
-    const tokenUser = decodeTokenUser(window.localStorage.getItem('access_token'))
     const storedPicture = window.localStorage.getItem(PROFILE_PICTURE_KEY)
 
     setProfileData({
-      name: storedUser?.name || tokenUser?.name || 'User Account',
-      email: storedUser?.email || tokenUser?.email || 'No email available',
+      name: storedUser?.name || 'User Account',
+      email: storedUser?.email || 'No email available',
       profilePicture: storedPicture,
     })
   }, [])
