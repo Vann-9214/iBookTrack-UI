@@ -91,7 +91,8 @@ interface BoxItem {
     endorsement_time_send?: string;
     scan_time_received?: string;
     updated_at?: string;
-    status?: string 
+    status?: string;
+    total_scanned?: number;
   }[]
 }
 
@@ -114,7 +115,47 @@ interface Transition {
   moved_by_name: string | null
   notes: string | null
   created_at: string
-  box: { box_number: string; lot: { lot_number: string } | null } | null
+  box: { 
+    box_number: string
+    lot: { lot_number: string } | null
+    current_stage: Stage
+    total_books_expected: number
+    created_at: string
+  } | null
+
+  // session properties
+  warehouse_user_name?: string
+  warehouse_time_received?: string
+  warehouse_scan_name?: string
+  warehouse_scan_at?: string
+
+  inventory_user_name?: string
+  inventory_time_received?: string
+  inventory_scan_name?: string
+  inventory_scan_at?: string
+  inventory_send_name?: string
+  inventory_time_send?: string
+
+  cut_user_name?: string
+  cut_time_received?: string
+  cut_send_name?: string
+  cut_time_send?: string
+
+  endorsement_user_name?: string
+  endorsement_time_received?: string
+  endorsement_scan_name?: string
+  endorsement_scan_at?: string
+  endorsement_send_name?: string
+  endorsement_time_send?: string
+
+  scan_user_name?: string
+  scan_time_received?: string
+
+  storage_user_name?: string
+  storage_time_assigned?: string
+
+  total_scanned?: number
+  updated_at?: string
 }
 
 const SIMFLEX_STAGE_LABELS: Record<string, string> = {
@@ -262,7 +303,7 @@ export default function StationCheckpointsPage() {
         offset: String(transitionOffsetRef.current || 0),
         box_type: currentBrand
       })
-      if (currentFilter && currentFilter !== 'all') transitionParams.append('stage', currentFilter)
+      if (currentFilter) transitionParams.append('stage', currentFilter)
       if (currentSearch) transitionParams.append('search', currentSearch)
       if (currentDateFrom) transitionParams.append('date_from', currentDateFrom)
       if (currentDateTo) transitionParams.append('date_to', currentDateTo)
@@ -1952,7 +1993,7 @@ export default function StationCheckpointsPage() {
 
                             {/* Updated */}
                             <div className="w-[100px] shrink-0 flex flex-col items-end justify-center ml-auto pr-4">
-                              <span className="text-xs text-muted-foreground">{formatTime(t.updated_at)}</span>
+                              <span className="text-xs text-muted-foreground">{t.updated_at ? formatTime(t.updated_at) : '—'}</span>
                               {box.created_at && <span className="text-[10px] text-muted-foreground opacity-75 mt-0.5">{new Date(box.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>}
                             </div>
 
@@ -2033,15 +2074,15 @@ export default function StationCheckpointsPage() {
                                          <div className="flex flex-col text-[10px] text-muted-foreground">
                                          {s === 'warehouse' ? (
                                            (recvTime || scanTime) && (
-                                             <span className="whitespace-nowrap">↓ ✓ ↑ {(scanUser || recvUser)?.split(' ')[0] || 'System'}, {new Date(scanTime || recvTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                             <span className="whitespace-nowrap">↓ ✓ ↑ {(scanUser || recvUser)?.split(' ')[0] || 'System'}, {new Date((scanTime || recvTime)!).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
                                            )
                                          ) : (
                                            <>
                                              {recvTime && (
-                                               <span className="whitespace-nowrap">↓ {recvUser?.split(' ')[0] || 'System'}, {new Date(recvTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                               <span className="whitespace-nowrap">↓ {recvUser?.split(' ')[0] || 'System'}, {new Date(recvTime!).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
                                              )}
                                              {scanTime && (
-                                               <span className="whitespace-nowrap mt-0.5">✓ {scanUser?.split(' ')[0] || 'System'}, {new Date(scanTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
+                                               <span className="whitespace-nowrap mt-0.5">✓ {scanUser?.split(' ')[0] || 'System'}, {new Date(scanTime!).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
                                              )}
                                              {sendTime && (
                                                <span className="whitespace-nowrap mt-0.5">↑ {sendUser?.split(' ')[0] || 'System'}, {new Date(sendTime).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'}).toLowerCase()}</span>
