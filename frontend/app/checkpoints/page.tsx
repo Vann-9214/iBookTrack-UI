@@ -1269,7 +1269,8 @@ export default function StationCheckpointsPage() {
                                     actionLabel = 'Completed'
                                   }
 
-                                  const parsedTime = timeStr && timeStr !== 'N/A' ? new Date(timeStr).getTime() : 0
+                                  const relevantTime = getRelevantTimeForBox(box, stage)
+                                  const parsedTime = relevantTime ? new Date(relevantTime).getTime() : 0
                                   const diffDays = parsedTime ? (Date.now() - parsedTime) / (1000 * 60 * 60 * 24) : 0
                                   const isDelayed = diffDays >= 1
                                   
