@@ -818,7 +818,7 @@ export default function WarehouseLocatorPage() {
                           title={`Remove level ${Math.max(...sectionLevels)}`}
                           className="p-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
                         >
-                          {removingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                          {removingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                         </button>
                       </div>
                       <div className="w-12 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
