@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, Fragment } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { Loader2, RefreshCw, CheckCircle2, AlertCircle, Clock, Package, BookOpen, ChevronUp, ChevronDown, BarChart3 } from "lucide-react"
@@ -15,6 +15,16 @@ if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment var
 
 type ComputedStatus = 'closed' | 'open' | 'in-progress'
 
+interface LotBox {
+  box_id: string
+  box_number: string
+  current_stage: string
+  progress: number
+  total_books: number
+  processable: number
+  non_processable: number
+}
+
 interface LotStatusRow {
   lot_id: string
   lot_number: string
@@ -28,6 +38,7 @@ interface LotStatusRow {
   transmitted: number
   non_processable: number
   pending: number
+  boxes?: LotBox[]
 }
 
 type FilterStatus = 'all' | ComputedStatus
@@ -51,6 +62,25 @@ export default function ReportsPage() {
   const [sortKey, setSortKey] = useState<SortKey>('progress')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [search, setSearch] = useState('')
+  const [expandedLots, setExpandedLots] = useState<Set<string>>(new Set())
+  const [boxPageByLot, setBoxPageByLot] = useState<Record<string, number>>({})
+
+  const toggleLot = (lotId: string) => {
+    setExpandedLots(prev => {
+      const next = new Set(prev)
+      if (next.has(lotId)) {
+        next.delete(lotId)
+      } else {
+        next.add(lotId)
+        setBoxPageByLot(p => ({ ...p, [lotId]: 1 }))
+      }
+      return next
+    })
+  }
+
+  const setBoxPage = (lotId: string, page: number) => {
+    setBoxPageByLot(p => ({ ...p, [lotId]: page }))
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -91,8 +121,10 @@ export default function ReportsPage() {
       let av: string | number
       let bv: string | number
       if (sortKey === 'progress') {
-        av = a.total_scans > 0 ? a.transmitted / a.total_scans : 0
-        bv = b.total_scans > 0 ? b.transmitted / b.total_scans : 0
+        const aTotalProg = a.boxes ? a.boxes.reduce((s, box) => s + box.progress, 0) : 0
+        const bTotalProg = b.boxes ? b.boxes.reduce((s, box) => s + box.progress, 0) : 0
+        av = a.total_boxes > 0 ? aTotalProg / a.total_boxes : 0
+        bv = b.total_boxes > 0 ? bTotalProg / b.total_boxes : 0
       } else {
         av = a[sortKey] ?? ''
         bv = b[sortKey] ?? ''
@@ -238,10 +270,25 @@ export default function ReportsPage() {
                     {filtered.map(lot => {
                       const meta = STATUS_META[lot.computed_status]
                       const Icon = meta.icon
-                      const pct = lot.total_scans > 0 ? Math.round((lot.transmitted / lot.total_scans) * 100) : 0
+                      
+                      // Lot progress is the average progress of all expected boxes
+                      const totalBoxProgress = lot.boxes ? lot.boxes.reduce((sum, box) => sum + box.progress, 0) : 0
+                      const pct = lot.total_boxes > 0 ? Math.round(totalBoxProgress / lot.total_boxes) : 0
+                      
+                      const BOXES_PER_PAGE = 50
+                      const currentPage = boxPageByLot[lot.lot_id] || 1
+                      const totalPages = Math.max(1, Math.ceil((lot.boxes?.length || 0) / BOXES_PER_PAGE))
+                      const pagedBoxes = (lot.boxes || []).slice((currentPage - 1) * BOXES_PER_PAGE, currentPage * BOXES_PER_PAGE)
+
                       return (
-                        <tr key={lot.lot_id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-3 font-semibold text-foreground">{lot.lot_number}</td>
+                        <React.Fragment key={lot.lot_id}>
+                        <tr onClick={() => toggleLot(lot.lot_id)} className="hover:bg-muted/30 transition-colors cursor-pointer group">
+                          <td className="px-4 py-3 font-semibold text-foreground">
+                            <div className="flex items-center gap-2">
+                              <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground group-hover:text-foreground", expandedLots.has(lot.lot_id) ? "rotate-180" : "-rotate-90")} />
+                              {lot.lot_number}
+                            </div>
+                          </td>
                           <td className="px-4 py-3">
                             <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap', meta.bg, meta.color)}>
                               <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -272,7 +319,7 @@ export default function ReportsPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3 min-w-[140px]">
-                            {lot.total_scans > 0 ? (
+                            {lot.total_boxes > 0 ? (
                               <div className="flex items-center gap-2">
                                 <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                                   <div
@@ -283,10 +330,94 @@ export default function ReportsPage() {
                                 <span className="text-xs text-muted-foreground w-9 text-right">{pct}%</span>
                               </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground">No scans</span>
+                              <span className="text-xs text-muted-foreground">No boxes</span>
                             )}
                           </td>
                         </tr>
+                        {expandedLots.has(lot.lot_id) && lot.boxes && lot.boxes.length > 0 && (
+                          <tr className="bg-muted/10 border-b shadow-inner">
+                            <td colSpan={7} className="p-0">
+                              <div className="border-l-4 border-primary/30 my-0 overflow-hidden bg-background/50">
+                                <div className="max-h-[500px] overflow-y-auto w-full">
+                                  <table className="w-full text-xs">
+                                    <thead className="bg-muted/30 sticky top-0 backdrop-blur-sm z-10">
+                                      <tr>
+                                        <th className="px-6 py-2 text-left font-semibold text-muted-foreground w-32">Box Number</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-muted-foreground w-28">Stage</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-muted-foreground min-w-[200px]">Progress</th>
+                                        <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-16">Total</th>
+                                        <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-20">Processable</th>
+                                        <th className="px-6 py-2 text-right font-semibold text-muted-foreground w-24">Non-Processable</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/50">
+                                      {pagedBoxes.map(box => (
+                                        <tr key={box.box_id} className="hover:bg-muted/20 transition-colors">
+                                          <td className="px-6 py-1.5 font-medium text-foreground whitespace-nowrap">{box.box_number}</td>
+                                          <td className="px-4 py-1.5 whitespace-nowrap">
+                                            <span className={cn("text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0", box.current_stage === 'storage' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
+                                              {box.current_stage}
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-1.5">
+                                            <div className="flex items-center gap-2 max-w-[300px]">
+                                              <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
+                                                <div
+                                                  className={cn('h-full rounded-full transition-all', brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500', box.progress === 100 && 'bg-emerald-500')}
+                                                  style={{ width: `${box.progress}%` }}
+                                                />
+                                              </div>
+                                              <span className="text-[10px] text-muted-foreground w-8 font-medium tabular-nums">{box.progress}%</span>
+                                            </div>
+                                          </td>
+                                          <td className="px-4 py-1.5 text-right text-muted-foreground tabular-nums">{box.total_books}</td>
+                                          <td className="px-4 py-1.5 text-right font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">{box.processable}</td>
+                                          <td className="px-6 py-1.5 text-right font-medium text-red-600 dark:text-red-400 tabular-nums">
+                                            {box.non_processable > 0 ? box.non_processable : '-'}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <div className="flex items-center justify-between px-6 py-2.5 border-t bg-muted/10">
+                                  <span className="text-xs font-medium text-muted-foreground">
+                                    Page {currentPage} of {totalPages}
+                                  </span>
+                                  <div className="flex items-center gap-1.5">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="h-7 text-xs px-2.5"
+                                      disabled={currentPage === 1}
+                                      onClick={(e) => { e.stopPropagation(); setBoxPage(lot.lot_id, currentPage - 1); }}
+                                    >
+                                      Previous
+                                    </Button>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      className="h-7 text-xs px-2.5"
+                                      disabled={currentPage === totalPages}
+                                      onClick={(e) => { e.stopPropagation(); setBoxPage(lot.lot_id, currentPage + 1); }}
+                                    >
+                                      Next
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        {expandedLots.has(lot.lot_id) && (!lot.boxes || lot.boxes.length === 0) && (
+                          <tr className="bg-muted/5 border-b">
+                            <td colSpan={7} className="px-10 py-8 text-sm text-muted-foreground text-center flex flex-col items-center justify-center gap-2">
+                              <Package className="h-8 w-8 opacity-20" />
+                              No boxes have been created for this lot yet.
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       )
                     })}
                   </tbody>
