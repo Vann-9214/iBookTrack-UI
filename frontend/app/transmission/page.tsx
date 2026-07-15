@@ -163,9 +163,16 @@ export default function TransmissionMonitorPage() {
   const [lotLoading, setLotLoading] = useState(false)
   const [lotSummary, setLotSummary] = useState<any>(null)
   const [lotError, setLotError] = useState<string | null>(null)
+  const [lotIsbnFilter, setLotIsbnFilter] = useState<'all'|'processable'|'transmitted'|'wip'|'non_processable'>('all')
   const [lotIsbnSearch, setLotIsbnSearch] = useState("")
-  const [allLots, setAllLots] = useState<any[]>([])
-  const [lotsListLoading, setLotsListLoading] = useState(false)
+  const [lotSearchResults, setLotSearchResults] = useState<any[]>([])
+  const [lotSearchTotal, setLotSearchTotal] = useState(0)
+  const [lotSearchPage, setLotSearchPage] = useState(1)
+  const [lotSearchPageSize, setLotSearchPageSize] = useState(50)
+  const [lotSearchLoading, setLotSearchLoading] = useState(false)
+  const [lotSearchQuery, setLotSearchQuery] = useState("")
+  const [showLotPicker, setShowLotPicker] = useState(true)
+  const lotSearchTimerRef = useRef<any>(null)
   const [lotExpandedSections, setLotExpandedSections] = useState<Record<string, boolean>>({
     transmitted: false, wip: true, non_processable: false,
   })
@@ -269,21 +276,38 @@ export default function TransmissionMonitorPage() {
     fetchLiveData()
   }, [fetchLiveData])
 
-  // --- Fetch all lots for picker ---
-  const fetchAllLots = useCallback(async () => {
-    setLotsListLoading(true)
+  // --- Search lots with server-side pagination ---
+  const searchLots = useCallback(async (query: string, page = 1, pageSize = 50) => {
+    setLotSearchLoading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/lots`)
+      const offset = (page - 1) * pageSize
+      const params = new URLSearchParams({ limit: String(pageSize), offset: String(offset) })
+      if (query.trim()) params.set('search', query.trim())
+      const res = await authFetch(`${API_URL}/api/lots?${params}`)
       const data = await res.json()
-      setAllLots(data.lots || [])
+      setLotSearchResults(data.lots || [])
+      setLotSearchTotal(data.total || 0)
+      setLotSearchQuery(query)
+      setLotSearchPage(page)
+      setLotSearchPageSize(pageSize)
     } catch { /* silent */ }
-    finally { setLotsListLoading(false) }
+    finally { setLotSearchLoading(false) }
   }, [])
+
+  // Debounced lot search
+  const handleLotSearchChange = useCallback((value: string) => {
+    setLotSearchQuery(value)
+    if (lotSearchTimerRef.current) clearTimeout(lotSearchTimerRef.current)
+    lotSearchTimerRef.current = setTimeout(() => {
+      searchLots(value, 1, lotSearchPageSize) // reset to page 1 on new search
+    }, 300)
+  }, [searchLots, lotSearchPageSize])
 
   // --- LOT transmission summary fetch ---
   const fetchLotSummary = useCallback(async (defaultQ?: any) => {
     const qStr = typeof defaultQ === 'string' ? defaultQ : ''
-    const q = qStr || lotInput.trim() || 'latest'
+    const q = qStr || lotInput.trim()
+    if (!q) return
     setLotLoading(true)
     setLotError(null)
     setLotSummary(null)
@@ -294,6 +318,7 @@ export default function TransmissionMonitorPage() {
       if (!data.success) { setLotError(data.error || 'Failed to load LOT data'); return }
       setLotSummary(data)
       setLotInput(data.lot_number)
+      setShowLotPicker(false)
     } catch (e: any) {
       setLotError(e.message || 'Failed to load LOT data')
     } finally {
@@ -301,10 +326,10 @@ export default function TransmissionMonitorPage() {
     }
   }, [lotInput])
 
+  // Load initial lot list on mount (empty search = most recent)
   useEffect(() => {
-    fetchAllLots()
-    fetchLotSummary('latest')
-  }, []) // Fetch lot list + latest lot on mount
+    searchLots('', 1, 50)
+  }, [searchLots])
 
   // --- Box transmission fetch ---
   const fetchBoxTransmission = async () => {
@@ -383,12 +408,19 @@ export default function TransmissionMonitorPage() {
 
   // LOT isbn filtered list
   const lotIsbns: any[] = lotSummary?.isbns || []
-  const filteredLotIsbns = lotIsbns.filter((r: any) =>
-    !lotIsbnSearch ||
-    r.isbn?.toLowerCase().includes(lotIsbnSearch.toLowerCase()) ||
-    r.title?.toLowerCase().includes(lotIsbnSearch.toLowerCase())
-  )
-  const lotIsbnPagination = usePagination({ totalItems: filteredLotIsbns.length, defaultPageSize: 20 })
+  const filteredLotIsbns = lotIsbns.filter((r: any) => {
+    const matchesSearch = !lotIsbnSearch ||
+      r.isbn?.toLowerCase().includes(lotIsbnSearch.toLowerCase()) ||
+      r.title?.toLowerCase().includes(lotIsbnSearch.toLowerCase())
+    if (!matchesSearch) return false;
+
+    if (lotIsbnFilter === 'processable') return r.scan_status === 'processable';
+    if (lotIsbnFilter === 'transmitted') return r.transmission_completed;
+    if (lotIsbnFilter === 'wip') return r.scan_status === 'processable' && !r.transmission_completed;
+    if (lotIsbnFilter === 'non_processable') return r.scan_status === 'non_processable';
+    return true;
+  })
+  const lotIsbnPagination = usePagination({ totalItems: filteredLotIsbns.length, defaultPageSize: 50 })
   const paginatedLotIsbns = filteredLotIsbns.slice(lotIsbnPagination.offset, lotIsbnPagination.offset + lotIsbnPagination.limit)
 
   // Box isbn filtered list
@@ -939,76 +971,148 @@ export default function TransmissionMonitorPage() {
               <TabsContent value="lot" className="mt-4">
                 <div className="flex flex-col gap-3">
 
-                  {/* ── LOT Picker ── */}
-                  <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
-                    <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-gradient-to-r from-indigo-50/70 to-white">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-white shrink-0">
-                        <Package className="h-4 w-4" />
+                  {/* ── LOT Selector ── */}
+                  {(showLotPicker || !lotSummary) && (
+                    <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-gradient-to-r from-indigo-50/70 to-white">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-white shrink-0">
+                          <Package className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-gray-800">LOT Transmission</p>
+                          <p className="text-[11px] text-gray-500">
+                            Search and select a LOT to view its book pipeline
+                            {lotSearchTotal > 0 && <span className="text-gray-400"> · {lotSearchTotal.toLocaleString()} lot{lotSearchTotal !== 1 ? 's' : ''} total</span>}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-gray-800">LOT Transmission</p>
-                        <p className="text-[11px] text-gray-500">Select a LOT to view book pipeline status</p>
-                      </div>
-                      {/* Inline manual search */}
-                      <div className="flex gap-1.5 shrink-0">
-                        <Input
-                          placeholder="Search lot…"
-                          value={lotInput}
-                          onChange={e => setLotInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') fetchLotSummary() }}
-                          className="w-36 h-8 text-xs"
-                        />
-                        <Button size="sm" onClick={fetchLotSummary} disabled={lotLoading || !lotInput.trim()} className="h-8 px-3 gap-1">
-                          {lotLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                        </Button>
-                      </div>
-                    </div>
 
-                    {/* Lot chips */}
-                    <div className="px-5 py-3">
-                      {lotsListLoading ? (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading lots…
+                      {/* Search bar */}
+                      <div className="px-5 py-3 border-b border-border/50 bg-muted/20">
+                        <div className="relative max-w-md">
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                          <Input
+                            placeholder="Search by lot number… (e.g. lot-3A)"
+                            value={lotSearchQuery}
+                            onChange={e => handleLotSearchChange(e.target.value)}
+                            className="pl-10 h-9 text-sm bg-white"
+                            autoFocus
+                          />
+                          {lotSearchLoading && (
+                            <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                          )}
                         </div>
-                      ) : allLots.length === 0 ? (
-                        <p className="text-xs text-muted-foreground py-1">No lots found</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {allLots.map((lot: any) => {
-                            const isActive = lotSummary?.lot_number?.toLowerCase() === lot.lot_number?.toLowerCase()
-                            const boxCount = lot.boxes?.[0]?.count ?? lot.total_boxes ?? 0
+                      </div>
+
+                      {/* Results list */}
+                      <div className="max-h-[360px] overflow-y-auto">
+                        {lotSearchResults.length === 0 && !lotSearchLoading ? (
+                          <div className="flex flex-col items-center justify-center py-14 px-5 text-center">
+                            <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-3">
+                              <Package className="h-6 w-6 text-indigo-400" />
+                            </div>
+                            {lotSearchQuery ? (
+                              <>
+                                <p className="text-sm font-medium text-gray-600">No lots matching "{lotSearchQuery}"</p>
+                                <p className="text-xs text-muted-foreground mt-1">Try a different search term</p>
+                              </>
+                            ) : (
+                              <>
+                                <p className="text-sm font-medium text-gray-600">No lots available</p>
+                                <p className="text-xs text-muted-foreground mt-1">Lots will appear here once created</p>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          <table className="w-full text-xs">
+                            <thead className="bg-muted/30 sticky top-0 z-10">
+                              <tr className="border-b border-border">
+                                <th className="text-left font-semibold text-muted-foreground px-5 py-2">Lot</th>
+                                <th className="text-left font-semibold text-muted-foreground px-3 py-2 w-[80px]">Boxes</th>
+                                <th className="text-left font-semibold text-muted-foreground px-3 py-2 w-[100px]">Type</th>
+                                <th className="text-left font-semibold text-muted-foreground px-3 py-2 w-[130px]">Created</th>
+                                <th className="w-[80px]"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {lotSearchResults.map((lot: any) => {
+                                const isActive = lotSummary?.lot_number?.toLowerCase() === lot.lot_number?.toLowerCase()
+                                const boxCount = lot.boxes?.[0]?.count ?? lot.total_boxes ?? 0
+                                return (
+                                  <tr
+                                    key={lot.id}
+                                    className={`border-b border-border/40 transition-colors cursor-pointer ${
+                                      isActive
+                                        ? 'bg-indigo-50/70'
+                                        : 'hover:bg-indigo-50/30'
+                                    }`}
+                                    onClick={() => { setLotInput(lot.lot_number); fetchLotSummary(lot.lot_number) }}
+                                  >
+                                    <td className="px-5 py-2.5">
+                                      <div className="flex items-center gap-2">
+                                        {isActive && <div className="h-2 w-2 rounded-full bg-indigo-500 shrink-0" />}
+                                        <span className={`font-semibold ${isActive ? 'text-indigo-700' : 'text-foreground'}`}>
+                                          {lot.lot_number}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2.5 text-muted-foreground">
+                                      {boxCount}
+                                    </td>
+                                    <td className="px-3 py-2.5">
+                                      <Badge variant="outline" className="text-[10px]">{lot.type || '—'}</Badge>
+                                    </td>
+                                    <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
+                                      {lot.created_at ? format(new Date(lot.created_at), 'MMM d, yyyy') : '—'}
+                                    </td>
+                                    <td className="px-3 py-2.5 text-right">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 text-[10px] px-2 text-indigo-600 hover:bg-indigo-100"
+                                        onClick={(e) => { e.stopPropagation(); setLotInput(lot.lot_number); fetchLotSummary(lot.lot_number) }}
+                                      >
+                                        View →
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+
+                      {/* Load more / pagination footer */}
+                      {lotSearchTotal > 0 && (
+                        <div className="border-t border-border bg-muted/10 p-2 text-muted-foreground flex justify-center">
+                          {(() => {
+                            const totalPages = Math.ceil(lotSearchTotal / lotSearchPageSize) || 1
                             return (
-                              <button
-                                key={lot.id}
-                                onClick={() => { setLotInput(lot.lot_number); fetchLotSummary(lot.lot_number) }}
-                                disabled={lotLoading}
-                                className={`
-                                  inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                                  transition-all duration-150 border cursor-pointer
-                                  ${isActive
-                                    ? 'bg-indigo-500 text-white border-indigo-500 shadow-sm shadow-indigo-200'
-                                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700'
-                                  }
-                                  ${lotLoading ? 'opacity-60 cursor-wait' : ''}
-                                `}
-                              >
-                                <Package className="h-3 w-3" />
-                                <span className="font-semibold">{lot.lot_number}</span>
-                                <span className={`text-[10px] ${isActive ? 'text-indigo-100' : 'text-gray-400'}`}>
-                                  {boxCount} box{boxCount !== 1 ? 'es' : ''}
-                                </span>
-                              </button>
+                              <Pagination
+                                currentPage={lotSearchPage}
+                                totalPages={totalPages}
+                                pageSize={lotSearchPageSize}
+                                onPageChange={(page) => searchLots(lotSearchQuery, page, lotSearchPageSize)}
+                                onPageSizeChange={(size) => searchLots(lotSearchQuery, 1, size)}
+                                canPrevPage={lotSearchPage > 1}
+                                canNextPage={lotSearchPage < totalPages}
+                              />
                             )
-                          })}
+                          })()}
                         </div>
                       )}
+
                       {lotError && (
-                        <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                          <XCircle className="h-3.5 w-3.5" />{lotError}
-                        </p>
+                        <div className="px-5 py-2 border-t border-border">
+                          <p className="text-xs text-red-600 flex items-center gap-1">
+                            <XCircle className="h-3.5 w-3.5" />{lotError}
+                          </p>
+                        </div>
                       )}
-                    </div>
-                  </Card>
+                    </Card>
+                  )}
 
                   {/* ── Loading state ── */}
                   {lotLoading && !lotSummary && (
@@ -1018,7 +1122,7 @@ export default function TransmissionMonitorPage() {
                   )}
 
                   {/* ── LOT Summary Dashboard ── */}
-                  {lotSummary && (
+                  {lotSummary && !showLotPicker && (
                     <>
                       {/* ── Analytics Card ── */}
                       <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
@@ -1033,35 +1137,61 @@ export default function TransmissionMonitorPage() {
                               {lotSummary.total} {lotSummary.total === 1 ? 'book' : 'books'}
                             </Badge>
                           </div>
-                          {lotSummary.processable > 0 && (
-                            <p className="text-xs text-muted-foreground">
-                              {((lotSummary.transmitted / lotSummary.processable) * 100).toFixed(0)}% transmitted
-                            </p>
-                          )}
+                          <div className="flex items-center gap-3">
+                            {lotSummary.processable > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {((lotSummary.transmitted / lotSummary.processable) * 100).toFixed(0)}% transmitted
+                              </p>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs px-2.5 gap-1 text-muted-foreground"
+                              onClick={() => setShowLotPicker(true)}
+                            >
+                              <ChevronDown className="h-3 w-3" />
+                              Change LOT
+                            </Button>
+                          </div>
                         </div>
 
                         <div className="p-4 space-y-4">
-                          {/* ── Stats Row (5 stats, no rejected) ── */}
+                          {/* ── Stats Row (5 stats) ── */}
                           <div className="grid grid-cols-5 gap-2">
-                            <div className="rounded-lg border border-gray-200 bg-gray-50/80 px-3 py-2.5">
+                            <div 
+                              className={`rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${lotIsbnFilter === 'all' ? 'border-gray-400 bg-gray-100 shadow-sm' : 'border-gray-200 bg-gray-50/80 hover:bg-gray-100'}`}
+                              onClick={() => setLotIsbnFilter('all')}
+                            >
                               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Total</p>
                               <p className="text-xl font-black text-gray-700 leading-tight mt-0.5">{lotSummary.total}</p>
                             </div>
-                            <div className="rounded-lg border border-blue-200 bg-blue-50/80 px-3 py-2.5">
+                            <div 
+                              className={`rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${lotIsbnFilter === 'processable' ? 'border-blue-400 bg-blue-100 shadow-sm' : 'border-blue-200 bg-blue-50/80 hover:bg-blue-100'}`}
+                              onClick={() => setLotIsbnFilter('processable')}
+                            >
                               <p className="text-[10px] font-medium text-blue-400 uppercase tracking-wider">Processable</p>
                               <p className="text-xl font-black text-blue-600 leading-tight mt-0.5">{lotSummary.processable}</p>
                             </div>
-                            <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5">
+                            <div 
+                              className={`rounded-lg border px-2 py-2.5 cursor-pointer transition-colors ${lotIsbnFilter === 'non_processable' ? 'border-red-400 bg-red-100 shadow-sm' : 'border-red-200 bg-red-50/80 hover:bg-red-100'}`}
+                              onClick={() => setLotIsbnFilter('non_processable')}
+                            >
+                              <p className="text-[9px] xl:text-[10px] font-medium text-red-400 uppercase tracking-tight">Non-Processable</p>
+                              <p className="text-xl font-black text-red-600 leading-tight mt-0.5">{lotSummary.non_processable}</p>
+                            </div>
+                            <div 
+                              className={`rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${lotIsbnFilter === 'transmitted' ? 'border-emerald-400 bg-emerald-100 shadow-sm' : 'border-emerald-200 bg-emerald-50/80 hover:bg-emerald-100'}`}
+                              onClick={() => setLotIsbnFilter('transmitted')}
+                            >
                               <p className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">Transmitted</p>
                               <p className="text-xl font-black text-emerald-600 leading-tight mt-0.5">{lotSummary.transmitted}</p>
                             </div>
-                            <div className="rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2.5">
+                            <div 
+                              className={`rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${lotIsbnFilter === 'wip' ? 'border-amber-400 bg-amber-100 shadow-sm' : 'border-amber-200 bg-amber-50/80 hover:bg-amber-100'}`}
+                              onClick={() => setLotIsbnFilter('wip')}
+                            >
                               <p className="text-[10px] font-medium text-amber-400 uppercase tracking-wider">WIP</p>
                               <p className="text-xl font-black text-amber-600 leading-tight mt-0.5">{(lotSummary.processable || 0) - (lotSummary.transmitted || 0)}</p>
-                            </div>
-                            <div className="rounded-lg border border-red-200 bg-red-50/80 px-3 py-2.5">
-                              <p className="text-[10px] font-medium text-red-400 uppercase tracking-wider">Non-Proc.</p>
-                              <p className="text-xl font-black text-red-600 leading-tight mt-0.5">{lotSummary.non_processable}</p>
                             </div>
                           </div>
 
@@ -1117,11 +1247,12 @@ export default function TransmissionMonitorPage() {
                           </div>
                         </div>
                         <CardContent className="p-0">
-                          <div className="overflow-x-auto">
+                          <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
                             <table className="w-full text-xs">
                               <thead className="bg-muted/40 sticky top-0 z-10">
                                 <tr className="border-b border-border">
                                   <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[140px]">ISBN</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[80px]">Box</th>
                                   <th className="text-left font-semibold text-muted-foreground px-4 py-2">Title</th>
                                   <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Scan</th>
                                   <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Simflex</th>
@@ -1141,6 +1272,9 @@ export default function TransmissionMonitorPage() {
                                   <tr key={r.scan_id || i} className="border-b border-border/40 hover:bg-indigo-50/40 transition-colors group h-[42px]">
                                     <td className="px-4 py-2 align-middle">
                                       <p className="font-mono text-[11px] font-bold text-foreground leading-none">{r.isbn}</p>
+                                    </td>
+                                    <td className="px-4 py-2 align-middle">
+                                      <p className="font-mono text-[11px] font-semibold text-gray-500 leading-none">{r.box_number || '—'}</p>
                                     </td>
                                     <td className="px-4 py-2 align-middle">
                                       <p className="text-foreground truncate max-w-[300px] leading-tight" title={r.title || '—'}>{r.title || '—'}</p>
@@ -1181,16 +1315,18 @@ export default function TransmissionMonitorPage() {
                               </tbody>
                             </table>
                           </div>
-                          {filteredLotIsbns.length > 0 && lotIsbnPagination.totalPages > 1 && (
-                            <Pagination
-                              currentPage={lotIsbnPagination.currentPage}
-                              totalPages={lotIsbnPagination.totalPages}
-                              pageSize={lotIsbnPagination.pageSize}
-                              onPageChange={lotIsbnPagination.goToPage}
-                              onPageSizeChange={lotIsbnPagination.setPageSize}
-                              canPrevPage={lotIsbnPagination.canPrevPage}
-                              canNextPage={lotIsbnPagination.canNextPage}
-                            />
+                          {filteredLotIsbns.length > 0 && (
+                            <div className="flex justify-center border-t border-border bg-muted/10 p-2 text-muted-foreground">
+                              <Pagination
+                                currentPage={lotIsbnPagination.currentPage}
+                                totalPages={lotIsbnPagination.totalPages}
+                                pageSize={lotIsbnPagination.pageSize}
+                                onPageChange={lotIsbnPagination.goToPage}
+                                onPageSizeChange={lotIsbnPagination.setPageSize}
+                                canPrevPage={lotIsbnPagination.canPrevPage}
+                                canNextPage={lotIsbnPagination.canNextPage}
+                              />
+                            </div>
                           )}
                         </CardContent>
                       </Card>
