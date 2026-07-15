@@ -82,14 +82,15 @@ const isValidIsbn = (isbn: string): boolean => {
   return digits.length === 10 || digits.length === 13
 }
 
-// Normalize lot names for comparison: Lot 1, lot-1, Lot-3(1) all become "lot1"
+// Normalize lot names for comparison: Lot 1, lot-1, Lot-3(1), 1, 1(1) all become "lot1" / "lot3(1)"
 function normalizeLotNumber(lot: string): string {
-  return lot
-    .toLowerCase()
-    .replace(/lot[\s-]+(\d+.*)/, 'lot$1')
-    .replace(/lot(\d+.*)/, 'lot$1')
-    .replace(/\s+/g, '')
-    .trim()
+  let cleaned = lot.toLowerCase().replace(/\s+/g, '').trim()
+  if (!cleaned.startsWith('lot')) {
+    if (/^\d/.test(cleaned)) cleaned = `lot${cleaned}`
+  } else {
+    cleaned = cleaned.replace(/^lot[-\s]*/, 'lot')
+  }
+  return cleaned
 }
 
 function findSimilarLot(typedLot: string, existingLots: { lot_number: string }[]): string | null {
@@ -101,6 +102,22 @@ function findSimilarLot(typedLot: string, existingLots: { lot_number: string }[]
     }
   }
   return null
+}
+
+function normalizeBoxNumber(box: string): string {
+  return box.toLowerCase().replace(/\s+/g, '').trim()
+}
+
+function ilmsLotBoxMismatch(ilmsLot: string | undefined, ilmsBox: string | undefined, expectedLot: string, expectedBox: string): { mismatched: boolean, ilmsLot: string, ilmsBox: string } {
+  const ilmsLotValue = ilmsLot || ''
+  const ilmsBoxValue = ilmsBox || ''
+  const lotMismatch = normalizeLotNumber(ilmsLotValue) !== normalizeLotNumber(expectedLot)
+  const boxMismatch = normalizeBoxNumber(ilmsBoxValue) !== normalizeBoxNumber(expectedBox)
+  return {
+    mismatched: (ilmsLotValue ? lotMismatch : false) || (ilmsBoxValue ? boxMismatch : false),
+    ilmsLot: ilmsLotValue || expectedLot,
+    ilmsBox: ilmsBoxValue || expectedBox
+  }
 }
 
 export default function WarehousePage() {
@@ -148,6 +165,16 @@ export default function WarehousePage() {
     matchedLot: string,
     onContinue: () => void
   }>({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} })
+  const [ilmsMismatchModal, setIlmsMismatchModal] = useState<{
+    open: boolean,
+    isbn: string,
+    title: string,
+    expectedLot: string,
+    expectedBox: string,
+    ilmsLot: string,
+    ilmsBox: string,
+    onConfirm: () => void
+  }>({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
 
   // Combobox states
   const [lotOpen, setLotOpen] = useState(false)
@@ -571,6 +598,28 @@ export default function WarehousePage() {
       }
 
       const bookData = ilmsData.data as ILMSBookData
+      const mismatch = ilmsLotBoxMismatch(bookData?.LotNo, bookData?.BoxNo, activeLot, currentBoxNumber)
+
+      if (mismatch.mismatched) {
+        setIsbnLoading(false)
+        setIlmsMismatchModal({
+          open: true,
+          isbn: cleanIsbn,
+          title: bookData?.Title || 'Unknown Title',
+          expectedLot: activeLot,
+          expectedBox: currentBoxNumber,
+          ilmsLot: mismatch.ilmsLot,
+          ilmsBox: mismatch.ilmsBox,
+          onConfirm: () => {
+            saveBookToLocal(
+              { isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || 'Unknown Author', ilmsData: bookData },
+              'processable', null, null
+            )
+          }
+        })
+        return
+      }
+
       saveBookToLocal(
         { isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || 'Unknown Author', ilmsData: bookData },
         'processable', null, null
@@ -1000,6 +1049,63 @@ export default function WarehousePage() {
                     className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors"
                   >
                     Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* iLMS Lot/Box Mismatch Modal */}
+          {ilmsMismatchModal.open && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })}>
+              <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">Lot / Box Mismatch</h3>
+                      <p className="text-[11px] text-muted-foreground">iLMS data differs from session</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })}
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* Body */}
+                <div className="px-5 py-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    ISBN <span className="font-semibold text-foreground">{ilmsMismatchModal.isbn}</span> ({ilmsMismatchModal.title || 'Unknown Title'}) in iLMS belongs to:
+                  </p>
+                  <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 space-y-1 text-sm">
+                    <p className="text-foreground"><span className="font-medium text-muted-foreground">Lot:</span> {ilmsMismatchModal.ilmsLot || '—'}</p>
+                    <p className="text-foreground"><span className="font-medium text-muted-foreground">Box:</span> {ilmsMismatchModal.ilmsBox || '—'}</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    But your current session is set to <span className="font-semibold text-foreground">{ilmsMismatchModal.expectedLot}</span> / <span className="font-semibold text-foreground">{ilmsMismatchModal.expectedBox}</span>.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Are you sure this is the right book?
+                  </p>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2 justify-end px-5 py-4 border-t border-border">
+                  <button
+                    onClick={() => setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })}
+                    className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => { setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} }); ilmsMismatchModal.onConfirm() }}
+                    className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors"
+                  >
+                    Confirm
                   </button>
                 </div>
               </div>
