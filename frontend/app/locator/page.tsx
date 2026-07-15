@@ -5,7 +5,7 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, Map } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Map } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
@@ -30,6 +30,7 @@ type BookEntry = { isbn: string; title: string }
 
 type Assignment = {
   assignment_id: string
+  status?: 'pending' | 'confirmed'
   assigned_at: string
   assigned_by_name: string | null
   box_id: string
@@ -37,6 +38,21 @@ type Assignment = {
   lot_number: string | null
   total_books: number
   books: BookEntry[]
+}
+
+type PendingAssignment = {
+  assignment_id: string
+  status: 'pending' | 'confirmed'
+  assigned_at: string
+  assigned_by_name: string | null
+  box_id: string
+  box_number: string
+  lot_number: string | null
+  total_books: number
+  location_id: string
+  rack_id: string
+  level: number
+  location_label: string
 }
 
 type StorageLocation = {
@@ -72,10 +88,13 @@ export default function WarehouseLocatorPage() {
   const [totalSections, setTotalSections] = useState(DEFAULT_SECTIONS)
   const [locations, setLocations] = useState<StorageLocation[]>([])
   const [readyBoxes, setReadyBoxes] = useState<ReadyBox[]>([])
+  const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([])
   const [loadingLocations, setLoadingLocations] = useState(true)
   const [loadingReady, setLoadingReady] = useState(false)
+  const [loadingPending, setLoadingPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   // Search
   const [searchValue, setSearchValue] = useState("")
@@ -162,6 +181,17 @@ export default function WarehouseLocatorPage() {
     }
   }, [brand])
 
+  const fetchPendingAssignments = useCallback(async () => {
+    setLoadingPending(true)
+    try {
+      const res = await authFetch(`${API_URL}/api/storage/pending-assignments?box_type=${brand}`)
+      const data = await res.json()
+      if (res.ok) setPendingAssignments(data.assignments || [])
+    } finally {
+      setLoadingPending(false)
+    }
+  }, [brand])
+
   useEffect(() => { fetchLocations() }, [fetchLocations])
 
   useEffect(() => {
@@ -169,6 +199,11 @@ export default function WarehouseLocatorPage() {
       fetchReadyBoxes()
     }
   }, [brand, assignSlot, fetchReadyBoxes])
+
+  useEffect(() => {
+    fetchReadyBoxes()
+    fetchPendingAssignments()
+  }, [brand, fetchReadyBoxes, fetchPendingAssignments])
 
   const getLocation = (rack: string, level: number) =>
     locations.find(l => l.rack_id === rack && l.level === level)
@@ -470,14 +505,22 @@ export default function WarehouseLocatorPage() {
       const data = await res.json()
       if (!res.ok) { alert(data.error || 'Failed to assign boxes'); return }
       setAssignSlot(null)
-      await fetchLocations()
-      // Also refresh detail if open for same slot
-      if (detailSlot?.id === assignSlot.id) {
-        const updated = locations.find(l => l.id === assignSlot.id)
-        if (updated) setDetailSlot(updated)
-      }
+      setAssigningBoxIds(new Set())
+      await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
     } finally {
       setAssignLoading(false)
+    }
+  }
+
+  const handleConfirmAssignment = async (assignmentId: string) => {
+    setConfirmingId(assignmentId)
+    try {
+      const res = await authFetch(`${API_URL}/api/storage/assignments/${assignmentId}/confirm`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Failed to confirm placement'); return }
+      await Promise.all([fetchLocations(), fetchPendingAssignments()])
+    } finally {
+      setConfirmingId(null)
     }
   }
 
@@ -493,12 +536,7 @@ export default function WarehouseLocatorPage() {
       const data = await res.json()
       if (!res.ok) { alert(data.error || 'Failed to remove boxes'); return }
       setSelectedRemoveAssignments(new Set())
-      await fetchLocations()
-      // Also refresh detail slot if open
-      if (detailSlot) {
-        const updated = locations.find(l => l.id === detailSlot.id)
-        if (updated) setDetailSlot(updated)
-      }
+      await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
     } finally {
       setRemovingIds(new Set())
     }
@@ -553,7 +591,7 @@ export default function WarehouseLocatorPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6 max-w-4xl mx-auto">
+          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6 max-w-7xl mx-auto">
 
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -788,88 +826,186 @@ export default function WarehouseLocatorPage() {
             </div>
 
             {/* Warehouse Grid */}
-            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-5">
-                <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
-                {(() => {
-                  const { totalUsed, totalCap } = getSectionStats(activeSection)
-                  const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
-                  return totalCap > 0 ? (
-                    <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
-                  ) : null
-                })()}
-              </div>
-
-              {loadingLocations ? (
-                <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="text-sm">Loading storage map…</span>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,1fr)_3fr_minmax(260px,1fr)] gap-4 items-start">
+              {/* Unassigned storage boxes (left) */}
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
+                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+                  <Inbox className="h-4 w-4 text-primary shrink-0" />
+                  <h3 className="text-sm font-semibold text-card-foreground">Unassigned Storage Boxes</h3>
+                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+                    {readyBoxes.length}
+                  </span>
                 </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {/* Rack column headers */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
-                    {sectionRacks.map(r => (
-                      <div key={r} className="flex-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
+                {loadingReady ? (
+                  <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-xs">Loading unassigned boxes…</span>
+                  </div>
+                ) : readyBoxes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
+                    <Package className="h-7 w-7 opacity-30" />
+                    <p className="text-xs">No unassigned boxes</p>
+                    <p className="text-[10px] max-w-[200px]">Boxes from finished transmission will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
+                    {readyBoxes.map(b => (
+                      <div key={b.id} className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Package className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="text-sm font-medium text-foreground truncate">{b.box_number}</span>
+                        </div>
+                        {b.lot_number && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                            {b.lot_number.toLowerCase().startsWith('lot') ? b.lot_number : `Lot ${b.lot_number}`}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {b.books.length} book{b.books.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
                     ))}
                   </div>
+                )}
+              </div>
 
-                  {/* Rack usage subtotals */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-16" />
-                    {sectionRacks.map(r => {
-                      const rId = rackId(activeSection, r)
-                      const rackLocs = locations.filter(l => l.rack_id === rId)
-                      const rUsed = rackLocs.reduce((s, l) => s + l.used, 0)
-                      const rCap = rackLocs.reduce((s, l) => s + l.capacity, 0)
-                      return (
-                        <div key={r} className="flex-1 text-center text-[10px] text-muted-foreground">
-                          {rCap > 0 ? `${rUsed}/${rCap}` : '—'}
-                        </div>
-                      )
-                    })}
+              {/* Center warehouse layout */}
+              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
+                  {(() => {
+                    const { totalUsed, totalCap } = getSectionStats(activeSection)
+                    const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
+                    return totalCap > 0 ? (
+                      <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
+                    ) : null
+                  })()}
+                </div>
+
+                {loadingLocations ? (
+                  <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="text-sm">Loading storage map…</span>
                   </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {/* Rack column headers */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
+                      {sectionRacks.map(r => (
+                        <div key={r} className="flex-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
+                      ))}
+                    </div>
 
-                  {/* Grid rows (levels) */}
-                  {sectionLevels.map(level => (
-                    <div key={level} className="flex items-center gap-2">
-                      <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
-                      {sectionRacks.map(rack => {
-                        const loc = getLocation(rackId(activeSection, rack), level)
-                        const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
-                        const used = loc?.used ?? 0
-                        const capacity = loc?.capacity ?? 20
+                    {/* Rack usage subtotals */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-16" />
+                      {sectionRacks.map(r => {
+                        const rId = rackId(activeSection, r)
+                        const rackLocs = locations.filter(l => l.rack_id === rId)
+                        const rUsed = rackLocs.reduce((s, l) => s + l.used, 0)
+                        const rCap = rackLocs.reduce((s, l) => s + l.capacity, 0)
                         return (
-                          <button
-                            key={`${rack}-${level}`}
-                            onClick={() => loc && setDetailSlot(loc)}
-                            disabled={!loc}
-                            title={loc ? `Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
-                            className={cn(
-                              "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
-                              loc ? getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
-                              isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
-                              loc && "hover:scale-105 hover:shadow-md cursor-pointer"
-                            )}
-                          >
-                            {provisioningSection && !loc ? (
-                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
-                            ) : loc && used > 0 ? (
-                              <>
-                                <Package className="h-4 w-4 text-foreground/60" />
-                                <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
-                              </>
-                            ) : loc ? (
-                              <Plus className="h-4 w-4 text-muted-foreground/40" />
-                            ) : null}
-                          </button>
+                          <div key={r} className="flex-1 text-center text-[10px] text-muted-foreground">
+                            {rCap > 0 ? `${rUsed}/${rCap}` : '—'}
+                          </div>
                         )
                       })}
                     </div>
-                  ))}
+
+                    {/* Grid rows (levels) */}
+                    {sectionLevels.map(level => (
+                      <div key={level} className="flex items-center gap-2">
+                        <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
+                        {sectionRacks.map(rack => {
+                          const loc = getLocation(rackId(activeSection, rack), level)
+                          const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
+                          const used = loc?.used ?? 0
+                          const capacity = loc?.capacity ?? 20
+                          return (
+                            <button
+                              key={`${rack}-${level}`}
+                              onClick={() => loc && setDetailSlot(loc)}
+                              disabled={!loc}
+                              title={loc ? `Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
+                              className={cn(
+                                "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
+                                loc ? getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
+                                isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
+                                loc && "hover:scale-105 hover:shadow-md cursor-pointer"
+                              )}
+                            >
+                              {provisioningSection && !loc ? (
+                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                              ) : loc && used > 0 ? (
+                                <>
+                                  <Package className="h-4 w-4 text-foreground/60" />
+                                  <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                </>
+                              ) : loc ? (
+                                <Plus className="h-4 w-4 text-muted-foreground/40" />
+                              ) : null}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Pending assignment (right) */}
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
+                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+                  <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+                  <h3 className="text-sm font-semibold text-card-foreground">Pending Assignment</h3>
+                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-600">
+                    {pendingAssignments.length}
+                  </span>
                 </div>
-              )}
+                {loadingPending ? (
+                  <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-xs">Loading pending assignments…</span>
+                  </div>
+                ) : pendingAssignments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
+                    <CheckCircle2 className="h-7 w-7 opacity-30" />
+                    <p className="text-xs">No pending assignments</p>
+                    <p className="text-[10px] max-w-[200px]">Assigned boxes awaiting physical placement confirmation will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
+                    {pendingAssignments.map(a => (
+                      <div key={a.assignment_id} className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Package className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                          <span className="text-sm font-medium text-foreground truncate">{a.box_number}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          {a.location_label}
+                        </div>
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            disabled={confirmingId === a.assignment_id}
+                            onClick={() => handleConfirmAssignment(a.assignment_id)}
+                          >
+                            {confirmingId === a.assignment_id ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : (
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                            )}
+                            Confirm
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
           </div>

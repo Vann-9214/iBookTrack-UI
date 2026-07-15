@@ -560,8 +560,8 @@ router.get('/pipeline-stats', async (req, res) => {
 
     const boxIds = (boxes || []).map(b => b.id)
 
-    // Boxes already placed in a storage slot should not count toward the Storage stage
-    let assignedQuery = db.from('storage_assignments').select('box_id')
+    // Boxes already confirmed as physically placed should not count toward the Storage stage
+    let assignedQuery = db.from('storage_assignments').select('box_id, status').eq('status', 'confirmed')
     if (boxIds.length > 0) assignedQuery = assignedQuery.in('box_id', boxIds)
     const { data: assignedBoxes, error: assignedError } = await assignedQuery
     if (assignedError) throw assignedError

@@ -14,7 +14,9 @@
  *   DELETE /api/storage/locations/:id          — Delete a slot (cascades to assignments)
  *   GET    /api/storage/ready-boxes            — Boxes in 'storage' stage not yet assigned to a slot
  *   POST   /api/storage/assign                 — Assign a single box to a slot
- *   POST   /api/storage/assign/batch           — Bulk-assign multiple boxes to a slot
+ *   POST   /api/storage/assign/batch           — Bulk-assign multiple boxes to a slot (creates pending assignments)
+ *   POST   /api/storage/assignments/:id/confirm — Confirm a pending assignment as physically placed
+ *   GET    /api/storage/pending-assignments    — List pending assignments waiting to be confirmed
  *   DELETE /api/storage/assignment/:id         — Remove a box from its slot
  *   DELETE /api/storage/assignments/batch      — Bulk-remove multiple boxes from their slots
  *   GET    /api/storage/search                 — Find a box's location by ISBN or box number
@@ -40,6 +42,7 @@ router.get('/locations', requireAuth, async (req, res) => {
         id, rack_id, level, capacity,
         assignments:storage_assignments(
           id,
+          status,
           assigned_at,
           assigned_by_name,
           box:boxes(
@@ -66,6 +69,7 @@ router.get('/locations', requireAuth, async (req, res) => {
       used: (loc.assignments || []).length,
       assignments: (loc.assignments || []).map(a => ({
         assignment_id: a.id,
+        status: a.status || 'confirmed',
         assigned_at: a.assigned_at,
         assigned_by_name: a.assigned_by_name,
         box_id: a.box?.id,
@@ -332,6 +336,7 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
         box_ids.map(box_id => ({
           storage_location_id,
           box_id,
+          status: 'pending',
           assigned_by: req.user.id,
           assigned_by_name: req.user.user_metadata?.full_name || req.user.email,
         }))
@@ -446,6 +451,77 @@ router.get('/search', requireAuth, async (req, res) => {
     res.json({ success: true, results, unlocated })
   } catch (error) {
     console.error('Storage search error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// ─── GET /api/storage/pending-assignments ────────────────────────────────────
+// Returns assignments with status 'pending' — boxes assigned to a slot but not yet
+// physically confirmed as placed.
+router.get('/pending-assignments', requireAuth, async (req, res) => {
+  try {
+    const { box_type } = req.query
+    let query = db()
+      .from('storage_assignments')
+      .select(`
+        id,
+        status,
+        assigned_at,
+        assigned_by_name,
+        box:boxes(id, box_number, total_books_expected, lot_id, box_type, lot:lots(lot_number)),
+        location:storage_locations(id, rack_id, level)
+      `)
+      .eq('status', 'pending')
+
+    if (box_type) {
+      const normalized =
+        box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase()
+      query = query.eq('box.box_type', normalized)
+    }
+
+    const { data, error } = await query.order('assigned_at', { ascending: false })
+    if (error) throw error
+
+    const assignments = (data || []).map(a => ({
+      assignment_id: a.id,
+      status: a.status,
+      assigned_at: a.assigned_at,
+      assigned_by_name: a.assigned_by_name,
+      box_id: a.box?.id,
+      box_number: a.box?.box_number,
+      lot_number: a.box?.lot?.lot_number || null,
+      total_books: a.box?.total_books_expected || 0,
+      location_id: a.location?.id,
+      rack_id: a.location?.rack_id,
+      level: a.location?.level,
+      location_label: `Rack ${a.location?.rack_id} – Level ${a.location?.level}`,
+    }))
+
+    res.json({ success: true, assignments })
+  } catch (error) {
+    console.error('Get pending assignments error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+// ─── POST /api/storage/assignments/:id/confirm ─────────────────────────────────
+// Marks a pending assignment as confirmed / physically placed.
+router.post('/assignments/:id/confirm', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { data, error } = await db()
+      .from('storage_assignments')
+      .update({ status: 'confirmed' })
+      .eq('id', id)
+      .select('id, status')
+      .single()
+
+    if (error) throw error
+    if (!data) return res.status(404).json({ success: false, error: 'Assignment not found' })
+
+    res.json({ success: true, assignment: data })
+  } catch (error) {
+    console.error('Confirm assignment error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
