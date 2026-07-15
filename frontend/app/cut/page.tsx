@@ -524,7 +524,7 @@ export default function CutPage() {
           ? { from: 'Inventory', to: 'Cut', fromColor: 'bg-blue-100 text-blue-700 border-blue-300', toColor: 'bg-orange-100 text-orange-700 border-orange-300' }
           : { from: 'Cut', to: 'Book Endorsement', fromColor: 'bg-orange-100 text-orange-700 border-orange-300', toColor: 'bg-purple-100 text-purple-700 border-purple-300' }
       }
-      confirmLabel={confirmModal.action === 'receive' ? 'Yes, Receive' : 'Yes, Send'}
+      confirmLabel={confirmModal.action === 'receive' ? 'Yes, Receive' : 'Yes, Send to Endorsement'}
       variant={confirmModal.action === 'send' ? 'destructive' : 'default'}
       loading={
         (confirmModal.action === 'receive' && !!receivingBox) ||

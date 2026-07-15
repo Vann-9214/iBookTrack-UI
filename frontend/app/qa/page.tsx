@@ -1223,7 +1223,7 @@ export default function BookInspectionPage() {
                                   className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
                                 >
                                   {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                                  {sendingToScan === box.id ? 'Sending…' : 'Send'}
+                                  {sendingToScan === box.id ? 'Sending…' : 'Send to Scan'}
                                 </button>
                               </div>
                               {isExpanded && (
