@@ -33,6 +33,7 @@ interface QCFlag {
   flagged_at: string
   assigned_box?: {
     box_number: string
+    box_type?: string | null
     lot?: { lot_number: string }
   }
 }
@@ -100,9 +101,15 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const fetchFlags = async (page = 1) => {
     setLoadingFlags(true)
     try {
-      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10&today=true`)
+      const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10&today=true&box_type=${brand}`)
       const data = await res.json()
-      setFlags(data.flags || [])
+      const validBrands = ['Mustang', 'Jaguar']
+      const filtered = (data.flags || []).filter((f: QCFlag) => {
+        const type = f.assigned_box?.box_type
+        if (!type || !validBrands.includes(type)) return false
+        return type === brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase()
+      })
+      setFlags(filtered)
       setTotalFlags(data.total || 0)
     } catch {
       setFlags([])
@@ -140,6 +147,11 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     if (dailyOutputRows.length > 0) return
     await fetchDailyOutput(1)
   }
+
+  useEffect(() => {
+    setFlags([])
+    setTotalFlags(0)
+  }, [brand])
 
   useEffect(() => {
     if (refreshKey === undefined || !flagsOpen) return

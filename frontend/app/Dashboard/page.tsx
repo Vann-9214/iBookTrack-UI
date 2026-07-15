@@ -165,7 +165,7 @@ export default function DashboardPage() {
           stageBoxes = stageBoxes.filter((b: any) => scanEligibleBoxNums!.has(b.box_number))
         }
 
-        const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter((b: any) => {
+        const bottleneckCount = (stage === 'storage' || stage === 'transmit') ? 0 : stageBoxes.filter((b: any) => {
           const session = b.box_sessions?.[0]
           if (!session?.updated_at) return false
           const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)

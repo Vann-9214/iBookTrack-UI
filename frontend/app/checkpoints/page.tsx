@@ -1536,7 +1536,7 @@ export default function StationCheckpointsPage() {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
                     
-                    const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter(b => {
+                    const bottleneckCount = (stage === 'storage' || stage === 'transmit') ? 0 : stageBoxes.filter(b => {
                       const session = b.box_sessions?.[0]
                       if (!session?.updated_at) return false
                       const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
@@ -1608,7 +1608,7 @@ export default function StationCheckpointsPage() {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
                     
-                    const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter(b => {
+                    const bottleneckCount = (stage === 'storage' || stage === 'transmit') ? 0 : stageBoxes.filter(b => {
                       const session = b.box_sessions?.[0]
                       if (!session?.updated_at) return false
                       const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
