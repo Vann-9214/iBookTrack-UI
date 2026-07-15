@@ -1189,13 +1189,12 @@ export default function WarehousePage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No. <span className="text-muted-foreground font-normal">(optional)</span></label>
-                    <input
-                      type="text"
+                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No. <span className="text-destructive">*</span></label>
+                    <textarea
                       value={flagRemarks}
                       onChange={e => setFlagRemarks(e.target.value)}
                       placeholder="e.g. Page 42, bottom margin"
-                      className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full min-h-[80px] resize-y rounded-md border border-input bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
                 </div>
@@ -1210,7 +1209,7 @@ export default function WarehousePage() {
                   </button>
                   <button
                     onClick={saveFlagFromLog}
-                    disabled={!flagIssue || flagSaving}
+                    disabled={!flagIssue || !flagRemarks.trim() || flagSaving}
                     className="inline-flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium disabled:opacity-50 transition-colors"
                   >
                     <AlertTriangle className="h-3.5 w-3.5" />
