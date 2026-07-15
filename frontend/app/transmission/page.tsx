@@ -28,10 +28,10 @@ import {
   Calendar as CalendarIcon,
   Package,
   Box,
-  Tag,
+  Boxes,
+  Check,
   ChevronDown,
   ChevronRight,
-  AlertTriangle,
   BookOpen,
   Clock,
   UploadCloud,
@@ -164,6 +164,9 @@ export default function TransmissionMonitorPage() {
   const [lotSummary, setLotSummary] = useState<any>(null)
   const [lotError, setLotError] = useState<string | null>(null)
   const [lotIsbnFilter, setLotIsbnFilter] = useState<'all'|'processable'|'transmitted'|'wip'|'non_processable'>('all')
+  const [lotBoxFilter, setLotBoxFilter] = useState<string>('all')
+  const [lotBoxSelectorOpen, setLotBoxSelectorOpen] = useState(false)
+  const [lotBoxSearch, setLotBoxSearch] = useState("")
   const [lotIsbnSearch, setLotIsbnSearch] = useState("")
   const [lotSearchResults, setLotSearchResults] = useState<any[]>([])
   const [lotSearchTotal, setLotSearchTotal] = useState(0)
@@ -176,13 +179,6 @@ export default function TransmissionMonitorPage() {
   const [lotExpandedSections, setLotExpandedSections] = useState<Record<string, boolean>>({
     transmitted: false, wip: true, non_processable: false,
   })
-
-  // --- Box visibility state ---
-  const [boxInput, setBoxInput] = useState("")
-  const [boxLoading, setBoxLoading] = useState(false)
-  const [boxData, setBoxData] = useState<any>(null)
-  const [boxError, setBoxError] = useState<string | null>(null)
-  const [boxIsbnSearch, setBoxIsbnSearch] = useState("")
 
   // --- ISBN tagging state ---
   const [tagModalScan, setTagModalScan] = useState<any>(null)
@@ -312,6 +308,9 @@ export default function TransmissionMonitorPage() {
     setLotError(null)
     setLotSummary(null)
     setLotIsbnSearch('')
+    setLotIsbnFilter('all')
+    setLotBoxFilter('all')
+    setLotBoxSearch('')
     try {
       const res = await authFetch(`${API_URL}/api/lots/${encodeURIComponent(q)}/transmission-summary`)
       const data = await res.json()
@@ -331,25 +330,6 @@ export default function TransmissionMonitorPage() {
     searchLots('', 1, 50)
   }, [searchLots])
 
-  // --- Box transmission fetch ---
-  const fetchBoxTransmission = async () => {
-    const q = boxInput.trim()
-    if (!q) return
-    setBoxLoading(true)
-    setBoxError(null)
-    setBoxData(null)
-    try {
-      const res = await authFetch(`${API_URL}/api/boxes/${encodeURIComponent(q)}/transmission`)
-      const data = await res.json()
-      if (!data.success) { setBoxError(data.error || 'Box not found'); return }
-      setBoxData(data)
-    } catch (e: any) {
-      setBoxError(e.message || 'Failed to load box data')
-    } finally {
-      setBoxLoading(false)
-    }
-  }
-
   // --- ISBN tagging ---
   const handleTagSubmit = async () => {
     if (!tagModalScan) return
@@ -363,8 +343,7 @@ export default function TransmissionMonitorPage() {
       })
       const data = await res.json()
       if (!data.success) { setTagError(data.error || 'Failed to tag ISBN'); return }
-      // Refresh box or lot data after tagging
-      if (boxData) fetchBoxTransmission()
+      // Refresh lot data after tagging
       if (lotSummary) fetchLotSummary()
       setTagModalScan(null)
       setTagRemarks("")
@@ -411,11 +390,41 @@ export default function TransmissionMonitorPage() {
 
   // LOT isbn filtered list
   const lotIsbns: any[] = lotSummary?.isbns || []
+  // Boxes contained in the active LOT, derived from its ISBN rows
+  const lotBoxGroups: any[] = (() => {
+    const map = new Map<string, any>()
+    for (const r of lotIsbns) {
+      const key = r.box_number || '—'
+      if (!map.has(key)) {
+        map.set(key, { box_number: key, total: 0, processable: 0, transmitted: 0, non_processable: 0 })
+      }
+      const g = map.get(key)
+      g.total++
+      if (r.scan_status === 'processable') g.processable++
+      if (r.scan_status === 'non_processable') g.non_processable++
+      if (r.transmission_completed) g.transmitted++
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.box_number.localeCompare(b.box_number, undefined, { numeric: true, sensitivity: 'base' })
+    )
+  })()
+
+  // Scalable box selector: search + cap rendered rows so lots with thousands of boxes stay fast
+  const BOX_RENDER_CAP = 100
+  const lotBoxSearchLower = lotBoxSearch.trim().toLowerCase()
+  const matchedBoxGroups = lotBoxSearchLower
+    ? lotBoxGroups.filter((g: any) => g.box_number.toLowerCase().includes(lotBoxSearchLower))
+    : lotBoxGroups
+  const visibleBoxGroups = matchedBoxGroups.slice(0, BOX_RENDER_CAP)
+  const activeBoxGroup = lotBoxFilter !== 'all' ? lotBoxGroups.find((g: any) => g.box_number === lotBoxFilter) : null
+
   const filteredLotIsbns = lotIsbns.filter((r: any) => {
     const matchesSearch = !lotIsbnSearch ||
       r.isbn?.toLowerCase().includes(lotIsbnSearch.toLowerCase()) ||
       r.title?.toLowerCase().includes(lotIsbnSearch.toLowerCase())
     if (!matchesSearch) return false;
+
+    if (lotBoxFilter !== 'all' && (r.box_number || '—') !== lotBoxFilter) return false;
 
     if (lotIsbnFilter === 'processable') return r.scan_status === 'processable';
     if (lotIsbnFilter === 'transmitted') return r.transmission_completed;
@@ -426,15 +435,10 @@ export default function TransmissionMonitorPage() {
   const lotIsbnPagination = usePagination({ totalItems: filteredLotIsbns.length, defaultPageSize: 50 })
   const paginatedLotIsbns = filteredLotIsbns.slice(lotIsbnPagination.offset, lotIsbnPagination.offset + lotIsbnPagination.limit)
 
-  // Box isbn filtered list
-  const boxBooks: any[] = boxData?.books || []
-  const filteredBoxBooks = boxBooks.filter((b: any) =>
-    !boxIsbnSearch ||
-    b.isbn?.toLowerCase().includes(boxIsbnSearch.toLowerCase()) ||
-    b.title?.toLowerCase().includes(boxIsbnSearch.toLowerCase())
-  )
-  const boxBookPagination = usePagination({ totalItems: filteredBoxBooks.length, defaultPageSize: 50 })
-  const paginatedBoxBooks = filteredBoxBooks.slice(boxBookPagination.offset, boxBookPagination.offset + boxBookPagination.limit)
+  // Reset LOT book list to page 1 when its filters change
+  useEffect(() => {
+    lotIsbnPagination.goToPage(1)
+  }, [lotBoxFilter, lotIsbnFilter, lotIsbnSearch, lotIsbnPagination.goToPage])
 
   const lastUpdateLabel = lastUpdated
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
@@ -708,13 +712,7 @@ export default function TransmissionMonitorPage() {
                     <TabsTrigger value="queue" className="text-xs sm:text-sm px-2 sm:px-3">Live Scan Feed</TabsTrigger>
                     <TabsTrigger value="machine" className="text-xs sm:text-sm px-2 sm:px-3">By Machine</TabsTrigger>
                     <TabsTrigger value="lot" className="text-xs sm:text-sm px-2 sm:px-3">
-                      <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />LOT
-                    </TabsTrigger>
-                    <TabsTrigger value="box" className="text-xs sm:text-sm px-2 sm:px-3">
-                      <Box className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />Box
-                    </TabsTrigger>
-                    <TabsTrigger value="isbn" className="text-xs sm:text-sm px-2 sm:px-3">
-                      <Tag className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />ISBN
+                      <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />LOT &amp; Box
                     </TabsTrigger>
                   </TabsList>
                 </div>
@@ -1243,12 +1241,161 @@ export default function TransmissionMonitorPage() {
                         </div>
                       </Card>
 
+                      {/* ── Box Filter (scalable, searchable) ── */}
+                      {lotBoxGroups.length > 0 && (
+                        <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
+                          <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-2">
+                            {/* Label */}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500 text-white">
+                                <Boxes className="h-4 w-4" />
+                              </div>
+                              <p className="text-sm font-bold text-gray-800">Filter by Box</p>
+                              <Badge variant="outline" className="text-[10px] border-violet-200 bg-violet-50 text-violet-600 font-semibold">
+                                {lotBoxGroups.length.toLocaleString()} {lotBoxGroups.length === 1 ? 'box' : 'boxes'}
+                              </Badge>
+                            </div>
+
+                            {/* Searchable combobox */}
+                            <div className="flex flex-1 items-center gap-2 min-w-0">
+                              <Popover open={lotBoxSelectorOpen} onOpenChange={(o) => { setLotBoxSelectorOpen(o); if (!o) setLotBoxSearch('') }}>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={lotBoxSelectorOpen}
+                                    className={cn(
+                                      'h-9 w-full sm:w-[260px] min-w-0 justify-between gap-2 bg-white text-foreground font-normal hover:bg-violet-50 hover:text-violet-700 data-[state=open]:border-violet-400 data-[state=open]:ring-2 data-[state=open]:ring-violet-200',
+                                      lotBoxFilter !== 'all' && 'border-violet-300 ring-1 ring-violet-200'
+                                    )}
+                                  >
+                                    <span className="flex items-center gap-2 min-w-0">
+                                      <Box className={cn('h-4 w-4 shrink-0', lotBoxFilter !== 'all' ? 'text-violet-600' : 'text-muted-foreground')} />
+                                      <span className={cn('truncate', lotBoxFilter === 'all' && 'text-muted-foreground')}>
+                                        {lotBoxFilter === 'all' ? 'All boxes' : lotBoxFilter}
+                                      </span>
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[min(88vw,300px)] p-0" align="start" sideOffset={4}>
+                                  {/* Search */}
+                                  <div className="relative border-b border-border p-2">
+                                    <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                    <Input
+                                      autoFocus
+                                      placeholder={`Search ${lotBoxGroups.length.toLocaleString()} boxes…`}
+                                      value={lotBoxSearch}
+                                      onChange={(e) => setLotBoxSearch(e.target.value)}
+                                      className="h-9 pl-9 text-sm border-0 shadow-none focus-visible:ring-0"
+                                    />
+                                  </div>
+                                  {/* List */}
+                                  <div className="max-h-[320px] overflow-y-auto p-1">
+                                    {/* All boxes option */}
+                                    {!lotBoxSearchLower && (
+                                      <button
+                                        onClick={() => { setLotBoxFilter('all'); setLotBoxSelectorOpen(false); setLotBoxSearch('') }}
+                                        className={cn(
+                                          'flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors',
+                                          lotBoxFilter === 'all' ? 'bg-violet-50 text-violet-700' : 'hover:bg-violet-50 hover:text-violet-700'
+                                        )}
+                                      >
+                                        <Package className="h-4 w-4 shrink-0 text-violet-500" />
+                                        <span className="flex-1 font-semibold">All boxes</span>
+                                        <span className="text-[11px] text-muted-foreground">{lotIsbns.length.toLocaleString()} books</span>
+                                        {lotBoxFilter === 'all' && <Check className="h-4 w-4 text-violet-600 shrink-0" />}
+                                      </button>
+                                    )}
+
+                                    {matchedBoxGroups.length === 0 ? (
+                                      <div className="flex flex-col items-center justify-center gap-1 py-10 text-center">
+                                        <Box className="h-6 w-6 text-muted-foreground/40" />
+                                        <p className="text-sm text-muted-foreground">No boxes match “{lotBoxSearch}”</p>
+                                      </div>
+                                    ) : visibleBoxGroups.map((g: any) => {
+                                      const isActive = lotBoxFilter === g.box_number
+                                      const pct = g.processable > 0 ? Math.round((g.transmitted / g.processable) * 100) : (g.non_processable === g.total ? 100 : 0)
+                                      return (
+                                        <button
+                                          key={g.box_number}
+                                          onClick={() => { setLotBoxFilter(g.box_number); setLotBoxSelectorOpen(false); setLotBoxSearch('') }}
+                                          className={cn(
+                                            'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors',
+                                            isActive ? 'bg-violet-50' : 'hover:bg-violet-50'
+                                          )}
+                                        >
+                                          <Box className={cn('h-4 w-4 shrink-0', isActive ? 'text-violet-600' : 'text-muted-foreground')} />
+                                          <div className="flex min-w-0 flex-1 flex-col">
+                                            <span className={cn('truncate font-mono text-[12px] font-semibold', isActive ? 'text-violet-700' : 'text-foreground')}>{g.box_number}</span>
+                                            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                              <span>{g.total} books</span>
+                                              <span className="text-emerald-600">· {g.transmitted} sent</span>
+                                              {g.non_processable > 0 && <span className="text-red-500">· {g.non_processable} N/P</span>}
+                                            </span>
+                                          </div>
+                                          {g.processable > 0 && (
+                                            <Badge variant="outline" className={cn('text-[9px] px-1 py-0 font-semibold shrink-0', pct === 100 ? 'border-emerald-200 bg-emerald-50 text-emerald-600' : 'border-amber-200 bg-amber-50 text-amber-600')}>
+                                              {pct}%
+                                            </Badge>
+                                          )}
+                                          {isActive && <Check className="h-4 w-4 text-violet-600 shrink-0" />}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                  {/* Overflow hint */}
+                                  {matchedBoxGroups.length > BOX_RENDER_CAP && (
+                                    <div className="border-t border-border bg-muted/20 px-3 py-2 text-center text-[11px] text-muted-foreground">
+                                      Showing {BOX_RENDER_CAP} of {matchedBoxGroups.length.toLocaleString()} boxes — type to refine
+                                    </div>
+                                  )}
+                                </PopoverContent>
+                              </Popover>
+
+                              {lotBoxFilter !== 'all' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-9 shrink-0 gap-1 px-2.5 text-xs text-violet-600 hover:bg-violet-100"
+                                  onClick={() => setLotBoxFilter('all')}
+                                >
+                                  <XCircle className="h-3.5 w-3.5" /> Clear
+                                </Button>
+                              )}
+                            </div>
+
+                            {/* Selected box stat pills */}
+                            {activeBoxGroup && (
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                <Badge variant="outline" className="text-[10px] border-gray-200 bg-gray-50 text-gray-600 font-semibold gap-1">
+                                  {activeBoxGroup.total} <span className="font-normal text-muted-foreground">books</span>
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-600 font-semibold gap-1">
+                                  {activeBoxGroup.transmitted} <span className="font-normal">sent</span>
+                                </Badge>
+                                {activeBoxGroup.non_processable > 0 && (
+                                  <Badge variant="outline" className="text-[10px] border-red-200 bg-red-50 text-red-600 font-semibold gap-1">
+                                    {activeBoxGroup.non_processable} <span className="font-normal">N/P</span>
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      )}
+
                       {/* ── ISBN Table ── */}
                       <Card className="border-border bg-card overflow-hidden py-0 gap-0">
                         <div className="flex items-center justify-between px-5 py-2.5 border-b border-border">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-foreground">Books</p>
                             <Badge variant="secondary" className="text-[10px] font-mono">{filteredLotIsbns.length}</Badge>
+                            {lotBoxFilter !== 'all' && (
+                              <Badge variant="outline" className="text-[10px] gap-1 border-violet-200 bg-violet-50 text-violet-700 font-semibold">
+                                <Box className="h-2.5 w-2.5" />{lotBoxFilter}
+                              </Badge>
+                            )}
                           </div>
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -1277,9 +1424,9 @@ export default function TransmissionMonitorPage() {
                               <tbody>
                                 {paginatedLotIsbns.length === 0 ? (
                                   <tr>
-                                    <td colSpan={6} className="text-center py-10 text-muted-foreground">
+                                    <td colSpan={7} className="text-center py-10 text-muted-foreground">
                                       <BookOpen className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground/40" />
-                                      No ISBNs found
+                                      No books found{lotBoxFilter !== 'all' ? ` in box ${lotBoxFilter}` : ''}
                                     </td>
                                   </tr>
                                 ) : paginatedLotIsbns.map((r: any, i: number) => (
@@ -1347,213 +1494,6 @@ export default function TransmissionMonitorPage() {
                     </>
                   )}
                 </div>
-              </TabsContent>
-
-              {/* ── Box Visibility ── */}
-              <TabsContent value="box" className="mt-4">
-                <div className="flex flex-col gap-4">
-                  <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-violet-50">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500 text-white shrink-0">
-                        <Box className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-bold text-gray-800">Box-Level Transmission</p>
-                        <p className="text-xs text-gray-500">Search a box number to view per-ISBN Simflex status and transmission dates</p>
-                      </div>
-                    </div>
-                    <div className="px-5 py-4">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Enter Box Number (e.g. Lot-101-PROCESSABLE-0001)"
-                          value={boxInput}
-                          onChange={e => setBoxInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') fetchBoxTransmission() }}
-                          className="max-w-sm text-sm"
-                        />
-                        <Button onClick={fetchBoxTransmission} disabled={boxLoading || !boxInput.trim()} className="gap-1.5">
-                          {boxLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                          Search
-                        </Button>
-                      </div>
-                      {boxError && (
-                        <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
-                          <XCircle className="h-3.5 w-3.5" />{boxError}
-                        </p>
-                      )}
-                    </div>
-                  </Card>
-
-                  {boxData && (
-                    <>
-                      {/* Box info + summary */}
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                        <div className="flex-1 rounded-xl border border-border bg-card p-4">
-                          <div className="flex items-center gap-3 mb-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 border border-violet-200">
-                              <Box className="h-5 w-5 text-violet-600" />
-                            </div>
-                            <div>
-                              <p className="text-base font-bold text-foreground">{boxData.box.box_number}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {boxData.box.lot_number} · <span className="capitalize">{boxData.box.current_stage}</span>
-                              </p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-3">
-                            {[
-                              { label: 'Total', value: boxData.summary.total, color: 'blue' },
-                              { label: 'Transmitted', value: boxData.summary.transmitted, color: 'emerald' },
-                              { label: 'WIP', value: boxData.summary.wip, color: 'amber' },
-                              { label: 'Non-Processable', value: boxData.summary.non_processable, color: 'red' },
-                            ].map(s => (
-                              <div key={s.label} className={`rounded-lg border bg-${s.color}-50 border-${s.color}-200 p-2.5`}>
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">{s.label}</p>
-                                <p className={`text-xl font-black text-${s.color}-600 mt-0.5`}>{s.value}</p>
-                              </div>
-                            ))}
-                          </div>
-                          {boxData.summary.total > 0 && (
-                            <div className="mt-3">
-                              <Progress value={(boxData.summary.transmitted / (boxData.summary.total - boxData.summary.non_processable || 1)) * 100} className="h-2" />
-                              <p className="text-[10px] text-muted-foreground mt-1">
-                                {boxData.summary.transmitted} of {boxData.summary.total - boxData.summary.non_processable} processable books transmitted
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* ISBN table */}
-                      <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-                        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-                          <p className="text-sm font-semibold text-foreground">ISBNs in {boxData.box.box_number}</p>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                              placeholder="Search ISBN or title..."
-                              value={boxIsbnSearch}
-                              onChange={e => setBoxIsbnSearch(e.target.value)}
-                              className="w-56 pl-9 h-8 text-xs bg-white"
-                            />
-                          </div>
-                        </div>
-                        <CardContent className="p-0">
-                          <table className="w-full text-xs">
-                            <thead className="bg-muted/30 sticky top-0">
-                              <tr className="border-b border-border">
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">ISBN</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Title</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Scan Status</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Simflex Status</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Transmission Date</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Scan User</th>
-                                <th className="text-left font-semibold text-muted-foreground px-4 py-2.5">Action</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {paginatedBoxBooks.length === 0 ? (
-                                <tr><td colSpan={6} className="text-center py-10 text-muted-foreground">No books found</td></tr>
-                              ) : paginatedBoxBooks.map((b: any, i: number) => (
-                                <tr key={b.scan_id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                                  <td className="font-mono px-4 py-2.5 text-foreground">{b.isbn}</td>
-                                  <td className="px-4 py-2.5 text-muted-foreground truncate max-w-[180px]">{b.title || '—'}</td>
-                                  <td className="px-4 py-2.5">{getScanStatusBadge(b.scan_status)}</td>
-                                  <td className="px-4 py-2.5">{getSimflexBadge(b.simflex_status, b.transmission_completed)}</td>
-                                  <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">
-                                    {b.transmission_date ? format(new Date(b.transmission_date), 'MMM d, yyyy HH:mm') : '—'}
-                                  </td>
-                                  <td className="px-4 py-2.5 text-muted-foreground">{b.scan_user || '—'}</td>
-                                  <td className="px-4 py-2.5">
-                                    {isManager && b.scan_status === 'processable' && (
-                                      <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-amber-600 hover:bg-amber-50"
-                                        onClick={() => { setTagModalScan(b); setTagStatus('reject'); setTagRemarks(''); setTagError(null) }}>
-                                        Tag
-                                      </Button>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                          {filteredBoxBooks.length > 0 && boxBookPagination.totalPages > 1 && (
-                            <Pagination
-                              currentPage={boxBookPagination.currentPage}
-                              totalPages={boxBookPagination.totalPages}
-                              pageSize={boxBookPagination.pageSize}
-                              onPageChange={boxBookPagination.goToPage}
-                              onPageSizeChange={boxBookPagination.setPageSize}
-                              canPrevPage={boxBookPagination.canPrevPage}
-                              canNextPage={boxBookPagination.canNextPage}
-                            />
-                          )}
-                        </CardContent>
-                      </Card>
-                    </>
-                  )}
-                </div>
-              </TabsContent>
-
-              {/* ── ISBN Management ── */}
-              <TabsContent value="isbn" className="mt-4">
-                <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-                  <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-amber-50">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500 text-white shrink-0">
-                      <Tag className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-800">ISBN Status Management</p>
-                      <p className="text-xs text-gray-500">
-                        {isManager
-                          ? 'Tag individual ISBNs as Rejected or Non-Processable. Use Box Visibility or LOT Visibility tab to find and tag ISBNs.'
-                          : 'This feature is restricted to scanning team managers. Use the Box Visibility or LOT Visibility tab to search for ISBNs.'}
-                      </p>
-                    </div>
-                  </div>
-                  <CardContent className="p-6">
-                    {!isManager ? (
-                      <div className="flex flex-col items-center gap-3 py-12">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 border border-amber-200">
-                          <AlertTriangle className="h-7 w-7 text-amber-500" />
-                        </div>
-                        <p className="text-sm font-semibold text-foreground">Manager Access Required</p>
-                        <p className="text-xs text-muted-foreground text-center max-w-xs">
-                          Only authorized scanning team managers can tag ISBNs. Contact your administrator if you need this access.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-4">
-                        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-                          <div className="flex items-start gap-3">
-                            <BookOpen className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
-                            <div>
-                              <p className="text-sm font-semibold text-blue-800">How to tag an ISBN</p>
-                              <ol className="mt-1 text-xs text-blue-700 space-y-0.5 list-decimal list-inside">
-                                <li>Go to the <strong>Box Visibility</strong> or <strong>LOT Visibility</strong> tab</li>
-                                <li>Search for the box or LOT containing the ISBN</li>
-                                <li>Click the <strong>Tag</strong> button next to the ISBN you want to update</li>
-                                <li>Select the new status (Reject or Non-Processable) and enter remarks</li>
-                              </ol>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rounded-xl border border-border bg-muted/30 p-4">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Status Definitions</p>
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-                              <Badge variant="outline" className="border-orange-300 bg-orange-50 text-orange-700 mb-2 text-[10px]">Rejected</Badge>
-                              <p className="text-xs text-gray-600">Book was scanned but physically rejected due to quality, damage, or other issues at the scanning stage.</p>
-                            </div>
-                            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                              <Badge variant="outline" className="border-red-300 bg-red-50 text-red-700 mb-2 text-[10px]">Non-Processable</Badge>
-                              <p className="text-xs text-gray-600">Book cannot be processed for digital archiving (e.g. duplicate, out-of-scope, or copyright restriction).</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
               </TabsContent>
             </Tabs>
           </div>
