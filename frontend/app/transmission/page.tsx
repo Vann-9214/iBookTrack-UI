@@ -820,7 +820,7 @@ export default function TransmissionMonitorPage() {
                   <CardContent className="p-0">
                     <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
                       <table className="w-full text-sm min-w-[600px]">
-                        <thead className="bg-white">
+                        <thead className="bg-white sticky top-0 z-10">
                           <tr className="border-b border-gray-100">
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
                             <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
