@@ -88,6 +88,36 @@ router.get('/live', requireAuth, async (req, res) => {
     const transmitStage = (stageCounts.stages || []).find(s => s.stage === 'Transmission_Archive')
     const transmitBooks = transmitStage ? transmitStage.Ongoing : 0
 
+    // Replace Simflex BoxNumber with Supabase Box and Lot
+    let processedAllBooks = allBooks.books || []
+    if (processedAllBooks.length > 0) {
+      const isbns = processedAllBooks.map(b => b.ISBN).filter(Boolean)
+      if (isbns.length > 0) {
+        const chunkSize = 1000
+        const supabaseMap = {}
+        for (let i = 0; i < isbns.length; i += chunkSize) {
+          const chunk = isbns.slice(i, i + chunkSize)
+          const { data: dbBooks } = await supabaseAdmin
+            .from('books')
+            .select('isbn, boxes(box_number, lots(lot_number))')
+            .in('isbn', chunk)
+          if (dbBooks && dbBooks.length > 0) {
+            for (const b of dbBooks) {
+              supabaseMap[b.isbn] = {
+                box: b.boxes?.box_number || '—',
+                lot: b.boxes?.lots?.lot_number || '—'
+              }
+            }
+          }
+        }
+        processedAllBooks = processedAllBooks.map(b => ({
+          ...b,
+          BoxNumber: supabaseMap[b.ISBN]?.box || '—',
+          LotNumber: supabaseMap[b.ISBN]?.lot || '—'
+        }))
+      }
+    }
+
     res.json({
       success: true,
       summary: { ...summary.data, completedTransmissions: completedTransmissions.count || 0 },
@@ -99,7 +129,7 @@ router.get('/live', requireAuth, async (req, res) => {
       scanBooks,
       scanWipCount,
       transmitBooks,
-      allBooks: allBooks.books || [],
+      allBooks: processedAllBooks,
       totalBooks: allBooks.totalBooks || 0,
       wipCount: allBooks.wipCount || 0,
     })
