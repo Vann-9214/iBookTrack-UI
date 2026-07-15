@@ -803,22 +803,22 @@ export default function WarehouseLocatorPage() {
                     {/* Rack column headers */}
                     <div className="flex items-start gap-2">
                       {/* Level controls */}
-                      <div className="w-7 flex flex-col items-center gap-0.5 pt-0.5">
+                      <div className="w-9 flex flex-col items-center gap-0.5 pt-0.5">
                         <button
                           onClick={handleAddLevel}
                           disabled={addingLevel}
                           title="Add level"
-                          className="p-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
                         >
-                          {addingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                          {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         </button>
                         <button
                           onClick={() => handleRemoveLevel()}
                           disabled={removingLevel || sectionLevels.length <= 1}
                           title={`Remove level ${Math.max(...sectionLevels)}`}
-                          className="p-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
+                          className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
                         >
-                          {removingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                          {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
                       </div>
                       <div className="w-12 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
@@ -851,7 +851,7 @@ export default function WarehouseLocatorPage() {
                     {/* Grid rows (levels) */}
                     {sectionLevels.map(level => (
                       <div key={level} className="flex items-center gap-2">
-                        <div className="w-7" />
+                        <div className="w-9" />
                         <div className="w-12 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
                         {sectionRacks.map(rack => {
                           const loc = getLocation(rackId(activeSection, rack), level)
@@ -884,7 +884,7 @@ export default function WarehouseLocatorPage() {
                             </button>
                           )
                         })}
-                        <div className="w-7" />
+                        <div className="w-9" />
                       </div>
                     ))}
                   </div>
