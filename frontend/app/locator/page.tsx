@@ -666,121 +666,6 @@ export default function WarehouseLocatorPage() {
               </div>
             )}
 
-            {/* Warehouse toolbar */}
-            <div className="flex items-center justify-end gap-2">
-              {/* Level controls */}
-              <div className="flex items-center rounded-lg border border-border bg-muted overflow-hidden">
-                <button
-                  onClick={handleAddLevel}
-                  disabled={addingLevel}
-                  title="Add level"
-                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
-                >
-                  {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                </button>
-                <div className="w-px bg-border h-5" />
-                <button
-                  onClick={() => handleRemoveLevel()}
-                  disabled={removingLevel || sectionLevels.length <= 1}
-                  title="Remove level"
-                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
-                >
-                  {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-
-              {/* Rack controls */}
-              <div className="flex items-center rounded-lg border border-border bg-muted overflow-hidden">
-                <button
-                  onClick={handleAddRack}
-                  disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
-                  title="Add rack"
-                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
-                >
-                  {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                </button>
-                <div className="w-px bg-border h-5" />
-                <button
-                  onClick={() => handleRemoveRack()}
-                  disabled={removingRack || sectionRacks.length <= 1}
-                  title="Remove rack"
-                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
-                >
-                  {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-
-              {/* Section dropdown */}
-              <div className="relative" ref={sectionDropdownRef}>
-                <Button
-                  variant="secondary"
-                  className="h-9 gap-2 px-3 bg-muted text-foreground border border-border hover:bg-muted-foreground/10"
-                  onClick={() => setSectionDropdownOpen(o => !o)}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  <span className="text-sm">Section {activeSection}</span>
-                  {sectionDropdownOpen
-                    ? <ChevronUp className="h-3.5 w-3.5" />
-                    : <ChevronDown className="h-3.5 w-3.5" />}
-                </Button>
-                {sectionDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-xl border border-border bg-card shadow-lg p-3">
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Select Section</p>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {Array.from({ length: totalSections }, (_, i) => i + 1).map(s => {
-                        const { totalUsed, totalCap, locCount } = getSectionStats(s)
-                        const pct = totalCap > 0 ? (totalUsed / totalCap) * 100 : 0
-                        const dotColor = locCount === 0 ? 'bg-muted-foreground/25' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : pct > 0 ? 'bg-emerald-500' : 'bg-muted-foreground/25'
-                        return (
-                          <button
-                            key={s}
-                            onClick={() => { setActiveSection(s); setSectionDropdownOpen(false) }}
-                            className={cn(
-                              "flex flex-col items-center justify-center gap-1 h-10 rounded-lg border text-xs font-semibold transition-all",
-                              activeSection === s
-                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/60"
-                            )}
-                          >
-                            <span>{s}</span>
-                            <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
-                          </button>
-                        )
-                      })}
-                    </div>
-                    <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-end py-4">
-                      <div className="flex items-center gap-4.5 flex-wrap">
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-emerald-500" />Active</span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-amber-500" />70–90%</span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-red-500" />&gt;90%</span>
-                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>
-                      </div>
-                    </div>
-                      <div className="flex items-center gap-1.5 justify-end">
-                        {totalSections > 1 && (
-                          <button
-                            onClick={() => handleRemoveSection(totalSections)}
-                            disabled={removingSection}
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-destructive/50 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
-                            title={`Remove Section ${totalSections}`}
-                          >
-                            {removingSection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                            Remove
-                          </button>
-                        )}
-                        <button
-                          onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
-                          className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
-                        >
-                          <Plus className="h-3 w-3" />
-                          Add
-                        </button>
-                      </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Warehouse Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,1fr)_3fr_minmax(260px,1fr)] gap-4 items-start">
               {/* Unassigned storage boxes (left) */}
@@ -829,13 +714,83 @@ export default function WarehouseLocatorPage() {
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
-                  {(() => {
-                    const { totalUsed, totalCap } = getSectionStats(activeSection)
-                    const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
-                    return totalCap > 0 ? (
-                      <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
-                    ) : null
-                  })()}
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const { totalUsed, totalCap } = getSectionStats(activeSection)
+                      const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
+                      return totalCap > 0 ? (
+                        <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
+                      ) : null
+                    })()}
+                    <div className="relative" ref={sectionDropdownRef}>
+                      <Button
+                        variant="secondary"
+                        className="h-9 gap-2 px-3 bg-muted text-foreground hover:bg-muted/80 border border-border"
+                        onClick={() => setSectionDropdownOpen(o => !o)}
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                        <span className="text-sm">Section {activeSection}</span>
+                        {sectionDropdownOpen
+                          ? <ChevronUp className="h-3.5 w-3.5" />
+                          : <ChevronDown className="h-3.5 w-3.5" />}
+                      </Button>
+                      {sectionDropdownOpen && (
+                        <div className="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-xl border border-border bg-card shadow-lg p-3">
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Select Section</p>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {Array.from({ length: totalSections }, (_, i) => i + 1).map(s => {
+                              const { totalUsed, totalCap, locCount } = getSectionStats(s)
+                              const pct = totalCap > 0 ? (totalUsed / totalCap) * 100 : 0
+                              const dotColor = locCount === 0 ? 'bg-muted-foreground/25' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : pct > 0 ? 'bg-emerald-500' : 'bg-muted-foreground/25'
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={() => { setActiveSection(s); setSectionDropdownOpen(false) }}
+                                  className={cn(
+                                    "flex flex-col items-center justify-center gap-1 h-10 rounded-lg border text-xs font-semibold transition-all",
+                                    activeSection === s
+                                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                      : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/60"
+                                  )}
+                                >
+                                  <span>{s}</span>
+                                  <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-end py-4">
+                            <div className="flex items-center gap-4.5 flex-wrap">
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-emerald-500" />Active</span>
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-amber-500" />70–90%</span>
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-red-500" />&gt;90%</span>
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>
+                            </div>
+                          </div>
+                            <div className="flex items-center gap-1.5 justify-end">
+                              {totalSections > 1 && (
+                                <button
+                                  onClick={() => handleRemoveSection(totalSections)}
+                                  disabled={removingSection}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-destructive/50 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+                                  title={`Remove Section ${totalSections}`}
+                                >
+                                  {removingSection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                  Remove
+                                </button>
+                              )}
+                              <button
+                                onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
+                              >
+                                <Plus className="h-3 w-3" />
+                                Add
+                              </button>
+                            </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {loadingLocations ? (
@@ -846,33 +801,56 @@ export default function WarehouseLocatorPage() {
                 ) : (
                   <div className="flex flex-col gap-3">
                     {/* Rack column headers */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
+                    <div className="flex items-start gap-2">
+                      {/* Level controls */}
+                      <div className="w-7 flex flex-col items-center gap-0.5 pt-0.5">
+                        <button
+                          onClick={handleAddLevel}
+                          disabled={addingLevel}
+                          title="Add level"
+                          className="p-1 rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                        >
+                          {addingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                        </button>
+                        <button
+                          onClick={() => handleRemoveLevel()}
+                          disabled={removingLevel || sectionLevels.length <= 1}
+                          title={`Remove level ${Math.max(...sectionLevels)}`}
+                          className="p-1 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                        >
+                          {removingLevel ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                        </button>
+                      </div>
+                      <div className="w-12 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
                       {sectionRacks.map(r => (
                         <div key={r} className="flex-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
                       ))}
-                    </div>
-
-                    {/* Rack usage subtotals */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-16" />
-                      {sectionRacks.map(r => {
-                        const rId = rackId(activeSection, r)
-                        const rackLocs = locations.filter(l => l.rack_id === rId)
-                        const rUsed = rackLocs.reduce((s, l) => s + l.used, 0)
-                        const rCap = rackLocs.reduce((s, l) => s + l.capacity, 0)
-                        return (
-                          <div key={r} className="flex-1 text-center text-[10px] text-muted-foreground">
-                            {rCap > 0 ? `${rUsed}/${rCap}` : '—'}
-                          </div>
-                        )
-                      })}
+                      {/* Rack controls */}
+                      <div className="w-7 flex flex-col items-center gap-0.5 pt-0.5">
+                        <button
+                          onClick={handleAddRack}
+                          disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
+                          title="Add rack"
+                          className="p-1 rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                        >
+                          {addingRack ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                        </button>
+                        <button
+                          onClick={() => handleRemoveRack()}
+                          disabled={removingRack || sectionRacks.length <= 1}
+                          title={`Remove rack ${sectionRacks.at(-1)}`}
+                          className="p-1 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                        >
+                          {removingRack ? <Loader2 className="h-3 w-3 animate-spin" /> : <Minus className="h-3 w-3" />}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Grid rows (levels) */}
                     {sectionLevels.map(level => (
                       <div key={level} className="flex items-center gap-2">
-                        <div className="w-16 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
+                        <div className="w-7" />
+                        <div className="w-12 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
                         {sectionRacks.map(rack => {
                           const loc = getLocation(rackId(activeSection, rack), level)
                           const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
@@ -904,6 +882,7 @@ export default function WarehouseLocatorPage() {
                             </button>
                           )
                         })}
+                        <div className="w-7" />
                       </div>
                     ))}
                   </div>
