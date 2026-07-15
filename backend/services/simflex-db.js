@@ -48,6 +48,9 @@ function getSimflexConfig(location = 'mustang') {
 
 const SIMFLEX_CONFIG = getSimflexConfig()
 
+// Sentinel value used by the frontend to request books with no machine name.
+const NONE_MACHINE = '__NONE__'
+
 // ── Date sanitizer ────────────────────────────────────────────────────────────
 /**
  * Converts any date-like value to a safe 'YYYY-MM-DD' string.
@@ -419,11 +422,14 @@ export async function getBooksByMachine(startDate, endDate, machineName, locatio
     const dateWhere = startDate && endDate
       ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
-    const safeMachineName = String(machineName).replace(/'/g, "''")
+    const isNoneMachine = String(machineName).trim() === NONE_MACHINE
+    const machineWhere = isNoneMachine
+      ? `(MachineName IS NULL OR LTRIM(RTRIM(MachineName)) = '')`
+      : `MachineName = '${String(machineName).replace(/'/g, "''")}'`
     const rows = await query(
       `SELECT TOP 5000 ISBN, Status, Updated, ScanDate, ScanUser
        FROM zeusz_IsbnStatus
-       WHERE ${dateWhere} AND MachineName = '${safeMachineName}'
+       WHERE ${dateWhere} AND ${machineWhere}
          AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
        ORDER BY Updated DESC`,
       location
