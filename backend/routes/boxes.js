@@ -255,7 +255,7 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
     const db = supabaseAdmin || supabase
     
     // We use inner join on boxes to allow filtering by box_number and stage
-    let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_books_expected`
+    let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_books_expected, books(title)`
     
     let query = db
       .from('box_sessions')
