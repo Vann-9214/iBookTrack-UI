@@ -5,7 +5,7 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, MapPin, Package, X, Plus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Map } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Map } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
@@ -145,14 +145,10 @@ export default function WarehouseLocatorPage() {
   const [removingRack, setRemovingRack] = useState(false)
   const [addingLevel, setAddingLevel] = useState(false)
   const [removingLevel, setRemovingLevel] = useState(false)
-  const [addDropdownOpen, setAddDropdownOpen] = useState(false)
-  const [removeDropdownOpen, setRemoveDropdownOpen] = useState(false)
   const [warningModal, setWarningModal] = useState<string | null>(null)
   const [pendingRemove, setPendingRemove] = useState<'rack' | 'level' | null>(null)
   const [pendingAddSection, setPendingAddSection] = useState(false)
   const [confirmRemoveSection, setConfirmRemoveSection] = useState<number | null>(null)
-  const addDropdownRef = useRef<HTMLDivElement>(null)
-  const removeDropdownRef = useRef<HTMLDivElement>(null)
 
   const fetchLocations = useCallback(async () => {
     setLoadingLocations(true)
@@ -341,7 +337,7 @@ export default function WarehouseLocatorPage() {
       setPendingRemove(null)
       return
     }
-    if (!confirmed) { setPendingRemove('rack'); setRemoveDropdownOpen(false); return }
+    if (!confirmed) { setPendingRemove('rack'); return }
     setRemovingRack(true)
     setPendingRemove(null)
     try {
@@ -349,7 +345,6 @@ export default function WarehouseLocatorPage() {
         await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
       }
       setLocations(prev => prev.filter(l => l.rack_id !== lastRackId))
-      setRemoveDropdownOpen(false)
     } finally { setRemovingRack(false) }
   }
 
@@ -398,7 +393,7 @@ export default function WarehouseLocatorPage() {
       setPendingRemove(null)
       return
     }
-    if (!confirmed) { setPendingRemove('level'); setRemoveDropdownOpen(false); return }
+    if (!confirmed) { setPendingRemove('level'); return }
     setRemovingLevel(true)
     setPendingRemove(null)
     try {
@@ -406,7 +401,6 @@ export default function WarehouseLocatorPage() {
         await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
       }
       setLocations(prev => prev.filter(l => !(rackIds.includes(l.rack_id) && l.level === topLevel)))
-      setRemoveDropdownOpen(false)
     } finally { setRemovingLevel(false) }
   }
 
@@ -550,17 +544,6 @@ export default function WarehouseLocatorPage() {
     }
   }, [locations])
 
-  // Close add/remove dropdowns on outside click
-  useEffect(() => {
-    if (!addDropdownOpen && !removeDropdownOpen) return
-    const handler = (e: MouseEvent) => {
-      if (addDropdownRef.current && !addDropdownRef.current.contains(e.target as Node)) setAddDropdownOpen(false)
-      if (removeDropdownRef.current && !removeDropdownRef.current.contains(e.target as Node)) setRemoveDropdownOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [addDropdownOpen, removeDropdownOpen])
-
   // Reset capacity edit state when modal closes
   useEffect(() => {
     if (!detailSlot) { setEditingCapacity(false); setCapacityInput('') }
@@ -685,80 +668,53 @@ export default function WarehouseLocatorPage() {
 
             {/* Warehouse toolbar */}
             <div className="flex items-center justify-end gap-2">
-              <div className="flex items-center gap-2">
-                {/* Add dropdown */}
-                <div className="relative" ref={addDropdownRef}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setAddDropdownOpen(o => !o); setRemoveDropdownOpen(false) }}
-                    className="h-9 gap-1.5 border-primary/50 text-primary hover:bg-primary/5 hover:text-primary"
-                  >
-                    {addingRack || addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                    Add
-                    {addDropdownOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  </Button>
-                  {addDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 z-20 flex flex-col gap-1 rounded-lg border border-border bg-card shadow-lg p-1.5 min-w-[120px]">
-                      <button
-                        onClick={() => { handleAddRack(); setAddDropdownOpen(false) }}
-                        disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-40 text-left"
-                      >
-                        <Plus className="h-3.5 w-3.5 text-primary shrink-0" />
-                        Add Rack
-                      </button>
-                      <button
-                        onClick={() => { handleAddLevel(); setAddDropdownOpen(false) }}
-                        disabled={addingLevel}
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-40 text-left"
-                      >
-                        <Plus className="h-3.5 w-3.5 text-primary shrink-0" />
-                        Add Level
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {/* Remove dropdown */}
-                <div className="relative" ref={removeDropdownRef}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { setRemoveDropdownOpen(o => !o); setAddDropdownOpen(false) }}
-                    className="h-9 gap-1.5 border-destructive/50 text-destructive hover:bg-destructive/5 hover:text-destructive"
-                  >
-                    {removingRack || removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    Remove
-                    {removeDropdownOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                  </Button>
-                  {removeDropdownOpen && (
-                    <div className="absolute left-0 top-full mt-1 z-20 flex flex-col gap-1 rounded-lg border border-border bg-card shadow-lg p-1.5 min-w-[180px]">
-                      <button
-                        onClick={() => handleRemoveRack()}
-                        disabled={removingRack || sectionRacks.length <= 1}
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 text-left"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                        Remove Rack {sectionRacks.at(-1)}
-                      </button>
-                      <button
-                        onClick={() => handleRemoveLevel()}
-                        disabled={removingLevel || sectionLevels.length <= 1}
-                        className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40 text-left"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                        Remove Level {Math.max(...sectionLevels)}
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {/* Level controls */}
+              <div className="flex items-center rounded-lg border border-border bg-muted overflow-hidden">
+                <button
+                  onClick={handleAddLevel}
+                  disabled={addingLevel}
+                  title="Add level"
+                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
+                >
+                  {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                </button>
+                <div className="w-px bg-border h-5" />
+                <button
+                  onClick={() => handleRemoveLevel()}
+                  disabled={removingLevel || sectionLevels.length <= 1}
+                  title="Remove level"
+                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
+                >
+                  {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+
+              {/* Rack controls */}
+              <div className="flex items-center rounded-lg border border-border bg-muted overflow-hidden">
+                <button
+                  onClick={handleAddRack}
+                  disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
+                  title="Add rack"
+                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
+                >
+                  {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                </button>
+                <div className="w-px bg-border h-5" />
+                <button
+                  onClick={() => handleRemoveRack()}
+                  disabled={removingRack || sectionRacks.length <= 1}
+                  title="Remove rack"
+                  className="flex items-center justify-center h-8 w-8 text-foreground hover:bg-muted-foreground/10 transition-colors disabled:opacity-40"
+                >
+                  {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Minus className="h-3.5 w-3.5" />}
+                </button>
               </div>
 
               {/* Section dropdown */}
               <div className="relative" ref={sectionDropdownRef}>
                 <Button
-                  variant="outline"
-                  className="h-9 gap-2 px-3"
+                  variant="secondary"
+                  className="h-9 gap-2 px-3 bg-muted text-foreground border border-border hover:bg-muted-foreground/10"
                   onClick={() => setSectionDropdownOpen(o => !o)}
                 >
                   <LayoutGrid className="h-4 w-4" />
