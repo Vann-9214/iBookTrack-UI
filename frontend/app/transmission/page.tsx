@@ -144,7 +144,7 @@ export default function TransmissionMonitorPage() {
   const [totalBooks, setTotalBooks] = useState(0)
   const [wipCount, setWipCount] = useState(0)
   const [tableView, setTableView] = useState<'books' | 'wip'>('books')
-  const [stageFilter, setStageFilter] = useState<{ stage: string, category: 'COMPLETED' | 'ONGOING' | 'FAILED' } | null>(null)
+  const [stageFilter, setStageFilter] = useState<{ stage: string, category: 'COMPLETED' | 'ONGOING' | 'FAILED' | 'ALL' } | null>(null)
   const [byMachine, setByMachine] = useState<any[]>([])
   const [showRanking, setShowRanking] = useState(false)
   const [ranking, setRanking] = useState<any>(null)
