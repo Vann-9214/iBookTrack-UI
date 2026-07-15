@@ -466,7 +466,7 @@ export default function StationCheckpointsPage() {
     if (isLast) {
       return (
         <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 shrink-0">
-          Completed
+          Done
         </Badge>
       )
     }
@@ -1239,7 +1239,7 @@ export default function StationCheckpointsPage() {
                                   }
 
                                   const diffDays = session?.updated_at ? (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24) : 0
-                                  const isDelayed = diffDays >= 1 && stage !== 'storage'
+                                  const isDelayed = diffDays >= 1
                                   
                                   const rowBg = isDelayed ? "bg-orange-50/50" : (brand === 'jaguar' ? "bg-green-50/30" : "bg-blue-50/30")
                                   const rowBorder = isDelayed ? "border-orange-300 hover:border-orange-400" : (brand === 'jaguar' ? "border-green-300 hover:border-green-400" : "border-blue-300 hover:border-blue-400")
@@ -1293,7 +1293,7 @@ export default function StationCheckpointsPage() {
                                             </span>
                                           </div>
 
-                                          {selectedStage !== 'scan' && actionLabel !== 'Scanned' && (
+                                          {selectedStage !== 'scan' && actionLabel !== 'Scanned' && selectedStage !== 'storage' && actionLabel !== 'Completed' && (
                                             <div className="min-w-[130px] col-span-1">
                                               <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} By</span>
                                               <span className="text-xs font-semibold text-foreground truncate block max-w-[120px]" title={byName}>
@@ -1305,7 +1305,7 @@ export default function StationCheckpointsPage() {
 
                                         {/* Right side: Timestamp & Action */}
                                         <div className="flex items-center gap-4 ml-auto pl-4">
-                                          {selectedStage !== 'scan' && actionLabel !== 'Scanned' && (
+                                          {selectedStage !== 'scan' && actionLabel !== 'Scanned' && selectedStage !== 'storage' && actionLabel !== 'Completed' && (
                                             <div className="text-left sm:text-right shrink-0 min-w-[100px]">
                                               <span className="text-[10px] uppercase font-bold text-muted-foreground block">{actionLabel} At</span>
                                               <span className="text-xs font-semibold text-muted-foreground">
@@ -1536,7 +1536,7 @@ export default function StationCheckpointsPage() {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
                     
-                    const bottleneckCount = (stage === 'storage' || stage === 'transmit') ? 0 : stageBoxes.filter(b => {
+                    const bottleneckCount = (stage === 'transmit') ? 0 : stageBoxes.filter(b => {
                       const session = b.box_sessions?.[0]
                       if (!session?.updated_at) return false
                       const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
@@ -1608,7 +1608,7 @@ export default function StationCheckpointsPage() {
                     const meta = STAGE_META[stage]
                     const stageBoxes = boxesByStage[stage]
                     
-                    const bottleneckCount = (stage === 'storage' || stage === 'transmit') ? 0 : stageBoxes.filter(b => {
+                    const bottleneckCount = (stage === 'transmit') ? 0 : stageBoxes.filter(b => {
                       const session = b.box_sessions?.[0]
                       if (!session?.updated_at) return false
                       const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
