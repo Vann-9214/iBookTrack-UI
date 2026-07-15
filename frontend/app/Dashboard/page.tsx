@@ -89,40 +89,103 @@ export default function DashboardPage() {
       let pipelineUrl = `${API_URL}/api/dashboard/pipeline-stats?brand=${brand}`
       if (lotNumber) pipelineUrl += `&lot_number=${encodeURIComponent(lotNumber)}`
 
-      const [statsRes, pipelineRes, simflexRes] = await Promise.all([
+      let boxesUrl = `${API_URL}/api/boxes?exclude_assigned_storage=true&box_type=${brand}`
+      if (lotNumber) boxesUrl += `&lot_number=${encodeURIComponent(lotNumber)}`
+
+      const [statsRes, pipelineRes, boxesRes, simflexRes, scanRowsRes, transmitRowsRes] = await Promise.all([
         authFetch(statsUrl),
         authFetch(pipelineUrl),
-        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${brand}`).catch((e) => { console.error('[Dashboard] /live failed:', e); return null })
+        authFetch(boxesUrl),
+        authFetch(`${API_URL}/api/scanning/live?newProcessOnly=true&location=${brand}`).catch((e) => { console.error('[Dashboard] /live failed:', e); return null }),
+        authFetch(`${API_URL}/api/scanning/scan-rows?location=${brand}`).catch(() => null),
+        authFetch(`${API_URL}/api/scanning/transmit-rows?location=${brand}`).catch(() => null),
       ])
       const statsData = await statsRes.json()
       const pipelineData = await pipelineRes.json()
+      const boxesData = await boxesRes.json()
+
+      const boxes = boxesData.boxes || []
 
       let dailyTransmitted = 0
       let simflexAllTime = 0
       let scanWipCount = 0
       let transmitBooks = 0
+      
+      let scanEligibleBoxNums: Set<string> | null = null
+      let transmitEligibleBoxNums: Set<string> | null = null
+
       if (simflexRes && simflexRes.ok) {
         const simflex = await simflexRes.json()
         scanWipCount = simflex.scanWipCount || 0
-        console.log('[Dashboard] /live scanWipCount:', scanWipCount, '| transmitBooks:', simflex.transmitBooks, '| success:', simflex.success)
         if (simflex.success) {
           dailyTransmitted = simflex.summary?.completedTransmissions || 0
           simflexAllTime   = simflex.allTimeTotal || 0
           transmitBooks = simflex.transmitBooks || 0
           setLiveScans(simflex.recentScans || [])
         }
-      } else {
-        console.warn('[Dashboard] simflexRes not ok:', simflexRes?.status)
       }
 
-      const stages = {
-        ...(pipelineData.stageCounts || {}),
-        scan:     scanWipCount,
-        transmit: transmitBooks,
+      if (scanRowsRes && scanRowsRes.ok) {
+        const scanRowsData = await scanRowsRes.json()
+        if (scanRowsData.success) {
+          scanEligibleBoxNums = new Set<string>((scanRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean))
+        }
       }
+
+      if (transmitRowsRes && transmitRowsRes.ok) {
+        const transmitRowsData = await transmitRowsRes.json()
+        if (transmitRowsData.success) {
+          transmitEligibleBoxNums = new Set<string>((transmitRowsData.rows || []).map((r: any) => String(r.BoxNumber || '')).filter(Boolean))
+        }
+      }
+
+      const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'] as const
+      const originalStageCounts = pipelineData.stageCounts || {}
+      const stages: Record<string, any> = {}
+
+      STAGE_ORDER.forEach(stage => {
+        let stageBoxes = boxes.filter((b: any) => {
+          if (stage === 'transmit') return b.current_stage === 'scan'
+          if (stage === 'storage') {
+            const isActuallyStorage = b.current_stage === 'storage'
+            const isScanButFullyCompleted = b.current_stage === 'scan'
+              && scanEligibleBoxNums !== null
+              && transmitEligibleBoxNums !== null
+              && !scanEligibleBoxNums.has(b.box_number)
+              && !transmitEligibleBoxNums.has(b.box_number)
+            return isActuallyStorage || isScanButFullyCompleted
+          }
+          return b.current_stage === stage
+        })
+
+        if (stage === 'warehouse') {
+          stageBoxes = stageBoxes.filter((b: any) => b.total_books_expected > 0)
+        }
+        if (stage === 'scan' && scanEligibleBoxNums !== null) {
+          stageBoxes = stageBoxes.filter((b: any) => scanEligibleBoxNums!.has(b.box_number))
+        }
+
+        const bottleneckCount = stage === 'storage' ? 0 : stageBoxes.filter((b: any) => {
+          const session = b.box_sessions?.[0]
+          if (!session?.updated_at) return false
+          const diffDays = (Date.now() - new Date(session.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+          return diffDays >= 1
+        }).length
+
+        const totalCount = stage === 'transmit' ? transmitBooks : stageBoxes.length
+        const activeCount = stage === 'transmit' ? totalCount : Math.max(0, totalCount - bottleneckCount)
+
+        stages[stage] = {
+          total: totalCount,
+          active: activeCount,
+          delayed: bottleneckCount,
+          mustang: stageBoxes.filter((b: any) => b.box_type === 'Mustang').length,
+          jaguar: stageBoxes.filter((b: any) => b.box_type === 'Jaguar').length,
+        }
+      })
 
       if (statsData.success) {
-        setDashboardStats({ ...statsData.stats, pipelineStages: stages, dailyTransmitted, totalBooks: simflexAllTime || statsData.stats.totalBooks })
+        setDashboardStats({ ...statsData.stats, pipelineStages: stages, pipelineToday: pipelineData.today, dailyTransmitted, totalBooks: simflexAllTime || statsData.stats.totalBooks })
         setLastStatsUpdate(new Date())
       }
     } catch (error) {
