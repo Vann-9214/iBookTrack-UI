@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-function getStepStatus(count: number, stage: string) {
-  if (count >= 100) return "busy"
+function getStepStatus(count: number, delayed: number) {
+  if (delayed > 0) return "delayed"
   if (count === 0) return "idle"
   return "active"
 }
@@ -19,13 +19,13 @@ const getStatusConfig = (brand: string) => ({
     dot: brand === 'jaguar' ? "bg-green-400" : "bg-blue-400",
     label: "Active",
   },
-  busy: {
+  delayed: {
     nodeRing: "border-orange-400 text-orange-500",
     countColor: "text-orange-500",
     bar: "bg-gradient-to-r from-orange-400 via-orange-400/50 to-transparent",
     cardBg: "bg-orange-50",
     dot: "bg-orange-400",
-    label: "Busy",
+    label: "Delayed",
   },
   idle: {
     nodeRing: "border-gray-300 text-gray-400",
@@ -56,12 +56,14 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     if (raw && typeof raw === 'object' && 'total' in raw) {
       return {
         count: raw.total || 0,
+        active: raw.active || 0,
+        delayed: raw.delayed || 0,
         mustang: raw.mustang || 0,
         jaguar: raw.jaguar || 0,
         isBookStage: false,
       }
     }
-    return { count: typeof raw === 'number' ? raw : 0, mustang: 0, jaguar: 0, isBookStage: false }
+    return { count: typeof raw === 'number' ? raw : 0, active: typeof raw === 'number' ? raw : 0, delayed: 0, mustang: 0, jaguar: 0, isBookStage: false }
   }
 
   const pipelineSteps = [
@@ -69,8 +71,8 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     { label: "Inventory",   ...stageData('inventory'),   stage: "inventory",   clickable: false },
     { label: "Cut",         ...stageData('cut'),         stage: "cut",         clickable: false },
     { label: "Endorsement", ...stageData('endorsement'), stage: "endorsement", clickable: false },
-    { label: "Scan",        count: stats?.pipelineStages?.scan     || 0, mustang: 0, jaguar: 0, isBookStage: true, stage: "scan",        clickable: false },
-    { label: "Transmit",    count: stats?.pipelineStages?.transmit || 0, mustang: 0, jaguar: 0, isBookStage: true, stage: "transmit",    clickable: false },
+    { label: "Scan",        ...stageData('scan'),        stage: "scan",        clickable: false },
+    { label: "Transmit",    ...stageData('transmit'),    stage: "transmit",    isBookStage: true, clickable: false },
     { label: "Storage",     ...stageData('storage'),     stage: "storage",     clickable: false },
   ]
 
@@ -127,7 +129,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Desktop: card layout */}
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.stage)
+              const status = getStepStatus(step.count, step.delayed)
               const cfg = getStatusConfig(brand)[status]
               const inner = (
                 <>
@@ -138,7 +140,15 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   {/* Card body */}
                   <div className={cn("w-full rounded-xl px-3 pt-3 pb-2 flex flex-col items-center gap-1", cfg.cardBg)}>
                     <span className="text-xs font-semibold text-gray-600">{step.label}</span>
-                    <span className={cn("text-2xl font-bold leading-tight", cfg.countColor)}>{step.count}</span>
+                    <span className={cn("text-2xl font-bold leading-tight", cfg.countColor)}>{step.active}</span>
+                    {step.delayed > 0 && (
+                      <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${step.delayed} ${step.isBookStage ? 'books' : 'boxes'} delayed > 1 day`}>
+                        <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                        <span className="text-[10px] font-bold leading-none text-orange-600">
+                          {step.delayed} delayed
+                        </span>
+                      </div>
+                    )}
                     <div className={cn("h-0.5 w-full rounded-full my-1", cfg.bar)} />
                     <div className="flex items-center gap-1">
                       <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
@@ -171,7 +181,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-orange-400" />
-              <span className="text-xs text-muted-foreground">Busy / Bottleneck</span>
+              <span className="text-xs text-muted-foreground">Delayed</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-gray-400" />
@@ -182,7 +192,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.stage)
+              const status = getStepStatus(step.count, step.delayed)
               const cfg = getStatusConfig(brand)[status]
               const inner = (
                 <>
@@ -191,7 +201,10 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-sm font-medium text-card-foreground">{step.label}</span>
-                    <span className="text-xs text-muted-foreground">{step.count} {step.isBookStage ? (step.count === 1 ? 'Book' : 'Books') : (step.count === 1 ? 'Box' : 'Boxes')}</span>
+                    <span className="text-xs text-muted-foreground">{step.active} {step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
+                    {step.delayed > 0 && (
+                      <span className="text-xs text-orange-600 font-medium">{step.delayed} delayed</span>
+                    )}
                     {!step.isBookStage && step.jaguar > 0 && (
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">J {step.jaguar}</span>
