@@ -213,12 +213,45 @@ router.get('/', requireAuth, async (req, res) => {
         }
       }
 
+      let scanCompletionMap = {};
+      const scanBoxIds = boxes.filter(b => b.current_stage === 'scan').map(b => b.id);
+      if (scanBoxIds.length > 0) {
+        const { data: scanActivities } = await db.from('book_activity')
+          .select('book_id, transmission_status, books!inner(box_id)')
+          .in('books.box_id', scanBoxIds)
+          .eq('scan_status', 'processable');
+        
+        const groupedByBox = {};
+        scanBoxIds.forEach(id => { groupedByBox[id] = []; });
+        
+        if (scanActivities) {
+          scanActivities.forEach(act => {
+            if (act.books && act.books.box_id) {
+              groupedByBox[act.books.box_id].push(act);
+            }
+          });
+        }
+        
+        for (const boxId of scanBoxIds) {
+          const activities = groupedByBox[boxId];
+          let isCompleted = false;
+          if (activities.length > 0) {
+            isCompleted = activities.every(a => {
+               const stat = String(a.transmission_status || '').trim().toUpperCase();
+               return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED';
+            });
+          }
+          scanCompletionMap[boxId] = isCompleted;
+        }
+      }
+
       boxes = boxes.map(b => ({
         ...b,
         latest_inventory_scan_at: scanTimeMap[b.id]?.latest_inventory_scan_at || null,
         latest_inventory_scan_by_name: scanTimeMap[b.id]?.latest_inventory_scan_by_name || null,
         latest_endorsement_scan_at: scanTimeMap[b.id]?.latest_endorsement_scan_at || null,
         latest_endorsement_scan_by_name: scanTimeMap[b.id]?.latest_endorsement_scan_by_name || null,
+        is_fully_completed_in_simflex: scanCompletionMap[b.id] || false,
       }))
     }
 

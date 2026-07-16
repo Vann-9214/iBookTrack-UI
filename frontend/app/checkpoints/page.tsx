@@ -110,6 +110,7 @@ interface BoxItem {
   box_number: string
   current_stage: Stage
   total_books_expected: number
+  is_fully_completed_in_simflex?: boolean
 
   lot: { lot_number: string } | null
   box_sessions?: { 
@@ -273,18 +274,7 @@ export default function StationCheckpointsPage() {
   const [simflexRowsLoading, setSimflexRowsLoading] = useState(false)
   const [simflexRowsSearch, setSimflexRowsSearch] = useState('')
 
-  useEffect(() => {
-    if (selectedStage === 'scan' && !hasAutoCheckedScan) {
-      setHasAutoCheckedScan(true)
-      const scanBoxes = boxes.filter(b => b.current_stage === 'scan')
-      scanBoxes.forEach(box => {
-        handleCheckSimflexForBox(box)
-      })
-    } else if (selectedStage !== 'scan') {
-      setHasAutoCheckedScan(false)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStage, boxes, hasAutoCheckedScan])
+  // Removed the auto-check useEffect that was causing annoying toast popups when opening the Scan card
   const [statusFilter, setStatusFilter] = useState('')
   const [pageCountSort, setPageCountSort] = useState<'none' | 'desc' | 'asc'>('none')
   const [updatedSort, setUpdatedSort] = useState<'none' | 'desc' | 'asc'>('none')
@@ -856,28 +846,20 @@ export default function StationCheckpointsPage() {
   const boxesByStage = STAGE_ORDER.reduce<Record<Stage, BoxItem[]>>((acc, stage) => {
     let stageBoxes = boxes.filter(b => {
       if (stage === 'transmit') {
-        return b.current_stage === 'scan'
+        return b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
       }
       if (stage === 'storage') {
         const isActuallyStorage = b.current_stage === 'storage'
-        const isScanButFullyCompleted = b.current_stage === 'scan'
-          && scanEligibleBoxNums !== null
-          && transmitEligibleBoxNums !== null
-          && !scanEligibleBoxNums.has(b.box_number)
-          && !transmitEligibleBoxNums.has(b.box_number)
+        const isScanButFullyCompleted = b.current_stage === 'scan' && b.is_fully_completed_in_simflex
         return isActuallyStorage || isScanButFullyCompleted
+      }
+      if (stage === 'scan') {
+        return b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
       }
       return b.current_stage === stage
     })
     if (stage === 'warehouse') {
       stageBoxes = stageBoxes.filter(b => b.total_books_expected > 0)
-    }
-    // For the Scan card: only count/show boxes that have at least one book
-    // currently in the scan-WIP range (Scanning ONGOING → Preval COMPLETED).
-    // Boxes where every qualifying book has already advanced to
-    // Transmission_Archive COMPLETED are excluded from the count and the modal.
-    if (stage === 'scan' && scanEligibleBoxNums !== null) {
-      stageBoxes = stageBoxes.filter(b => scanEligibleBoxNums.has(b.box_number))
     }
     acc[stage] = stageBoxes
     return acc
