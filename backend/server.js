@@ -21,6 +21,10 @@ import dotenv from 'dotenv'
 dotenv.config({ path: '.env' })
 
 import express from 'express'
+import { initializeLogger } from './utils/logger.js'
+
+// Initialize structured logging to override console methods globally
+initializeLogger()
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
@@ -35,6 +39,7 @@ import reportsRoutes   from './routes/reports.js'
 import scanningRoutes  from './routes/scanning.js'
 import storageRoutes   from './routes/storage.js'
 import { startSimflexPoller } from './services/simflex-poller.js'
+import { errorHandler } from './middleware/errorHandler.js'
 
 const app  = express()
 const PORT = process.env.PORT || 5000
@@ -143,6 +148,9 @@ app.use('/api/storage',   storageRoutes)
 
 // Simple liveness probe — useful for uptime monitors and container health checks
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
+
+// Global error handler - must be the last app.use()
+app.use(errorHandler)
 
 // ── Start server ──────────────────────────────────────────────────────────────
 const server = app.listen(PORT, '0.0.0.0', async () => {
