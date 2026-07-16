@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { cn } from "@/lib/utils"
 import {
   Card,
@@ -101,6 +101,37 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
     fetchLive()
   }, [brand])
 
+  const [enrichedData, setEnrichedData] = useState<Record<string, { box: string, lot: string }>>({})
+  const fetchedIsbns = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    const missingIsbns = scans
+      .filter(item => (item.BoxNumber === '—' || !item.BoxNumber) && !fetchedIsbns.current.has(item.ISBN))
+      .map(item => item.ISBN)
+      .filter(Boolean)
+
+    if (missingIsbns.length > 0) {
+      missingIsbns.forEach(isbn => fetchedIsbns.current.add(isbn))
+      
+      const fetchEnrichment = async () => {
+        try {
+          const res = await authFetch(`${API_URL}/api/scanning/enrich-ilms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isbns: missingIsbns })
+          })
+          const data = await res.json()
+          if (data.success && data.enriched) {
+            setEnrichedData(prev => ({ ...prev, ...data.enriched }))
+          }
+        } catch (e) {
+          console.error('Failed to enrich ILMS data:', e)
+        }
+      }
+      fetchEnrichment()
+    }
+  }, [scans])
+
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
@@ -170,6 +201,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">Lot</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
@@ -183,7 +215,8 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
             <TableRow key={i} className="border-border">
               <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
               <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
-              <TableCell className="text-xs text-card-foreground">{item.BoxNumber || '—'}</TableCell>
+              <TableCell className="text-xs font-semibold text-card-foreground">{(enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—') ? enrichedData[item.ISBN].lot : (item.LotNumber || '—')}</TableCell>
+              <TableCell className="text-xs text-card-foreground">{(enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—') ? enrichedData[item.ISBN].box : (item.BoxNumber || '—')}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{item.PageCount || '—'}</TableCell>
               <TableCell>{getPipelineStatusBadge(item.Status || '')}</TableCell>

@@ -35,11 +35,38 @@ import {
   BookOpen,
   Clock,
   UploadCloud,
+  ChevronsUpDown,
+  X,
 } from "lucide-react"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+
+const FLAG_ISSUES = [
+  { value: "bleed-through",        label: "Bleed-through on page" },
+  { value: "brittle",              label: "Brittle on page" },
+  { value: "cannot-detach-sticky", label: "Cannot be detached or sticky pages" },
+  { value: "cd-only",              label: "CD only, no text content" },
+  { value: "map-spanning",         label: "Contains a map spanning the entire book" },
+  { value: "split-pages",          label: "Contains split pages" },
+  { value: "cutoff-text",          label: "Cutoff text on page" },
+  { value: "illegible-text",       label: "Illegible text" },
+  { value: "inverted-contrast",    label: "Inverted contrast: White on black background" },
+  { value: "missing-pages",        label: "Missing page/s" },
+  { value: "no-content",           label: "No content or body text" },
+  { value: "obscured-highlight",   label: "Obscured text due to highlight marker" },
+  { value: "obscured-watermark",   label: "Obscured text due to watermarks" },
+  { value: "oversized",            label: "Oversized and cannot fit in the scanner" },
+  { value: "pen-marks",            label: "Pen marks on page" },
+  { value: "pop-up-book",          label: "Pop-up book" },
+  { value: "postcard-only",        label: "Postcard only" },
+  { value: "stained-dirty",        label: "Stained or dirty page" },
+  { value: "stamp-mark",           label: "Stamp mark on page" },
+  { value: "thick-cardboard",      label: "Thick or cardboard pages" },
+  { value: "torn-pages",           label: "Torn pages" },
+]
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
@@ -82,7 +109,12 @@ function getPipelineStatusBadge(status: string) {
   ) 
 }
 
-function getSimflexBadge(status: string | null, completed: boolean) {
+function getSimflexBadge(status: string | null, completed: boolean, scanStatus?: string) {
+  if (scanStatus === 'non_processable') return (
+    <Badge variant="outline" className="border-gray-200 bg-gray-100 text-gray-400 text-[10px]">
+      N/A
+    </Badge>
+  )
   if (completed) return (
     <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700 gap-1 text-[10px]">
       <CheckCircle2 className="h-3 w-3" /> Transmitted
@@ -161,6 +193,8 @@ export default function TransmissionMonitorPage() {
   const [toDateOpenMobile, setToDateOpenMobile] = useState(false)
   const [toDateOpenDesktop, setToDateOpenDesktop] = useState(false)
   const [newProcessOnly, setNewProcessOnly] = useState(false)
+  const [enrichedData, setEnrichedData] = useState<Record<string, { box: string, lot: string }>>({})
+  const fetchedIsbns = useRef<Set<string>>(new Set())
 
   // --- LOT visibility state ---
   const [lotInput, setLotInput] = useState("")
@@ -185,11 +219,12 @@ export default function TransmissionMonitorPage() {
   })
 
   // --- ISBN tagging state ---
-  const [tagModalScan, setTagModalScan] = useState<any>(null)
-  const [tagStatus, setTagStatus] = useState<'reject' | 'non_processable'>('reject')
-  const [tagRemarks, setTagRemarks] = useState("")
-  const [tagging, setTagging] = useState(false)
-  const [tagError, setTagError] = useState<string | null>(null)
+  const [flagModalScan, setFlagModalScan] = useState<any>(null)
+  const [flagIssue, setFlagIssue] = useState('')
+  const [flagRemarks, setFlagRemarks] = useState('')
+  const [flagging, setFlagging] = useState(false)
+  const [flagError, setFlagError] = useState<string | null>(null)
+  const [flagOpen, setFlagOpen] = useState(false)
 
   // Determine if user is a manager (stored in localStorage)
   const [isManager, setIsManager] = useState(false)
@@ -404,27 +439,40 @@ export default function TransmissionMonitorPage() {
     searchLots('', 1, 50)
   }, [searchLots])
 
-  // --- ISBN tagging ---
-  const handleTagSubmit = async () => {
-    if (!tagModalScan) return
-    if (!tagRemarks.trim()) { setTagError('Remarks are required'); return }
-    setTagging(true)
-    setTagError(null)
+  // ── Flag logic ─────────────────────────────────────────────────────────────
+  const handleFlagSubmit = async () => {
+    if (!flagModalScan) return
+    if (!flagIssue) {
+      setFlagError('Please select a rejection reason.')
+      return
+    }
+
     try {
-      const res = await authFetch(`${API_URL}/api/warehouse/scans/${tagModalScan.scan_id}/tag`, {
+      setFlagging(true)
+      setFlagError(null)
+      const res = await authFetch(`${API_URL}/api/warehouse/scans/${flagModalScan.scan_id}/tag`, {
         method: 'POST',
-        body: JSON.stringify({ status: tagStatus, remarks: tagRemarks.trim() }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'non_processable',
+          remarks: `${flagIssue}: ${flagRemarks}`
+        })
       })
-      const data = await res.json()
-      if (!data.success) { setTagError(data.error || 'Failed to tag ISBN'); return }
+
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error || 'Failed to flag ISBN')
+      }
+
+      setFlagModalScan(null)
       // Refresh lot data after tagging
       if (lotSummary) fetchLotSummary()
-      setTagModalScan(null)
-      setTagRemarks("")
-    } catch (e: any) {
-      setTagError(e.message || 'Failed to tag ISBN')
+      setFlagIssue('')
+      setFlagRemarks('')
+    } catch (err: any) {
+      setFlagError(err instanceof Error ? err.message : 'An error occurred.')
     } finally {
-      setTagging(false)
+      setFlagging(false)
     }
   }
 
@@ -456,6 +504,35 @@ export default function TransmissionMonitorPage() {
 
   const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 50 })
   const paginatedRecentScans = filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit)
+
+  // Background fetch ILMS for visible books
+  useEffect(() => {
+    const missingIsbns = paginatedRecentScans
+      .filter((item: any) => (item.BoxNumber === '—' || !item.BoxNumber) && !fetchedIsbns.current.has(item.ISBN))
+      .map((item: any) => item.ISBN)
+      .filter(Boolean)
+
+    if (missingIsbns.length > 0) {
+      missingIsbns.forEach((isbn: string) => fetchedIsbns.current.add(isbn))
+      
+      const fetchEnrichment = async () => {
+        try {
+          const res = await authFetch(`${API_URL}/api/scanning/enrich-ilms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isbns: missingIsbns })
+          })
+          const data = await res.json()
+          if (data.success && data.enriched) {
+            setEnrichedData(prev => ({ ...prev, ...data.enriched }))
+          }
+        } catch (e) {
+          console.error('Failed to enrich ILMS data:', e)
+        }
+      }
+      fetchEnrichment()
+    }
+  }, [paginatedRecentScans])
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -923,8 +1000,8 @@ export default function TransmissionMonitorPage() {
                             return (
                               <tr key={i} className={`${rowCls} transition-colors`}>
                                 <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
-                                <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
-                                <td className="text-xs text-gray-600 px-4 py-3">{item.LotNumber || '—'}</td>
+                                <td className="text-xs text-gray-600 px-4 py-3">{(enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—') ? enrichedData[item.ISBN].box : (item.BoxNumber || '—')}</td>
+                                <td className="text-xs text-gray-600 px-4 py-3">{(enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—') ? enrichedData[item.ISBN].lot : (item.LotNumber || '—')}</td>
                                 <td className="px-4 py-3">{getPipelineStatusBadge(item.Status || '')}</td>
                                 <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
                                 <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
@@ -1558,6 +1635,7 @@ export default function TransmissionMonitorPage() {
                                 <tr className="border-b border-border">
                                   <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[140px]">ISBN</th>
                                   <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[80px]">Box</th>
+                                  <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[100px]">Stage</th>
                                   <th className="text-left font-semibold text-muted-foreground px-4 py-2">Title</th>
                                   <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Scan</th>
                                   <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Simflex</th>
@@ -1568,7 +1646,7 @@ export default function TransmissionMonitorPage() {
                               <tbody>
                                 {paginatedLotIsbns.length === 0 ? (
                                   <tr>
-                                    <td colSpan={7} className="text-center py-10 text-muted-foreground">
+                                    <td colSpan={8} className="text-center py-10 text-muted-foreground">
                                       <BookOpen className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground/40" />
                                       No books found{lotBoxFilter !== 'all' ? ` in box ${lotBoxFilter}` : ''}
                                     </td>
@@ -1582,6 +1660,9 @@ export default function TransmissionMonitorPage() {
                                       <p className="font-mono text-[11px] font-semibold text-gray-500 leading-none">{r.box_number || '—'}</p>
                                     </td>
                                     <td className="px-4 py-2 align-middle">
+                                      <Badge variant="outline" className="text-[9px] uppercase font-bold tracking-wider text-slate-500 border-slate-200 bg-slate-50">{r.current_stage || 'N/A'}</Badge>
+                                    </td>
+                                    <td className="px-4 py-2 align-middle">
                                       <p className="text-foreground truncate max-w-[300px] leading-tight" title={r.title || '—'}>{r.title || '—'}</p>
                                       {r.rejection_reason && (
                                         <p className="text-[10px] text-red-600 mt-0.5 truncate max-w-[300px]" title={r.rejection_reason}>
@@ -1593,7 +1674,7 @@ export default function TransmissionMonitorPage() {
                                       {getScanStatusBadge(r.scan_status)}
                                     </td>
                                     <td className="px-3 py-2 align-middle text-center">
-                                      {getSimflexBadge(r.simflex_status, r.transmission_completed)}
+                                      {getSimflexBadge(r.simflex_status, r.transmission_completed, r.scan_status)}
                                     </td>
                                     <td className="px-3 py-2 align-middle whitespace-nowrap">
                                       {r.transmission_completed ? (
@@ -1608,10 +1689,10 @@ export default function TransmissionMonitorPage() {
                                       )}
                                     </td>
                                     <td className="px-3 py-2 align-middle text-center">
-                                      {isManager && r.scan_status === 'processable' && (
-                                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-amber-600 hover:bg-amber-50 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-                                          onClick={() => { setTagModalScan(r); setTagStatus('reject'); setTagRemarks(''); setTagError(null) }}>
-                                          Tag
+                                      {r.scan_status === 'processable' && (
+                                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-red-600 hover:bg-red-700 hover:text-white transition-colors"
+                                          onClick={() => { setFlagModalScan(r); setFlagIssue(''); setFlagRemarks(''); setFlagError(null); setFlagOpen(false) }}>
+                                          Flag
                                         </Button>
                                       )}
                                     </td>
@@ -1733,63 +1814,106 @@ export default function TransmissionMonitorPage() {
         </div>
       )}
 
-      {/* ISBN Tag Modal */}
-      {tagModalScan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setTagModalScan(null)}>
-          <div className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-foreground">Tag ISBN</h3>
-              <button onClick={() => setTagModalScan(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+      {/* ISBN Flag Modal */}
+      {flagModalScan && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setFlagModalScan(null)}>
+          <div className="bg-card border border-border shadow-2xl w-full max-w-md mx-4 rounded-xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Flag as Non-Processable</h3>
+                  <p className="text-[11px] text-muted-foreground">Mark this book with a rejection reason</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setFlagModalScan(null)}
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="mb-4 rounded-lg bg-muted/40 border border-border px-3 py-2.5">
-              <p className="text-xs font-semibold text-muted-foreground">ISBN</p>
-              <p className="text-sm font-mono font-bold text-foreground">{tagModalScan.isbn}</p>
-              {tagModalScan.title && <p className="text-xs text-muted-foreground mt-0.5">{tagModalScan.title}</p>}
-            </div>
-
-            <div className="mb-4">
-              <p className="text-xs font-semibold text-foreground mb-2">New Status</p>
-              <div className="flex gap-2">
-                {(['reject', 'non_processable'] as const).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setTagStatus(s)}
-                    className={cn(
-                      "flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
-                      tagStatus === s
-                        ? s === 'reject'
-                          ? 'border-orange-400 bg-orange-100 text-orange-700'
-                          : 'border-red-400 bg-red-100 text-red-700'
-                        : 'border-border bg-card text-muted-foreground hover:bg-muted/40'
-                    )}
-                  >
-                    {s === 'reject' ? 'Rejected' : 'Non-Processable'}
-                  </button>
-                ))}
+            {/* Book Info */}
+            <div className="px-5 py-3 bg-muted/30 border-b border-border">
+              <div className="flex items-start gap-2">
+                <BookOpen className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-foreground truncate">{flagModalScan.title}</p>
+                  <p className="text-sm font-bold tracking-wider text-foreground font-mono mt-1">ISBN: {flagModalScan.isbn}</p>
+                </div>
               </div>
             </div>
 
-            <div className="mb-4">
-              <label className="text-xs font-semibold text-foreground mb-1.5 block">
-                Remarks <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={tagRemarks}
-                onChange={e => setTagRemarks(e.target.value)}
-                placeholder="Enter reason for tagging this ISBN..."
-                rows={3}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-              {tagError && <p className="mt-1 text-xs text-red-600">{tagError}</p>}
+            {/* Form */}
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-2 block">Rejection Reason <span className="text-destructive">*</span></label>
+                <Popover open={flagOpen} onOpenChange={setFlagOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={flagOpen}
+                      className="w-full justify-between font-normal text-sm h-9 hover:bg-muted/50 hover:text-foreground"
+                    >
+                      <span className={flagIssue ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}>
+                        {flagIssue ? FLAG_ISSUES.find(i => i.value === flagIssue)?.label : 'Select rejection reason...'}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                    <Command>
+                      <CommandInput placeholder="Search issue..." />
+                      <CommandList className="max-h-48">
+                        <CommandEmpty>No issue found.</CommandEmpty>
+                        <CommandGroup>
+                          {FLAG_ISSUES.map(i => (
+                            <CommandItem
+                              key={i.value}
+                              value={i.label}
+                              onSelect={() => { setFlagIssue(i.value); setFlagOpen(false) }}
+                              className="flex justify-between items-center w-full"
+                            >
+                              <span>{i.label}</span>
+                              <Check className={cn('h-4 w-4 text-white', flagIssue === i.value ? 'opacity-100' : 'opacity-0')} />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No.</label>
+                <textarea
+                  value={flagRemarks}
+                  onChange={e => setFlagRemarks(e.target.value)}
+                  placeholder="e.g. Page 42, bottom margin"
+                  rows={2}
+                  className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                />
+              </div>
+
+              {flagError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 flex items-start gap-2">
+                  <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                  <p>{flagError}</p>
+                </div>
+              )}
             </div>
 
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => setTagModalScan(null)} disabled={tagging}>Cancel</Button>
-              <Button size="sm" onClick={handleTagSubmit} disabled={tagging || !tagRemarks.trim()}
-                className={tagStatus === 'reject' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}>
-                {tagging ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                Confirm Tag
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-border bg-muted/10 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setFlagModalScan(null)} disabled={flagging}>Cancel</Button>
+              <Button size="sm" onClick={handleFlagSubmit} disabled={flagging || !flagIssue} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                {flagging ? 'Saving...' : 'Confirm Flag'}
               </Button>
             </div>
           </div>

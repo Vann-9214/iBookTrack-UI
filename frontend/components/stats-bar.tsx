@@ -88,9 +88,26 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     if (liveLots.length > 0) return
     setLoadingLiveLots(true)
     try {
-      const res = await fetch(`${API_URL}/api/dashboard/open-lots`)
+      const res = await authFetch(`${API_URL}/api/reports/lot-status?type=${brand}`)
       const data = await res.json()
-      setLiveLots(data.lots || [])
+      
+      const activeLots = (data.lots || []).filter((l: any) => l.computed_status !== 'closed')
+      
+      const mappedLots = activeLots.map((l: any) => {
+        const totalBoxProgress = l.boxes ? l.boxes.reduce((sum: number, box: any) => sum + box.progress, 0) : 0;
+        const pct = l.total_boxes > 0 ? Math.round(totalBoxProgress / l.total_boxes) : 0;
+        const totalBooks = l.boxes ? l.boxes.reduce((sum: number, box: any) => sum + (box.total_books_expected || 0), 0) : 0;
+
+        return {
+          id: l.lot_id,
+          lot_number: l.lot_number,
+          total_boxes: l.total_boxes,
+          total_books: totalBooks,
+          status: l.computed_status === 'in-progress' ? 'In Progress' : 'Open',
+          completion_progress: pct
+        }
+      })
+      setLiveLots(mappedLots)
     } catch {
       setLiveLots([])
     } finally {
@@ -151,6 +168,9 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   useEffect(() => {
     setFlags([])
     setTotalFlags(0)
+    setLiveLots([])
+    setDailyOutputRows([])
+    setTotalDailyOutput(0)
   }, [brand])
 
   useEffect(() => {
@@ -497,7 +517,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
             ) : selectedLot ? (
               /* Detail view */
               <div className="p-6 overflow-y-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
                     <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
                       <Package className="h-4 w-4" />
@@ -528,17 +548,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     </p>
                   </div>
 
-                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
-                      <Activity className="h-4 w-4" />
-                      Current Processing Status
-                    </div>
-                    <p className="text-lg font-bold text-gray-800">
-                      {selectedLot.status}
-                    </p>
-                  </div>
-
-                  <div className="sm:col-span-2 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                  <div className="sm:col-span-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide">
                         <Activity className="h-4 w-4" />
