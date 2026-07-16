@@ -12,7 +12,7 @@
  *   POST   /api/storage/locations/provision    — Bulk-create all 16 slots for a storage section
  *   PATCH  /api/storage/locations/:id          — Update the capacity of a slot
  *   DELETE /api/storage/locations/:id          — Delete a slot (cascades to assignments)
- *   GET    /api/storage/ready-boxes            — Boxes in 'storage' stage not yet assigned to a slot
+ *   GET    /api/storage/ready-boxes            — Scan-stage boxes ready to be assigned to a slot
  *   POST   /api/storage/assign                 — Assign a single box to a slot
  *   POST   /api/storage/assign/batch           — Bulk-assign multiple boxes to a slot (creates pending assignments)
  *   POST   /api/storage/assignments/:id/confirm — Confirm a pending assignment as physically placed
@@ -208,7 +208,7 @@ router.delete('/locations/:id', requireAuth, async (req, res) => {
 })
 
 // ─── GET /api/storage/ready-boxes ────────────────────────────────────────────
-// Returns boxes in 'storage' stage that have NOT yet been assigned to a location
+// Returns scan-stage boxes that have NOT yet been assigned to a location
 router.get('/ready-boxes', requireAuth, async (req, res) => {
   try {
     const { box_type } = req.query
@@ -221,7 +221,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
 
     const assignedIds = (assigned || []).map(a => a.box_id)
 
-    // Fetch storage-stage boxes not yet placed
+    // Fetch scan-stage boxes not yet placed
     let query = db()
       .from('boxes')
       .select(`
@@ -232,7 +232,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
           scans:book_activity(scan_status, transmission_status)
         )
       `)
-      .in('current_stage', ['scan', 'transmit', 'storage'])
+      .eq('current_stage', 'scan')
       .order('created_at', { ascending: false })
 
     if (box_type) {
@@ -328,6 +328,22 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
     if ((alreadyAssigned || []).length > 0) {
       const ids = alreadyAssigned.map(a => a.box_id).join(', ')
       return res.status(400).json({ success: false, error: `Some boxes are already assigned: ${ids}` })
+    }
+
+    const { data: boxes, error: boxesError } = await db()
+      .from('boxes')
+      .select('id, box_number, current_stage')
+      .in('id', box_ids)
+
+    if (boxesError) throw boxesError
+
+    const nonScanBoxes = (boxes || []).filter(box => box.current_stage !== 'scan')
+    if ((boxes || []).length !== box_ids.length || nonScanBoxes.length > 0) {
+      const labels = nonScanBoxes.map(box => box.box_number || box.id).join(', ')
+      return res.status(400).json({
+        success: false,
+        error: `Only boxes in the scan stage can be assigned to storage${labels ? `: ${labels}` : ''}`,
+      })
     }
 
     const { data: assignments, error: insertError } = await db()

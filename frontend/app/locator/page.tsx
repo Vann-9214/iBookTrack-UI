@@ -131,6 +131,7 @@ export default function WarehouseLocatorPage() {
   // Assign modal
   const [assignSlot, setAssignSlot] = useState<StorageLocation | null>(null)
   const [assigningBoxIds, setAssigningBoxIds] = useState<Set<string>>(new Set())
+  const [selectedReadyBoxId, setSelectedReadyBoxId] = useState<string | null>(null)
   const [assignLoading, setAssignLoading] = useState(false)
 
   // Remove
@@ -203,6 +204,21 @@ export default function WarehouseLocatorPage() {
 
   const getLocation = (rack: string, level: number) =>
     locations.find(l => l.rack_id === rack && l.level === level)
+
+  const getSectionFromRackId = (rack: string) => {
+    const match = rack.match(/^S(\d+)-/)
+    return match ? Number(match[1]) : 1
+  }
+
+  const getSuggestedLocation = () =>
+    locations
+      .filter(location => location.used < location.capacity)
+      .sort((a, b) => {
+        const capacityDifference = a.used / a.capacity - b.used / b.capacity
+        if (capacityDifference !== 0) return capacityDifference
+        if (a.used !== b.used) return a.used - b.used
+        return a.rack_id.localeCompare(b.rack_id) || a.level - b.level
+      })[0]
 
   // Derive the unique rack letters for a section from actual DB locations
   const getSectionRacks = (section: number): string[] => {
@@ -286,10 +302,21 @@ export default function WarehouseLocatorPage() {
     setSearchDone(false)
   }
 
-  const openAssign = async (loc: StorageLocation) => {
+  const openAssign = async (loc: StorageLocation, boxId?: string) => {
     setAssignSlot(loc)
-    setAssigningBoxIds(new Set())
+    setAssigningBoxIds(boxId ? new Set([boxId]) : new Set())
     await fetchReadyBoxes()
+  }
+
+  const selectReadyBox = (box: ReadyBox) => {
+    if (selectedReadyBoxId === box.id) {
+      setSelectedReadyBoxId(null)
+      return
+    }
+
+    setSelectedReadyBoxId(box.id)
+    const suggestedLocation = getSuggestedLocation()
+    if (suggestedLocation) setActiveSection(getSectionFromRackId(suggestedLocation.rack_id))
   }
 
   // Add a new rack column (next letter) with slots for every existing level
@@ -500,6 +527,7 @@ export default function WarehouseLocatorPage() {
       if (!res.ok) { alert(data.error || 'Failed to assign boxes'); return }
       setAssignSlot(null)
       setAssigningBoxIds(new Set())
+      setSelectedReadyBoxId(null)
       await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
     } finally {
       setAssignLoading(false)
@@ -515,6 +543,26 @@ export default function WarehouseLocatorPage() {
       await Promise.all([fetchLocations(), fetchPendingAssignments()])
     } finally {
       setConfirmingId(null)
+    }
+  }
+
+  const handleRemovePendingAssignment = async (assignmentId: string) => {
+    setRemovingIds(prev => new Set(prev).add(assignmentId))
+    try {
+      const res = await authFetch(`${API_URL}/api/storage/assignments/batch`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignment_ids: [assignmentId] }),
+      })
+      const data = await res.json()
+      if (!res.ok) { alert(data.error || 'Failed to remove pending assignment'); return }
+      await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
+    } finally {
+      setRemovingIds(prev => {
+        const next = new Set(prev)
+        next.delete(assignmentId)
+        return next
+      })
     }
   }
 
@@ -562,6 +610,8 @@ export default function WarehouseLocatorPage() {
 
   const sectionRacks = getSectionRacks(activeSection)
   const sectionLevels = getSectionLevels(activeSection)
+  const selectedReadyBox = readyBoxes.find(box => box.id === selectedReadyBoxId) ?? null
+  const suggestedLocation = selectedReadyBox ? getSuggestedLocation() : null
 
   const lastUpdateLabel = lastUpdated
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
@@ -643,7 +693,7 @@ export default function WarehouseLocatorPage() {
                     <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
                     <p className="text-sm text-amber-700 dark:text-amber-400">
                       No located box found for &ldquo;{searchValue}&rdquo;.
-                      {searchUnlocated.length > 0 && ` Found box(es) in storage stage but not yet placed: ${searchUnlocated.map(u => u.box_number).join(', ')}`}
+                      {searchUnlocated.length > 0 && ` Found box(es) not yet assigned to a storage location: ${searchUnlocated.map(u => u.box_number).join(', ')}`}
                     </p>
                   </div>
                 )}
@@ -656,6 +706,7 @@ export default function WarehouseLocatorPage() {
               <div className="flex items-center gap-1.5"><div className="h-3 w-3 rounded border border-amber-400 bg-amber-100" /><span>70–90% full</span></div>
               <div className="flex items-center gap-1.5"><div className="h-3 w-3 rounded border border-red-400 bg-red-100" /><span>&gt; 90% full</span></div>
               <div className="flex items-center gap-1.5"><div className="h-3 w-3 rounded border border-border bg-muted" /><span>Empty</span></div>
+              <div className="flex items-center gap-1.5"><div className="h-3 w-3 rounded border border-amber-400 bg-amber-100" /><span>Pending confirmation</span></div>
             </div>
 
             {/* Error */}
@@ -686,12 +737,22 @@ export default function WarehouseLocatorPage() {
                   <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
                     <Package className="h-7 w-7 opacity-30" />
                     <p className="text-xs">No unassigned boxes</p>
-                    <p className="text-[10px] max-w-[200px]">Boxes from finished transmission will appear here.</p>
+                    <p className="text-[10px] max-w-[200px]">Scan-stage boxes with completed transmission will appear here.</p>
                   </div>
                 ) : (
                   <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
                     {readyBoxes.map(b => (
-                      <div key={b.id} className="rounded-lg border border-border bg-muted/40 px-3 py-2">
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => selectReadyBox(b)}
+                        className={cn(
+                          "w-full rounded-lg border px-3 py-2 text-left transition-colors",
+                          selectedReadyBoxId === b.id
+                            ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                            : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
+                        )}
+                      >
                         <div className="flex items-center gap-2 min-w-0">
                           <Package className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="text-sm font-medium text-foreground truncate">{b.box_number}</span>
@@ -704,7 +765,10 @@ export default function WarehouseLocatorPage() {
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {b.books.length} book{b.books.length !== 1 ? 's' : ''}
                         </p>
-                      </div>
+                        {selectedReadyBoxId === b.id && (
+                          <p className="mt-1.5 text-[10px] font-medium text-primary">Choose a highlighted slot to assign this box.</p>
+                        )}
+                      </button>
                     ))}
                   </div>
                 )}
@@ -793,6 +857,15 @@ export default function WarehouseLocatorPage() {
                   </div>
                 </div>
 
+                {selectedReadyBox && (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    {suggestedLocation
+                      ? <>Suggested for <strong>{selectedReadyBox.box_number}</strong>: Rack {suggestedLocation.rack_id} — Level {suggestedLocation.level}. Click any available slot to assign.</>
+                      : <>No storage slot currently has available capacity for <strong>{selectedReadyBox.box_number}</strong>.</>}
+                  </div>
+                )}
+
                 {loadingLocations ? (
                   <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin" />
@@ -856,23 +929,39 @@ export default function WarehouseLocatorPage() {
                         {sectionRacks.map(rack => {
                           const loc = getLocation(rackId(activeSection, rack), level)
                           const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
+                          const isSuggested = suggestedLocation?.id === loc?.id
+                          const pendingCount = loc?.assignments.filter(assignment => assignment.status === 'pending').length ?? 0
                           const used = loc?.used ?? 0
                           const capacity = loc?.capacity ?? 20
+                          const isAvailable = used < capacity
                           return (
                             <button
                               key={`${rack}-${level}`}
-                              onClick={() => loc && setDetailSlot(loc)}
+                              onClick={() => {
+                                if (!loc) return
+                                if (selectedReadyBox && isAvailable) {
+                                  openAssign(loc, selectedReadyBox.id)
+                                  return
+                                }
+                                setDetailSlot(loc)
+                              }}
                               disabled={!loc}
-                              title={loc ? `Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
+                              title={loc ? `${selectedReadyBox && isAvailable ? `Assign ${selectedReadyBox.box_number} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
                               className={cn(
                                 "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
-                                loc ? getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
+                                loc ? pendingCount > 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
                                 isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
+                                isSuggested && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10 animate-pulse",
                                 loc && "hover:scale-105 hover:shadow-md cursor-pointer"
                               )}
                             >
                               {provisioningSection && !loc ? (
                                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                              ) : loc && pendingCount > 0 ? (
+                                <>
+                                  <Clock className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                                  <span className="text-[10px] font-semibold text-amber-800 dark:text-amber-200 leading-tight">{pendingCount} pending</span>
+                                </>
                               ) : loc && used > 0 ? (
                                 <>
                                   <Package className="h-4 w-4 text-foreground/60" />
@@ -923,11 +1012,25 @@ export default function WarehouseLocatorPage() {
                           <MapPin className="h-3 w-3 shrink-0" />
                           {a.location_label}
                         </div>
-                        <div className="mt-2 flex justify-end">
+                        <div className="mt-2 flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs text-destructive hover:text-destructive"
+                            disabled={removingIds.has(a.assignment_id)}
+                            onClick={() => handleRemovePendingAssignment(a.assignment_id)}
+                          >
+                            {removingIds.has(a.assignment_id) ? (
+                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                            ) : (
+                              <Trash2 className="h-3 w-3 mr-1" />
+                            )}
+                            Remove
+                          </Button>
                           <Button
                             size="sm"
                             className="h-7 text-xs"
-                            disabled={confirmingId === a.assignment_id}
+                            disabled={confirmingId === a.assignment_id || removingIds.has(a.assignment_id)}
                             onClick={() => handleConfirmAssignment(a.assignment_id)}
                           >
                             {confirmingId === a.assignment_id ? (
@@ -1163,7 +1266,7 @@ export default function WarehouseLocatorPage() {
               <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
                 <Package className="h-8 w-8 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">No boxes are waiting to be placed.</p>
-                <p className="text-xs text-muted-foreground">Boxes appear here once they reach the <strong>Storage</strong> stage via the pipeline.</p>
+                <p className="text-xs text-muted-foreground">Scan-stage boxes appear here after their transmission is completed.</p>
               </div>
             ) : (
               <>
