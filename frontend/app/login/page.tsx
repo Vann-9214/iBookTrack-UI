@@ -43,13 +43,6 @@ export default function LoginPage() {
         // Tokens are now stored as HttpOnly cookies automatically by the backend
         
         const emailToUse = ssoEmail || 'user@innodata.com'
-        localStorage.setItem(
-          'ibooktrack_user',
-          JSON.stringify({
-            email: emailToUse,
-            name: ssoName || getDisplayNameFromEmail(emailToUse),
-          })
-        )
         toast.success('Innodata SSO Login successful!')
         setLeaving(true)
         sessionStorage.setItem('from_login', '1')
@@ -83,13 +76,6 @@ export default function LoginPage() {
         payload: { email, password },
       })
       // Tokens are now stored as HttpOnly cookies automatically by the backend
-      localStorage.setItem(
-        'ibooktrack_user',
-        JSON.stringify({
-          email: data.user?.email || email,
-          name: data.user?.name || getDisplayNameFromEmail(data.user?.email || email),
-        })
-      )
       toast.success('Login successful!')
       setLeaving(true)
       sessionStorage.setItem('from_login', '1')

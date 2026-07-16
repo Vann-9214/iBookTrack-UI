@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { authFetch } from '@/lib/auth-api'
+import { authFetch, fetchUserProfile } from '@/lib/auth-api'
 
 type ProfileData = {
   name: string
@@ -93,14 +93,16 @@ export default function SettingsPage() {
   })
 
   useEffect(() => {
-    const storedUser = parseStoredUser(window.localStorage.getItem(USER_STORAGE_KEY))
-    const storedPicture = window.localStorage.getItem(PROFILE_PICTURE_KEY)
-
-    setProfileData({
-      name: storedUser?.name || 'User Account',
-      email: storedUser?.email || 'No email available',
-      profilePicture: storedPicture,
-    })
+    const syncUser = async () => {
+      const profile = await fetchUserProfile()
+      const storedPicture = window.localStorage.getItem(PROFILE_PICTURE_KEY)
+      setProfileData({
+        name: profile?.name || 'User Account',
+        email: profile?.email || 'No email available',
+        profilePicture: storedPicture,
+      })
+    }
+    syncUser()
   }, [])
 
   // Password state
@@ -130,14 +132,6 @@ export default function SettingsPage() {
       if (!response.ok) {
         throw new Error(data.error || 'Profile update failed')
       }
-
-      const storedUser = {
-        name: data.user?.name || profileData.name.trim(),
-        email: data.user?.email || profileData.email.trim().toLowerCase(),
-        profilePicture: profileData.profilePicture,
-      }
-
-      window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(storedUser))
 
       if (profileData.profilePicture) {
         window.localStorage.setItem(PROFILE_PICTURE_KEY, profileData.profilePicture)

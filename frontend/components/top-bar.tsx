@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useBrand, BRAND_COLORS, type Brand } from '@/hooks/use-brand'
-import { clearTokenData } from '@/lib/auth-api'
+import { clearTokenData, fetchUserProfile } from '@/lib/auth-api'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -126,27 +126,24 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
   const initials = getInitials(user.name, user.email)
 
   useEffect(() => {
-    const syncUser = () => {
-      const storedUser = parseStoredUser(window.localStorage.getItem('ibooktrack_user'))
+    const syncUser = async () => {
+      const profile = await fetchUserProfile()
       const profilePicture = window.localStorage.getItem('ibooktrack_profile_picture')
-      setUser({
-        ...(storedUser ?? fallbackUser),
-        profilePicture: storedUser?.profilePicture ?? profilePicture,
-      })
+      if (profile) {
+        setUser({
+          name: profile.name || fallbackUser.name,
+          email: profile.email || fallbackUser.email,
+          profilePicture: profilePicture
+        })
+      } else {
+        setUser(fallbackUser)
+      }
     }
     syncUser()
-    window.addEventListener('storage', syncUser)
-    window.addEventListener('ibooktrack-user-updated', syncUser as EventListener)
-    return () => {
-      window.removeEventListener('storage', syncUser)
-      window.removeEventListener('ibooktrack-user-updated', syncUser as EventListener)
-    }
   }, [])
 
   const handleLogout = async () => {
     await clearTokenData()
-    window.localStorage.removeItem('access_token')
-    window.localStorage.removeItem('ibooktrack_user')
     window.sessionStorage.removeItem('from_login')
     router.push('/login')
   }

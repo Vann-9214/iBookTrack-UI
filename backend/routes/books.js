@@ -15,12 +15,18 @@ import express from 'express'
 import { supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 import { ilmsApi } from '../services/ilms-api.js'
+import { z } from 'zod'
+import { validateRequest } from '../middleware/validateRequest.js'
 
 const router = express.Router()
 
 // Get books (optionally filtered by box_id)
 // Used by the inventory print-label feature to derive the book type for a box.
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, validateRequest({
+  query: z.object({
+    box_id: z.string().optional()
+  })
+}), async (req, res) => {
   try {
     const { box_id } = req.query
     const db = supabaseAdmin
@@ -45,7 +51,11 @@ router.get('/', requireAuth, async (req, res) => {
 })
 
 // Test iLMS API - Search book by ISBN from client's system
-router.get('/ilms/search/:isbn', requireAuth, async (req, res) => {
+router.get('/ilms/search/:isbn', requireAuth, validateRequest({
+  params: z.object({
+    isbn: z.string().min(1)
+  })
+}), async (req, res) => {
   try {
     const { isbn } = req.params
 
@@ -79,13 +89,20 @@ router.get('/ilms/search/:isbn', requireAuth, async (req, res) => {
 
 // Flag a book with a QC issue (from Book Inspection page)
 // :id is a book_activity row ID
-router.post('/:id/flag', requireAuth, async (req, res) => {
+router.post('/:id/flag', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().min(1)
+  }),
+  body: z.object({
+    issue: z.string().min(1),
+    remarks: z.string().optional(),
+    box_id: z.string().optional()
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
     const { issue, remarks, box_id } = req.body
     const db = supabaseAdmin
-
-    if (!issue) return res.status(400).json({ error: 'issue is required' })
 
     // Look up the scan record (source of truth for scanned books)
     const { data: scan, error: scanError } = await db
@@ -132,7 +149,11 @@ router.post('/:id/flag', requireAuth, async (req, res) => {
 })
 
 // Remove a QC flag for a book (mark as OK)
-router.delete('/:id/flag', requireAuth, async (req, res) => {
+router.delete('/:id/flag', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().min(1)
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
     const db = supabaseAdmin
