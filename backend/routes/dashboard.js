@@ -574,16 +574,6 @@ router.get('/pipeline-stats', async (req, res) => {
     const { data: boxes, error: boxesError } = await query
     if (boxesError) throw boxesError
 
-    const boxIds = (boxes || []).map(b => b.id)
-
-    // Boxes already confirmed as physically placed should not count toward the Storage stage
-    let assignedQuery = db.from('storage_assignments').select('box_id, status').eq('status', 'confirmed')
-    if (boxIds.length > 0) assignedQuery = assignedQuery.in('box_id', boxIds)
-    const { data: assignedBoxes, error: assignedError } = await assignedQuery
-    if (assignedError) throw assignedError
-
-    const assignedBoxIds = new Set((assignedBoxes || []).map(a => a.box_id))
-
     const stageCountsByType = {
       warehouse:   { mustang: 0, jaguar: 0, total: 0 },
       inventory:   { mustang: 0, jaguar: 0, total: 0 },
@@ -595,7 +585,6 @@ router.get('/pipeline-stats', async (req, res) => {
     ;(boxes || []).forEach(box => {
       const stage = box.current_stage
       if (!stageCountsByType[stage]) return
-      if (stage === 'storage' && assignedBoxIds.has(box.id)) return
       const type = (box.box_type || '').toString().toLowerCase()
       const normalizedType = type === 'jaguar' ? 'jaguar' : 'mustang'
       stageCountsByType[stage][normalizedType]++

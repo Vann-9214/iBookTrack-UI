@@ -12,7 +12,7 @@
  *   POST   /api/storage/locations/provision    — Bulk-create all 16 slots for a storage section
  *   PATCH  /api/storage/locations/:id          — Update the capacity of a slot
  *   DELETE /api/storage/locations/:id          — Delete a slot (cascades to assignments)
- *   GET    /api/storage/ready-boxes            — Boxes in 'storage' stage not yet assigned to a slot
+ *   GET    /api/storage/ready-boxes            — Scan-stage boxes ready to be assigned to a slot
  *   POST   /api/storage/assign                 — Assign a single box to a slot
  *   POST   /api/storage/assign/batch           — Bulk-assign multiple boxes to a slot (creates pending assignments)
  *   POST   /api/storage/assignments/:id/confirm — Confirm a pending assignment as physically placed
@@ -208,7 +208,7 @@ router.delete('/locations/:id', requireAuth, async (req, res) => {
 })
 
 // ─── GET /api/storage/ready-boxes ────────────────────────────────────────────
-// Returns boxes in 'storage' stage that have NOT yet been assigned to a location
+// Returns scan-stage boxes that have NOT yet been assigned to a location
 router.get('/ready-boxes', requireAuth, async (req, res) => {
   try {
     const { box_type } = req.query
@@ -221,7 +221,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
 
     const assignedIds = (assigned || []).map(a => a.box_id)
 
-    // Fetch storage-stage boxes not yet placed
+    // Fetch scan-stage boxes not yet placed
     let query = db()
       .from('boxes')
       .select(`
@@ -232,7 +232,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
           scans:book_activity(scan_status, transmission_status)
         )
       `)
-      .in('current_stage', ['scan', 'transmit', 'storage'])
+      .eq('current_stage', 'scan')
       .order('created_at', { ascending: false })
 
     if (box_type) {
@@ -330,6 +330,22 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: `Some boxes are already assigned: ${ids}` })
     }
 
+    const { data: boxes, error: boxesError } = await db()
+      .from('boxes')
+      .select('id, box_number, current_stage')
+      .in('id', box_ids)
+
+    if (boxesError) throw boxesError
+
+    const nonScanBoxes = (boxes || []).filter(box => box.current_stage !== 'scan')
+    if ((boxes || []).length !== box_ids.length || nonScanBoxes.length > 0) {
+      const labels = nonScanBoxes.map(box => box.box_number || box.id).join(', ')
+      return res.status(400).json({
+        success: false,
+        error: `Only boxes in the scan stage can be assigned to storage${labels ? `: ${labels}` : ''}`,
+      })
+    }
+
     const { data: assignments, error: insertError } = await db()
       .from('storage_assignments')
       .insert(
@@ -345,14 +361,6 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
 
     if (insertError) throw insertError
 
-    // Formally advance the boxes to the 'storage' stage now that they are assigned
-    const { error: updateError } = await db()
-      .from('boxes')
-      .update({ current_stage: 'storage' })
-      .in('id', box_ids)
-
-    if (updateError) console.error('Failed to advance box stages on assignment:', updateError)
-
     res.status(201).json({ success: true, assignments: assignments || [] })
   } catch (error) {
     console.error('Batch assign boxes error:', error)
@@ -361,7 +369,7 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
 })
 
 // ─── DELETE /api/storage/assignments/batch ────────────────────────────────────
-// Bulk remove multiple boxes from storage slots (does NOT change box stage)
+// Bulk remove multiple boxes from storage slots and return them to the scan stage
 router.delete('/assignments/batch', requireAuth, async (req, res) => {
   try {
     const { assignment_ids } = req.body
@@ -370,14 +378,25 @@ router.delete('/assignments/batch', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'assignment_ids array is required' })
     }
 
-    const { error } = await db()
+    const { data: removedAssignments, error: deleteError } = await db()
       .from('storage_assignments')
       .delete()
       .in('id', assignment_ids)
+      .select('box_id')
 
-    if (error) throw error
+    if (deleteError) throw deleteError
 
-    res.json({ success: true, message: `${assignment_ids.length} box(es) removed from storage locations` })
+    const boxIds = [...new Set((removedAssignments || []).map(assignment => assignment.box_id))]
+    if (boxIds.length > 0) {
+      const { error: stageError } = await db()
+        .from('boxes')
+        .update({ current_stage: 'scan' })
+        .in('id', boxIds)
+
+      if (stageError) throw stageError
+    }
+
+    res.json({ success: true, message: `${removedAssignments?.length || 0} box(es) removed from storage locations` })
   } catch (error) {
     console.error('Batch remove assignments error:', error)
     res.status(500).json({ success: false, error: error.message })
@@ -509,17 +528,26 @@ router.get('/pending-assignments', requireAuth, async (req, res) => {
 router.post('/assignments/:id/confirm', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
-    const { data, error } = await db()
+    const { data: assignment, error } = await db()
       .from('storage_assignments')
       .update({ status: 'confirmed' })
       .eq('id', id)
-      .select('id, status')
+      .select('id, status, box_id')
       .single()
 
     if (error) throw error
-    if (!data) return res.status(404).json({ success: false, error: 'Assignment not found' })
+    if (!assignment) return res.status(404).json({ success: false, error: 'Assignment not found' })
 
-    res.json({ success: true, assignment: data })
+    if (assignment.box_id) {
+      const { error: boxUpdateError } = await db()
+        .from('boxes')
+        .update({ current_stage: 'storage' })
+        .eq('id', assignment.box_id)
+
+      if (boxUpdateError) console.error('Failed to update box current_stage on confirm:', boxUpdateError)
+    }
+
+    res.json({ success: true, assignment: { id: assignment.id, status: assignment.status } })
   } catch (error) {
     console.error('Confirm assignment error:', error)
     res.status(500).json({ success: false, error: error.message })
