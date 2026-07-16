@@ -957,7 +957,7 @@ export default function WarehouseLocatorPage() {
                               title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
                               className={cn(
                                 "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
-                                loc ? getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
+                                loc ? pendingCount > 0 && used === 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
                                 isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
                                 isSuggested && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10 animate-pulse",
                                 loc && "hover:scale-105 hover:shadow-md cursor-pointer"
