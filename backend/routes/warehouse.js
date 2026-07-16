@@ -1409,6 +1409,7 @@ router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
     };
     if (stage === 'inventory') flagInsert.inventory_flag_by = req.user.id;
     else if (stage === 'qa' || stage === 'endorsement') flagInsert.endorsement_flag_by = req.user.id;
+    else if (stage === 'scan') flagInsert.scan_flag_by = req.user.id;
     else flagInsert.warehouse_flag_by = req.user.id;
 
     const { data: flagData, error: flagError } = await supabaseAdmin
