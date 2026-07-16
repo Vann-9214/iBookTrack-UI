@@ -26,11 +26,21 @@
 import express from 'express'
 import { supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { z } from 'zod'
+import { validateRequest } from '../middleware/validateRequest.js'
 
 const router = express.Router()
 
 // Start a new warehouse receiving session
-router.post('/sessions/start', requireAuth, async (req, res) => {
+router.post('/sessions/start', requireAuth, validateRequest({
+  body: z.object({
+    lot_number: z.string().min(1, 'lot_number is required'),
+    box_id: z.string().uuid().optional().nullable(),
+    box_number: z.string().optional().nullable(),
+    type: z.string().optional().nullable(),
+    force: z.boolean().optional()
+  })
+}), async (req, res) => {
   try {
     const { lot_number, box_id, box_number: requestedBoxNumber } = req.body
 
@@ -155,7 +165,19 @@ router.post('/sessions/start', requireAuth, async (req, res) => {
 })
 
 // Scan a book in the warehouse
-router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
+router.post('/sessions/:session_id/scan', requireAuth, validateRequest({
+  params: z.object({
+    session_id: z.string().uuid()
+  }),
+  body: z.object({
+    isbn: z.string().min(1, 'ISBN is required'),
+    title: z.string().optional().nullable(),
+    scan_status: z.string().optional().nullable(),
+    rejection_reason: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    book_type: z.string().optional().nullable()
+  })
+}), async (req, res) => {
   try {
     const { session_id } = req.params
     let { isbn, title: scannedTitle, scan_status, rejection_reason, notes, book_type } = req.body
@@ -410,7 +432,17 @@ router.post('/sessions/:session_id/scan', requireAuth, async (req, res) => {
 })
 
 // Complete a warehouse session
-router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
+router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
+  params: z.object({
+    session_id: z.string().uuid()
+  }),
+  body: z.object({
+    total_books_expected: z.union([z.string(), z.number()]).optional().nullable(),
+    issues: z.array(z.any()).optional().nullable(),
+    stage: z.string().optional().nullable(),
+    book_type: z.string().optional().nullable()
+  })
+}), async (req, res) => {
   try {
     const { session_id } = req.params
     let { total_books_expected, issues, stage, book_type } = req.body
@@ -581,7 +613,18 @@ router.post('/sessions/:session_id/complete', requireAuth, async (req, res) => {
 })
 
 // Bulk save a complete session in one request
-router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
+router.post('/sessions/bulk-save', requireAuth, validateRequest({
+  body: z.object({
+    lot_number: z.string().min(1, 'lot_number is required'),
+    box_number: z.string().min(1, 'box_number is required'),
+    type: z.string().optional().nullable(),
+    force: z.boolean().optional(),
+    total_books_expected: z.union([z.string(), z.number()]).optional().nullable(),
+    issues: z.array(z.any()).optional().nullable(),
+    scanned_books: z.array(z.any()).optional().nullable(),
+    book_type: z.string().optional().nullable()
+  })
+}), async (req, res) => {
   try {
     let { lot_number, box_number, type, force, total_books_expected, issues, scanned_books, book_type } = req.body;
     
@@ -727,7 +770,11 @@ router.post('/sessions/bulk-save', requireAuth, async (req, res) => {
 });
 
 // Resume an existing session for a box (used by Inventory)
-router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
+router.post('/boxes/:box_id/resume-session', requireAuth, validateRequest({
+  params: z.object({
+    box_id: z.string().uuid()
+  })
+}), async (req, res) => {
   try {
     const { box_id } = req.params
     
@@ -771,7 +818,11 @@ router.post('/boxes/:box_id/resume-session', requireAuth, async (req, res) => {
 })
 
 // Cancel an existing session for a box (used by Inventory to reset verification)
-router.post('/boxes/:box_id/cancel-session', requireAuth, async (req, res) => {
+router.post('/boxes/:box_id/cancel-session', requireAuth, validateRequest({
+  params: z.object({
+    box_id: z.string().uuid()
+  })
+}), async (req, res) => {
   try {
     const { box_id } = req.params
     
@@ -975,9 +1026,14 @@ router.get('/isbn-stream', requireAuth, async (req, res) => {
 
 // ISBN lookup triggered over SSE — client POSTs here with { isbn } body
 // and the SSE connection receives the result as an event
-router.post('/isbn-stream/query', requireAuth, async (req, res) => {
+router.post('/isbn-stream/query', requireAuth, validateRequest({
+  body: z.object({
+    isbn: z.string().min(1, 'isbn is required'),
+    type: z.string().optional().nullable(),
+    allowExisting: z.boolean().optional()
+  })
+}), async (req, res) => {
   const { isbn, type, allowExisting } = req.body
-  if (!isbn) return res.status(400).json({ error: 'isbn is required' })
 
   const digits = isbn.replace(/[^0-9]/g, '')
   if (digits.length !== 10 && digits.length !== 13) {
@@ -1364,17 +1420,18 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
 // Tag an ISBN scan as 'reject' or 'non_processable' with mandatory remarks
 // POST /api/warehouse/scans/:scan_id/tag
 // Body: { status: 'reject' | 'non_processable', remarks: string }
-router.post('/scans/:scan_id/tag', requireAuth, async (req, res) => {
+router.post('/scans/:scan_id/tag', requireAuth, validateRequest({
+  params: z.object({
+    scan_id: z.string().uuid()
+  }),
+  body: z.object({
+    status: z.enum(['reject', 'non_processable']),
+    remarks: z.string().min(1, 'remarks are required')
+  })
+}), async (req, res) => {
   try {
     const { scan_id } = req.params
     const { status, remarks } = req.body
-
-    if (!status || !['reject', 'non_processable'].includes(status)) {
-      return res.status(400).json({ error: "status must be 'reject' or 'non_processable'" })
-    }
-    if (!remarks || !remarks.trim()) {
-      return res.status(400).json({ error: 'remarks are required before tagging an ISBN' })
-    }
 
     // Fetch the scan to verify it exists and get its session_id
     const { data: existing, error: fetchError } = await supabaseAdmin

@@ -21,6 +21,8 @@
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { z } from 'zod'
+import { validateRequest } from '../middleware/validateRequest.js'
 
 const router = express.Router()
 
@@ -292,13 +294,14 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
     
     if (search) {
       // Find matching lots first so we can include them in an OR query on the boxes table
-      const { data: matchedLots } = await db.from('lots').select('id').ilike('lot_number', `%${search}%`)
+      const safeSearch = search.replace(/[,"]/g, ''); // Strip commas and quotes to prevent PostgREST .or() injection
+      const { data: matchedLots } = await db.from('lots').select('id').ilike('lot_number', `%${safeSearch}%`)
       const lotIds = (matchedLots || []).map(l => l.id)
       
       if (lotIds.length > 0) {
-        query = query.or(`box_number.ilike.%${search}%,lot_id.in.(${lotIds.join(',')})`, { foreignTable: 'boxes' })
+        query = query.or(`box_number.ilike.%${safeSearch}%,lot_id.in.(${lotIds.join(',')})`, { foreignTable: 'boxes' })
       } else {
-        query = query.ilike('boxes.box_number', `%${search}%`)
+        query = query.ilike('boxes.box_number', `%${safeSearch}%`)
       }
     }
 
@@ -447,7 +450,11 @@ router.get('/by-number/:box_number', requireAuth, async (req, res) => {
 })
 
 // Get single box by ID with all scanned books
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().uuid('Invalid box ID format')
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
 
@@ -539,7 +546,11 @@ router.get('/lot/:lot_number', requireAuth, async (req, res) => {
 })
 
 // Receive box at current station (marks arrival, does NOT advance stage)
-router.post('/:id/receive', requireAuth, async (req, res) => {
+router.post('/:id/receive', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().uuid('Invalid box ID format')
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
     const db = supabaseAdmin || supabase
@@ -570,7 +581,11 @@ router.post('/:id/receive', requireAuth, async (req, res) => {
 })
 
 // Advance box to next stage (checkpoint receive)
-router.post('/:id/advance', requireAuth, async (req, res) => {
+router.post('/:id/advance', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().uuid('Invalid box ID format')
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
     const { notes } = req.body

@@ -27,6 +27,8 @@
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { z } from 'zod'
+import { validateRequest } from '../middleware/validateRequest.js'
 
 const router = express.Router()
 // Always prefer the admin client (bypasses RLS) for storage operations
@@ -149,7 +151,11 @@ router.post('/locations/provision', requireAuth, async (req, res) => {
 // ─── PATCH /api/storage/locations/:id ────────────────────────────────────────
 // Update the capacity of a storage slot.
 // Body: { capacity }
-router.patch('/locations/:id', requireAuth, async (req, res) => {
+router.patch('/locations/:id', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().uuid()
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
     const { capacity } = req.body
@@ -192,7 +198,11 @@ router.patch('/locations/:id', requireAuth, async (req, res) => {
 
 // ─── DELETE /api/storage/locations/:id ───────────────────────────────────────
 // Delete a storage location slot (assignments cascade-deleted by FK constraint).
-router.delete('/locations/:id', requireAuth, async (req, res) => {
+router.delete('/locations/:id', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().uuid()
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
     const { error } = await db()
@@ -525,7 +535,11 @@ router.get('/pending-assignments', requireAuth, async (req, res) => {
 
 // ─── POST /api/storage/assignments/:id/confirm ─────────────────────────────────
 // Marks a pending assignment as confirmed / physically placed.
-router.post('/assignments/:id/confirm', requireAuth, async (req, res) => {
+router.post('/assignments/:id/confirm', requireAuth, validateRequest({
+  params: z.object({
+    id: z.string().uuid()
+  })
+}), async (req, res) => {
   try {
     const { id } = req.params
     const { data: assignment, error } = await db()
