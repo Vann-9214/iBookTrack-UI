@@ -85,7 +85,7 @@ async function syncBoxTransmissionStatus(boxId, db, location) {
   }
 }
 
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { lot_id, current_stage, box_number, exclude_assigned_storage, box_type, isbn } = req.query
 
