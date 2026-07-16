@@ -88,34 +88,50 @@ router.get('/live', requireAuth, async (req, res) => {
     const transmitStage = (stageCounts.stages || []).find(s => s.stage === 'Transmission_Archive')
     const transmitBooks = transmitStage ? transmitStage.Ongoing : 0
 
-    // Replace Simflex BoxNumber with Supabase Box and Lot
+    // Replace Simflex BoxNumber with Supabase Box and Lot for both allBooks and recentScans
     let processedAllBooks = allBooks.books || []
-    if (processedAllBooks.length > 0) {
-      const isbns = processedAllBooks.map(b => b.ISBN).filter(Boolean)
-      if (isbns.length > 0) {
-        const chunkSize = 1000
-        const supabaseMap = {}
-        for (let i = 0; i < isbns.length; i += chunkSize) {
-          const chunk = isbns.slice(i, i + chunkSize)
-          const { data: dbBooks } = await supabaseAdmin
-            .from('books')
-            .select('isbn, boxes(box_number, lots(lot_number))')
-            .in('isbn', chunk)
-          if (dbBooks && dbBooks.length > 0) {
-            for (const b of dbBooks) {
-              supabaseMap[b.isbn] = {
-                box: b.boxes?.box_number || '—',
-                lot: b.boxes?.lots?.lot_number || '—'
-              }
+    let processedRecentScans = Array.isArray(data.data) ? data.data.slice(0, 200) : []
+    
+    const allIsbns = new Set([
+      ...processedAllBooks.map(b => b.ISBN),
+      ...processedRecentScans.map(b => b.ISBN)
+    ].filter(Boolean))
+
+    if (allIsbns.size > 0) {
+      const isbns = Array.from(allIsbns)
+      const chunkSize = 1000
+      const supabaseMap = {}
+      for (let i = 0; i < isbns.length; i += chunkSize) {
+        const chunk = isbns.slice(i, i + chunkSize)
+        const { data: dbBooks, error } = await supabaseAdmin
+          .from('books')
+          .select('isbn, box:boxes(box_number, lot:lots(lot_number))')
+          .in('isbn', chunk)
+        if (error) {
+          console.error("Supabase Error fetching lot/box:", error);
+        }
+        if (dbBooks && dbBooks.length > 0) {
+          for (const b of dbBooks) {
+            // Check if box is an array or object
+            const boxObj = Array.isArray(b.box) ? b.box[0] : b.box;
+            const lotObj = boxObj && Array.isArray(boxObj.lot) ? boxObj.lot[0] : (boxObj?.lot || null);
+            supabaseMap[b.isbn] = {
+              box: boxObj?.box_number || '—',
+              lot: lotObj?.lot_number || '—'
             }
           }
         }
-        processedAllBooks = processedAllBooks.map(b => ({
-          ...b,
-          BoxNumber: supabaseMap[b.ISBN]?.box || '—',
-          LotNumber: supabaseMap[b.ISBN]?.lot || '—'
-        }))
       }
+      processedAllBooks = processedAllBooks.map(b => ({
+        ...b,
+        BoxNumber: supabaseMap[b.ISBN]?.box || '—',
+        LotNumber: supabaseMap[b.ISBN]?.lot || '—'
+      }))
+      processedRecentScans = processedRecentScans.map(b => ({
+        ...b,
+        BoxNumber: supabaseMap[b.ISBN]?.box || '—',
+        LotNumber: supabaseMap[b.ISBN]?.lot || '—'
+      }))
     }
 
     res.json({
@@ -123,7 +139,7 @@ router.get('/live', requireAuth, async (req, res) => {
       summary: { ...summary.data, completedTransmissions: completedTransmissions.count || 0 },
       byMachine: byMachine.data,
       byStage: byStage.data,
-      recentScans: Array.isArray(data.data) ? data.data.slice(0, 200) : [],
+      recentScans: processedRecentScans,
       allTimeTotal: allTime.total || 0,
       dailyOutput: dailyOutput.count || 0,
       scanBooks,
@@ -377,6 +393,49 @@ router.get('/simflex-status', requireAuth, async (req, res) => {
     res.json({ success: true, statuses })
   } catch (error) {
     console.error('Simflex status error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
+/**
+ * POST /api/scanning/enrich-ilms
+ * Enrich a list of ISBNs with ILMS Box and Lot data, saving to Supabase
+ */
+router.post('/enrich-ilms', requireAuth, async (req, res) => {
+  try {
+    const { isbns } = req.body
+    if (!Array.isArray(isbns) || isbns.length === 0) {
+      return res.json({ success: true, enriched: {} })
+    }
+
+    // Limit to max 100 per request just in case
+    const safeIsbns = isbns.slice(0, 100)
+    const { ilmsApi } = await import('../services/ilms-api.js')
+
+    const results = await Promise.all(
+      safeIsbns.map(async (isbn) => {
+        const result = await ilmsApi.searchBookByISBN(isbn)
+        return { isbn, ...result }
+      })
+    )
+
+    const enriched = {}
+
+    for (const r of results) {
+      if (r.success && r.data) {
+        const boxNumber = r.data.BoxNo
+        const lotNumber = r.data.LotNo
+        const title = r.data.Title || 'Unknown'
+        
+        enriched[r.isbn] = { box: boxNumber || '—', lot: lotNumber || '—' }
+      } else {
+        enriched[r.isbn] = { box: '—', lot: '—' }
+      }
+    }
+
+    res.json({ success: true, enriched })
+  } catch (error) {
+    console.error('ILMS enrichment error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

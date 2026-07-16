@@ -355,16 +355,16 @@ async function getLatestMachineUserForISBNs(isbns, location = 'mustang') {
       .join(',')
 
     const rows = await query(
-      `SELECT t.ISBN, t.MachineName AS ScanMachineName, t.ScanUser
+      `SELECT t.ISBN, t.ScanMachineName AS ScanMachineName, t.ScanUser
        FROM zeusz_IsbnStatus t
        INNER JOIN (
          SELECT ISBN, MAX(Updated) AS MaxUpdated
          FROM zeusz_IsbnStatus
          WHERE ISBN IN (${safelist})
-           AND (MachineName IS NOT NULL OR ScanUser IS NOT NULL)
+           AND (ScanMachineName IS NOT NULL OR ScanUser IS NOT NULL)
          GROUP BY ISBN
        ) m ON t.ISBN = m.ISBN AND t.Updated = m.MaxUpdated
-       WHERE t.MachineName IS NOT NULL OR t.ScanUser IS NOT NULL`,
+       WHERE t.ScanMachineName IS NOT NULL OR t.ScanUser IS NOT NULL`,
       location
     )
 
@@ -424,10 +424,10 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT MachineName, COUNT(*) AS TotalScans
+      `SELECT ScanMachineName AS MachineName, COUNT(*) AS TotalScans
        FROM zeusz_IsbnStatus
        WHERE ${dateWhere} AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
-       GROUP BY MachineName
+       GROUP BY ScanMachineName
        ORDER BY TotalScans DESC`,
       location
     )
@@ -454,7 +454,7 @@ export async function getBooksByMachine(startDate, endDate, machineName, locatio
       rows = await query(
         `SELECT TOP 5000 ISBN, Status, Updated, ScanDate, ScanUser
          FROM zeusz_IsbnStatus
-         WHERE ${dateWhere} AND (MachineName IS NULL OR LTRIM(RTRIM(MachineName)) = '')
+         WHERE ${dateWhere} AND (ScanMachineName IS NULL OR LTRIM(RTRIM(ScanMachineName)) = '')
            AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
          ORDER BY Updated DESC`,
         location
@@ -464,7 +464,7 @@ export async function getBooksByMachine(startDate, endDate, machineName, locatio
         sql`SELECT TOP 5000 ISBN, Status, Updated, ScanDate, ScanUser
          FROM zeusz_IsbnStatus
          WHERE CAST(DateAdded AS DATE) BETWEEN ${startDate ? safeDate(startDate) : new Date().toISOString().split('T')[0]} AND ${endDate ? safeDate(endDate) : new Date().toISOString().split('T')[0]}
-           AND MachineName = ${machineName}
+           AND ScanMachineName = ${machineName}
            AND Status NOT LIKE '%FAILED%'
          ORDER BY Updated DESC`,
         location
@@ -903,7 +903,7 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT TOP 5000 ISBN, Status, Updated, ScanUser, MachineName AS ScanMachineName, BoxNumber, PageCount, ScanDate` +
+      `SELECT TOP 5000 ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate` +
       ` FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
       location
     )

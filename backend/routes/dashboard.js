@@ -149,22 +149,25 @@ router.get('/stats', requireAuth, validateRequest({
     if (flagCountError) console.warn('user_flags count error:', flagCountError.message)
 
     // Get active lots count
+    // A lot is considered "active" (open) if it has at least one box that is NOT in the 'storage' stage.
     let activeLots = 0
     if (!lot_number && !lot_range_start) {
-      if (box_type) {
-        // Need to fetch lots that have boxes of this type instead of using count directly on joined table because Supabase count with inner join can be tricky
-        const { data: lotsWithBoxes } = await db
-          .from('lots')
-          .select('id, boxes!inner(id)')
-          .neq('status', 'storage')
-          .eq('boxes.box_type', box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase())
-        activeLots = lotsWithBoxes ? lotsWithBoxes.length : 0
-      } else {
-        const { count } = await db
-          .from('lots')
-          .select('id', { count: 'exact', head: true })
-          .neq('status', 'storage')
-        activeLots = count
+      // Fetch all lots and their boxes' current_stage
+      const { data: lotsWithBoxes } = await db
+        .from('lots')
+        .select('id, type, boxes(current_stage)')
+      
+      if (lotsWithBoxes) {
+        activeLots = lotsWithBoxes.filter(lot => {
+          // If a box_type (brand) filter is applied, only consider lots of that brand
+          if (box_type) {
+            const normalizedBrand = box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase();
+            if (lot.type !== normalizedBrand) return false;
+          }
+          if (!lot.boxes || lot.boxes.length === 0) return true // Empty lot is active
+          // Lot is active if any box is NOT in 'storage' stage
+          return lot.boxes.some(b => b.current_stage !== 'storage')
+        }).length
       }
     } else {
       activeLots = lotIds ? lotIds.length : 0
@@ -188,74 +191,87 @@ router.get('/stats', requireAuth, validateRequest({
 })
 
 // Get open lots with detailed stats
-router.get('/open-lots', async (req, res) => {
+router.get('/open-lots', requireAuth, async (req, res) => {
   try {
+    const { brand } = req.query;
     const db = supabaseAdmin || supabase
 
-    // Fetch lots that are not yet fully stored (status != 'storage')
-    const { data: lots, error: lotsError } = await db
+    // Build query for lots
+    let lotsQuery = db
       .from('lots')
-      .select('id, lot_number, status')
-      .neq('status', 'storage')
-      .order('created_at', { ascending: false })
+      .select(`
+        id, 
+        lot_number,
+        type,
+        boxes (
+          id,
+          current_stage,
+          total_books_expected,
+          books_transmitted
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (brand) {
+      const normalizedBrand = brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase();
+      lotsQuery = lotsQuery.eq('type', normalizedBrand);
+    }
+
+    const { data: lots, error: lotsError } = await lotsQuery;
 
     if (lotsError) throw lotsError
     if (!lots || lots.length === 0) {
       return res.json({ success: true, lots: [] })
     }
 
-    const lotIds = lots.map(l => l.id)
+    const openLots = lots.filter(lot => {
+      // Lot is open if it has no boxes, or at least one box is NOT in 'storage' stage
+      if (!lot.boxes || lot.boxes.length === 0) return true;
+      return lot.boxes.some(b => b.current_stage !== 'storage');
+    });
 
-    // Fetch boxes belonging to those lots
-    const { data: boxes, error: boxesError } = await db
-      .from('boxes')
-      .select('id, lot_id, total_books_expected')
-      .in('lot_id', lotIds)
+    const formattedLots = openLots.map(lot => {
+      const boxes = lot.boxes || [];
+      const totalBoxes = boxes.length;
+      let totalBooks = 0;
+      let lotBoxProgressSum = 0;
+      
+      // Determine overall lot status based on boxes (mirroring report function)
+      let lotStatus = 'Open';
+      if (totalBoxes > 0) {
+        const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit'];
+        const activeBoxes = boxes.filter(b => PIPELINE_STAGES.includes(b.current_stage));
+        
+        if (activeBoxes.length > 0) {
+          lotStatus = 'In Progress';
+        }
+      }
 
-    if (boxesError) throw boxesError
+      boxes.forEach(box => {
+        totalBooks += (box.total_books_expected || 0);
+        
+        // Progress percentage based on stage, mimicking reports function
+        const stages = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'];
+        const sIndex = stages.indexOf(box.current_stage || '');
+        let boxProgress = sIndex >= 0 ? 10 + Math.round((sIndex / (stages.length - 1)) * 90) : 0;
+        
+        if (box.current_stage === 'storage') {
+          boxProgress = 100;
+        }
+        
+        lotBoxProgressSum += boxProgress;
+      });
 
-    const boxIds = (boxes || []).map(b => b.id)
-
-    // Count transmitted books per box
-    // Count transmitted books per box (TODO: Re-implement using book_activity later)
-    const transmittedByBox = {}
-    /* const { data: transmittedBooks, error: transmittedError } = await db
-      .from('books')
-      .select('box_id')
-      .in('box_id', boxIds)
-      .eq('is_transmitted', true)
-
-    if (transmittedError) throw transmittedError
-
-    ;(transmittedBooks || []).forEach(b => {
-      transmittedByBox[b.box_id] = (transmittedByBox[b.box_id] || 0) + 1
-    }) */
-
-    // Aggregate by lot
-    const boxesByLot = {}
-    const totalBooksByLot = {}
-    const transmittedByLot = {}
-
-    ;(boxes || []).forEach(box => {
-      boxesByLot[box.lot_id] = (boxesByLot[box.lot_id] || 0) + 1
-      totalBooksByLot[box.lot_id] = (totalBooksByLot[box.lot_id] || 0) + (box.total_books_expected || 0)
-      transmittedByLot[box.lot_id] = (transmittedByLot[box.lot_id] || 0) + (transmittedByBox[box.id] || 0)
-    })
-
-    const formattedLots = lots.map(lot => {
-      const totalBoxes = boxesByLot[lot.id] || 0
-      const totalBooks = totalBooksByLot[lot.id] || 0
-      const transmittedBooks = transmittedByLot[lot.id] || 0
-      const completionProgress = totalBooks > 0
-        ? Math.round((transmittedBooks / totalBooks) * 100)
-        : 0
+      const completionProgress = totalBoxes > 0
+        ? Math.round(lotBoxProgressSum / totalBoxes)
+        : 0;
 
       return {
         id: lot.id,
         lot_number: lot.lot_number,
         total_boxes: totalBoxes,
         total_books: totalBooks,
-        status: formatStageLabel(lot.status),
+        status: lotStatus,
         completion_progress: completionProgress,
       }
     })
@@ -589,16 +605,6 @@ router.get('/pipeline-stats', validateRequest({
     const { data: boxes, error: boxesError } = await query
     if (boxesError) throw boxesError
 
-    const boxIds = (boxes || []).map(b => b.id)
-
-    // Boxes already confirmed as physically placed should not count toward the Storage stage
-    let assignedQuery = db.from('storage_assignments').select('box_id, status').eq('status', 'confirmed')
-    if (boxIds.length > 0) assignedQuery = assignedQuery.in('box_id', boxIds)
-    const { data: assignedBoxes, error: assignedError } = await assignedQuery
-    if (assignedError) throw assignedError
-
-    const assignedBoxIds = new Set((assignedBoxes || []).map(a => a.box_id))
-
     const stageCountsByType = {
       warehouse:   { mustang: 0, jaguar: 0, total: 0 },
       inventory:   { mustang: 0, jaguar: 0, total: 0 },
@@ -610,7 +616,6 @@ router.get('/pipeline-stats', validateRequest({
     ;(boxes || []).forEach(box => {
       const stage = box.current_stage
       if (!stageCountsByType[stage]) return
-      if (stage === 'storage' && assignedBoxIds.has(box.id)) return
       const type = (box.box_type || '').toString().toLowerCase()
       const normalizedType = type === 'jaguar' ? 'jaguar' : 'mustang'
       stageCountsByType[stage][normalizedType]++

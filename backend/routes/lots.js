@@ -88,7 +88,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
     const db = supabaseAdmin || supabase
 
     // 1. Resolve lot
-    let lotQuery = db.from('lots').select('id, lot_number')
+    let lotQuery = db.from('lots').select('id, lot_number, type')
     if (lotType) lotQuery = lotQuery.eq('type', lotType)
     
     if (lot_number.toLowerCase() === 'latest') {
@@ -125,7 +125,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
 
     const { data: scans, error: scansError } = await db
       .from('book_activity')
-      .select('id, scan_status, user_flags(rejection_reason), warehouse_scan_at, books!inner(isbn, title, box_id, boxes(box_number))')
+      .select('id, scan_status, user_flags(rejection_reason), warehouse_scan_at, books!inner(isbn, title, box_id, boxes(box_number, current_stage))')
       .in('books.box_id', boxIds)
       .order('warehouse_scan_at', { ascending: false })
 
@@ -141,7 +141,8 @@ router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
 
     let simflexMap = {}
     if (uniqueIsbns.length > 0) {
-      const result = await getSimflexStatusForISBNs(uniqueIsbns)
+      const location = lot.type ? lot.type.toLowerCase() : 'mustang'
+      const result = await getSimflexStatusForISBNs(uniqueIsbns, location)
       if (result.success) {
         for (const r of result.data) {
           simflexMap[r.isbn] = r
@@ -153,9 +154,15 @@ router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
     const isbnRows = allScans.map(s => {
       const isbn = s.books?.isbn
       const sf = simflexMap[isbn] || {}
-      const latestStatus = sf.latestStatus || null
-      const transmissionCompleted = sf.transmissionCompleted || false
+      
+      const current_stage = s.books?.boxes?.current_stage || null
+      const stg = (current_stage || '').toLowerCase()
+      const showSimflex = stg === 'scan' || stg === 'storage'
+
+      const latestStatus = showSimflex ? (sf.latestStatus || null) : null
+      const transmissionCompleted = showSimflex ? (sf.transmissionCompleted || false) : false
       const transmissionDate = transmissionCompleted ? (sf.latestUpdated || null) : null
+
       return {
         scan_id: s.id,
         isbn: isbn,
@@ -165,6 +172,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
         warehouse_scan_at: s.warehouse_scan_at,
         assigned_box_id: s.books?.box_id,
         box_number: s.books?.boxes?.box_number || null,
+        current_stage: current_stage,
         simflex_status: latestStatus,
         transmission_completed: transmissionCompleted,
         transmission_date: transmissionDate,
