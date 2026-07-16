@@ -345,14 +345,6 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
 
     if (insertError) throw insertError
 
-    // Formally advance the boxes to the 'storage' stage now that they are assigned
-    const { error: updateError } = await db()
-      .from('boxes')
-      .update({ current_stage: 'storage' })
-      .in('id', box_ids)
-
-    if (updateError) console.error('Failed to advance box stages on assignment:', updateError)
-
     res.status(201).json({ success: true, assignments: assignments || [] })
   } catch (error) {
     console.error('Batch assign boxes error:', error)
@@ -509,17 +501,26 @@ router.get('/pending-assignments', requireAuth, async (req, res) => {
 router.post('/assignments/:id/confirm', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
-    const { data, error } = await db()
+    const { data: assignment, error } = await db()
       .from('storage_assignments')
       .update({ status: 'confirmed' })
       .eq('id', id)
-      .select('id, status')
+      .select('id, status, box_id')
       .single()
 
     if (error) throw error
-    if (!data) return res.status(404).json({ success: false, error: 'Assignment not found' })
+    if (!assignment) return res.status(404).json({ success: false, error: 'Assignment not found' })
 
-    res.json({ success: true, assignment: data })
+    if (assignment.box_id) {
+      const { error: boxUpdateError } = await db()
+        .from('boxes')
+        .update({ current_stage: 'storage' })
+        .eq('id', assignment.box_id)
+
+      if (boxUpdateError) console.error('Failed to update box current_stage on confirm:', boxUpdateError)
+    }
+
+    res.json({ success: true, assignment: { id: assignment.id, status: assignment.status } })
   } catch (error) {
     console.error('Confirm assignment error:', error)
     res.status(500).json({ success: false, error: error.message })
