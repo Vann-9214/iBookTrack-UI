@@ -131,7 +131,7 @@ export default function WarehouseLocatorPage() {
   // Assign modal
   const [assignSlot, setAssignSlot] = useState<StorageLocation | null>(null)
   const [assigningBoxIds, setAssigningBoxIds] = useState<Set<string>>(new Set())
-  const [selectedReadyBoxId, setSelectedReadyBoxId] = useState<string | null>(null)
+  const [selectedReadyBoxIds, setSelectedReadyBoxIds] = useState<Set<string>>(new Set())
   const [assignLoading, setAssignLoading] = useState(false)
 
   // Remove
@@ -214,13 +214,15 @@ export default function WarehouseLocatorPage() {
     return match ? Number(match[1]) : 1
   }
 
-  const getSuggestedLocation = () =>
+  const getSuggestedLocation = (requiredCapacity = 1) =>
     locations
-      .filter(location => location.used < location.capacity)
+      .filter(location => location.capacity - location.used >= requiredCapacity)
       .sort((a, b) => {
-        const capacityDifference = a.used / a.capacity - b.used / b.capacity
+        const occupancyDifference = Number(b.used > 0) - Number(a.used > 0)
+        if (occupancyDifference !== 0) return occupancyDifference
+        const capacityDifference = b.used / b.capacity - a.used / a.capacity
         if (capacityDifference !== 0) return capacityDifference
-        if (a.used !== b.used) return a.used - b.used
+        if (a.used !== b.used) return b.used - a.used
         return a.rack_id.localeCompare(b.rack_id) || a.level - b.level
       })[0]
 
@@ -308,18 +310,16 @@ export default function WarehouseLocatorPage() {
 
   const openAssign = async (loc: StorageLocation, boxId?: string) => {
     setAssignSlot(loc)
-    setAssigningBoxIds(boxId ? new Set([boxId]) : new Set())
+    setAssigningBoxIds(selectedReadyBoxIds.size > 0 ? new Set(selectedReadyBoxIds) : boxId ? new Set([boxId]) : new Set())
     await fetchReadyBoxes()
   }
 
   const selectReadyBox = (box: ReadyBox) => {
-    if (selectedReadyBoxId === box.id) {
-      setSelectedReadyBoxId(null)
-      return
-    }
-
-    setSelectedReadyBoxId(box.id)
-    const suggestedLocation = getSuggestedLocation()
+    const next = new Set(selectedReadyBoxIds)
+    if (next.has(box.id)) next.delete(box.id)
+    else next.add(box.id)
+    setSelectedReadyBoxIds(next)
+    const suggestedLocation = getSuggestedLocation(next.size)
     if (suggestedLocation) setActiveSection(getSectionFromRackId(suggestedLocation.rack_id))
   }
 
@@ -531,7 +531,7 @@ export default function WarehouseLocatorPage() {
       if (!res.ok) { alert(data.error || 'Failed to assign boxes'); return }
       setAssignSlot(null)
       setAssigningBoxIds(new Set())
-      setSelectedReadyBoxId(null)
+      setSelectedReadyBoxIds(new Set())
       await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
     } finally {
       setAssignLoading(false)
@@ -614,8 +614,8 @@ export default function WarehouseLocatorPage() {
 
   const sectionRacks = getSectionRacks(activeSection)
   const sectionLevels = getSectionLevels(activeSection)
-  const selectedReadyBox = readyBoxes.find(box => box.id === selectedReadyBoxId) ?? null
-  const suggestedLocation = selectedReadyBox ? getSuggestedLocation() : null
+  const selectedReadyBoxes = readyBoxes.filter(box => selectedReadyBoxIds.has(box.id))
+  const suggestedLocation = selectedReadyBoxIds.size > 0 ? getSuggestedLocation(selectedReadyBoxIds.size) : null
 
   const lastUpdateLabel = lastUpdated
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
@@ -752,7 +752,7 @@ export default function WarehouseLocatorPage() {
                         onClick={() => selectReadyBox(b)}
                         className={cn(
                           "w-full rounded-lg border px-3 py-2 text-left transition-colors",
-                          selectedReadyBoxId === b.id
+                          selectedReadyBoxIds.has(b.id)
                             ? "border-primary bg-primary/10 ring-2 ring-primary/30"
                             : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
                         )}
@@ -769,9 +769,6 @@ export default function WarehouseLocatorPage() {
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {b.books.length} book{b.books.length !== 1 ? 's' : ''}
                         </p>
-                        {selectedReadyBoxId === b.id && (
-                          <p className="mt-1.5 text-[10px] font-medium text-primary">Choose a highlighted slot to assign this box.</p>
-                        )}
                       </button>
                     ))}
                   </div>
@@ -861,12 +858,12 @@ export default function WarehouseLocatorPage() {
                   </div>
                 </div>
 
-                {selectedReadyBox && (
+                {selectedReadyBoxes.length > 0 && (
                   <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
                     <MapPin className="h-4 w-4 shrink-0" />
                     {suggestedLocation
-                      ? <>Suggested for <strong>{selectedReadyBox.box_number}</strong>: Rack {suggestedLocation.rack_id} — Level {suggestedLocation.level}. Click any available slot to assign.</>
-                      : <>No storage slot currently has available capacity for <strong>{selectedReadyBox.box_number}</strong>.</>}
+                      ? <>Suggested for <strong>{selectedReadyBoxes.length} selected box{selectedReadyBoxes.length !== 1 ? 'es' : ''}</strong>: Rack {suggestedLocation.rack_id} — Level {suggestedLocation.level}. Click any available slot to assign.</>
+                      : <>No storage slot currently has available capacity for the selected boxes.</>}
                   </div>
                 )}
 
@@ -937,20 +934,20 @@ export default function WarehouseLocatorPage() {
                           const pendingCount = loc?.assignments.filter(assignment => assignment.status === 'pending').length ?? 0
                           const used = loc?.used ?? 0
                           const capacity = loc?.capacity ?? 20
-                          const isAvailable = used < capacity
+                          const canFitSelected = capacity - used >= selectedReadyBoxIds.size
                           return (
                             <button
                               key={`${rack}-${level}`}
                               onClick={() => {
                                 if (!loc) return
-                                if (selectedReadyBox && isAvailable) {
-                                  openAssign(loc, selectedReadyBox.id)
+                                if (selectedReadyBoxIds.size > 0 && canFitSelected) {
+                                  openAssign(loc)
                                   return
                                 }
                                 setDetailSlot(loc)
                               }}
                               disabled={!loc}
-                              title={loc ? `${selectedReadyBox && isAvailable ? `Assign ${selectedReadyBox.box_number} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
+                              title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
                               className={cn(
                                 "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
                                 loc ? pendingCount > 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
