@@ -21,10 +21,6 @@ import dotenv from 'dotenv'
 dotenv.config({ path: '.env' })
 
 import express from 'express'
-import { initializeLogger } from './utils/logger.js'
-
-// Initialize structured logging to override console methods globally
-initializeLogger()
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
@@ -38,8 +34,9 @@ import warehouseRoutes from './routes/warehouse.js'
 import reportsRoutes   from './routes/reports.js'
 import scanningRoutes  from './routes/scanning.js'
 import storageRoutes   from './routes/storage.js'
+import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js'
 import { startSimflexPoller } from './services/simflex-poller.js'
-import { errorHandler } from './middleware/errorHandler.js'
+import { logger } from './utils/logger.js'
 
 const app  = express()
 const PORT = process.env.PORT || 5000
@@ -49,12 +46,12 @@ const PORT = process.env.PORT || 5000
 // throw by default and crash the process; capturing them here helps identify the
 // route/poller that caused the backend to stop, so we can fix the root cause.
 process.on('uncaughtException', (err) => {
-  console.error('[FATAL] Uncaught exception:', err)
+  logger.error('[FATAL] Uncaught exception:', err)
   process.exit(1)
 })
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('[FATAL] Unhandled promise rejection:', reason)
+  logger.error('[FATAL] Unhandled promise rejection:', reason)
   // Allow the process to continue briefly so the log is flushed, then exit.
   setTimeout(() => process.exit(1), 250)
 })
@@ -149,12 +146,16 @@ app.use('/api/storage',   storageRoutes)
 // Simple liveness probe — useful for uptime monitors and container health checks
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))
 
-// Global error handler - must be the last app.use()
-app.use(errorHandler)
+// ── Global Error Handling ─────────────────────────────────────────────────────
+// Catch all unhandled routes and return a 404 JSON response
+app.use(notFoundHandler)
+
+// Catch any errors thrown by routes or middleware
+app.use(globalErrorHandler)
 
 // ── Start server ──────────────────────────────────────────────────────────────
 const server = app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`\n🚀 Backend running at http://localhost:${PORT}`)
+  logger.info(`🚀 Backend running at http://localhost:${PORT}`)
   // Verify Supabase connection on startup
   await testConnection()
   // User explicitly requested NO polling. Sync and auto-advance now happens

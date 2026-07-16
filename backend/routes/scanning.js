@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/scanning.js
  *
@@ -18,15 +19,31 @@ import express from 'express'
 import simflexDb from '../services/simflex-db.js'
 import pipelineCounts from '../services/pipeline-counts.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { validateRequest } from '../middleware/validateRequest.js'
 import { supabaseAdmin } from '../config/supabase.js'
+import { z } from 'zod'
 
 const router = express.Router()
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+const baseQuerySchema = {
+  query: z.object({
+    from: z.string().regex(dateRegex).optional(),
+    to: z.string().regex(dateRegex).optional(),
+    date: z.string().regex(dateRegex).optional(),
+    location: z.enum(['mustang', 'jaguar']).optional(),
+    newProcessOnly: z.enum(['true', 'false', '']).optional(),
+    wipOnly: z.enum(['true', 'false', '']).optional(),
+    machineName: z.string().optional(),
+    limit: z.string().regex(/^\d+$/).optional(),
+  })
+}
 
 /**
  * GET /api/scanning/live
  * Get all live scanning data for today
  */
-router.get('/live', requireAuth, async (req, res) => {
+router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0]
     const fromDate = req.query.from || today
@@ -75,7 +92,7 @@ router.get('/live', requireAuth, async (req, res) => {
     const scanStageResult = req.query.from && req.query.to
       ? await simflexDb.getScanStageBoxes(fromDate, toDate, location)
       : await simflexDb.getScanStageBoxes(undefined, undefined, location)
-    console.log('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
+    logger.info('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
     const scanBooks = scanStageResult.count || 0
 
     // Scan-pipeline WIP total Ã¢â‚¬â€ matches the Transmission Monitor "New Process Only" figure.
@@ -108,7 +125,7 @@ router.get('/live', requireAuth, async (req, res) => {
           .select('isbn, box:boxes(box_number, lot:lots(lot_number))')
           .in('isbn', chunk)
         if (error) {
-          console.error("Supabase Error fetching lot/box:", error);
+          logger.error("Supabase Error fetching lot/box:", error);
         }
         if (dbBooks && dbBooks.length > 0) {
           for (const b of dbBooks) {
@@ -151,7 +168,7 @@ router.get('/live', requireAuth, async (req, res) => {
       limitReached: allBooks.limitReached || false,
     })
   } catch (error) {
-    console.error('Error in /live:', error)
+    logger.error('Error in /live:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -160,13 +177,13 @@ router.get('/live', requireAuth, async (req, res) => {
  * GET /api/scanning/scan-rows
  * Raw rows for all scan-stage statuses today (for debug modal).
  */
-router.get('/scan-rows', requireAuth, async (req, res) => {
+router.get('/scan-rows', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
     const result = await simflexDb.getScanStageBoxes(undefined, undefined, location)
     res.json({ success: true, rows: result.data || [], count: result.count })
   } catch (error) {
-    console.error('Error in /scan-rows:', error)
+    logger.error('Error in /scan-rows:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -277,7 +294,7 @@ router.get('/transmit-rows', requireAuth, async (req, res) => {
 
     res.json({ success: true, rows: enrichedRows, count: enrichedRows.length })
   } catch (error) {
-    console.error('Error in /transmit-rows:', error)
+    logger.error('Error in /transmit-rows:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -297,7 +314,7 @@ router.get('/machine-books', requireAuth, async (req, res) => {
     if (!result.success) return res.status(502).json(result)
     res.json(result)
   } catch (error) {
-    console.error('Error in /machine-books:', error)
+    logger.error('Error in /machine-books:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -306,7 +323,7 @@ router.get('/machine-books', requireAuth, async (req, res) => {
  * GET /api/scanning/ranking?date=2026-04-16
  * Get performance ranking by scan user
  */
-router.get('/ranking', requireAuth, async (req, res) => {
+router.get('/ranking', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
     const result = await simflexDb.getScanningRanking(req.query.date, location)
@@ -320,7 +337,7 @@ router.get('/ranking', requireAuth, async (req, res) => {
  * GET /api/scanning/export?date=2026-04-16
  * Get raw scan data as CSV download
  */
-router.get('/export', requireAuth, async (req, res) => {
+router.get('/export', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
     const result = await simflexDb.getScanningExportData(req.query.date, location)
@@ -345,7 +362,12 @@ router.get('/export', requireAuth, async (req, res) => {
 
 // GET /api/scanning/simflex-status?isbns=isbn1,isbn2,...
 // Returns per-ISBN latest status from Simflex
-router.get('/simflex-status', requireAuth, async (req, res) => {
+router.get('/simflex-status', requireAuth, validateRequest({
+  query: z.object({
+    isbns: z.string().optional(),
+    location: z.enum(['mustang', 'jaguar']).optional()
+  })
+}), async (req, res) => {
   try {
     const { isbns } = req.query
     const location = req.query.location || 'mustang'
@@ -393,7 +415,7 @@ router.get('/simflex-status', requireAuth, async (req, res) => {
 
     res.json({ success: true, statuses })
   } catch (error) {
-    console.error('Simflex status error:', error)
+    logger.error('Simflex status error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -436,7 +458,7 @@ router.post('/enrich-ilms', requireAuth, async (req, res) => {
 
     res.json({ success: true, enriched })
   } catch (error) {
-    console.error('ILMS enrichment error:', error)
+    logger.error('ILMS enrichment error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

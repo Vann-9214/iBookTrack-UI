@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/reports.js
  *
@@ -12,6 +13,8 @@
 import express from 'express'
 import { supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { validateRequest } from '../middleware/validateRequest.js'
+import { z } from 'zod'
 
 const router = express.Router()
 
@@ -29,7 +32,11 @@ const router = express.Router()
  *   In-Progress — One or more boxes are actively moving through the pipeline
  *                (current_stage NOT 'storage').
  */
-router.get('/lot-status', requireAuth, async (req, res) => {
+router.get('/lot-status', requireAuth, validateRequest({
+  query: z.object({
+    location: z.enum(['mustang', 'jaguar']).optional()
+  })
+}), async (req, res) => {
   try {
     const db = supabaseAdmin
     const { type } = req.query
@@ -189,7 +196,7 @@ router.get('/lot-status', requireAuth, async (req, res) => {
 
     res.json({ success: true, lots: result })
   } catch (error) {
-    console.error('[Reports] lot-status error:', error)
+    logger.error('[Reports] lot-status error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

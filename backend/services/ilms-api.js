@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * services/ilms-api.js
  *
@@ -80,7 +81,7 @@ async function queryILMS(url, text = '') {
     const valid = rows.filter(r => r && !r.Message)
     return { success: valid.length > 0, data: valid }
   } catch (err) {
-    console.error(`iLMS Query Failed [${url}]:`, err.message || err);
+    logger.error(`iLMS Query Failed [${url}]:`, err.message || err);
     return { success: false, data: [] }
   }
 }
@@ -154,7 +155,7 @@ class ILMSApiService {
         });
         return response.data && Array.isArray(response.data.result) ? response.data.result : [];
       } catch (err) {
-        console.error(`Failed to fetch from ${baseUrl} for "${searchText}":`, err.message);
+        logger.error(`Failed to fetch from ${baseUrl} for "${searchText}":`, err.message);
         return [];
       }
     };

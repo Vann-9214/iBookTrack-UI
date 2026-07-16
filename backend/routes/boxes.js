@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/boxes.js
  *
@@ -80,7 +81,7 @@ async function syncBoxTransmissionStatus(boxId, db, location) {
       await Promise.all(updates)
     }
   } catch (err) {
-    console.error('Error syncing transmission_status:', err)
+    logger.error('Error syncing transmission_status:', err)
   }
 }
 
@@ -235,12 +236,12 @@ router.get('/', async (req, res) => {
     if (scanBoxes.length > 0) {
       Promise.all(scanBoxes.map(async b => {
         await syncBoxTransmissionStatus(b.id, db, b.box_type)
-      })).catch(err => console.error('Background sync failed in GET /api/boxes:', err))
+      })).catch(err => logger.error('Background sync failed in GET /api/boxes:', err))
     }
 
     res.json({ boxes })
   } catch (error) {
-    console.error('Fetch boxes error:', error)
+    logger.error('Fetch boxes error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -403,7 +404,7 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
 
     res.json({ success: true, transitions: pagedEvents })
   } catch (error) {
-    console.error('Get pipeline transitions error:', error)
+    logger.error('Get pipeline transitions error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -444,7 +445,7 @@ router.get('/by-number/:box_number', requireAuth, async (req, res) => {
 
     res.json({ box: { ...box, books } })
   } catch (error) {
-    console.error('Get box by number error:', error)
+    logger.error('Get box by number error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -496,7 +497,7 @@ router.get('/:id', requireAuth, validateRequest({
     const totalFlagCount = books.filter(b => b.flag !== null).length
     res.json({ box: { ...box, books, flag_count: totalFlagCount } })
   } catch (error) {
-    console.error('Get box error:', error)
+    logger.error('Get box error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -540,7 +541,7 @@ router.get('/lot/:lot_number', requireAuth, async (req, res) => {
 
     res.json({ success: true, boxes })
   } catch (error) {
-    console.error('Get boxes by lot error:', error)
+    logger.error('Get boxes by lot error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -575,7 +576,7 @@ router.post('/:id/receive', requireAuth, validateRequest({
 
     res.json({ success: true, box: updatedBox })
   } catch (error) {
-    console.error('Receive box error:', error)
+    logger.error('Receive box error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -761,7 +762,7 @@ router.post('/:id/advance', requireAuth, validateRequest({
 
     res.json({ success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage })
   } catch (error) {
-    console.error('Advance box stage error:', error)
+    logger.error('Advance box stage error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -829,7 +830,7 @@ router.post('/:id/send-forward', requireAuth, async (req, res) => {
 
     res.json({ success: true, box, session_status: 'sent', current_stage: box.current_stage })
   } catch (error) {
-    console.error('Send to cut error:', error)
+    logger.error('Send to cut error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -868,7 +869,7 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
 
     res.json({ success: true, box: updatedBox })
   } catch (error) {
-    console.error('Rollback box stage error:', error)
+    logger.error('Rollback box stage error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -960,7 +961,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
       books: booksList,
     })
   } catch (error) {
-    console.error('Box transmission view error:', error)
+    logger.error('Box transmission view error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -1048,7 +1049,7 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
       notCompleted: notCompleted.map(r => ({ isbn: r.isbn, latestStatus: r.latestStatus })),
     })
   } catch (error) {
-    console.error('Check Simflex error:', error)
+    logger.error('Check Simflex error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -1085,7 +1086,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
     res.json({ success: true, message: `Box ${box.box_number} deleted` })
   } catch (error) {
-    console.error('Delete box error:', error)
+    logger.error('Delete box error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

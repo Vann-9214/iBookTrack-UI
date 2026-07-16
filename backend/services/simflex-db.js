@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * services/simflex-db.js
  *
@@ -31,7 +32,9 @@ export function sql(strings, ...values) {
   for (let i = 0; i < values.length; i++) {
     let value = values[i]
     
-    if (typeof value === 'string') {
+    if (value && typeof value === 'object' && value.__raw) {
+      value = value.val
+    } else if (typeof value === 'string') {
       value = `'${value.replace(/'/g, "''")}'`
     } else if (value === null || value === undefined) {
       value = 'NULL'
@@ -45,6 +48,11 @@ export function sql(strings, ...values) {
   }
   return result
 }
+
+/**
+ * Marks a string as raw SQL so it won't be escaped.
+ */
+sql.raw = (val) => ({ __raw: true, val })
 
 // Keep-alive agent so the TCP connection is reused across requests.
 // Cap the number of concurrent and idle sockets to avoid exhausting the
@@ -253,8 +261,7 @@ export async function getDailyOutputCount(date, location = 'mustang') {
     // Count distinct ISBNs whose LATEST status is Transmission_Archive COMPLETED
     // and that final status was recorded today (filter by Updated, not ScanDate,
     // because ScanDate is set when the book is first scanned and never changes).
-    const rows = await query(
-      `SELECT COUNT(DISTINCT t.ISBN) AS cnt
+    const rows = await query(sql`SELECT COUNT(DISTINCT t.ISBN) AS cnt
        FROM zeusz_IsbnStatus t
        INNER JOIN (
          SELECT ISBN, MAX(Updated) AS MaxUpdated
@@ -262,13 +269,13 @@ export async function getDailyOutputCount(date, location = 'mustang') {
          GROUP BY ISBN
        ) latest ON t.ISBN = latest.ISBN AND t.Updated = latest.MaxUpdated
        WHERE t.Status = 'Transmission_Archive COMPLETED'
-         AND CAST(t.Updated AS DATE) = '${d}'`,
+         AND CAST(t.Updated AS DATE) = '${sql.raw(d)}'`,
       location
     )
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count: data[0]?.cnt || 0 }
   } catch (error) {
-    console.error('Error fetching daily output count:', error)
+    logger.error('Error fetching daily output count:', error)
     return { success: false, count: 0 }
   }
 }
@@ -280,18 +287,17 @@ export async function getDailyOutputRows(date, location = 'mustang', newProcessO
 
     // Match the dashboard card count: latest status per ISBN added today is
     // Transmission_Archive COMPLETED, with optional New Process Only filter.
-    const rows = await query(
-      `SELECT t.ISBN, t.Updated, t.ScanUser, t.BoxNumber, t.PageCount, t.ScanDate
+    const rows = await query(sql`SELECT t.ISBN, t.Updated, t.ScanUser, t.BoxNumber, t.PageCount, t.ScanDate
        FROM zeusz_IsbnStatus t
        INNER JOIN (
          SELECT ISBN, MAX(Updated) AS MaxUpdated
          FROM zeusz_IsbnStatus
-         WHERE CAST(DateAdded AS DATE) = '${d}' ${reworkFilter}
+         WHERE CAST(DateAdded AS DATE) = '${sql.raw(d)}' ${sql.raw(reworkFilter)}
          GROUP BY ISBN
        ) latest ON t.ISBN = latest.ISBN AND t.Updated = latest.MaxUpdated
        WHERE t.Status = 'Transmission_Archive COMPLETED'
-         ${reworkFilter}
-         AND CAST(DateAdded AS DATE) = '${d}'
+         ${sql.raw(reworkFilter)}
+         AND CAST(DateAdded AS DATE) = '${sql.raw(d)}'
        ORDER BY t.Updated DESC`,
       location
     )
@@ -305,7 +311,7 @@ export async function getDailyOutputRows(date, location = 'mustang', newProcessO
       scan_date: r.ScanDate,
     })) }
   } catch (error) {
-    console.error('Error fetching daily output rows:', error)
+    logger.error('Error fetching daily output rows:', error)
     return { success: false, rows: [] }
   }
 }
@@ -313,11 +319,10 @@ export async function getDailyOutputRows(date, location = 'mustang', newProcessO
 export async function getTodayScanningSummary(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
-      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+      ? sql`CAST(DateAdded AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
+      : sql`CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
-    const rows = await query(
-      `SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${dateWhere}${reworkFilter(newProcessOnly)} GROUP BY Status ORDER BY cnt DESC`,
+    const rows = await query(sql`SELECT Status, COUNT(*) AS cnt FROM zeusz_IsbnStatus WHERE ${sql.raw(dateWhere)}${sql.raw(reworkFilter(newProcessOnly))} GROUP BY Status ORDER BY cnt DESC`,
       location
     )
     const data = (Array.isArray(rows) ? rows : [])
@@ -329,7 +334,7 @@ export async function getTodayScanningSummary(startDate, endDate, location = 'mu
     const total     = completed + ongoing  // exclude FAILED from total
     return { success: true, data: { TotalScans: total, Completed: completed, Failed: failed, Ongoing: ongoing, byStatus: data } }
   } catch (error) {
-    console.error('Error fetching scanning summary:', error)
+    logger.error('Error fetching scanning summary:', error)
     return { success: false, error: error.message }
   }
 }
@@ -354,13 +359,12 @@ async function getLatestMachineUserForISBNs(isbns, location = 'mustang') {
       .map(isbn => `'${String(isbn).replace(/[^a-zA-Z0-9\-]/g, '')}'`)
       .join(',')
 
-    const rows = await query(
-      `SELECT t.ISBN, t.ScanMachineName AS ScanMachineName, t.ScanUser
+    const rows = await query(sql`SELECT t.ISBN, t.ScanMachineName AS ScanMachineName, t.ScanUser
        FROM zeusz_IsbnStatus t
        INNER JOIN (
          SELECT ISBN, MAX(Updated) AS MaxUpdated
          FROM zeusz_IsbnStatus
-         WHERE ISBN IN (${safelist})
+         WHERE ISBN IN (${sql.raw(safelist)})
            AND (ScanMachineName IS NOT NULL OR ScanUser IS NOT NULL)
          GROUP BY ISBN
        ) m ON t.ISBN = m.ISBN AND t.Updated = m.MaxUpdated
@@ -392,10 +396,9 @@ export async function getScanningData(startDate, endDate, location = 'mustang', 
   try {
     const start = safeDate(startDate)
     const end   = safeDate(endDate)
-    const rows = await query(
-      `SELECT TOP 100 ISBN, Status, ScanMachineName AS MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber, IsRework
+    const rows = await query(sql`SELECT TOP 100 ISBN, Status, ScanMachineName AS MachineName, ScanDate, Updated, PageCount, ScanUser, BoxNumber, IsRework
        FROM zeusz_IsbnStatus
-       WHERE CAST(DateAdded AS DATE) BETWEEN '${start}' AND '${end}'${reworkFilter(newProcessOnly)}
+       WHERE CAST(DateAdded AS DATE) BETWEEN '${sql.raw(start)}' AND '${sql.raw(end)}'${sql.raw(reworkFilter(newProcessOnly))}
        ORDER BY Updated DESC`,
       location
     )
@@ -404,7 +407,7 @@ export async function getScanningData(startDate, endDate, location = 'mustang', 
       .filter(r => isMonitoredStatus(r.Status))
     return { success: true, data }
   } catch (error) {
-    console.error('Error fetching scanning data:', error)
+    logger.error('Error fetching scanning data:', error)
     return { success: false, error: error.message }
   }
 }
@@ -420,13 +423,12 @@ export async function getScanningData(startDate, endDate, location = 'mustang', 
 export async function getScanningByMachine(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
-      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+      ? sql`CAST(DateAdded AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
+      : sql`CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
-    const rows = await query(
-      `SELECT ScanMachineName AS MachineName, COUNT(*) AS TotalScans
+    const rows = await query(sql`SELECT ScanMachineName AS MachineName, COUNT(*) AS TotalScans
        FROM zeusz_IsbnStatus
-       WHERE ${dateWhere} AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
+       WHERE ${sql.raw(dateWhere)} AND Status NOT LIKE '%FAILED%'${sql.raw(reworkFilter(newProcessOnly))}
        GROUP BY ScanMachineName
        ORDER BY TotalScans DESC`,
       location
@@ -438,7 +440,7 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
     }))
     return { success: true, data }
   } catch (error) {
-    console.error('Error fetching machine stats:', error)
+    logger.error('Error fetching machine stats:', error)
     return { success: false, error: error.message }
   }
 }
@@ -446,17 +448,16 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
 export async function getBooksByMachine(startDate, endDate, machineName, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
-      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+      ? sql`CAST(DateAdded AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
+      : sql`CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
     const isNoneMachine = String(machineName).trim() === NONE_MACHINE
     const machineWhere = isNoneMachine
-      ? `(ScanMachineName IS NULL OR LTRIM(RTRIM(ScanMachineName)) = '')`
-      : `ScanMachineName = '${String(machineName).replace(/'/g, "''")}'`
-    const rows = await query(
-      `SELECT TOP 50000 ISBN, Status, Updated, ScanDate, ScanUser
+      ? sql`(ScanMachineName IS NULL OR LTRIM(RTRIM(ScanMachineName)) = '')`
+      : sql`ScanMachineName = ${machineName}`
+    const rows = await query(sql`SELECT TOP 50000 ISBN, Status, Updated, ScanDate, ScanUser
        FROM zeusz_IsbnStatus
-       WHERE ${dateWhere} AND ${machineWhere}
-         AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
+       WHERE ${sql.raw(dateWhere)} AND ${sql.raw(machineWhere)}
+         AND Status NOT LIKE '%FAILED%'${sql.raw(reworkFilter(newProcessOnly))}
        ORDER BY Updated DESC`,
       location
     )
@@ -470,7 +471,7 @@ export async function getBooksByMachine(startDate, endDate, machineName, locatio
     const books = [...latestByIsbn.values()]
     return { success: true, books, totalBooks: books.length }
   } catch (error) {
-    console.error('Error fetching machine books:', error)
+    logger.error('Error fetching machine books:', error)
     return { success: false, books: [], totalBooks: 0, error: error.message }
   }
 }
@@ -485,13 +486,12 @@ export async function getBooksByMachine(startDate, endDate, machineName, locatio
 export async function getScanningByStage(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateWhere = startDate && endDate
-      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+      ? sql`CAST(DateAdded AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
+      : sql`CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     // Fetch all rows for the location and date range, then deduplicate by latest
     // status per ISBN in JavaScript (Simflex API does not support window functions).
-    const rows = await query(
-      `SELECT TOP 10000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateWhere}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
+    const rows = await query(sql`SELECT TOP 10000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${sql.raw(dateWhere)}${sql.raw(reworkFilter(newProcessOnly))} ORDER BY Updated DESC`,
       location
     )
     const data = Array.isArray(rows) ? rows : []
@@ -523,7 +523,7 @@ export async function getScanningByStage(startDate, endDate, location = 'mustang
     }
     return { success: true, data: Object.values(stageMap) }
   } catch (error) {
-    console.error('Error fetching stage stats:', error)
+    logger.error('Error fetching stage stats:', error)
     return { success: false, error: error.message }
   }
 }
@@ -534,11 +534,11 @@ export async function getScanningByStage(startDate, endDate, location = 'mustang
  */
 export async function getTotalScansAllTime() {
   try {
-    const rows = await query(`SELECT COUNT(*) AS Total FROM zeusz_IsbnStatus WHERE Status NOT LIKE '%FAILED%'`)
+    const rows = await query(sql`SELECT COUNT(*) AS Total FROM zeusz_IsbnStatus WHERE Status NOT LIKE '%FAILED%'`)
     const data = Array.isArray(rows) ? rows : []
     return { success: true, total: data[0]?.Total || 0 }
   } catch (error) {
-    console.error('Error fetching all-time total:', error)
+    logger.error('Error fetching all-time total:', error)
     return { success: false, total: 0 }
   }
 }
@@ -554,10 +554,9 @@ export async function getTotalScansAllTime() {
 export async function getScanningRanking(date, location = 'mustang') {
   try {
     const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
-    const rows = await query(
-      `SELECT ScanUser, COUNT(*) AS Books, SUM(PageCount) AS Pages
+    const rows = await query(sql`SELECT ScanUser, COUNT(*) AS Books, SUM(PageCount) AS Pages
        FROM zeusz_IsbnStatus
-       WHERE CAST(ScanDate AS DATE) = '${d}' AND ScanUser IS NOT NULL AND Status NOT LIKE '%FAILED%'
+       WHERE CAST(ScanDate AS DATE) = '${sql.raw(d)}' AND ScanUser IS NOT NULL AND Status NOT LIKE '%FAILED%'
        GROUP BY ScanUser
        ORDER BY Books DESC`,
       location
@@ -583,7 +582,7 @@ export async function getScanningRanking(date, location = 'mustang') {
       avgOutput:     data.length > 0 ? Math.round(totalBooks / data.length) : 0
     }
   } catch (error) {
-    console.error('Error fetching ranking:', error)
+    logger.error('Error fetching ranking:', error)
     return { success: false, error: error.message }
   }
 }
@@ -598,16 +597,15 @@ export async function getScanningRanking(date, location = 'mustang') {
 export async function getScanningExportData(date, location = 'mustang') {
   try {
     const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
-    const rows = await query(
-      `SELECT TOP 50000 ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, ScanMachineName AS Machine, Updated
+    const rows = await query(sql`SELECT TOP 50000 ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, ScanMachineName AS Machine, Updated
        FROM zeusz_IsbnStatus
-       WHERE CAST(ScanDate AS DATE) = '${d}'
+       WHERE CAST(ScanDate AS DATE) = '${sql.raw(d)}'
        ORDER BY Updated DESC`,
       location
     )
     return { success: true, data: Array.isArray(rows) ? rows : [] }
   } catch (error) {
-    console.error('Error fetching export data:', error)
+    logger.error('Error fetching export data:', error)
     return { success: false, error: error.message }
   }
 }
@@ -634,7 +632,7 @@ export async function getScanStageBoxes(startDate, endDate, location = 'mustang'
     // passed as a URL parameter, so we use the backend's current date instead.
     const today = new Date().toISOString().split('T')[0]
     const dateFilter = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      ? sql`CAST(ScanDate AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
       : `CAST(ScanDate AS DATE) = '${today}'`
 
     // New-Process-Only filter: matches the Simflex grid when the checkbox is checked.
@@ -642,12 +640,11 @@ export async function getScanStageBoxes(startDate, endDate, location = 'mustang'
     const newProcessFilter = `AND IsRework = 'False'`
 
     // Count distinct books (ISBNs) currently in the scan-stage WIP range.
-    const countRows = await query(
-      `SELECT COUNT(DISTINCT LTRIM(RTRIM(ISBN))) AS cnt
+    const countRows = await query(sql`SELECT COUNT(DISTINCT LTRIM(RTRIM(ISBN))) AS cnt
        FROM zeusz_IsbnStatus
-       WHERE ${dateFilter}
-         AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
-         ${newProcessFilter}`,
+       WHERE ${sql.raw(dateFilter)}
+         AND LTRIM(RTRIM(Status)) IN ${sql.raw(scanStatuses)}
+         ${sql.raw(newProcessFilter)}`,
       location
     )
     const count = (Array.isArray(countRows) ? countRows : [])[0]?.cnt || 0
@@ -655,13 +652,12 @@ export async function getScanStageBoxes(startDate, endDate, location = 'mustang'
     // Detail rows for the modal — still filtered to New Process Only so the
     // Simflex list matches the card count.  Keep only the latest row per ISBN
     // so the modal row count matches the distinct-ISBN count.
-    const rows = await query(
-      `SELECT ISBN, BoxNumber, ScanUser, ScanMachineName AS MachineName,
+    const rows = await query(sql`SELECT ISBN, BoxNumber, ScanUser, ScanMachineName AS MachineName,
               PageCount, ScanDate, Status, Updated AS LastUpdated
        FROM zeusz_IsbnStatus
-       WHERE ${dateFilter}
-         AND LTRIM(RTRIM(Status)) IN ${scanStatuses}
-         ${newProcessFilter}
+       WHERE ${sql.raw(dateFilter)}
+         AND LTRIM(RTRIM(Status)) IN ${sql.raw(scanStatuses)}
+         ${sql.raw(newProcessFilter)}
        ORDER BY Updated DESC`,
       location
     )
@@ -678,11 +674,11 @@ export async function getScanStageBoxes(startDate, endDate, location = 'mustang'
       data.push(row)
     }
 
-    console.log('[getScanStageBoxes] dateFilter:', dateFilter, '| newProcess=checked | count=', count, '| raw rows=', rawData.length, '| deduplicated=', data.length)
+    logger.info('[getScanStageBoxes] dateFilter:', dateFilter, '| newProcess=checked | count=', count, '| raw rows=', rawData.length, '| deduplicated=', data.length)
 
     return { success: true, count, data }
   } catch (error) {
-    console.error('Error fetching scan stage boxes:', error)
+    logger.error('Error fetching scan stage boxes:', error)
     return { success: false, error: error.message, count: 0, data: [] }
   }
 }
@@ -698,14 +694,13 @@ export async function getTransmitStageBoxes(startDate, endDate, location = 'must
   try {
     const today = new Date().toISOString().split('T')[0]
     const dateFilter = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      ? sql`CAST(ScanDate AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
       : `CAST(ScanDate AS DATE) = '${today}'`
 
     // Count distinct BoxNumbers that have ANY ISBN with Transmission_Archive ONGOING today.
-    const countRows = await query(
-      `SELECT COUNT(DISTINCT BoxNumber) AS cnt
+    const countRows = await query(sql`SELECT COUNT(DISTINCT BoxNumber) AS cnt
        FROM zeusz_IsbnStatus
-       WHERE ${dateFilter}
+       WHERE ${sql.raw(dateFilter)}
          AND BoxNumber IS NOT NULL AND BoxNumber <> ''
          AND Status = 'Transmission_Archive ONGOING'`,
       location
@@ -713,15 +708,14 @@ export async function getTransmitStageBoxes(startDate, endDate, location = 'must
     const count = (Array.isArray(countRows) ? countRows : [])[0]?.cnt || 0
 
     // Detail rows: individual ISBNs
-    const rows = await query(
-      `SELECT ISBN, BoxNumber, Status, Updated AS LastUpdated
+    const rows = await query(sql`SELECT ISBN, BoxNumber, Status, Updated AS LastUpdated
        FROM zeusz_IsbnStatus s
-       WHERE ${dateFilter}
+       WHERE ${sql.raw(dateFilter)}
          AND BoxNumber IS NOT NULL AND BoxNumber <> ''
          AND Status = 'Transmission_Archive ONGOING'
          AND Updated = (
            SELECT MAX(Updated) FROM zeusz_IsbnStatus
-           WHERE ISBN = s.ISBN AND ${dateFilter}
+           WHERE ISBN = s.ISBN AND ${sql.raw(dateFilter)}
          )
        ORDER BY Updated DESC`,
       location
@@ -730,7 +724,7 @@ export async function getTransmitStageBoxes(startDate, endDate, location = 'must
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count, data }
   } catch (error) {
-    console.error('Error fetching transmit stage boxes:', error)
+    logger.error('Error fetching transmit stage boxes:', error)
     return { success: false, error: error.message, count: 0, data: [] }
   }
 }
@@ -822,7 +816,7 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
 
     return { success: true, data: Object.values(byIsbn) }
   } catch (error) {
-    console.error('Error fetching Simflex status for ISBNs:', error)
+    logger.error('Error fetching Simflex status for ISBNs:', error)
     return { success: false, error: error.message, data: [] }
   }
 }
@@ -843,11 +837,10 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
 export async function getCompletedTransmissionsCount(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateFilter = startDate && endDate
-      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+      ? sql`CAST(DateAdded AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
+      : sql`CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
-    const rows = await query(
-      `SELECT TOP 50000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
+    const rows = await query(sql`SELECT TOP 50000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${sql.raw(dateFilter)}${sql.raw(reworkFilter(newProcessOnly))} ORDER BY Updated DESC`,
       location
     )
     const data = Array.isArray(rows) ? rows : []
@@ -869,7 +862,7 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
 
     return { success: true, count: completed }
   } catch (error) {
-    console.error('Error fetching completed transmissions count:', error)
+    logger.error('Error fetching completed transmissions count:', error)
     return { success: false, count: 0, error: error.message }
   }
 }
@@ -889,12 +882,10 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
 export async function getAllBooksToday(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateFilter = startDate && endDate
-      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
+      ? sql`CAST(ScanDate AS DATE) BETWEEN ${safeDate(startDate)} AND ${safeDate(endDate)}`
+      : sql`CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
 
-    const rows = await query(
-      `SELECT TOP 50000 ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate` +
-      ` FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
+    const rows = await query(sql`SELECT TOP 50000 ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate FROM zeusz_IsbnStatus WHERE ${sql.raw(dateFilter)}${sql.raw(reworkFilter(newProcessOnly))} ORDER BY Updated DESC`,
       location
     )
     const data = (Array.isArray(rows) ? rows : [])
@@ -939,7 +930,7 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
 
     return { success: true, books, totalBooks, wipCount, limitReached: Array.isArray(rows) && rows.length >= 50000 }
   } catch (error) {
-    console.error('Error fetching all books today:', error)
+    logger.error('Error fetching all books today:', error)
     return { success: false, books: [], totalBooks: 0, wipCount: 0, error: error.message }
   }
 }
@@ -953,10 +944,9 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
 export async function getTransmitStageRows(location = 'mustang') {
   try {
     const today = new Date().toISOString().split('T')[0]
-    const rows = await query(
-      `SELECT ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated
+    const rows = await query(sql`SELECT ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated
        FROM zeusz_IsbnStatus
-       WHERE CAST(ScanDate AS DATE) = '${today}'
+       WHERE CAST(ScanDate AS DATE) = '${sql.raw(today)}'
          AND LTRIM(RTRIM(Status)) = 'Transmission_Archive ONGOING'
          AND IsRework = 'False'
        ORDER BY Updated DESC`,
@@ -965,7 +955,7 @@ export async function getTransmitStageRows(location = 'mustang') {
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count: data.length, data }
   } catch (error) {
-    console.error('Error fetching transmit stage rows:', error)
+    logger.error('Error fetching transmit stage rows:', error)
     return { success: false, error: error.message, count: 0, data: [] }
   }
 }

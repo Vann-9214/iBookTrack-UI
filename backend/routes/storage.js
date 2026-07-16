@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/storage.js
  *
@@ -88,7 +89,7 @@ router.get('/locations', requireAuth, async (req, res) => {
 
     res.json({ success: true, locations: normalized })
   } catch (error) {
-    console.error('Get storage locations error:', error)
+    logger.error('Get storage locations error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -143,7 +144,7 @@ router.post('/locations/provision', requireAuth, async (req, res) => {
 
     res.status(201).json({ success: true, locations: normalized })
   } catch (error) {
-    console.error('Provision section error:', error)
+    logger.error('Provision section error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -191,7 +192,7 @@ router.patch('/locations/:id', requireAuth, validateRequest({
 
     res.json({ success: true, location: data })
   } catch (error) {
-    console.error('Update location capacity error:', error)
+    logger.error('Update location capacity error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -212,7 +213,7 @@ router.delete('/locations/:id', requireAuth, validateRequest({
     if (error) throw error
     res.json({ success: true })
   } catch (error) {
-    console.error('Delete storage location error:', error)
+    logger.error('Delete storage location error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -289,7 +290,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
 
     res.json({ success: true, boxes: normalized })
   } catch (error) {
-    console.error('Get ready boxes error:', error)
+    logger.error('Get ready boxes error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -373,7 +374,7 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
 
     res.status(201).json({ success: true, assignments: assignments || [] })
   } catch (error) {
-    console.error('Batch assign boxes error:', error)
+    logger.error('Batch assign boxes error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -408,7 +409,7 @@ router.delete('/assignments/batch', requireAuth, async (req, res) => {
 
     res.json({ success: true, message: `${removedAssignments?.length || 0} box(es) removed from storage locations` })
   } catch (error) {
-    console.error('Batch remove assignments error:', error)
+    logger.error('Batch remove assignments error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -479,7 +480,7 @@ router.get('/search', requireAuth, async (req, res) => {
 
     res.json({ success: true, results, unlocated })
   } catch (error) {
-    console.error('Storage search error:', error)
+    logger.error('Storage search error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -528,7 +529,7 @@ router.get('/pending-assignments', requireAuth, async (req, res) => {
 
     res.json({ success: true, assignments })
   } catch (error) {
-    console.error('Get pending assignments error:', error)
+    logger.error('Get pending assignments error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -558,12 +559,12 @@ router.post('/assignments/:id/confirm', requireAuth, validateRequest({
         .update({ current_stage: 'storage' })
         .eq('id', assignment.box_id)
 
-      if (boxUpdateError) console.error('Failed to update box current_stage on confirm:', boxUpdateError)
+      if (boxUpdateError) logger.error('Failed to update box current_stage on confirm:', boxUpdateError)
     }
 
     res.json({ success: true, assignment: { id: assignment.id, status: assignment.status } })
   } catch (error) {
-    console.error('Confirm assignment error:', error)
+    logger.error('Confirm assignment error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

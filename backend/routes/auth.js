@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/auth.js
  *
@@ -97,7 +98,7 @@ router.post('/register', registerLimiter, async (req, res) => {
   })
 
   if (error) {
-    console.error('Supabase signup error:', error)
+    logger.error('Supabase signup error:', error)
     return res.status(400).json({ error: error.message })
   }
 
@@ -138,7 +139,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   const cookieOpts = {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'lax'
+    sameSite: 'strict'
   }
   
   if (data.session?.access_token) {
@@ -201,7 +202,7 @@ router.post('/refresh', async (req, res) => {
     const cookieOpts = {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax'
+      sameSite: 'strict'
     }
 
     res.cookie('access_token', data.access_token, { ...cookieOpts, maxAge: (data.expires_in || 3600) * 1000 })
@@ -211,7 +212,7 @@ router.post('/refresh', async (req, res) => {
 
     return res.json({ message: 'Token refreshed successfully.' })
   } catch (error) {
-    console.error('Token refresh error:', error)
+    logger.error('Token refresh error:', error)
     return res.status(401).json({ error: 'Failed to refresh token.' })
   }
 })
@@ -253,7 +254,7 @@ router.post('/password', requireAuth, async (req, res) => {
 
     return res.json({ message: 'Password updated successfully.' })
   } catch (error) {
-    console.error('Password update error:', error)
+    logger.error('Password update error:', error)
     return res.status(500).json({ error: error.message })
   }
 })
@@ -273,7 +274,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       email: profile.email,
     })
   } catch (error) {
-    console.error('Profile fetch error:', error)
+    logger.error('Profile fetch error:', error)
     return res.status(500).json({ error: 'Failed to fetch profile' })
   }
 })
@@ -338,7 +339,7 @@ router.patch('/profile', requireAuth, async (req, res) => {
       user: data,
     })
   } catch (error) {
-    console.error('Profile update error:', error)
+    logger.error('Profile update error:', error)
     return res.status(500).json({ error: error.message })
   }
 })
@@ -442,7 +443,7 @@ router.get('/innodata/callback', async (req, res) => {
     
     res.redirect(returnUrl.toString())
   } catch (error) {
-    console.error('SSO Callback error:', error)
+    logger.error('SSO Callback error:', error)
     res.status(500).send('SSO Authentication failed')
   }
 })
