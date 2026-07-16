@@ -950,7 +950,7 @@ export default function WarehouseLocatorPage() {
                               title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
                               className={cn(
                                 "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
-                                loc ? pendingCount > 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
+                                loc ? getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
                                 isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
                                 isSuggested && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10 animate-pulse",
                                 loc && "hover:scale-105 hover:shadow-md cursor-pointer"
@@ -960,8 +960,9 @@ export default function WarehouseLocatorPage() {
                                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
                               ) : loc && pendingCount > 0 ? (
                                 <>
-                                  <Clock className="h-4 w-4 text-amber-700 dark:text-amber-300" />
-                                  <span className="text-[10px] font-semibold text-amber-800 dark:text-amber-200 leading-tight">{pendingCount} pending</span>
+                                  <Package className="h-4 w-4 text-foreground/60" />
+                                  <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                  <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"><Clock className="h-2.5 w-2.5" />{pendingCount} pending</span>
                                 </>
                               ) : loc && used > 0 ? (
                                 <>
