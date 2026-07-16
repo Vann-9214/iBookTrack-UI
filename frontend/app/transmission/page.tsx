@@ -37,6 +37,7 @@ import {
   UploadCloud,
   ChevronsUpDown,
   X,
+  AlertTriangle,
 } from "lucide-react"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
@@ -175,6 +176,7 @@ export default function TransmissionMonitorPage() {
   const [allBooks, setAllBooks] = useState<any[]>([])
   const [totalBooks, setTotalBooks] = useState(0)
   const [wipCount, setWipCount] = useState(0)
+  const [limitReached, setLimitReached] = useState(false)
   const [tableView, setTableView] = useState<'books' | 'wip'>('books')
   const [stageFilter, setStageFilter] = useState<{ stage: string, category: 'COMPLETED' | 'ONGOING' | 'FAILED' | 'ALL' } | null>(null)
   const [byMachine, setByMachine] = useState<any[]>([])
@@ -321,6 +323,7 @@ export default function TransmissionMonitorPage() {
         setTotalBooks(data.totalBooks || 0)
         setWipCount(data.wipCount || 0)
         setByMachine(data.byMachine || [])
+        setLimitReached(data.limitReached || false)
         setLastUpdated(new Date())
       }
     } catch (e) {
@@ -730,6 +733,16 @@ export default function TransmissionMonitorPage() {
                 </div>
               </div>
             </header>
+
+            {limitReached && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-center gap-3 mb-2 shadow-sm animate-in fade-in zoom-in duration-300">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                <p>
+                  <strong>Data limit reached!</strong> The system fetched the maximum 50,000 status updates and stopped to prevent crashing. 
+                  Some older books from this date range may be hidden. If you need a complete history, please narrow your date range or use Export.
+                </p>
+              </div>
+            )}
 
             {/* Metric Cards — compact 3-col on mobile, full cards on desktop */}
             {/* Mobile */}

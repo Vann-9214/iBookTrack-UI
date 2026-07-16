@@ -99,7 +99,7 @@ router.get('/live', requireAuth, async (req, res) => {
 
     if (allIsbns.size > 0) {
       const isbns = Array.from(allIsbns)
-      const chunkSize = 1000
+      const chunkSize = 200
       const supabaseMap = {}
       for (let i = 0; i < isbns.length; i += chunkSize) {
         const chunk = isbns.slice(i, i + chunkSize)
@@ -148,6 +148,7 @@ router.get('/live', requireAuth, async (req, res) => {
       allBooks: processedAllBooks,
       totalBooks: allBooks.totalBooks || 0,
       wipCount: allBooks.wipCount || 0,
+      limitReached: allBooks.limitReached || false,
     })
   } catch (error) {
     console.error('Error in /live:', error)
