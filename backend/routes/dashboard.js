@@ -19,6 +19,8 @@ import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import simflexDb from '../services/simflex-db.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { z } from 'zod'
+import { validateRequest } from '../middleware/validateRequest.js'
 
 const router = express.Router()
 
@@ -38,7 +40,14 @@ function formatStageLabel(stage) {
 }
 
 // Get dashboard stats
-router.get('/stats', requireAuth, async (req, res) => {
+router.get('/stats', requireAuth, validateRequest({
+  query: z.object({
+    lot_number: z.string().optional(),
+    lot_range_start: z.string().optional(),
+    lot_range_end: z.string().optional(),
+    box_type: z.string().optional()
+  })
+}), async (req, res) => {
   try {
     const { lot_number, lot_range_start, lot_range_end, box_type } = req.query
     const db = supabaseAdmin || supabase
@@ -275,7 +284,14 @@ router.get('/open-lots', requireAuth, async (req, res) => {
 })
 
 // Get QC flagged books list
-router.get('/qc-flags', requireAuth, async (req, res) => {
+router.get('/qc-flags', requireAuth, validateRequest({
+  query: z.object({
+    page: z.string().regex(/^\d+$/).optional(),
+    limit: z.string().regex(/^\d+$/).optional(),
+    today: z.enum(['true', 'false']).optional(),
+    box_type: z.string().optional()
+  })
+}), async (req, res) => {
   try {
     const db = supabaseAdmin || supabase
     const requestedPage = parseInt(req.query.page || '1', 10)
@@ -378,7 +394,13 @@ router.get('/qc-flags', requireAuth, async (req, res) => {
 })
 
 // Get today's completed transmissions (Daily Output list)
-router.get('/daily-output', requireAuth, async (req, res) => {
+router.get('/daily-output', requireAuth, validateRequest({
+  query: z.object({
+    page: z.string().regex(/^\d+$/).optional(),
+    limit: z.string().regex(/^\d+$/).optional(),
+    brand: z.string().optional()
+  })
+}), async (req, res) => {
   try {
     const db = supabaseAdmin || supabase
     const requestedPage = parseInt(req.query.page || '1', 10)
@@ -440,7 +462,11 @@ router.get('/daily-output', requireAuth, async (req, res) => {
 
 
 // Get enhanced lot details — stage breakdown, book status counts, completion progress
-router.get('/lot-details/:lot_number', requireAuth, async (req, res) => {
+router.get('/lot-details/:lot_number', requireAuth, validateRequest({
+  params: z.object({
+    lot_number: z.string().min(1)
+  })
+}), async (req, res) => {
   try {
     const { lot_number } = req.params
     const db = supabaseAdmin || supabase
@@ -539,7 +565,12 @@ router.get('/lot-details/:lot_number', requireAuth, async (req, res) => {
 })
 
 // Get pipeline stage counts (today only, grouped by box_type)
-router.get('/pipeline-stats', async (req, res) => {
+router.get('/pipeline-stats', validateRequest({
+  query: z.object({
+    lot_number: z.string().optional(),
+    brand: z.string().optional()
+  })
+}), async (req, res) => {
   try {
     const { lot_number, brand } = req.query
     const selectedBrand = (brand === 'jaguar' || brand === 'mustang') ? brand : null

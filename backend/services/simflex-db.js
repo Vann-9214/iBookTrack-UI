@@ -20,6 +20,32 @@ import https from 'https'
 import dotenv from 'dotenv'
 dotenv.config({ path: new URL('../.env', import.meta.url) })
 
+// ── SQL Parameterization ──────────────────────────────────────────────────────
+/**
+ * A tagged template literal that mimics parameterized queries for the legacy API.
+ * Safely escapes strings by doubling single quotes, formats arrays into CSV lists,
+ * and leaves numbers/booleans as-is.
+ */
+export function sql(strings, ...values) {
+  let result = strings[0]
+  for (let i = 0; i < values.length; i++) {
+    let value = values[i]
+    
+    if (typeof value === 'string') {
+      value = `'${value.replace(/'/g, "''")}'`
+    } else if (value === null || value === undefined) {
+      value = 'NULL'
+    } else if (value instanceof Date) {
+      value = `'${value.toISOString()}'`
+    } else if (Array.isArray(value)) {
+      value = value.map(v => typeof v === 'string' ? `'${v.replace(/'/g, "''")}'` : v).join(', ')
+    }
+    
+    result += value + strings[i + 1]
+  }
+  return result
+}
+
 // Keep-alive agent so the TCP connection is reused across requests.
 // Cap the number of concurrent and idle sockets to avoid exhausting the
 // process file-descriptor / memory budget when the frontend polls heavily.
@@ -732,17 +758,11 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
   try {
     if (!isbns || isbns.length === 0) return { success: true, data: [] }
 
-    // Build a safe SQL IN list — strip any non-alphanumeric/hyphen characters
-    // from each ISBN to prevent injection via the isbn values themselves.
-    const safelist = isbns
-      .map(i => `'${String(i).replace(/[^a-zA-Z0-9\-]/g, '')}'`)
-      .join(',')
-
     // Fetch all status rows for these ISBNs across all time (not just today)
     const rows = await query(
-      `SELECT ISBN, Status, ScanDate, Updated, PageCount, ScanUser, BoxNumber
+      sql`SELECT ISBN, Status, ScanDate, Updated, PageCount, ScanUser, BoxNumber
        FROM zeusz_IsbnStatus
-       WHERE ISBN IN (${safelist})
+       WHERE ISBN IN (${isbns})
        ORDER BY Updated DESC`,
       location
     )

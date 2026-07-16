@@ -15,13 +15,22 @@
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { z } from 'zod'
+import { validateRequest } from '../middleware/validateRequest.js'
 
 const router = express.Router()
 
 const VALID_LOT_TYPES = ['Mustang', 'Jaguar']
 
 // Get lots with search + pagination (scalable for 10k+ lots)
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, validateRequest({
+  query: z.object({
+    limit: z.string().regex(/^\d+$/).optional(),
+    offset: z.string().regex(/^\d+$/).optional(),
+    search: z.string().optional(),
+    type: z.string().optional()
+  })
+}), async (req, res) => {
   try {
     const { search, limit: rawLimit, offset: rawOffset, type } = req.query
     const limit = Math.min(parseInt(rawLimit) || 50, 100)
@@ -68,7 +77,11 @@ router.get('/', requireAuth, async (req, res) => {
 
 // LOT-level transmission summary: all ISBNs in lot with Simflex status + WIP breakdown
 // GET /api/lots/:lot_number/transmission-summary
-router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) => {
+router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
+  params: z.object({
+    lot_number: z.string().min(1, 'Lot number is required')
+  })
+}), async (req, res) => {
   try {
     const { lot_number } = req.params
     const lotType = VALID_LOT_TYPES.includes(req.query.type) ? req.query.type : null
@@ -206,7 +219,11 @@ router.get('/:lot_number/transmission-summary', requireAuth, async (req, res) =>
 })
 
 // Get single lot by lot number
-router.get('/:lot_number', requireAuth, async (req, res) => {
+router.get('/:lot_number', requireAuth, validateRequest({
+  params: z.object({
+    lot_number: z.string().min(1, 'Lot number is required')
+  })
+}), async (req, res) => {
   try {
     const { lot_number } = req.params
 
