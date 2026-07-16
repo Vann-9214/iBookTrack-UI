@@ -209,6 +209,11 @@ export default function WarehouseLocatorPage() {
   const getLocation = (rack: string, level: number) =>
     locations.find(l => l.rack_id === rack && l.level === level)
 
+  const getPendingCount = (location: StorageLocation) =>
+    location.assignments.filter(assignment => assignment.status === 'pending').length
+
+  const getReservedCount = (location: StorageLocation) => location.used + getPendingCount(location)
+
   const getSectionFromRackId = (rack: string) => {
     const match = rack.match(/^S(\d+)-/)
     return match ? Number(match[1]) : 1
@@ -216,13 +221,15 @@ export default function WarehouseLocatorPage() {
 
   const getSuggestedLocation = (requiredCapacity = 1) =>
     locations
-      .filter(location => location.capacity - location.used >= requiredCapacity)
+      .filter(location => location.capacity - getReservedCount(location) >= requiredCapacity)
       .sort((a, b) => {
-        const occupancyDifference = Number(b.used > 0) - Number(a.used > 0)
+        const aReserved = getReservedCount(a)
+        const bReserved = getReservedCount(b)
+        const occupancyDifference = Number(bReserved > 0) - Number(aReserved > 0)
         if (occupancyDifference !== 0) return occupancyDifference
-        const capacityDifference = b.used / b.capacity - a.used / a.capacity
+        const capacityDifference = bReserved / b.capacity - aReserved / a.capacity
         if (capacityDifference !== 0) return capacityDifference
-        if (a.used !== b.used) return b.used - a.used
+        if (aReserved !== bReserved) return bReserved - aReserved
         return a.rack_id.localeCompare(b.rack_id) || a.level - b.level
       })[0]
 
@@ -358,11 +365,11 @@ export default function WarehouseLocatorPage() {
     const lastRack = racks[racks.length - 1]
     const lastRackId = rackId(activeSection, lastRack)
     const rackLocs = locations.filter(l => l.rack_id === lastRackId)
-    const occupiedLocs = rackLocs.filter(l => l.used > 0)
+    const occupiedLocs = rackLocs.filter(l => getReservedCount(l) > 0)
     if (occupiedLocs.length > 0) {
       setWarningModal(
         `Rack ${lastRack} has ${occupiedLocs.length} occupied slot${occupiedLocs.length > 1 ? 's' : ''}: ` +
-        `${occupiedLocs.map(l => `Level ${l.level} (${l.used} box${l.used > 1 ? 'es' : ''})`).join(', ')}. ` +
+        `${occupiedLocs.map(l => `Level ${l.level} (${getReservedCount(l)} box${getReservedCount(l) !== 1 ? 'es' : ''})`).join(', ')}. ` +
         `Clear all boxes from this rack before removing it.`
       )
       setPendingRemove(null)
@@ -414,11 +421,11 @@ export default function WarehouseLocatorPage() {
     const topLevel = Math.max(...levels)
     const rackIds = racks.map(r => rackId(activeSection, r))
     const topLocs = locations.filter(l => rackIds.includes(l.rack_id) && l.level === topLevel)
-    const occupiedLocs = topLocs.filter(l => l.used > 0)
+    const occupiedLocs = topLocs.filter(l => getReservedCount(l) > 0)
     if (occupiedLocs.length > 0) {
       setWarningModal(
         `Level ${topLevel} has ${occupiedLocs.length} occupied slot${occupiedLocs.length > 1 ? 's' : ''}: ` +
-        `${occupiedLocs.map(l => `Rack ${l.rack_id.includes('-') ? l.rack_id.split('-')[1] : l.rack_id} (${l.used} box${l.used > 1 ? 'es' : ''})`).join(', ')}. ` +
+        `${occupiedLocs.map(l => `Rack ${l.rack_id.includes('-') ? l.rack_id.split('-')[1] : l.rack_id} (${getReservedCount(l)} box${getReservedCount(l) !== 1 ? 'es' : ''})`).join(', ')}. ` +
         `Clear all boxes from this level before removing it.`
       )
       setPendingRemove(null)
@@ -439,9 +446,9 @@ export default function WarehouseLocatorPage() {
     if (section <= 1) return
     const sectionRacks = getSectionRacks(section).map((r: string) => rackId(section, r))
     const sectionLocs = locations.filter(l => sectionRacks.includes(l.rack_id))
-    const hasBoxes = sectionLocs.some(l => l.used > 0)
+    const hasBoxes = sectionLocs.some(l => getReservedCount(l) > 0)
     if (hasBoxes) {
-      const occupied = sectionLocs.filter(l => l.used > 0)
+      const occupied = sectionLocs.filter(l => getReservedCount(l) > 0)
       setWarningModal(
         `Section ${section} still has boxes in ${occupied.length} slot${occupied.length > 1 ? 's' : ''}. ` +
         `Clear all boxes before removing this section.`
@@ -931,10 +938,10 @@ export default function WarehouseLocatorPage() {
                           const loc = getLocation(rackId(activeSection, rack), level)
                           const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
                           const isSuggested = suggestedLocation?.id === loc?.id
-                          const pendingCount = loc?.assignments.filter(assignment => assignment.status === 'pending').length ?? 0
+                          const pendingCount = loc ? getPendingCount(loc) : 0
                           const used = loc?.used ?? 0
                           const capacity = loc?.capacity ?? 20
-                          const canFitSelected = capacity - used >= selectedReadyBoxIds.size
+                          const canFitSelected = capacity - used - pendingCount >= selectedReadyBoxIds.size
                           return (
                             <button
                               key={`${rack}-${level}`}
@@ -1078,7 +1085,7 @@ export default function WarehouseLocatorPage() {
                     <span className="text-xs text-muted-foreground">{detailSlot.used} used /</span>
                     <input
                       type="number"
-                      min={detailSlot.used}
+                      min={getReservedCount(detailSlot)}
                       value={capacityInput}
                       onChange={e => setCapacityInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') handleEditCapacity(); if (e.key === 'Escape') setEditingCapacity(false) }}
@@ -1097,6 +1104,7 @@ export default function WarehouseLocatorPage() {
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <p className="text-xs text-muted-foreground">
                       {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
+                      {getPendingCount(detailSlot) > 0 ? ` · ${getPendingCount(detailSlot)} pending` : ''}
                     </p>
                     <button
                       onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
@@ -1117,7 +1125,7 @@ export default function WarehouseLocatorPage() {
             </div>
 
             {/* Assign button */}
-            {detailSlot.used < detailSlot.capacity && (
+            {getReservedCount(detailSlot) < detailSlot.capacity && (
               <button
                 onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
                 className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors"
@@ -1251,7 +1259,7 @@ export default function WarehouseLocatorPage() {
               <div>
                 <h3 className="text-base font-semibold text-foreground">Assign Box to Slot</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Rack {assignSlot.rack_id} — Level {assignSlot.level} &nbsp;·&nbsp; {assignSlot.used}/{assignSlot.capacity} used
+                  Rack {assignSlot.rack_id} — Level {assignSlot.level} &nbsp;·&nbsp; {assignSlot.used}/{assignSlot.capacity} used{getPendingCount(assignSlot) > 0 ? ` · ${getPendingCount(assignSlot)} pending` : ''}
                 </p>
               </div>
               {!assignLoading && (
@@ -1273,7 +1281,7 @@ export default function WarehouseLocatorPage() {
             ) : (
               <>
                 {(() => {
-                  const remainingCapacity = assignSlot ? Math.max(0, assignSlot.capacity - assignSlot.used) : 0
+                  const remainingCapacity = assignSlot ? Math.max(0, assignSlot.capacity - getReservedCount(assignSlot)) : 0
                   const selectableIds = readyBoxes.slice(0, remainingCapacity).map(b => b.id)
                   const maxSelectable = Math.min(remainingCapacity, readyBoxes.length)
                   const allSelectableSelected = maxSelectable > 0 && assigningBoxIds.size >= maxSelectable
