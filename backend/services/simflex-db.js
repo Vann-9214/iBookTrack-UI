@@ -347,7 +347,7 @@ async function getLatestMachineUserForISBNs(isbns, location = 'mustang') {
   if (!Array.isArray(isbns) || isbns.length === 0) return {}
 
   const result = {}
-  const chunkSize = 1000
+  const chunkSize = 200
   for (let i = 0; i < isbns.length; i += chunkSize) {
     const chunk = isbns.slice(i, i + chunkSize)
     const safelist = chunk
@@ -449,27 +449,17 @@ export async function getBooksByMachine(startDate, endDate, machineName, locatio
       ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
     const isNoneMachine = String(machineName).trim() === NONE_MACHINE
-    let rows
-    if (isNoneMachine) {
-      rows = await query(
-        `SELECT TOP 5000 ISBN, Status, Updated, ScanDate, ScanUser
-         FROM zeusz_IsbnStatus
-         WHERE ${dateWhere} AND (ScanMachineName IS NULL OR LTRIM(RTRIM(ScanMachineName)) = '')
-           AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
-         ORDER BY Updated DESC`,
-        location
-      )
-    } else {
-      rows = await query(
-        sql`SELECT TOP 5000 ISBN, Status, Updated, ScanDate, ScanUser
-         FROM zeusz_IsbnStatus
-         WHERE CAST(DateAdded AS DATE) BETWEEN ${startDate ? safeDate(startDate) : new Date().toISOString().split('T')[0]} AND ${endDate ? safeDate(endDate) : new Date().toISOString().split('T')[0]}
-           AND ScanMachineName = ${machineName}
-           AND Status NOT LIKE '%FAILED%'
-         ORDER BY Updated DESC`,
-        location
-      )
-    }
+    const machineWhere = isNoneMachine
+      ? `(ScanMachineName IS NULL OR LTRIM(RTRIM(ScanMachineName)) = '')`
+      : `ScanMachineName = '${String(machineName).replace(/'/g, "''")}'`
+    const rows = await query(
+      `SELECT TOP 50000 ISBN, Status, Updated, ScanDate, ScanUser
+       FROM zeusz_IsbnStatus
+       WHERE ${dateWhere} AND ${machineWhere}
+         AND Status NOT LIKE '%FAILED%'${reworkFilter(newProcessOnly)}
+       ORDER BY Updated DESC`,
+      location
+    )
     const latestByIsbn = new Map()
     for (const row of (Array.isArray(rows) ? rows : [])) {
       if (!row.ISBN || latestByIsbn.has(row.ISBN)) continue
@@ -609,7 +599,7 @@ export async function getScanningExportData(date, location = 'mustang') {
   try {
     const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
     const rows = await query(
-      `SELECT TOP 5000 ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, ScanMachineName AS Machine, Updated
+      `SELECT TOP 50000 ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, ScanMachineName AS Machine, Updated
        FROM zeusz_IsbnStatus
        WHERE CAST(ScanDate AS DATE) = '${d}'
        ORDER BY Updated DESC`,
@@ -857,7 +847,7 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
       : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT TOP 5000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
+      `SELECT TOP 50000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
       location
     )
     const data = Array.isArray(rows) ? rows : []
@@ -899,11 +889,11 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
 export async function getAllBooksToday(startDate, endDate, location = 'mustang', newProcessOnly = false) {
   try {
     const dateFilter = startDate && endDate
-      ? `CAST(DateAdded AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
-      : `CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
+      ? `CAST(ScanDate AS DATE) BETWEEN '${safeDate(startDate)}' AND '${safeDate(endDate)}'`
+      : `CAST(ScanDate AS DATE) = CAST(GETDATE() AS DATE)`
 
     const rows = await query(
-      `SELECT TOP 5000 ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate` +
+      `SELECT TOP 50000 ISBN, Status, Updated, ScanUser, ScanMachineName, BoxNumber, PageCount, ScanDate` +
       ` FROM zeusz_IsbnStatus WHERE ${dateFilter}${reworkFilter(newProcessOnly)} ORDER BY Updated DESC`,
       location
     )
@@ -947,7 +937,7 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
     const totalBooks = books.length
     const wipCount   = books.filter(b => b.isWip).length
 
-    return { success: true, books, totalBooks, wipCount }
+    return { success: true, books, totalBooks, wipCount, limitReached: Array.isArray(rows) && rows.length >= 50000 }
   } catch (error) {
     console.error('Error fetching all books today:', error)
     return { success: false, books: [], totalBooks: 0, wipCount: 0, error: error.message }

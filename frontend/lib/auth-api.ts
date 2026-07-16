@@ -1,3 +1,5 @@
+import { toast } from 'sonner'
+
 type AuthRequestOptions = {
   endpoint: '/api/auth/login' | '/api/auth/register'
   payload: Record<string, unknown>
@@ -73,7 +75,9 @@ export async function refreshAccessToken(): Promise<boolean> {
     })
 
     if (!response.ok) {
-      await clearTokenData()
+      if (response.status === 401 || response.status === 403 || response.status === 400) {
+        await clearTokenData()
+      }
       return false
     }
 
@@ -95,6 +99,34 @@ export async function getValidAccessToken(): Promise<string | null> {
   return "cookie-handled"
 }
 
+// Helper to show a unified rate-limit toast with wait time
+function handleRateLimitToast(res: Response) {
+  const retryAfter = res.headers.get('Retry-After')
+  const rateLimitReset = res.headers.get('RateLimit-Reset')
+  
+  let waitMessage = 'Please wait a moment.'
+  if (retryAfter) {
+    const seconds = parseInt(retryAfter, 10)
+    if (!isNaN(seconds)) {
+      const mins = Math.ceil(seconds / 60)
+      waitMessage = `Please wait ${mins} minute${mins !== 1 ? 's' : ''}.`
+    }
+  } else if (rateLimitReset) {
+    const resetTime = parseInt(rateLimitReset, 10) * 1000
+    if (!isNaN(resetTime)) {
+      const diff = Math.max(0, resetTime - Date.now())
+      const mins = Math.ceil(diff / 60000)
+      waitMessage = `Please wait ${mins} minute${mins !== 1 ? 's' : ''}.`
+    }
+  }
+  
+  toast.error('Too many requests', {
+    description: waitMessage,
+    id: 'global-rate-limit-toast',
+    duration: 10000,
+  })
+}
+
 // Drop-in fetch wrapper — refreshes token if expired, redirects to /login on 401
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   options.credentials = 'include'
@@ -104,6 +136,10 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
   }
 
   let res = await fetch(url, { ...options, headers })
+
+  if (res.status === 429) {
+    handleRateLimitToast(res)
+  }
 
   if (res.status === 401) {
     const refreshed = await refreshAccessToken()
@@ -134,6 +170,10 @@ export async function authRequest({ endpoint, payload }: AuthRequestOptions): Pr
   const responseBody = isJson ? await response.json() : await response.text()
 
   if (!response.ok) {
+    if (response.status === 429) {
+      handleRateLimitToast(response)
+    }
+
     if (isJson && responseBody && typeof responseBody === 'object' && 'error' in responseBody) {
       throw new Error(String(responseBody.error || 'Request failed.'))
     }
@@ -159,7 +199,17 @@ export async function fetchUserProfile(): Promise<{ id: string; name: string; em
       credentials: 'include'
     })
 
-    if (!response.ok) return null
+    if (response.status === 401 || response.status === 403) {
+      return null
+    }
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        handleRateLimitToast(response)
+        return { id: 'rate-limited', name: 'Rate Limited', email: 'rate-limited' }
+      }
+      return null
+    }
 
     const data = await response.json()
     return data
