@@ -189,6 +189,10 @@ export default function WarehouseLocatorPage() {
     }
   }, [brand])
 
+  const refreshLocator = useCallback(async () => {
+    await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
+  }, [fetchLocations, fetchReadyBoxes, fetchPendingAssignments])
+
   useEffect(() => { fetchLocations() }, [fetchLocations])
 
   useEffect(() => {
@@ -641,7 +645,7 @@ export default function WarehouseLocatorPage() {
                   </p>
                 </div>
               </div>
-              <RefreshControl onRefresh={fetchLocations} refreshing={loadingLocations} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
+              <RefreshControl onRefresh={refreshLocator} refreshing={loadingLocations || loadingReady || loadingPending} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
             </header>
 
             {/* Search */}

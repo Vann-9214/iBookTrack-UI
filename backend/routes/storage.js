@@ -369,7 +369,7 @@ router.post('/assign/batch', requireAuth, async (req, res) => {
 })
 
 // ─── DELETE /api/storage/assignments/batch ────────────────────────────────────
-// Bulk remove multiple boxes from storage slots (does NOT change box stage)
+// Bulk remove multiple boxes from storage slots and return them to the scan stage
 router.delete('/assignments/batch', requireAuth, async (req, res) => {
   try {
     const { assignment_ids } = req.body
@@ -378,14 +378,25 @@ router.delete('/assignments/batch', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, error: 'assignment_ids array is required' })
     }
 
-    const { error } = await db()
+    const { data: removedAssignments, error: deleteError } = await db()
       .from('storage_assignments')
       .delete()
       .in('id', assignment_ids)
+      .select('box_id')
 
-    if (error) throw error
+    if (deleteError) throw deleteError
 
-    res.json({ success: true, message: `${assignment_ids.length} box(es) removed from storage locations` })
+    const boxIds = [...new Set((removedAssignments || []).map(assignment => assignment.box_id))]
+    if (boxIds.length > 0) {
+      const { error: stageError } = await db()
+        .from('boxes')
+        .update({ current_stage: 'scan' })
+        .in('id', boxIds)
+
+      if (stageError) throw stageError
+    }
+
+    res.json({ success: true, message: `${removedAssignments?.length || 0} box(es) removed from storage locations` })
   } catch (error) {
     console.error('Batch remove assignments error:', error)
     res.status(500).json({ success: false, error: error.message })
