@@ -69,7 +69,7 @@ router.get('/locations', requireAuth, async (req, res) => {
       rack_id: loc.rack_id,
       level: loc.level,
       capacity: loc.capacity,
-      used: (loc.assignments || []).length,
+      used: (loc.assignments || []).filter(a => (a.status || 'confirmed') === 'confirmed').length,
       assignments: (loc.assignments || []).map(a => ({
         assignment_id: a.id,
         status: a.status || 'confirmed',
