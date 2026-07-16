@@ -191,7 +191,11 @@ router.get('/stats', requireAuth, validateRequest({
 })
 
 // Get open lots with detailed stats
-router.get('/open-lots', requireAuth, async (req, res) => {
+router.get('/open-lots', requireAuth, validateRequest({
+  query: z.object({
+    location: z.enum(['mustang', 'jaguar']).optional()
+  })
+}), async (req, res) => {
   try {
     const { brand } = req.query;
     const db = supabaseAdmin || supabase
@@ -565,7 +569,7 @@ router.get('/lot-details/:lot_number', requireAuth, validateRequest({
 })
 
 // Get pipeline stage counts (today only, grouped by box_type)
-router.get('/pipeline-stats', validateRequest({
+router.get('/pipeline-stats', requireAuth, validateRequest({
   query: z.object({
     lot_number: z.string().optional(),
     brand: z.string().optional()
