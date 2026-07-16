@@ -161,6 +161,8 @@ export default function TransmissionMonitorPage() {
   const [toDateOpenMobile, setToDateOpenMobile] = useState(false)
   const [toDateOpenDesktop, setToDateOpenDesktop] = useState(false)
   const [newProcessOnly, setNewProcessOnly] = useState(false)
+  const [enrichedData, setEnrichedData] = useState<Record<string, { box: string, lot: string }>>({})
+  const fetchedIsbns = useRef<Set<string>>(new Set())
 
   // --- LOT visibility state ---
   const [lotInput, setLotInput] = useState("")
@@ -456,6 +458,35 @@ export default function TransmissionMonitorPage() {
 
   const recentScansPagination = usePagination({ totalItems: filteredScans.length, defaultPageSize: 50 })
   const paginatedRecentScans = filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit)
+
+  // Background fetch ILMS for visible books
+  useEffect(() => {
+    const missingIsbns = paginatedRecentScans
+      .filter((item: any) => (item.BoxNumber === '—' || !item.BoxNumber) && !fetchedIsbns.current.has(item.ISBN))
+      .map((item: any) => item.ISBN)
+      .filter(Boolean)
+
+    if (missingIsbns.length > 0) {
+      missingIsbns.forEach((isbn: string) => fetchedIsbns.current.add(isbn))
+      
+      const fetchEnrichment = async () => {
+        try {
+          const res = await authFetch(`${API_URL}/api/scanning/enrich-ilms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isbns: missingIsbns })
+          })
+          const data = await res.json()
+          if (data.success && data.enriched) {
+            setEnrichedData(prev => ({ ...prev, ...data.enriched }))
+          }
+        } catch (e) {
+          console.error('Failed to enrich ILMS data:', e)
+        }
+      }
+      fetchEnrichment()
+    }
+  }, [paginatedRecentScans])
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -923,8 +954,8 @@ export default function TransmissionMonitorPage() {
                             return (
                               <tr key={i} className={`${rowCls} transition-colors`}>
                                 <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
-                                <td className="text-xs text-gray-600 px-4 py-3">{item.BoxNumber || '—'}</td>
-                                <td className="text-xs text-gray-600 px-4 py-3">{item.LotNumber || '—'}</td>
+                                <td className="text-xs text-gray-600 px-4 py-3">{(enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—') ? enrichedData[item.ISBN].box : (item.BoxNumber || '—')}</td>
+                                <td className="text-xs text-gray-600 px-4 py-3">{(enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—') ? enrichedData[item.ISBN].lot : (item.LotNumber || '—')}</td>
                                 <td className="px-4 py-3">{getPipelineStatusBadge(item.Status || '')}</td>
                                 <td className="text-xs text-gray-500 px-4 py-3">{item.ScanMachineName || item.MachineName || '—'}</td>
                                 <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>

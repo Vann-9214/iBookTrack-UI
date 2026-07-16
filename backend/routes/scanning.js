@@ -381,4 +381,47 @@ router.get('/simflex-status', requireAuth, async (req, res) => {
   }
 })
 
+/**
+ * POST /api/scanning/enrich-ilms
+ * Enrich a list of ISBNs with ILMS Box and Lot data, saving to Supabase
+ */
+router.post('/enrich-ilms', requireAuth, async (req, res) => {
+  try {
+    const { isbns } = req.body
+    if (!Array.isArray(isbns) || isbns.length === 0) {
+      return res.json({ success: true, enriched: {} })
+    }
+
+    // Limit to max 100 per request just in case
+    const safeIsbns = isbns.slice(0, 100)
+    const { ilmsApi } = await import('../services/ilms-api.js')
+
+    const results = await Promise.all(
+      safeIsbns.map(async (isbn) => {
+        const result = await ilmsApi.searchBookByISBN(isbn)
+        return { isbn, ...result }
+      })
+    )
+
+    const enriched = {}
+
+    for (const r of results) {
+      if (r.success && r.data) {
+        const boxNumber = r.data.BoxNo
+        const lotNumber = r.data.LotNo
+        const title = r.data.Title || 'Unknown'
+        
+        enriched[r.isbn] = { box: boxNumber || '—', lot: lotNumber || '—' }
+      } else {
+        enriched[r.isbn] = { box: '—', lot: '—' }
+      }
+    }
+
+    res.json({ success: true, enriched })
+  } catch (error) {
+    console.error('ILMS enrichment error:', error)
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+
 export default router
