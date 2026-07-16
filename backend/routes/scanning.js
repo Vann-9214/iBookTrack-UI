@@ -18,15 +18,31 @@ import express from 'express'
 import simflexDb from '../services/simflex-db.js'
 import pipelineCounts from '../services/pipeline-counts.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
+import { validateRequest } from '../middleware/validateRequest.js'
 import { supabaseAdmin } from '../config/supabase.js'
+import { z } from 'zod'
 
 const router = express.Router()
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+const baseQuerySchema = {
+  query: z.object({
+    from: z.string().regex(dateRegex).optional(),
+    to: z.string().regex(dateRegex).optional(),
+    date: z.string().regex(dateRegex).optional(),
+    location: z.enum(['mustang', 'jaguar']).optional(),
+    newProcessOnly: z.enum(['true', 'false', '']).optional(),
+    wipOnly: z.enum(['true', 'false', '']).optional(),
+    machineName: z.string().optional(),
+    limit: z.string().regex(/^\d+$/).optional(),
+  })
+}
 
 /**
  * GET /api/scanning/live
  * Get all live scanning data for today
  */
-router.get('/live', requireAuth, async (req, res) => {
+router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0]
     const fromDate = req.query.from || today
@@ -160,7 +176,7 @@ router.get('/live', requireAuth, async (req, res) => {
  * GET /api/scanning/scan-rows
  * Raw rows for all scan-stage statuses today (for debug modal).
  */
-router.get('/scan-rows', requireAuth, async (req, res) => {
+router.get('/scan-rows', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
     const result = await simflexDb.getScanStageBoxes(undefined, undefined, location)
@@ -306,7 +322,7 @@ router.get('/machine-books', requireAuth, async (req, res) => {
  * GET /api/scanning/ranking?date=2026-04-16
  * Get performance ranking by scan user
  */
-router.get('/ranking', requireAuth, async (req, res) => {
+router.get('/ranking', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
     const result = await simflexDb.getScanningRanking(req.query.date, location)
@@ -320,7 +336,7 @@ router.get('/ranking', requireAuth, async (req, res) => {
  * GET /api/scanning/export?date=2026-04-16
  * Get raw scan data as CSV download
  */
-router.get('/export', requireAuth, async (req, res) => {
+router.get('/export', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
     const result = await simflexDb.getScanningExportData(req.query.date, location)
@@ -345,7 +361,12 @@ router.get('/export', requireAuth, async (req, res) => {
 
 // GET /api/scanning/simflex-status?isbns=isbn1,isbn2,...
 // Returns per-ISBN latest status from Simflex
-router.get('/simflex-status', requireAuth, async (req, res) => {
+router.get('/simflex-status', requireAuth, validateRequest({
+  query: z.object({
+    isbns: z.string().optional(),
+    location: z.enum(['mustang', 'jaguar']).optional()
+  })
+}), async (req, res) => {
   try {
     const { isbns } = req.query
     const location = req.query.location || 'mustang'
