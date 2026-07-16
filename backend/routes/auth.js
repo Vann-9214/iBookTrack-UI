@@ -138,7 +138,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   const cookieOpts = {
     httpOnly: true,
     secure: isProd,
-    sameSite: 'lax'
+    sameSite: 'strict'
   }
   
   if (data.session?.access_token) {
@@ -201,7 +201,7 @@ router.post('/refresh', async (req, res) => {
     const cookieOpts = {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax'
+      sameSite: 'strict'
     }
 
     res.cookie('access_token', data.access_token, { ...cookieOpts, maxAge: (data.expires_in || 3600) * 1000 })

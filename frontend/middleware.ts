@@ -26,14 +26,30 @@ export function middleware(request: NextRequest) {
     pathname === path || pathname.startsWith(`${path}/`)
   )
 
+  const token = request.cookies.get('access_token')?.value
+
+  // If trying to access a protected route without a token, kick to login
   if (isProtectedPath) {
-    const token = request.cookies.get('access_token')?.value
-    
     if (!token) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
     }
+  } 
+  
+  // If user already has a token and tries to access login, register, or root path, send them to Dashboard
+  const isAuthPath = pathname === '/login' || pathname === '/register' || pathname === '/'
+  if (isAuthPath && token) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/Dashboard'
+    return NextResponse.redirect(url)
+  }
+
+  // If user accesses root path without a token, send them to login
+  if (pathname === '/' && !token) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
   }
 
   return NextResponse.next()
