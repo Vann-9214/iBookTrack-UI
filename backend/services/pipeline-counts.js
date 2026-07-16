@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * services/pipeline-counts.js
  *
@@ -189,7 +190,7 @@ export async function getStageCounts(startDate, endDate, location = 'mustang') {
 
     return { success: true, stages }
   } catch (error) {
-    console.error('[pipeline-counts] Error:', error.message)
+    logger.error('[pipeline-counts] Error:', error.message)
     return {
       success: false,
       error: error.message,

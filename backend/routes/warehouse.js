@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/warehouse.js
  *
@@ -159,7 +160,7 @@ router.post('/sessions/start', requireAuth, validateRequest({
       message: 'Session started with selected box.'
     })
   } catch (error) {
-    console.error('Start warehouse session error:', error)
+    logger.error('Start warehouse session error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -267,7 +268,7 @@ router.post('/sessions/:session_id/scan', requireAuth, validateRequest({
         .single()
 
       if (boxInsertError) {
-        console.error('Box insert error:', boxInsertError)
+        logger.error('Box insert error:', boxInsertError)
         throw new Error(`Failed to create box: ${boxInsertError.message}`)
       }
       if (!newBox) throw new Error('Box insert returned null — check RLS or box_type constraint on boxes table')
@@ -336,7 +337,7 @@ router.post('/sessions/:session_id/scan', requireAuth, validateRequest({
           .single()
         
         if (bookInsertError) {
-          console.error('Books insert error:', bookInsertError)
+          logger.error('Books insert error:', bookInsertError)
           throw bookInsertError
         }
         if (bookData) {
@@ -426,7 +427,7 @@ router.post('/sessions/:session_id/scan', requireAuth, validateRequest({
       } : null
     })
   } catch (error) {
-    console.error('Scan book error:', error)
+    logger.error('Scan book error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -578,7 +579,7 @@ router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
             .single()
 
           if (actError) {
-            console.error('Failed to log missing/extra book activity:', actError)
+            logger.error('Failed to log missing/extra book activity:', actError)
           } else {
             const flagInsert = {
               book_activity_id: actData.id,
@@ -607,7 +608,7 @@ router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
 
     res.json({ session: data })
   } catch (error) {
-    console.error('Complete session error:', error)
+    logger.error('Complete session error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -764,7 +765,7 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
 
     res.status(201).json({ success: true, session });
   } catch (error) {
-    console.error('Bulk save error:', error);
+    logger.error('Bulk save error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -812,7 +813,7 @@ router.post('/boxes/:box_id/resume-session', requireAuth, validateRequest({
     // Just return the existing session — do NOT change its status
     res.json({ session })
   } catch (error) {
-    console.error('Resume session error:', error)
+    logger.error('Resume session error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -849,7 +850,7 @@ router.post('/boxes/:box_id/cancel-session', requireAuth, validateRequest({
 
     res.json({ session: data })
   } catch (error) {
-    console.error('Cancel session error:', error)
+    logger.error('Cancel session error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -878,7 +879,7 @@ router.delete('/sessions/:session_id', requireAuth, async (req, res) => {
 
     res.json({ success: true, message: 'Session cancelled' })
   } catch (error) {
-    console.error('Delete session error:', error)
+    logger.error('Delete session error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -905,7 +906,7 @@ router.get('/sessions', requireAuth, async (req, res) => {
 
     res.json({ sessions: data })
   } catch (error) {
-    console.error('Get sessions error:', error)
+    logger.error('Get sessions error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -932,7 +933,7 @@ router.get('/ilms-lots', requireAuth, async (req, res) => {
 
     res.json({ success: true, lots: formattedLots })
   } catch (error) {
-    console.error('fetch historical lots error:', error)
+    logger.error('fetch historical lots error:', error)
     res.status(500).json({ success: false, error: error.message, lots: [] })
   }
 })
@@ -973,7 +974,7 @@ router.get('/box-exists', requireAuth, async (req, res) => {
 
     res.json({ success: true, exists: !!box })
   } catch (error) {
-    console.error('box-exists check error:', error)
+    logger.error('box-exists check error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -1231,7 +1232,7 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
       ilmsData: ilmsData || null
     })
   } catch (error) {
-    console.error('Search ISBN error:', error)
+    logger.error('Search ISBN error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -1329,7 +1330,7 @@ router.get('/rejected-books', requireAuth, async (req, res) => {
 
     res.json({ success: true, rejectedBooks: mappedRejectedBooks })
   } catch (error) {
-    console.error('Error fetching non-processable books:', error)
+    logger.error('Error fetching non-processable books:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -1412,7 +1413,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
 
     res.json({ success: true, scan: data })
   } catch (error) {
-    console.error('Flag scan error:', error)
+    logger.error('Flag scan error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -1508,7 +1509,7 @@ router.post('/scans/:scan_id/tag', requireAuth, validateRequest({
 
     res.json({ success: true, scan: updated, message: `ISBN ${existing.books?.isbn} tagged as ${status}` })
   } catch (error) {
-    console.error('Tag scan error:', error)
+    logger.error('Tag scan error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -1557,7 +1558,7 @@ router.get('/boxes/:box_id/scans', requireAuth, async (req, res) => {
       non_processable_count: warehouseBooks.filter(b => b.scan_status === 'non_processable').length
     })
   } catch (error) {
-    console.error('Get warehouse scans by box error:', error)
+    logger.error('Get warehouse scans by box error:', error)
     res.status(500).json({ error: error.message })
   }
 })

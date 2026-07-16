@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * services/simflex-db.js
  *
@@ -274,7 +275,7 @@ export async function getDailyOutputCount(date, location = 'mustang') {
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count: data[0]?.cnt || 0 }
   } catch (error) {
-    console.error('Error fetching daily output count:', error)
+    logger.error('Error fetching daily output count:', error)
     return { success: false, count: 0 }
   }
 }
@@ -310,7 +311,7 @@ export async function getDailyOutputRows(date, location = 'mustang', newProcessO
       scan_date: r.ScanDate,
     })) }
   } catch (error) {
-    console.error('Error fetching daily output rows:', error)
+    logger.error('Error fetching daily output rows:', error)
     return { success: false, rows: [] }
   }
 }
@@ -333,7 +334,7 @@ export async function getTodayScanningSummary(startDate, endDate, location = 'mu
     const total     = completed + ongoing  // exclude FAILED from total
     return { success: true, data: { TotalScans: total, Completed: completed, Failed: failed, Ongoing: ongoing, byStatus: data } }
   } catch (error) {
-    console.error('Error fetching scanning summary:', error)
+    logger.error('Error fetching scanning summary:', error)
     return { success: false, error: error.message }
   }
 }
@@ -406,7 +407,7 @@ export async function getScanningData(startDate, endDate, location = 'mustang', 
       .filter(r => isMonitoredStatus(r.Status))
     return { success: true, data }
   } catch (error) {
-    console.error('Error fetching scanning data:', error)
+    logger.error('Error fetching scanning data:', error)
     return { success: false, error: error.message }
   }
 }
@@ -439,7 +440,7 @@ export async function getScanningByMachine(startDate, endDate, location = 'musta
     }))
     return { success: true, data }
   } catch (error) {
-    console.error('Error fetching machine stats:', error)
+    logger.error('Error fetching machine stats:', error)
     return { success: false, error: error.message }
   }
 }
@@ -470,7 +471,7 @@ export async function getBooksByMachine(startDate, endDate, machineName, locatio
     const books = [...latestByIsbn.values()]
     return { success: true, books, totalBooks: books.length }
   } catch (error) {
-    console.error('Error fetching machine books:', error)
+    logger.error('Error fetching machine books:', error)
     return { success: false, books: [], totalBooks: 0, error: error.message }
   }
 }
@@ -522,7 +523,7 @@ export async function getScanningByStage(startDate, endDate, location = 'mustang
     }
     return { success: true, data: Object.values(stageMap) }
   } catch (error) {
-    console.error('Error fetching stage stats:', error)
+    logger.error('Error fetching stage stats:', error)
     return { success: false, error: error.message }
   }
 }
@@ -537,7 +538,7 @@ export async function getTotalScansAllTime() {
     const data = Array.isArray(rows) ? rows : []
     return { success: true, total: data[0]?.Total || 0 }
   } catch (error) {
-    console.error('Error fetching all-time total:', error)
+    logger.error('Error fetching all-time total:', error)
     return { success: false, total: 0 }
   }
 }
@@ -581,7 +582,7 @@ export async function getScanningRanking(date, location = 'mustang') {
       avgOutput:     data.length > 0 ? Math.round(totalBooks / data.length) : 0
     }
   } catch (error) {
-    console.error('Error fetching ranking:', error)
+    logger.error('Error fetching ranking:', error)
     return { success: false, error: error.message }
   }
 }
@@ -604,7 +605,7 @@ export async function getScanningExportData(date, location = 'mustang') {
     )
     return { success: true, data: Array.isArray(rows) ? rows : [] }
   } catch (error) {
-    console.error('Error fetching export data:', error)
+    logger.error('Error fetching export data:', error)
     return { success: false, error: error.message }
   }
 }
@@ -673,11 +674,11 @@ export async function getScanStageBoxes(startDate, endDate, location = 'mustang'
       data.push(row)
     }
 
-    console.log('[getScanStageBoxes] dateFilter:', dateFilter, '| newProcess=checked | count=', count, '| raw rows=', rawData.length, '| deduplicated=', data.length)
+    logger.info('[getScanStageBoxes] dateFilter:', dateFilter, '| newProcess=checked | count=', count, '| raw rows=', rawData.length, '| deduplicated=', data.length)
 
     return { success: true, count, data }
   } catch (error) {
-    console.error('Error fetching scan stage boxes:', error)
+    logger.error('Error fetching scan stage boxes:', error)
     return { success: false, error: error.message, count: 0, data: [] }
   }
 }
@@ -723,7 +724,7 @@ export async function getTransmitStageBoxes(startDate, endDate, location = 'must
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count, data }
   } catch (error) {
-    console.error('Error fetching transmit stage boxes:', error)
+    logger.error('Error fetching transmit stage boxes:', error)
     return { success: false, error: error.message, count: 0, data: [] }
   }
 }
@@ -815,7 +816,7 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
 
     return { success: true, data: Object.values(byIsbn) }
   } catch (error) {
-    console.error('Error fetching Simflex status for ISBNs:', error)
+    logger.error('Error fetching Simflex status for ISBNs:', error)
     return { success: false, error: error.message, data: [] }
   }
 }
@@ -861,7 +862,7 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
 
     return { success: true, count: completed }
   } catch (error) {
-    console.error('Error fetching completed transmissions count:', error)
+    logger.error('Error fetching completed transmissions count:', error)
     return { success: false, count: 0, error: error.message }
   }
 }
@@ -929,7 +930,7 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
 
     return { success: true, books, totalBooks, wipCount, limitReached: Array.isArray(rows) && rows.length >= 50000 }
   } catch (error) {
-    console.error('Error fetching all books today:', error)
+    logger.error('Error fetching all books today:', error)
     return { success: false, books: [], totalBooks: 0, wipCount: 0, error: error.message }
   }
 }
@@ -954,7 +955,7 @@ export async function getTransmitStageRows(location = 'mustang') {
     const data = Array.isArray(rows) ? rows : []
     return { success: true, count: data.length, data }
   } catch (error) {
-    console.error('Error fetching transmit stage rows:', error)
+    logger.error('Error fetching transmit stage rows:', error)
     return { success: false, error: error.message, count: 0, data: [] }
   }
 }

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * services/simflex-poller.js
  *
@@ -91,7 +92,7 @@ export async function checkAndAdvanceBox(box) {
         box.id, box.lot_id, 'scan', 'transmit',
         `Auto-advanced: ${doneCount}/${isbns.length} ISBNs transmitting in Simflex`
       )
-      console.log(`[Simflex Poller] 📤 Box ${box.box_number}: scan → transmit (${doneCount}/${isbns.length} done)`)
+      logger.info(`[Simflex Poller] 📤 Box ${box.box_number}: scan → transmit (${doneCount}/${isbns.length} done)`)
 
     } else if (box.current_stage === 'scan' && allCompleted) {
       // All ISBNs fully transmitted — skip transmit and jump straight to storage
@@ -103,7 +104,7 @@ export async function checkAndAdvanceBox(box) {
         box.id, box.lot_id, 'transmit', 'storage',
         `Auto-advanced: all ${isbns.length} ISBNs confirmed transmitted in Simflex`
       )
-      console.log(`[Simflex Poller] ✅ Box ${box.box_number}: scan → transmit → storage (all ${isbns.length} done)`)
+      logger.info(`[Simflex Poller] ✅ Box ${box.box_number}: scan → transmit → storage (all ${isbns.length} done)`)
 
     } else if (box.current_stage === 'transmit' && allCompleted) {
       // Box was already in transmit stage and now all ISBNs are done
@@ -111,10 +112,10 @@ export async function checkAndAdvanceBox(box) {
         box.id, box.lot_id, 'transmit', 'storage',
         `Auto-advanced: all ${isbns.length} ISBNs confirmed transmitted in Simflex`
       )
-      console.log(`[Simflex Poller] ✅ Box ${box.box_number}: transmit → storage (all ${isbns.length} done)`)
+      logger.info(`[Simflex Poller] ✅ Box ${box.box_number}: transmit → storage (all ${isbns.length} done)`)
     }
   } catch (err) {
-    console.error(`[Simflex Poller] ❌ Error processing box ${box.box_number}:`, err.message)
+    logger.error(`[Simflex Poller] ❌ Error processing box ${box.box_number}:`, err.message)
   }
 }
 
@@ -130,12 +131,12 @@ export async function checkAndAdvanceBox(box) {
  */
 async function runPoll() {
   if (isPolling) {
-    console.log('[Simflex Poller] Previous cycle still running, skipping this tick')
+    logger.info('[Simflex Poller] Previous cycle still running, skipping this tick')
     return
   }
   isPolling = true
   const cycleTimer = setTimeout(() => {
-    console.error('[Simflex Poller] Cycle timed out after 5 minutes; forcing release')
+    logger.error('[Simflex Poller] Cycle timed out after 5 minutes; forcing release')
     isPolling = false
   }, POLL_CYCLE_TIMEOUT_MS)
 
@@ -145,16 +146,16 @@ async function runPoll() {
       .select('id, box_number, lot_id, current_stage, box_type')
       .in('current_stage', ['scan', 'transmit'])
 
-    if (error) { console.error('[Simflex Poller] DB error:', error.message); return }
+    if (error) { logger.error('[Simflex Poller] DB error:', error.message); return }
     if (!boxes || boxes.length === 0) return
 
-    console.log(`[Simflex Poller] Checking ${boxes.length} box(es) in scan/transmit stage...`)
+    logger.info(`[Simflex Poller] Checking ${boxes.length} box(es) in scan/transmit stage...`)
 
     for (const box of boxes) {
       await checkAndAdvanceBox(box)
     }
   } catch (err) {
-    console.error('[Simflex Poller] Unexpected error:', err.message)
+    logger.error('[Simflex Poller] Unexpected error:', err.message)
   } finally {
     clearTimeout(cycleTimer)
     isPolling = false
@@ -171,7 +172,7 @@ async function runPoll() {
  * so overlapping cycles never stack up.
  */
 export function startSimflexPoller() {
-  console.log(`[Simflex Poller] Started — polling every ${POLL_INTERVAL_MS / 60000} minutes`)
+  logger.info(`[Simflex Poller] Started — polling every ${POLL_INTERVAL_MS / 60000} minutes`)
   // Short delay before first run so the server is fully ready
   setTimeout(() => schedulePoll(true), 15000)
 }
@@ -188,6 +189,6 @@ function schedulePoll(runImmediately = false) {
 
 function runPollWithCatch() {
   runPoll().catch((err) => {
-    console.error('[Simflex Poller] Unhandled runPoll error:', err)
+    logger.error('[Simflex Poller] Unhandled runPoll error:', err)
   })
 }

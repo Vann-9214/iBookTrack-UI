@@ -1,3 +1,4 @@
+import { logger } from './logger.js'
 /**
  * utils/testConnection.js
  *
@@ -21,10 +22,10 @@ export const testConnection = async () => {
     // getSession is a low-cost auth call — it doesn't hit any user tables
     const { error } = await supabase.auth.getSession()
     if (error) throw error
-    console.log('✅ Supabase connected successfully')
+    logger.info('✅ Supabase connected successfully')
     return true
   } catch (err) {
-    console.error('❌ Supabase connection failed:', err.message)
+    logger.error('❌ Supabase connection failed:', err.message)
     return false
   }
 }

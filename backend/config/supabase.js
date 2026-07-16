@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * config/supabase.js
  *
@@ -44,16 +45,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 if (!supabaseServiceKey) {
   // Log a warning but don't crash — routes that need supabaseAdmin will handle
   // the null case individually and return appropriate errors.
-  console.error('⚠️  WARNING: SUPABASE_SERVICE_ROLE_KEY is missing in .env file!')
-  console.error('⚠️  Warehouse operations will fail without this key.')
-  console.error('⚠️  Get it from: Supabase Dashboard → Settings → API → service_role key')
+  logger.error('⚠️  WARNING: SUPABASE_SERVICE_ROLE_KEY is missing in .env file!')
+  logger.error('⚠️  Warehouse operations will fail without this key.')
+  logger.error('⚠️  Get it from: Supabase Dashboard → Settings → API → service_role key')
 }
 
 // Log only whether each key is present — never log the actual key values
 // (even the anon key, to avoid leaking project infrastructure details in logs)
-console.log('✅ Supabase URL loaded:        ', supabaseUrl ? 'Yes' : 'No')
-console.log('✅ Supabase Anon Key loaded:   ', supabaseAnonKey    ? 'Yes' : 'No')
-console.log('✅ Supabase Service Key loaded:', supabaseServiceKey ? 'Yes' : 'No')
+logger.info('✅ Supabase URL loaded:        ', supabaseUrl ? 'Yes' : 'No')
+logger.info('✅ Supabase Anon Key loaded:   ', supabaseAnonKey    ? 'Yes' : 'No')
+logger.info('✅ Supabase Service Key loaded:', supabaseServiceKey ? 'Yes' : 'No')
 
 // ── Client instances ──────────────────────────────────────────────────────────
 
@@ -76,5 +77,5 @@ export const supabaseAdmin = supabaseServiceKey
   : null
 
 if (!supabaseAdmin) {
-  console.error('❌ supabaseAdmin is NULL — warehouse and admin operations will not work!')
+  logger.error('❌ supabaseAdmin is NULL — warehouse and admin operations will not work!')
 }

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/lots.js
  *
@@ -70,7 +71,7 @@ router.get('/', requireAuth, validateRequest({
       hasMore: offset + limit < (totalCount || 0),
     })
   } catch (error) {
-    console.error('Get lots error:', error)
+    logger.error('Get lots error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -213,7 +214,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
       isbns: isbnRows,
     })
   } catch (error) {
-    console.error('LOT transmission summary error:', error)
+    logger.error('LOT transmission summary error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -241,7 +242,7 @@ router.get('/:lot_number', requireAuth, validateRequest({
 
     res.json({ lot: data })
   } catch (error) {
-    console.error('Get lot error:', error)
+    logger.error('Get lot error:', error)
     res.status(500).json({ error: error.message })
   }
 })

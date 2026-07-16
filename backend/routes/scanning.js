@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/scanning.js
  *
@@ -91,7 +92,7 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
     const scanStageResult = req.query.from && req.query.to
       ? await simflexDb.getScanStageBoxes(fromDate, toDate, location)
       : await simflexDb.getScanStageBoxes(undefined, undefined, location)
-    console.log('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
+    logger.info('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
     const scanBooks = scanStageResult.count || 0
 
     // Scan-pipeline WIP total Ã¢â‚¬â€ matches the Transmission Monitor "New Process Only" figure.
@@ -124,7 +125,7 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
           .select('isbn, box:boxes(box_number, lot:lots(lot_number))')
           .in('isbn', chunk)
         if (error) {
-          console.error("Supabase Error fetching lot/box:", error);
+          logger.error("Supabase Error fetching lot/box:", error);
         }
         if (dbBooks && dbBooks.length > 0) {
           for (const b of dbBooks) {
@@ -167,7 +168,7 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
       limitReached: allBooks.limitReached || false,
     })
   } catch (error) {
-    console.error('Error in /live:', error)
+    logger.error('Error in /live:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -182,7 +183,7 @@ router.get('/scan-rows', requireAuth, validateRequest(baseQuerySchema), async (r
     const result = await simflexDb.getScanStageBoxes(undefined, undefined, location)
     res.json({ success: true, rows: result.data || [], count: result.count })
   } catch (error) {
-    console.error('Error in /scan-rows:', error)
+    logger.error('Error in /scan-rows:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -293,7 +294,7 @@ router.get('/transmit-rows', requireAuth, async (req, res) => {
 
     res.json({ success: true, rows: enrichedRows, count: enrichedRows.length })
   } catch (error) {
-    console.error('Error in /transmit-rows:', error)
+    logger.error('Error in /transmit-rows:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -313,7 +314,7 @@ router.get('/machine-books', requireAuth, async (req, res) => {
     if (!result.success) return res.status(502).json(result)
     res.json(result)
   } catch (error) {
-    console.error('Error in /machine-books:', error)
+    logger.error('Error in /machine-books:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -414,7 +415,7 @@ router.get('/simflex-status', requireAuth, validateRequest({
 
     res.json({ success: true, statuses })
   } catch (error) {
-    console.error('Simflex status error:', error)
+    logger.error('Simflex status error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })
@@ -457,7 +458,7 @@ router.post('/enrich-ilms', requireAuth, async (req, res) => {
 
     res.json({ success: true, enriched })
   } catch (error) {
-    console.error('ILMS enrichment error:', error)
+    logger.error('ILMS enrichment error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

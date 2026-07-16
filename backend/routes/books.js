@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/books.js
  *
@@ -45,7 +46,7 @@ router.get('/', requireAuth, validateRequest({
 
     res.json({ success: true, books: data || [] })
   } catch (error) {
-    console.error('Get books error:', error)
+    logger.error('Get books error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -59,19 +60,19 @@ router.get('/ilms/search/:isbn', requireAuth, validateRequest({
   try {
     const { isbn } = req.params
 
-    console.log('🔍 Searching iLMS API for ISBN:', isbn)
+    logger.info('🔍 Searching iLMS API for ISBN:', isbn)
 
     const result = await ilmsApi.searchBookByISBN(isbn)
 
     if (result.success) {
-      console.log('✅ iLMS API response received')
+      logger.info('✅ iLMS API response received')
       res.json({
         success: true,
         source: 'iLMS API',
         data: result.data
       })
     } else {
-      console.log('❌ iLMS API error:', result.error)
+      logger.info('❌ iLMS API error:', result.error)
       res.status(404).json({
         success: false,
         error: result.error,
@@ -79,7 +80,7 @@ router.get('/ilms/search/:isbn', requireAuth, validateRequest({
       })
     }
   } catch (error) {
-    console.error('iLMS API test error:', error)
+    logger.error('iLMS API test error:', error)
     res.status(500).json({
       success: false,
       error: error.message
@@ -137,13 +138,13 @@ router.post('/:id/flag', requireAuth, validateRequest({
       .single()
 
     if (flagError) {
-      console.error('QC flag insert error:', flagError)
+      logger.error('QC flag insert error:', flagError)
       return res.status(500).json({ error: flagError.message })
     }
 
     res.json({ success: true, scan_id: id, issue, remarks })
   } catch (error) {
-    console.error('Flag book error:', error)
+    logger.error('Flag book error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -164,7 +165,7 @@ router.delete('/:id/flag', requireAuth, validateRequest({
 
     res.json({ success: true, scan_id: id })
   } catch (error) {
-    console.error('Delete flag error:', error)
+    logger.error('Delete flag error:', error)
     res.status(500).json({ error: error.message })
   }
 })

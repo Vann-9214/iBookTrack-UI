@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/reports.js
  *
@@ -195,7 +196,7 @@ router.get('/lot-status', requireAuth, validateRequest({
 
     res.json({ success: true, lots: result })
   } catch (error) {
-    console.error('[Reports] lot-status error:', error)
+    logger.error('[Reports] lot-status error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

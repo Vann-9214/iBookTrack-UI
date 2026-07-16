@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger.js'
 /**
  * routes/dashboard.js
  *
@@ -185,7 +186,7 @@ router.get('/stats', requireAuth, validateRequest({
       }
     })
   } catch (error) {
-    console.error('Get dashboard stats error:', error)
+    logger.error('Get dashboard stats error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -282,7 +283,7 @@ router.get('/open-lots', requireAuth, validateRequest({
 
     res.json({ success: true, lots: formattedLots })
   } catch (error) {
-    console.error('Get open lots error:', error)
+    logger.error('Get open lots error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -392,7 +393,7 @@ router.get('/qc-flags', requireAuth, validateRequest({
 
     res.json({ success: true, flags: mappedFlags, total: count || 0, page, limit })
   } catch (error) {
-    console.error('Get QC flags error:', error)
+    logger.error('Get QC flags error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -459,7 +460,7 @@ router.get('/daily-output', requireAuth, validateRequest({
 
     res.json({ success: true, rows: paginatedRows, total, page, limit })
   } catch (error) {
-    console.error('Get daily output error:', error)
+    logger.error('Get daily output error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -563,7 +564,7 @@ router.get('/lot-details/:lot_number', requireAuth, validateRequest({
       },
     })
   } catch (error) {
-    console.error('Get lot details error:', error)
+    logger.error('Get lot details error:', error)
     res.status(500).json({ error: error.message })
   }
 })
@@ -654,7 +655,7 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
 
     res.json({ stageCounts, stageCountsByType, today: startIso.split('T')[0] })
   } catch (error) {
-    console.error('Get pipeline stats error:', error)
+    logger.error('Get pipeline stats error:', error)
     res.status(500).json({ error: error.message })
   }
 })
