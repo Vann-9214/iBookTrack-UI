@@ -58,10 +58,10 @@ router.get('/lot-status', requireAuth, validateRequest({
 
     if (lotsError) throw lotsError
 
-    // 2. Fetch all boxes (id, lot_id, current_stage, box_number, total_books_expected) along with their current session status
+    // 2. Fetch all boxes (id, lot_id, current_stage, box_number, total_expected_books) along with their current session status
     const { data: boxes, error: boxesError } = await db
       .from('boxes')
-      .select('id, lot_id, current_stage, box_number, total_books_expected, box_sessions(status)')
+      .select('id, lot_id, current_stage, box_number, total_expected_books, box_sessions(status)')
 
     if (boxesError) throw boxesError
 
@@ -152,7 +152,7 @@ router.get('/lot-status', requireAuth, validateRequest({
           current_stage: progress === 100 ? 'storage' : (b.current_stage || 'Unknown'),
           progress,
           total_books: bScans.length,
-          total_books_expected: b.total_books_expected || 0,
+          total_expected_books: b.total_expected_books || 0,
           processable: proc.length,
           non_processable: bScans.length - proc.length
         }

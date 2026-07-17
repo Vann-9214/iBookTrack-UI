@@ -206,7 +206,7 @@ export default function DashboardPage() {
         })
 
         if (stage === 'warehouse') {
-          stageBoxes = stageBoxes.filter((b: any) => b.total_books_expected > 0)
+          stageBoxes = stageBoxes.filter((b: any) => b.total_expected_books > 0)
         }
 
         const bottleneckCount = (stage === 'transmit') ? 0 : stageBoxes.filter((b: any) => {
@@ -736,7 +736,7 @@ export default function DashboardPage() {
                 <div>
                   <h3 className="text-lg font-bold tracking-tight text-foreground">{boxScanModal?.box.box_number}</h3>
                   <p className="text-xs text-muted-foreground">
-                    {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books_expected} books
+                    {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_expected_books} books
                   </p>
                 </div>
               </div>

@@ -31,6 +31,8 @@ const FLAG_LABELS: Record<string, string> = {
   "torn-pages":           "Torn pages",
   "missing-content":      "Missing content",
   "blurred-text":         "Blurred text",
+  "mismatched-book":      "Mismatched Book",
+  "extra-book":           "Extra Book",
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
