@@ -107,7 +107,7 @@ router.get('/', requireAuth, async (req, res) => {
         *,
         lot:lots(lot_number, type),
         box_sessions(
-          id, status, updated_at, total_scanned_books,
+          id, status, updated_at, total_scanned_books, total_accepted_books,
           warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, 
           warehouse_time_received, inventory_time_received, inventory_time_send, 
           cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received,
@@ -306,7 +306,7 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
         endorsement_time_received, endorsement_user_received,
         endorsement_time_send, endorsement_user_send,
         scan_time_received, scan_user_received,
-        total_scanned_books,
+        total_scanned_books, total_accepted_books,
         updated_at,
         box:boxes!inner(${boxSelect})
       `, { count: 'exact' })

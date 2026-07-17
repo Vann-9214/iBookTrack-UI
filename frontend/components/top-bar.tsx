@@ -195,7 +195,7 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
       >
         {/* Background Pill */}
         <div
-          className="absolute top-0.5 bottom-0.5 rounded-md pointer-events-none"
+          className="absolute top-0.5 bottom-0.5 rounded-md pointer-events-none sm:transition-all sm:duration-300 sm:ease-out"
           style={{
             width: 'calc(50% - 3px)',
             left: brand === 'mustang' ? '2px' : 'calc(50% + 1px)',
@@ -213,7 +213,7 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
               onClick={() => !disableBrandToggle && setBrand(b)}
               disabled={disableBrandToggle}
               className={cn(
-                'relative z-10 flex w-full items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-[11px] sm:text-xs font-semibold leading-none rounded-md capitalize select-none',
+                'relative z-10 flex w-full items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-[11px] sm:text-xs font-semibold leading-none rounded-md capitalize select-none sm:transition-colors sm:duration-300',
                 isSelected
                   ? 'text-white'
                   : 'text-gray-500 hover:text-gray-700',

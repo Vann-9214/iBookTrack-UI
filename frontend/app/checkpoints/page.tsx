@@ -19,6 +19,7 @@ import { Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, Clipb
   Shield, Radio, Warehouse, ArrowRight, RefreshCw, ChevronRight, ChevronDown, Search, X, Calendar as CalendarIcon,
   Loader2, Zap, MapPin } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
+import { PageLoader } from '@/components/ui/page-loader'
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -125,6 +126,7 @@ interface BoxItem {
     updated_at?: string;
     status?: string;
     total_scanned_books?: number;
+    total_accepted_books?: number;
   }[]
 }
 
@@ -1345,7 +1347,7 @@ export default function StationCheckpointsPage() {
                                           <div className="min-w-[80px]">
                                             <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
                                             <span className="text-xs font-semibold text-foreground">
-                                              {box.box_sessions?.[0]?.total_scanned_books ?? 0} / {box.total_expected_books ?? 0}
+                                              {box.box_sessions?.[0]?.total_accepted_books ?? 0} / {box.total_expected_books ?? 0}
                                             </span>
                                           </div>
 
@@ -1586,7 +1588,7 @@ export default function StationCheckpointsPage() {
 
             {/* Station Cards Grid */}
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm relative">
-              {topLoading && <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>}
+              {topLoading && <PageLoader />}
                 {/* Desktop: 7 inline columns */}
                 <div className="hidden lg:flex items-stretch gap-3">
                   {STAGE_ORDER.map((stage) => {
