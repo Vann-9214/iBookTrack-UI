@@ -656,7 +656,7 @@ export default function WarehouseLocatorPage() {
             </header>
 
             {/* Search */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 justify-end">
               <div className="relative flex-1 max-w-lg bg-white">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -786,7 +786,7 @@ export default function WarehouseLocatorPage() {
                 <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Warehouse className="h-4 w-4 text-primary shrink-0" />
-                    <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
+                    <h2 className="text-sm font-semibold text-card-foreground">Storage Layout</h2>
                   </div>
                   <div className="flex items-center gap-3">
                     {(() => {
@@ -799,7 +799,7 @@ export default function WarehouseLocatorPage() {
                     <div className="relative" ref={sectionDropdownRef}>
                       <Button
                         variant="secondary"
-                        className="h-9 gap-2 px-3 bg-muted text-foreground hover:bg-muted/80 border border-border"
+                        className="h-9 gap-2 px-3 bg-white text-foreground hover:bg-primary hover:text-white transition border border-border"
                         onClick={() => setSectionDropdownOpen(o => !o)}
                       >
                         <LayoutGrid className="h-4 w-4" />
