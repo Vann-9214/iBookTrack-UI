@@ -123,3 +123,59 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Top-bar premium animations ─────────────────────── */
+
+@keyframes topbar-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes topbar-glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes topbar-gradient-border {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes topbar-ring-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.topbar-shimmer-active {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: topbar-shimmer 2.5s ease-in-out infinite;
+}
+
+.topbar-gradient-border {
+  background: linear-gradient(90deg, var(--topbar-accent, #1658EB), #a855f7, #ec4899, var(--topbar-accent, #1658EB));
+  background-size: 300% 100%;
+  animation: topbar-gradient-border 4s ease infinite;
+}
+
+.topbar-avatar-ring {
+  background: conic-gradient(
+    from 0deg,
+    var(--topbar-accent, #1658EB),
+    #a855f7,
+    #ec4899,
+    #f59e0b,
+    var(--topbar-accent, #1658EB)
+  );
+  animation: topbar-ring-spin 4s linear infinite;
+}
+
+.topbar-glow {
+  animation: topbar-glow-pulse 2.5s ease-in-out infinite;
+}

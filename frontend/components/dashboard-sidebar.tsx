@@ -114,38 +114,38 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
   // Desktop nav item style
   const navItemCls = (active: boolean) => cn(
-    'group/item relative flex items-center gap-0 rounded-xl h-11 w-full transition-all duration-200 overflow-hidden',
+    'group/item relative flex items-center gap-0 rounded-xl h-11 w-full transition-colors duration-200 overflow-hidden',
     navigationLocked && 'cursor-not-allowed opacity-50',
     active
-      ? 'bg-white/20 text-white shadow-sm'
+      ? 'bg-gradient-to-r from-white/25 to-white/10 text-white shadow-sm ring-1 ring-white/10'
       : navigationLocked
         ? 'text-white/85'
-        : 'text-white/85 hover:bg-white/12 hover:text-white'
+        : 'text-white/80 hover:bg-white/10 hover:text-white'
   )
 
   const subNavItemCls = (active: boolean) => cn(
-    'group/item relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 w-full',
+    'group/item relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-200 w-full',
     navigationLocked && 'cursor-not-allowed opacity-50',
     active
-      ? 'bg-white/20 text-white'
+      ? 'bg-gradient-to-r from-white/25 to-white/10 text-white ring-1 ring-white/10'
       : navigationLocked
         ? 'text-white/85'
-        : 'text-white/85 hover:bg-white/12 hover:text-white'
+        : 'text-white/80 hover:bg-white/10 hover:text-white'
   )
 
   // Mobile nav item style
   const mobileNavItemCls = (active: boolean) => cn(
-    'flex items-center gap-3 rounded-xl px-3 py-3 w-full text-sm font-semibold transition-all duration-150',
+    'relative flex items-center gap-3 rounded-xl px-3 py-3 w-full text-sm font-semibold transition-colors duration-150',
     active
-      ? 'bg-white/20 text-white'
-      : 'text-white/80 hover:bg-white/12 hover:text-white active:bg-white/25'
+      ? 'bg-gradient-to-r from-white/25 to-white/10 text-white ring-1 ring-white/10'
+      : 'text-white/80 hover:bg-white/10 hover:text-white active:bg-white/25'
   )
 
   const mobileSubItemCls = (active: boolean) => cn(
-    'flex items-center gap-3 rounded-lg px-3 py-2.5 w-full text-sm font-medium transition-all duration-150',
+    'flex items-center gap-3 rounded-lg px-3 py-2.5 w-full text-sm font-medium transition-colors duration-150',
     active
-      ? 'bg-white/20 text-white'
-      : 'text-white/70 hover:bg-white/12 hover:text-white active:bg-white/25'
+      ? 'bg-gradient-to-r from-white/25 to-white/10 text-white ring-1 ring-white/10'
+      : 'text-white/70 hover:bg-white/10 hover:text-white active:bg-white/25'
   )
 
   const sidebarBg = `linear-gradient(175deg, ${colors.sidebar} 0%, color-mix(in srgb, ${colors.sidebar} 82%, #000) 100%)`
@@ -156,17 +156,17 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
           DESKTOP: collapsible rail sidebar (md and above)
           ══════════════════════════════════════════════════ */}
       <aside
-        className="group/sidebar hidden md:flex relative z-20 sticky top-0 shrink-0 h-dvh flex-col transition-all duration-300 ease-in-out w-[76px] hover:w-[240px] overflow-hidden"
+        className="group/sidebar hidden md:flex relative z-30 shrink-0 h-dvh flex-col w-[76px] hover:w-[240px] transition-[width] duration-300 ease-in-out overflow-hidden will-change-[width] shadow-xl shadow-black/20"
         style={{ background: sidebarBg }}
         onMouseLeave={() => setWarehouseOpen(false)}
       >
         {/* Right edge line */}
-        <div className="absolute inset-y-0 right-0 w-px bg-white/10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-px bg-white/10 pointer-events-none z-10" />
 
         {/* ── Logo area ── */}
         <div className="flex items-center gap-3 px-[10px] pt-4 pb-3" style={{ minHeight: '80px' }}>
           <div
-            className="shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white shadow-md shadow-black/20"
+            className="shrink-0 flex items-center justify-center overflow-hidden rounded-2xl bg-white shadow-lg shadow-black/25 ring-1 ring-white/30"
             style={{ width: '56px', height: '56px', minWidth: '56px' }}
           >
             <Image
@@ -202,7 +202,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/Dashboard') ? 'page' : undefined}
             title="Dashboard"
           >
-            {isActive('/Dashboard') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/Dashboard') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><LayoutDashboard className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
               Dashboard
@@ -218,7 +218,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/warehouse') ? 'page' : undefined}
             title="Warehouse"
           >
-            {isActive('/warehouse') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/warehouse') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><Warehouse className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
               Warehouse
@@ -232,7 +232,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/inventory') ? 'page' : undefined}
             title="Inventory"
           >
-            {isActive('/inventory') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/inventory') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><Archive className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
               Inventory
@@ -246,7 +246,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/cut') ? 'page' : undefined}
             title="Cut"
           >
-            {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><Scissors className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
           </LockedNavButton>
@@ -258,7 +258,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/qa') ? 'page' : undefined}
             title="Endorsement"
           >
-            {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
           </LockedNavButton>
@@ -270,7 +270,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/scan') ? 'page' : undefined}
             title="Scan"
           >
-            {isActive('/scan') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/scan') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><ScanBarcode className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Scan</span>
           </LockedNavButton>
@@ -282,7 +282,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/checkpoints') ? 'page' : undefined}
             title="Station Checkpoints"
           >
-            {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><MapPin className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
           </LockedNavButton>
@@ -294,7 +294,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/locator') ? 'page' : undefined}
             title="Storage Locator"
           >
-            {isActive('/locator') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/locator') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><Map className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
           </LockedNavButton>
@@ -308,7 +308,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/transmission') ? 'page' : undefined}
             title="Transmission Monitor"
           >
-            {isActive('/transmission') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/transmission') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><Radio className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Transmission Monitor</span>
           </LockedNavButton>
@@ -320,7 +320,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             aria-current={isActive('/reports') ? 'page' : undefined}
             title="Reports"
           >
-            {isActive('/reports') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white" />}
+            {isActive('/reports') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><BarChart3 className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Reports</span>
           </LockedNavButton>

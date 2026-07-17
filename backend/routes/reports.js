@@ -34,7 +34,8 @@ const router = express.Router()
  */
 router.get('/lot-status', requireAuth, validateRequest({
   query: z.object({
-    location: z.enum(['mustang', 'jaguar']).optional()
+    location: z.enum(['mustang', 'jaguar']).optional(),
+    type: z.string().optional()
   })
 }), async (req, res) => {
   try {

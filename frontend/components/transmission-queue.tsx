@@ -135,15 +135,15 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
-    <Card className="border-border bg-card flex flex-col overflow-hidden p-0 h-full">
+    <Card className={cn("border-border bg-card flex flex-col overflow-hidden p-0 h-full border-t-2 shadow-sm", brand === 'jaguar' ? "border-t-green-500" : "border-t-blue-600")}>
       {/* Header - sticky */}
-      <div className={cn("flex items-center justify-between px-5 py-4 border-b shrink-0", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
+      <div className={cn("flex items-center justify-between px-5 py-4 border-b shrink-0", brand === 'jaguar' ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100" : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100")}>
         <div className="flex items-center gap-3">
-          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
+          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-800">Live Transmission Feed</p>
+            <p className="text-base font-bold tracking-tight text-gray-800">Live WIP Books</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={cn("h-1.5 w-1.5 rounded-full", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")} />
               <span className={cn("text-xs font-medium", brand === 'jaguar' ? "text-green-500" : "text-blue-500")}>

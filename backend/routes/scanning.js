@@ -107,7 +107,9 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
 
     // Replace Simflex BoxNumber with Supabase Box and Lot for both allBooks and recentScans
     let processedAllBooks = allBooks.books || []
-    let processedRecentScans = Array.isArray(data.data) ? data.data.slice(0, 200) : []
+    let processedRecentScans = Array.isArray(data.data) 
+      ? data.data.filter(s => !String(s.Status || '').toUpperCase().includes('COMPLETED')).slice(0, 200) 
+      : []
     
     const allIsbns = new Set([
       ...processedAllBooks.map(b => b.ISBN),
