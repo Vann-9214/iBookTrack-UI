@@ -143,7 +143,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-800">Live Transmission Feed</p>
+            <p className="text-sm font-bold text-gray-800">Live WIP Books</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={cn("h-1.5 w-1.5 rounded-full", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")} />
               <span className={cn("text-xs font-medium", brand === 'jaguar' ? "text-green-500" : "text-blue-500")}>
