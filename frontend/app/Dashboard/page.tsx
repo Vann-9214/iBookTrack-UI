@@ -143,7 +143,16 @@ export default function DashboardPage() {
       
       boxes = boxes.filter((b: any) => {
         if (!b.box_sessions || b.box_sessions.length === 0) return false
-        return b.box_sessions.some((s: any) => new Date(s.updated_at).getTime() >= startOfDay)
+        // Check if any actual stage transition happened today, not just updated_at
+        return b.box_sessions.some((s: any) => {
+          const times = [
+            s.warehouse_time_received, s.inventory_time_received, s.inventory_time_send,
+            s.cut_time_received, s.cut_time_send, s.endorsement_time_received, s.endorsement_time_send,
+            s.scan_time_received, b.latest_inventory_scan_at, b.latest_endorsement_scan_at
+          ].filter(Boolean)
+          
+          return times.some(t => new Date(t).getTime() >= startOfDay)
+        })
       })
       let dailyTransmitted = 0
       let simflexAllTime = 0
@@ -345,7 +354,7 @@ export default function DashboardPage() {
       {/* Main Content */}
       <DashboardMain>
         <DashboardNavbar />
-        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
             {/* Page Header */}
             <header className="flex flex-col gap-3">
@@ -384,13 +393,13 @@ export default function DashboardPage() {
 
               {/* Search Dashboard Modal */}
               {searchOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSearchOpen(false)}>
-                    <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setSearchOpen(false)}>
+                    <div className="bg-card border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-md max-h-[88vh] flex flex-col overflow-hidden animate-modal-in" onClick={e => e.stopPropagation()}>
                       {/* Header */}
-                      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/10">
-                            <Search className="h-5 w-5 text-primary" />
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary shadow-sm">
+                            <Search className="h-5 w-5" />
                           </div>
                           <div>
                             <h3 className="text-base font-semibold text-foreground">Search Dashboard</h3>
@@ -695,23 +704,30 @@ export default function DashboardPage() {
 
       {/* Box Scan Modal */}
       {(boxScanModal || loadingBoxScan) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBoxScanModal(null)}>
-          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">{boxScanModal?.box.box_number}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books_expected} books
-                </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setBoxScanModal(null)}>
+          <div className="bg-card border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-modal-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary shadow-sm">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">{boxScanModal?.box.box_number}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books_expected} books
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setBoxScanModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+              <button onClick={() => setBoxScanModal(null)} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
             {loadingBoxScan ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Loading contents...</p>
             ) : boxScanModal && boxScanModal.books.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">No scan records found for this box.</p>
             ) : (
-              <div className="overflow-y-auto flex-1">
+              <div className="overflow-y-auto flex-1 px-5 py-4">
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-card">
                     <tr className="text-muted-foreground border-b border-border">
