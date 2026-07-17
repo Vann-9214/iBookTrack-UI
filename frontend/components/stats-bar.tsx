@@ -324,30 +324,43 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       {loading || !dashboardStats ? (
         /* ΓöÇΓöÇ Skeleton ΓöÇΓöÇ */
         <>
-          {/* Mobile 2├ù2 skeleton */}
-          <div className="grid grid-cols-2 gap-2 sm:hidden">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card p-3 shadow-sm flex items-center gap-3">
-                <Skeleton className="h-9 w-9 rounded-xl bg-muted-foreground/20 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <Skeleton className="h-5 w-12 mb-1 rounded bg-muted-foreground/20" />
-                  <Skeleton className="h-3 w-16 rounded bg-muted-foreground/20" />
+          {/* Mobile 2x2 skeleton */}
+          <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+            {stats.map((stat, i) => {
+              const isSolid = stat.tone === TONE.solid
+              const skColor = isSolid ? "bg-white/25" : "bg-muted-foreground/20"
+              return (
+                <div key={i} className={cn("rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 overflow-hidden", stat.tone.card)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl shadow-md shrink-0", stat.tone.icon)}>
+                    <Skeleton className={cn("h-4 w-4 rounded-sm", isSolid ? "bg-white/30" : "bg-white/50")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Skeleton className={cn("h-4 w-12 mb-1.5 rounded", skColor)} />
+                    <Skeleton className={cn("h-2 w-16 rounded", skColor)} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
           {/* Desktop skeleton */}
           <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex items-start justify-between mb-3">
-                  <Skeleton className="h-12 w-12 rounded-2xl bg-muted-foreground/20" />
-                  <Skeleton className="h-10 w-16 rounded bg-muted-foreground/20" />
+            {stats.map((stat, i) => {
+              const isSolid = stat.tone === TONE.solid
+              const skColor = isSolid ? "bg-white/30" : "bg-muted-foreground/15"
+              return (
+                <div key={i} className={cn("relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1", stat.tone.card)}>
+                  <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+                  <div className="relative flex items-start justify-between mb-3">
+                    <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg", stat.tone.icon)}>
+                      <Skeleton className={cn("h-6 w-6 rounded-md", isSolid ? "bg-white/30" : "bg-white/50")} />
+                    </div>
+                    <Skeleton className={cn("h-8 w-20 rounded-md", skColor)} />
+                  </div>
+                  <Skeleton className={cn("h-4 w-28 mb-2 rounded relative z-10", skColor)} />
+                  <Skeleton className={cn("h-3 w-20 rounded relative z-10", skColor)} />
                 </div>
-                <Skeleton className="h-5 w-32 mb-1.5 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
-              </div>
-            ))}
+              )
+            })}
           </div>
         </>
       ) : (

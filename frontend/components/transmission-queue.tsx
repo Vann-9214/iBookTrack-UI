@@ -165,29 +165,37 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
 
       <CardContent className="flex-1 p-0 min-h-0">
         {propLoading || loading ? (
-          <div className="h-full overflow-hidden px-4 py-3">
-            <div className="flex gap-3 mb-3">
-              <Skeleton className="h-8 w-28 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-32 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-20 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-28 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-20 rounded bg-muted-foreground/20" />
-            </div>
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
-                <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-28 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-36 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-16 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-28 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-20 ml-auto rounded bg-muted-foreground/20" />
-              </div>
-            ))}
+          <div className="h-full overflow-hidden flex flex-col relative z-0">
+            <Table>
+              <TableHeader className="bg-white/50 backdrop-blur-sm">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Lot</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <TableRow key={i} className="border-border/50 hover:bg-transparent">
+                    <TableCell><Skeleton className="h-3.5 w-24 sm:w-28 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-12 sm:w-16 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-10 sm:w-12 rounded bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-12 sm:w-14 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-20 sm:w-24 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-6 sm:w-8 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 sm:w-20 rounded-full bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-16 sm:w-20 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-10 sm:w-12 ml-auto rounded-sm bg-muted-foreground/10" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : scans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">

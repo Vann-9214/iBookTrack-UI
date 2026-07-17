@@ -383,13 +383,17 @@ export default function DashboardPage() {
                     </div>
                     {/* Search + Refresh — right side */}
                     <div className="flex items-center gap-2 shrink-0 ml-3">
+                      {/* Mobile Refresh Button (Icon Only) */}
                       <button
-                        onClick={() => setSearchOpen(true)}
-                        className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg bg-primary text-primary-foreground shadow-md hover:bg-primary/90 active:scale-95 transition-all"
-                        aria-label="Search"
+                        onClick={refreshAll}
+                        disabled={isRefreshing}
+                        className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+                        aria-label="Refresh Dashboard"
                       >
-                        <Search className="h-4 w-4" />
+                        <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                       </button>
+                      
+                      {/* Desktop Search Button */}
                       <Button
                         variant="default"
                         size="sm"
@@ -399,6 +403,8 @@ export default function DashboardPage() {
                         <Search className="h-3.5 w-3.5" />
                         Search
                       </Button>
+                      
+                      {/* Desktop Refresh Control */}
                       <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} lastUpdated={lastStatsUpdate} storageKey="dashboard" className="hidden sm:flex" />
                     </div>
                   </div>
