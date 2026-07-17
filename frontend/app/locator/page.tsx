@@ -564,7 +564,7 @@ export default function WarehouseLocatorPage() {
     }
   }
 
-  const handleRemovePendingAssignments = async (groupId: string, assignmentIds: string[]) => {
+  const handleRemovePendingAssignments = async (assignmentIds: string[], groupId?: string) => {
     setRemovingIds(new Set(assignmentIds))
     try {
       const res = await authFetch(`${API_URL}/api/storage/assignments/batch`, {
@@ -574,11 +574,13 @@ export default function WarehouseLocatorPage() {
       })
       const data = await res.json()
       if (!res.ok) { alert(data.error || 'Failed to remove pending assignments'); return }
-      setExpandedPendingLocations(prev => {
-        const next = new Set(prev)
-        next.delete(groupId)
-        return next
-      })
+      if (groupId) {
+        setExpandedPendingLocations(prev => {
+          const next = new Set(prev)
+          next.delete(groupId)
+          return next
+        })
+      }
       await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
     } finally {
       setRemovingIds(new Set())
@@ -789,7 +791,6 @@ export default function WarehouseLocatorPage() {
                               )}
                               {b.lot_number && <span>•</span>}
                               <span className="whitespace-nowrap">BOOKS: {b.books.length}</span>
-                              <BookOpen className="h-3 w-3 shrink-0" />
                             </div>
                           </div>
                         </div>
@@ -1071,7 +1072,7 @@ export default function WarehouseLocatorPage() {
                               aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack_id}, Level ${location.level}`}
                               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
                               disabled={isRemoving || isConfirming}
-                              onClick={() => handleRemovePendingAssignments(groupId, assignmentIds)}
+                              onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
                             >
                               {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                             </button>
@@ -1089,10 +1090,38 @@ export default function WarehouseLocatorPage() {
                           {isExpanded && (
                             <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
                               {assignments.map(assignment => (
-                                <div key={assignment.assignment_id} className="flex items-center gap-2 rounded-md bg-card/70 px-2 py-1.5">
-                                  <Package className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                                  <span className="truncate text-xs font-medium text-foreground">{assignment.box_number}</span>
-                                  {assignment.lot_number && <span className="ml-auto truncate text-[10px] text-muted-foreground">{assignment.lot_number}</span>}
+                                <div key={assignment.assignment_id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10">
+                                    <Package className="h-5 w-5 text-amber-600" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-foreground">BOX: {assignment.box_number}</p>
+                                    <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                                      {assignment.lot_number && <span className="truncate">LOT: {assignment.lot_number}</span>}
+                                      {assignment.lot_number && <span>•</span>}
+                                      <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    title={`Remove box ${assignment.box_number}`}
+                                    aria-label={`Remove pending box ${assignment.box_number}`}
+                                    className="flex h-6 w-6 shrink-0 items-center justify-center text-destructive hover:text-destructive/70 disabled:opacity-40"
+                                    disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
+                                    onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
+                                  >
+                                    {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title={`Confirm box ${assignment.box_number}`}
+                                    aria-label={`Confirm pending box ${assignment.box_number}`}
+                                    className="flex h-6 w-6 shrink-0 items-center justify-center text-primary hover:text-primary/70 disabled:opacity-40"
+                                    disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
+                                    onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
+                                  >
+                                    {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                  </button>
                                 </div>
                               ))}
                             </div>
