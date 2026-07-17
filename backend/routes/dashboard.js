@@ -19,6 +19,7 @@ import { logger } from '../utils/logger.js'
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
 import simflexDb from '../services/simflex-db.js'
+import { ilmsApi } from '../services/ilms-api.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 import { z } from 'zod'
 import { validateRequest } from '../middleware/validateRequest.js'
@@ -194,7 +195,8 @@ router.get('/stats', requireAuth, validateRequest({
 // Get open lots with detailed stats
 router.get('/open-lots', requireAuth, validateRequest({
   query: z.object({
-    location: z.enum(['mustang', 'jaguar']).optional()
+    location: z.enum(['mustang', 'jaguar']).optional(),
+    brand: z.string().optional()
   })
 }), async (req, res) => {
   try {
@@ -421,8 +423,12 @@ router.get('/daily-output', requireAuth, validateRequest({
       return res.status(502).json({ error: 'Failed to fetch daily output from Simflex' })
     }
 
+    const total = (simflexRows || []).length
+    const start = (page - 1) * limit
+    const paginatedSimflexRows = (simflexRows || []).slice(start, start + limit)
+
     // Enrich Simflex rows with local book data (title + lot/box via books -> boxes -> lots)
-    const isbns = (simflexRows || []).map(r => r.isbn).filter(Boolean)
+    const isbns = paginatedSimflexRows.map(r => r.isbn).filter(Boolean)
     let booksByIsbn = {}
     if (isbns.length > 0) {
       const { data: books } = await db
@@ -439,9 +445,27 @@ router.get('/daily-output', requireAuth, validateRequest({
           lot_number: lot.lot_number || null,
         }
       })
+
+      // Fetch from ILMS for any missing title/lot/box
+      const missingIsbns = isbns.filter(isbn => 
+        !booksByIsbn[isbn] || !booksByIsbn[isbn].title || !booksByIsbn[isbn].lot_number
+      )
+      
+      if (missingIsbns.length > 0) {
+        const ilmsResults = await ilmsApi.searchMultipleISBNs(missingIsbns)
+        ilmsResults.forEach((res, i) => {
+          if (res.success && res.data) {
+            const isbn = missingIsbns[i]
+            if (!booksByIsbn[isbn]) booksByIsbn[isbn] = {}
+            booksByIsbn[isbn].title = booksByIsbn[isbn].title || res.data.Title || null
+            booksByIsbn[isbn].lot_number = booksByIsbn[isbn].lot_number || res.data.LotNo || null
+            booksByIsbn[isbn].box_number = booksByIsbn[isbn].box_number || res.data.BoxNo || null
+          }
+        })
+      }
     }
 
-    const enrichedRows = (simflexRows || []).map(r => {
+    const paginatedRows = paginatedSimflexRows.map(r => {
       const local = booksByIsbn[r.isbn] || {}
       return {
         isbn: r.isbn,
@@ -453,10 +477,6 @@ router.get('/daily-output', requireAuth, validateRequest({
         completed_at: r.updated,
       }
     })
-
-    const total = enrichedRows.length
-    const start = (page - 1) * limit
-    const paginatedRows = enrichedRows.slice(start, start + limit)
 
     res.json({ success: true, rows: paginatedRows, total, page, limit })
   } catch (error) {
@@ -599,57 +619,105 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
     const startIso = startOfDay.toISOString()
     const endIso = endOfDay.toISOString()
 
-    // Active Pipeline reflects boxes CREATED today and their CURRENT stage.
+    // Active Pipeline reflects boxes PROCESSED today (via box_sessions) and their CURRENT stage.
     let query = db
       .from('boxes')
-      .select('id, current_stage, box_type')
-      .gte('created_at', startIso)
-      .lt('created_at', endIso)
+      .select('id, current_stage, box_type, total_books_expected, box_sessions!inner(id)')
+      .gte('box_sessions.updated_at', startIso)
+      .lt('box_sessions.updated_at', endIso)
     if (lotId) query = query.eq('lot_id', lotId)
 
-    const { data: boxes, error: boxesError } = await query
+    let { data: boxes, error: boxesError } = await query
     if (boxesError) throw boxesError
 
-    const stageCountsByType = {
-      warehouse:   { mustang: 0, jaguar: 0, total: 0 },
-      inventory:   { mustang: 0, jaguar: 0, total: 0 },
-      cut:         { mustang: 0, jaguar: 0, total: 0 },
-      endorsement: { mustang: 0, jaguar: 0, total: 0 },
-      storage:     { mustang: 0, jaguar: 0, total: 0 }
+    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage', 'transmit']
+    const stageCountsByType = {}
+    STAGE_ORDER.forEach(stage => {
+      stageCountsByType[stage] = { mustang: 0, jaguar: 0, total: 0 }
+    })
+
+    boxes = boxes || []
+
+    // Compute is_fully_completed_in_simflex for 'scan' stage boxes
+    let scanCompletionMap = {}
+    const scanBoxIds = boxes.filter(b => b.current_stage === 'scan').map(b => b.id)
+    if (scanBoxIds.length > 0) {
+      const { data: scanActivities } = await db.from('book_activity')
+        .select('book_id, transmission_status, books!inner(box_id)')
+        .in('books.box_id', scanBoxIds)
+        .eq('scan_status', 'processable')
+      
+      const groupedByBox = {}
+      scanBoxIds.forEach(id => { groupedByBox[id] = [] })
+      if (scanActivities) {
+        scanActivities.forEach(act => {
+          if (act.books && act.books.box_id) groupedByBox[act.books.box_id].push(act)
+        })
+      }
+      for (const boxId of scanBoxIds) {
+        const activities = groupedByBox[boxId]
+        const b = boxes.find(bx => bx.id === boxId)
+        let isCompleted = false
+        if (activities.length > 0 && activities.length >= (b.total_books_expected || 0)) {
+          isCompleted = activities.every(a => {
+            const stat = String(a.transmission_status || '').trim().toUpperCase()
+            return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED'
+          })
+        }
+        scanCompletionMap[boxId] = isCompleted
+      }
     }
 
-    ;(boxes || []).forEach(box => {
-      const stage = box.current_stage
-      if (!stageCountsByType[stage]) return
-      const type = (box.box_type || '').toString().toLowerCase()
-      const normalizedType = type === 'jaguar' ? 'jaguar' : 'mustang'
-      stageCountsByType[stage][normalizedType]++
-      stageCountsByType[stage].total++
+    boxes.forEach(b => {
+      b.is_fully_completed_in_simflex = scanCompletionMap[b.id] || false
+    })
+
+    console.log(`[DASHBOARD PIPELINE] Fetched ${boxes.length} boxes for today's sessions:`)
+    boxes.forEach(b => {
+      console.log(`- Box ${b.id} (type: ${b.box_type}, stage: ${b.current_stage}, fullyCompleted: ${b.is_fully_completed_in_simflex})`)
+    })
+
+    const filteredBoxes = boxes
+    
+    STAGE_ORDER.forEach(stage => {
+      filteredBoxes.forEach(b => {
+        let matches = false
+        if (stage === 'transmit') {
+          matches = b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
+        } else if (stage === 'storage') {
+          const isActuallyStorage = b.current_stage === 'storage'
+          const isScanButFullyCompleted = b.current_stage === 'scan' && b.is_fully_completed_in_simflex
+          matches = isActuallyStorage || isScanButFullyCompleted
+        } else if (stage === 'scan') {
+          matches = b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
+        } else {
+          matches = b.current_stage === stage
+        }
+        
+        if (matches) {
+          const type = (b.box_type || '').toString().toLowerCase()
+          const normalizedType = type === 'jaguar' ? 'jaguar' : 'mustang'
+          stageCountsByType[stage][normalizedType]++
+          stageCountsByType[stage].total++
+        }
+      })
     })
 
     // Flat totals filtered by the selected brand when provided
-    const stageCounts = {
-      warehouse:   selectedBrand ? stageCountsByType.warehouse[selectedBrand] : stageCountsByType.warehouse.total,
-      inventory:   selectedBrand ? stageCountsByType.inventory[selectedBrand] : stageCountsByType.inventory.total,
-      cut:         selectedBrand ? stageCountsByType.cut[selectedBrand] : stageCountsByType.cut.total,
-      endorsement: selectedBrand ? stageCountsByType.endorsement[selectedBrand] : stageCountsByType.endorsement.total,
-      storage:     selectedBrand ? stageCountsByType.storage[selectedBrand] : stageCountsByType.storage.total,
-      scan:        0,
-      transmit:    0
-    }
+    const stageCounts = {}
+    STAGE_ORDER.forEach(stage => {
+      stageCounts[stage] = selectedBrand ? stageCountsByType[stage][selectedBrand] : stageCountsByType[stage].total
+    })
 
-    // Scan and Transmit stages are driven by live Simflex status, filtered by brand/location
+    // Transmit stage is driven by live Simflex status, filtered by brand/location
     try {
       const location = selectedBrand || 'mustang'
-      const [scanResult, transmitResult] = await Promise.all([
-        simflexDb.getScanStageBoxes(undefined, undefined, location),
+      const [transmitResult] = await Promise.all([
         simflexDb.getTransmitStageBoxes(undefined, undefined, location),
       ])
-      stageCounts.scan = scanResult.success ? scanResult.count : 0
       stageCounts.transmit = transmitResult.success ? transmitResult.count : 0
     } catch (simflexError) {
       console.warn('Simflex stage count failed:', simflexError.message)
-      stageCounts.scan = 0
       stageCounts.transmit = 0
     }
 

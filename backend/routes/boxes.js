@@ -234,8 +234,9 @@ router.get('/', requireAuth, async (req, res) => {
         
         for (const boxId of scanBoxIds) {
           const activities = groupedByBox[boxId];
+          const b = boxes.find(bx => bx.id === boxId);
           let isCompleted = false;
-          if (activities.length > 0) {
+          if (activities.length > 0 && activities.length >= (b.total_books_expected || 0)) {
             isCompleted = activities.every(a => {
                const stat = String(a.transmission_status || '').trim().toUpperCase();
                return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED';
