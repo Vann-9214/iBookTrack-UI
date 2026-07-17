@@ -1102,26 +1102,28 @@ export default function WarehouseLocatorPage() {
                                       <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
                                     </div>
                                   </div>
-                                  <button
-                                    type="button"
-                                    title={`Remove box ${assignment.box_number}`}
-                                    aria-label={`Remove pending box ${assignment.box_number}`}
-                                    className="flex h-6 w-6 shrink-0 items-center justify-center text-destructive hover:text-destructive/70 disabled:opacity-40"
-                                    disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
-                                    onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
-                                  >
-                                    {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    title={`Confirm box ${assignment.box_number}`}
-                                    aria-label={`Confirm pending box ${assignment.box_number}`}
-                                    className="flex h-6 w-6 shrink-0 items-center justify-center text-primary hover:text-primary/70 disabled:opacity-40"
-                                    disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
-                                    onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
-                                  >
-                                    {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                  </button>
+                                  <div className="flex shrink-0 items-center gap-0.5">
+                                    <button
+                                      type="button"
+                                      title={`Remove box ${assignment.box_number}`}
+                                      aria-label={`Remove pending box ${assignment.box_number}`}
+                                      className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                                      disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
+                                      onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
+                                    >
+                                      {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title={`Confirm box ${assignment.box_number}`}
+                                      aria-label={`Confirm pending box ${assignment.box_number}`}
+                                      className="flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                                      disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
+                                      onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
+                                    >
+                                      {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
