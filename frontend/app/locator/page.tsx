@@ -727,7 +727,7 @@ export default function WarehouseLocatorPage() {
               </div>
             )}
 
-            {/* Warehouse Grid */}
+            {/* Warehouse Grid */}  
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,1fr)_3fr_minmax(260px,1fr)] gap-4 items-start">
               {/* Unassigned storage boxes (left) */}
               <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
@@ -883,15 +883,15 @@ export default function WarehouseLocatorPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {/* Rack column headers */}
-                    <div className="flex items-start gap-2">
+                    <div className="grid grid-cols-[4.5rem_1px_minmax(0,1fr)_1px_4.5rem] items-start gap-3">
                       {/* Level controls */}
-                      <div className="w-9 flex flex-col items-center gap-0.5 pt-0.5">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="mb-1 text-center text-xs font-medium text-muted-foreground">Level</span>
                         <button
                           onClick={handleAddLevel}
                           disabled={addingLevel}
                           title="Add level"
-                          className="p-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
                         >
                           {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         </button>
@@ -899,23 +899,87 @@ export default function WarehouseLocatorPage() {
                           onClick={() => handleRemoveLevel()}
                           disabled={removingLevel || sectionLevels.length <= 1}
                           title={`Remove level ${Math.max(...sectionLevels)}`}
-                          className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
                         >
                           {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
                       </div>
-                      <div className="w-12 text-right pr-2 text-xs font-medium text-muted-foreground">Level</div>
-                      {sectionRacks.map(r => (
-                        <div key={r} className="flex-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
-                      ))}
+
+                      <div className="h-[5.5rem] bg-border" />
+
+                      {/* Rack headers and storage slots */}
+                      <div className="grid min-w-0 items-center gap-2" style={{ gridTemplateColumns: `1em repeat(${sectionRacks.length}, minmax(0, 1fr))` }}>
+                        <div />
+                        {sectionRacks.map(r => (
+                          <div key={r} className="pb-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
+                        ))}
+
+                        {sectionLevels.map(level => (
+                          <div key={level} className="contents">
+                            <div className="flex aspect-square items-center justify-start pl-0 text-sm font-semibold text-foreground">{level}</div>
+                            {sectionRacks.map(rack => {
+                              const loc = getLocation(rackId(activeSection, rack), level)
+                              const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
+                              const isSuggested = suggestedLocation?.id === loc?.id
+                              const pendingCount = loc ? getPendingCount(loc) : 0
+                              const used = loc?.used ?? 0
+                              const capacity = loc?.capacity ?? 20
+                              const canFitSelected = capacity - used - pendingCount >= selectedReadyBoxIds.size
+                              return (
+                                <button
+                                  key={`${rack}-${level}`}
+                                  onClick={() => {
+                                    if (!loc) return
+                                    if (selectedReadyBoxIds.size > 0 && canFitSelected) {
+                                      openAssign(loc)
+                                      return
+                                    }
+                                    setDetailSlot(loc)
+                                  }}
+                                  disabled={!loc}
+                                  title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
+                                  className={cn(
+                                    "aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
+                                    loc ? pendingCount > 0 && used === 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
+                                    isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
+                                    isSuggested && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10 animate-pulse",
+                                    loc && "hover:scale-105 hover:shadow-md cursor-pointer"
+                                  )}
+                                >
+                                  {provisioningSection && !loc ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                                  ) : loc && pendingCount > 0 ? (
+                                    <>
+                                      <Package className="h-4 w-4 text-foreground/60" />
+                                      <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                      <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"><Clock className="h-2.5 w-2.5" />{pendingCount} pending</span>
+                                    </>
+                                  ) : loc && used > 0 ? (
+                                    <>
+                                      <Package className="h-4 w-4 text-foreground/60" />
+                                      <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                    </>
+                                  ) : loc ? (
+                                    <Plus className="h-4 w-4 text-muted-foreground/40" />
+                                  ) : null}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="h-[5.5rem] bg-border" />
+
                       {/* Rack controls */}
-                      <div className="w-16 flex items-center justify-end gap-0.5">
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="mb-1 text-center text-xs font-medium text-muted-foreground">Racks</span>
                         <button
                           onClick={handleAddRack}
                           disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
                           title="Add a new rack"
                           aria-label="Add a new rack"
-                          className="p-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
                         >
                           {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         </button>
@@ -924,69 +988,13 @@ export default function WarehouseLocatorPage() {
                           disabled={removingRack || sectionRacks.length <= 1}
                           title={`Remove last rack (${sectionRacks.at(-1)})`}
                           aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
-                          className="p-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
                         >
                           {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
                       </div>
                     </div>
 
-                    {/* Grid rows (levels) */}
-                    {sectionLevels.map(level => (
-                      <div key={level} className="flex items-center gap-2">
-                        <div className="w-9" />
-                        <div className="w-12 text-right pr-2 text-xs font-medium text-muted-foreground">{level}</div>
-                        {sectionRacks.map(rack => {
-                          const loc = getLocation(rackId(activeSection, rack), level)
-                          const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
-                          const isSuggested = suggestedLocation?.id === loc?.id
-                          const pendingCount = loc ? getPendingCount(loc) : 0
-                          const used = loc?.used ?? 0
-                          const capacity = loc?.capacity ?? 20
-                          const canFitSelected = capacity - used - pendingCount >= selectedReadyBoxIds.size
-                          return (
-                            <button
-                              key={`${rack}-${level}`}
-                              onClick={() => {
-                                if (!loc) return
-                                if (selectedReadyBoxIds.size > 0 && canFitSelected) {
-                                  openAssign(loc)
-                                  return
-                                }
-                                setDetailSlot(loc)
-                              }}
-                              disabled={!loc}
-                              title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
-                              className={cn(
-                                "flex-1 aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
-                                loc ? pendingCount > 0 && used === 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
-                                isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
-                                isSuggested && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10 animate-pulse",
-                                loc && "hover:scale-105 hover:shadow-md cursor-pointer"
-                              )}
-                            >
-                              {provisioningSection && !loc ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
-                              ) : loc && pendingCount > 0 ? (
-                                <>
-                                  <Package className="h-4 w-4 text-foreground/60" />
-                                  <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
-                                  <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"><Clock className="h-2.5 w-2.5" />{pendingCount} pending</span>
-                                </>
-                              ) : loc && used > 0 ? (
-                                <>
-                                  <Package className="h-4 w-4 text-foreground/60" />
-                                  <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
-                                </>
-                              ) : loc ? (
-                                <Plus className="h-4 w-4 text-muted-foreground/40" />
-                              ) : null}
-                            </button>
-                          )
-                        })}
-                        <div className="w-9" />
-                      </div>
-                    ))}
                   </div>
                 )}
               </div>
