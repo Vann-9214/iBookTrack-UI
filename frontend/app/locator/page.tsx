@@ -5,12 +5,13 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Warehouse } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Warehouse, RefreshCw } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
 import { DashboardNavbar } from "@/components/top-bar"
 import { useBrand } from "@/hooks/use-brand"
+import { DashboardMain } from "../Dashboard/DashboardMain"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
@@ -270,10 +271,10 @@ export default function WarehouseLocatorPage() {
 
   const getCapacityColor = (used: number, capacity: number) => {
     const pct = capacity > 0 ? (used / capacity) * 100 : 0
-    if (pct >= 90) return "bg-red-100 border-red-400 dark:bg-red-900/30 dark:border-red-600"
-    if (pct >= 70) return "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600"
-    if (pct > 0)   return "bg-emerald-100 border-emerald-400 dark:bg-emerald-900/30 dark:border-emerald-600"
-    return "bg-gray-200 border-border"
+    if (pct >= 90) return "bg-red-100 border-red-300 dark:bg-red-950/40 dark:border-red-800 text-red-700 dark:text-red-400"
+    if (pct >= 70) return "bg-amber-100 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+    if (pct > 0)   return "bg-emerald-100 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+    return "bg-muted/40 border-border text-muted-foreground"
   }
 
   const getCapacityColorName = (used: number, capacity: number) => {
@@ -718,55 +719,84 @@ export default function WarehouseLocatorPage() {
   ]).size
   const confirmedDetailAssignments = detailSlot?.assignments.filter(assignment => assignment.status !== 'pending') || []
   const pendingDetailAssignments = detailSlot?.assignments.filter(assignment => assignment.status === 'pending') || []
+  const isRefreshing = loadingLocations || loadingReady || loadingPending
 
   const lastUpdateLabel = lastUpdated
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
     : 'Not updated yet'
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className={cn("flex h-dvh overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar />
 
-      <main className="flex-1 flex flex-col overflow-hidden">
+      {/* Main Content */}
+      <DashboardMain>
         <DashboardNavbar />
-        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex min-w-0 flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+          <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
 
-            {/* Header */}
-            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                  <Warehouse className="h-7 w-7" />
+            {/* Page Header */}
+            <header className="flex flex-col gap-3">
+              {/* Title row — always visible */}
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className={cn("p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                  <Warehouse className="h-6 w-6 sm:h-7 sm:w-7" />
                 </div>
-                <div>
-                  <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
-                    Storage Locator
-                  </h1>
-                  <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                    Find the physical location of any box for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">
+                        Storage Locator
+                      </h1>
+                      <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
+                        Find the physical location of any box for{' '}
+                        <span className={cn(
+                          "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
+                          brand === 'jaguar'
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+                            : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                        )}>
+                          {brand}
+                        </span>
+                      </p>
+                    </div>
+                    {/* Refresh — right side */}
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      {/* Mobile Refresh Button (Icon Only) */}
+                      <button
+                        onClick={refreshLocator}
+                        disabled={isRefreshing}
+                        className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+                        aria-label="Refresh Locator"
+                      >
+                        <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                      </button>
+                      
+                      {/* Desktop Refresh Control */}
+                      <RefreshControl onRefresh={refreshLocator} refreshing={isRefreshing} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <RefreshControl onRefresh={refreshLocator} refreshing={loadingLocations || loadingReady || loadingPending} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
             </header>
 
             {/* Search */}
-            <div className="flex items-center gap-2 justify-center">
-              <div className="relative flex-1 max-w-lg bg-white">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="flex items-center gap-2 justify-center max-w-xl mx-auto w-full">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Full ISBN, Box [number], or Lot [number]…"
                   value={searchValue}
                   onChange={e => { setSearchValue(e.target.value); setSearchValidationError(null) }}
                   onKeyDown={e => e.key === "Enter" && handleSearch()}
-                  className="pl-9 h-10"
+                  className="pl-10 h-10 bg-card border-border rounded-xl shadow-sm focus-visible:ring-primary/20"
                 />
               </div>
-              <Button onClick={handleSearch} disabled={searchLoading} className="h-10 px-5">
+              <Button onClick={handleSearch} disabled={searchLoading} className="h-10 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all shrink-0">
                 {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
               </Button>
               {(highlightedCells.size > 0 || searchDone) && (
-                <Button variant="ghost" size="icon" className="h-10 w-10" onClick={clearSearch}>
+                <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={clearSearch}>
                   <X className="h-4 w-4" />
                 </Button>
               )}
@@ -853,11 +883,13 @@ export default function WarehouseLocatorPage() {
             {/* Warehouse Grid */}  
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
               {/* Unassigned storage boxes (left) */}
-              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
-                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-t-2 border-t-primary/70 border-b border-b-primary/20 bg-primary/5 px-4 h-14">
-                  <Inbox className="h-4 w-4 text-primary shrink-0" />
-                  <h3 className="text-sm font-semibold text-card-foreground">Unassigned Boxes</h3>
-                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+              <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
+                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                    <Inbox className="h-4.5 w-4.5" />
+                  </div>
+                  <h3 className="text-sm font-bold text-card-foreground">Unassigned Boxes</h3>
+                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
                     {filteredReadyBoxes.length}
                   </span>
                 </div>
@@ -908,24 +940,26 @@ export default function WarehouseLocatorPage() {
               </div>
 
               {/* Center warehouse layout */}
-              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-                <div className="-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-xl border-t-2 border-t-primary/70 border-b border-b-primary/20 bg-primary/5 px-4 h-14">
+              <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
+                <div className="-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
                   <div className="flex items-center gap-2">
-                    <Warehouse className="h-4 w-4 text-primary shrink-0" />
-                    <h2 className="text-sm font-semibold text-card-foreground">Storage Layout</h2>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                      <Warehouse className="h-4.5 w-4.5" />
+                    </div>
+                    <h2 className="text-sm font-bold text-card-foreground">Storage Layout</h2>
                   </div>
                   <div className="flex items-center gap-3">
                     {(() => {
                       const { totalUsed, totalCap } = getSectionStats(activeSection)
                       const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
                       return totalCap > 0 ? (
-                        <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
+                         <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
                       ) : null
                     })()}
                     <div className="relative" ref={sectionDropdownRef}>
                       <Button
-                        variant="secondary"
-                        className="h-9 gap-2 px-3 bg-white text-foreground hover:bg-primary hover:text-white transition border border-border"
+                        variant="outline"
+                        className="h-9 gap-2 px-3 bg-card text-foreground hover:bg-accent border border-border"
                         onClick={() => setSectionDropdownOpen(o => !o)}
                       >
                         <LayoutGrid className="h-4 w-4" />
@@ -1126,11 +1160,13 @@ export default function WarehouseLocatorPage() {
               </div>
 
               {/* Pending assignment (right) */}
-              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
-                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-t-2 border-t-amber-500/70 border-b border-b-amber-300/40 bg-amber-50 px-4 h-14 dark:border-t-amber-400/70 dark:border-b-amber-700/50 dark:bg-amber-950/30">
-                  <Clock className="h-4 w-4 text-amber-500 shrink-0" />
-                  <h3 className="text-sm font-semibold text-card-foreground">Pending Assignment</h3>
-                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-600">
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2 border-t-amber-500">
+                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 text-amber-600">
+                    <Clock className="h-4.5 w-4.5" />
+                  </div>
+                  <h3 className="text-sm font-bold text-card-foreground">Pending Assignment</h3>
+                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
                     {filteredPendingAssignments.length}
                   </span>
                 </div>
@@ -1245,7 +1281,7 @@ export default function WarehouseLocatorPage() {
 
           </div>
         </div>
-      </main>
+      </DashboardMain>
 
       {/* ── Slot Detail Modal ─────────────────────────────────────────── */}
       {detailSlot && (
