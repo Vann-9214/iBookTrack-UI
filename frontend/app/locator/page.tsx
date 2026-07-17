@@ -884,12 +884,24 @@ export default function WarehouseLocatorPage() {
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
               {/* Unassigned storage boxes (left) */}
               <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
-                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                <div className={cn("-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b px-4 h-14", 
+                  brand === 'jaguar' 
+                    ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100 dark:from-emerald-950/20 dark:to-green-950/20 dark:border-green-900/40" 
+                    : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-900/40"
+                )}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", 
+                    brand === 'jaguar' 
+                      ? "bg-gradient-to-br from-emerald-500 to-green-600" 
+                      : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                  )}>
                     <Inbox className="h-4.5 w-4.5" />
                   </div>
                   <h3 className="text-sm font-bold text-card-foreground">Unassigned Boxes</h3>
-                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
+                  <span className={cn("ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold", 
+                    brand === 'jaguar' 
+                      ? "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400" 
+                      : "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                  )}>
                     {filteredReadyBoxes.length}
                   </span>
                 </div>
@@ -941,9 +953,17 @@ export default function WarehouseLocatorPage() {
 
               {/* Center warehouse layout */}
               <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
-                <div className="-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
+                <div className={cn("-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-xl border-b px-4 h-14",
+                  brand === 'jaguar' 
+                    ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100 dark:from-emerald-950/20 dark:to-green-950/20 dark:border-green-900/40" 
+                    : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-900/40"
+                )}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                    <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", 
+                      brand === 'jaguar' 
+                        ? "bg-gradient-to-br from-emerald-500 to-green-600" 
+                        : "bg-gradient-to-br from-blue-500 to-indigo-600"
+                    )}>
                       <Warehouse className="h-4.5 w-4.5" />
                     </div>
                     <h2 className="text-sm font-bold text-card-foreground">Storage Layout</h2>
@@ -1161,12 +1181,12 @@ export default function WarehouseLocatorPage() {
 
               {/* Pending assignment (right) */}
               <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2 border-t-amber-500">
-                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 text-amber-600">
+                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-amber-100 dark:border-amber-900/40 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 px-4 h-14">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shrink-0">
                     <Clock className="h-4.5 w-4.5" />
                   </div>
                   <h3 className="text-sm font-bold text-card-foreground">Pending Assignment</h3>
-                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
+                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 dark:bg-amber-500/20 px-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
                     {filteredPendingAssignments.length}
                   </span>
                 </div>
