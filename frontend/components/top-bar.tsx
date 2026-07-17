@@ -149,16 +149,17 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-white px-6 md:px-6 pl-14 md:pl-6">
+    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border/70 bg-white/80 backdrop-blur-md shadow-sm px-6 md:px-6 pl-14 md:pl-6">
       {/* Mustang / Jaguar toggle */}
-      <div className="relative flex items-center rounded-full border border-muted/20 bg-gray-200 p-0.5 w-[160px]">
+      <div className="relative flex items-center rounded-full border border-black/5 bg-gray-100/90 p-0.5 w-[160px] shadow-inner">
         {/* Animated Background Pill */}
         <div 
-          className="absolute top-0.5 bottom-0.5 rounded-full transition-all duration-300 ease-out shadow-sm pointer-events-none"
+          className="absolute top-0.5 bottom-0.5 rounded-full transition-all duration-300 ease-out shadow-md pointer-events-none"
           style={{
             width: 'calc(50% - 2px)',
             left: brand === 'mustang' ? '2px' : '50%',
-            backgroundColor: BRAND_COLORS[brand].accent,
+            backgroundImage: `linear-gradient(135deg, ${BRAND_COLORS[brand].accent}, color-mix(in srgb, ${BRAND_COLORS[brand].accent} 78%, #000))`,
+            boxShadow: `0 2px 8px color-mix(in srgb, ${BRAND_COLORS[brand].accent} 45%, transparent)`,
           }}
         />
         {(['mustang', 'jaguar'] as Brand[]).map((b) => {

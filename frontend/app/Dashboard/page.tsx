@@ -365,11 +365,11 @@ export default function DashboardPage() {
                     <LayoutDashboard className="h-7 w-7" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                    <h1 className="text-[28px] sm:text-3xl font-black tracking-tighter text-foreground leading-none">
                       Command Center
                     </h1>
-                    <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                      Overview of operations for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                    <p className="mt-1.5 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                      Overview of operations for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white shadow-sm", brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>{brand}</span>
                     </p>
                   </div>
                 </div>
@@ -402,7 +402,7 @@ export default function DashboardPage() {
                             <Search className="h-5 w-5" />
                           </div>
                           <div>
-                            <h3 className="text-base font-semibold text-foreground">Search Dashboard</h3>
+                            <h3 className="text-lg font-bold tracking-tight text-foreground">Search Dashboard</h3>
                             <p className="text-xs text-muted-foreground">Search by ISBN or view all books in a lot</p>
                           </div>
                         </div>
@@ -520,8 +520,10 @@ export default function DashboardPage() {
               <Card className="border-border bg-card">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      {searchResult.type === 'isbn' ? <Book className="h-5 w-5" /> : <Package className="h-5 w-5" />}
+                    <CardTitle className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                        {searchResult.type === 'isbn' ? <Book className="h-4 w-4" /> : <Package className="h-4 w-4" />}
+                      </span>
                       {searchResult.type === 'isbn' ? 'ISBN Search Result' : 'Lot Search Results'}
                     </CardTitle>
                     <button
@@ -712,7 +714,7 @@ export default function DashboardPage() {
                   <Package className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-semibold text-foreground">{boxScanModal?.box.box_number}</h3>
+                  <h3 className="text-lg font-bold tracking-tight text-foreground">{boxScanModal?.box.box_number}</h3>
                   <p className="text-xs text-muted-foreground">
                     {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books_expected} books
                   </p>
@@ -723,9 +725,18 @@ export default function DashboardPage() {
               </button>
             </div>
             {loadingBoxScan ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">Loading contents...</p>
+              <div className="flex flex-col items-center justify-center gap-3 py-14">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Loading contents...</p>
+              </div>
             ) : boxScanModal && boxScanModal.books.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No scan records found for this box.</p>
+              <div className="flex flex-col items-center justify-center gap-3 py-14">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground ring-1 ring-border">
+                  <Package className="h-7 w-7" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">No scan records</p>
+                <p className="text-xs text-muted-foreground">This box has no scanned books yet.</p>
+              </div>
             ) : (
               <div className="overflow-y-auto flex-1 px-5 py-4">
                 <table className="w-full text-xs">
@@ -739,7 +750,7 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {boxScanModal?.books.map((book: any, i: number) => (
-                      <tr key={book.id} className="border-b border-border/40 last:border-0">
+                      <tr key={book.id} className="border-b border-border/40 last:border-0 hover:bg-muted/40 transition-colors">
                         <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
                         <td className="py-1.5 pr-3">{book.isbn}</td>
                         <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>

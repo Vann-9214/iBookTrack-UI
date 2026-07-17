@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   BookOpen,
+  CheckCircle2,
   ChevronRight,
   FileOutput,
   HeartPulse,
@@ -204,67 +205,116 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const dailyOutput = dashboardStats?.dailyTransmitted || 0
   const totalBooks = dashboardStats?.totalBooks || 0
 
+  const isJaguar = brand === 'jaguar'
+
+  /* Full class strings (Tailwind needs them static). "theme" resolves to the
+     active brand tone so the KPI cards visibly shift blue↔green. */
+  const TONE = {
+    theme: isJaguar
+      ? {
+          card: "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60",
+          icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
+          value: "text-emerald-700",
+          title: "text-emerald-950/70",
+          sub: "text-emerald-600/80",
+          hover: "hover:shadow-emerald-200/60",
+        }
+      : {
+          card: "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-blue-200/70 ring-blue-100/60",
+          icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
+          value: "text-blue-700",
+          title: "text-blue-950/70",
+          sub: "text-blue-600/80",
+          hover: "hover:shadow-blue-200/60",
+        },
+    red: {
+      card: "bg-gradient-to-br from-red-50 to-rose-100/40 border-red-200/70 ring-red-100/60",
+      icon: "bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/25",
+      value: "text-red-600",
+      title: "text-red-950/70",
+      sub: "text-red-500/80",
+      hover: "hover:shadow-red-200/60",
+    },
+    /* Bold theme variant for the headline "Total Books" card */
+    solid: isJaguar
+      ? {
+          card: "bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-600/40 ring-emerald-300/30 text-white",
+          icon: "bg-white/20 shadow-black/10",
+          value: "text-white",
+          title: "text-white/90",
+          sub: "text-white/70",
+          hover: "hover:shadow-emerald-500/40",
+        }
+      : {
+          card: "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600/40 ring-blue-300/30 text-white",
+          icon: "bg-white/20 shadow-black/10",
+          value: "text-white",
+          title: "text-white/90",
+          sub: "text-white/70",
+          hover: "hover:shadow-blue-500/40",
+        },
+  } as const
+
+  /* Theme-aware palette for the brand-colored modals (Live Lots, Daily Output) */
+  const M = isJaguar
+    ? {
+        headerBg: "bg-gradient-to-r from-emerald-50 to-green-50",
+        iconBg: "bg-gradient-to-br from-emerald-500 to-green-600",
+        dot: "bg-emerald-500",
+        accent: "text-emerald-600",
+        soft: "text-emerald-500",
+        border: "border-emerald-100",
+        softBg: "bg-emerald-50/60",
+        bar: "bg-emerald-500",
+        track: "bg-emerald-100",
+        rowHover: "hover:bg-emerald-50/60",
+        chip: "bg-emerald-100 text-emerald-700",
+      }
+    : {
+        headerBg: "bg-gradient-to-r from-blue-50 to-indigo-50",
+        iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600",
+        dot: "bg-blue-500",
+        accent: "text-blue-600",
+        soft: "text-blue-500",
+        border: "border-blue-100",
+        softBg: "bg-blue-50/60",
+        bar: "bg-blue-500",
+        track: "bg-blue-100",
+        rowHover: "hover:bg-blue-50/60",
+        chip: "bg-blue-100 text-blue-700",
+      }
+
   const stats = [
     {
       title: "Live Lots",
       value: activeLots.toLocaleString(),
       subtext: "actively processing",
-      badge: `+${Math.max(0, activeLots - 3)} from yesterday`,
       icon: Activity,
-      iconColor: "text-white",
-      iconBg: "bg-blue-500",
-      cardBg: "bg-blue-200",
-      hoverBg: "hover:bg-blue-300",
-      border: "border-blue-400",
-      valueColor: "text-blue-800",
-      subtextColor: "text-blue-600",
-      titleColor: "text-gray-900",
+      tone: TONE.theme,
       onClick: openLiveLots,
     },
     {
       title: "Non-Processable",
       value: unaccounted.toLocaleString(),
       subtext: "flagged today",
-      badge: "Needs review",
       icon: AlertTriangle,
-      iconColor: "text-red-600",
-      iconBg: "bg-red-500",
-      cardBg: "bg-red-100/60",
-      hoverBg: "hover:bg-red-100",
-      border: "border-red-300",
-      valueColor: "text-red-600",
-      subtextColor: "text-red-400",
+      tone: TONE.red,
       onClick: openFlags,
     },
     {
       title: "Daily Output",
       value: dailyOutput.toLocaleString(),
       subtext: "books transmitted",
-      badge: "All processed",
       icon: FileOutput,
-      iconColor: "text-white",
-      iconBg: "bg-green-500",
-      cardBg: "bg-green-200",
-      hoverBg: "hover:bg-green-300",
-      border: "border-green-400",
-      valueColor: "text-green-800",
-      subtextColor: "text-green-600",
-      titleColor: "text-gray-900",
+      tone: TONE.theme,
       onClick: openDailyOutput,
     },
     {
       title: "Total Books",
       value: totalBooks.toLocaleString(),
       subtext: "in system",
-      badge: "All accounted",
       icon: HeartPulse,
-      iconColor: "text-white",
-      iconBg: "bg-teal-500",
-      cardBg: "bg-teal-100/60",
-      hoverBg: "hover:bg-teal-100",
-      border: "border-teal-300",
-      valueColor: "text-teal-600",
-      subtextColor: "text-teal-500",
+      tone: TONE.solid,
       onClick: undefined,
     },
   ]
@@ -302,49 +352,51 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         </>
       ) : (
         <>
-          {/* ΓöÇΓöÇ Mobile: compact 2├ù2 grid ΓöÇΓöÇ */}
-          <div className="grid grid-cols-2 gap-2 sm:hidden">
+          {/* ── Mobile: compact 2×2 grid ── */}
+          <div className="grid grid-cols-2 gap-2.5 sm:hidden">
             {stats.map((stat) => (
               <div
                 key={stat.title}
                 onClick={stat.onClick}
                 className={cn(
-                  "rounded-2xl border p-3 flex items-center gap-3 transition-all duration-200 shadow-sm active:scale-[0.97]",
-                  stat.cardBg, stat.border,
+                  "rounded-2xl border p-3 flex items-center gap-3 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97]",
+                  stat.tone.card,
                   stat.onClick ? "cursor-pointer" : "cursor-default"
                 )}
               >
-                <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm shrink-0", stat.iconBg)}>
+                <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", stat.tone.icon)}>
                   <stat.icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className={cn("text-xl font-black leading-none", stat.valueColor)}>{stat.value}</div>
-                  <div className={cn("text-xs font-medium truncate mt-0.5", stat.titleColor || "text-gray-600")}>{stat.title}</div>
+                  <div className={cn("text-xl font-black leading-none tracking-tight", stat.tone.value)}>{stat.value}</div>
+                  <div className={cn("text-[11px] font-semibold truncate mt-1", stat.tone.title)}>{stat.title}</div>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* ΓöÇΓöÇ Desktop: full cards ΓöÇΓöÇ */}
+          {/* ── Desktop: full cards ── */}
           <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4">
             {stats.map((stat) => (
               <div
                 key={stat.title}
                 onClick={stat.onClick}
                 className={cn(
-                  "rounded-2xl border p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]",
-                  stat.cardBg, stat.hoverBg, stat.border,
+                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+                  stat.tone.card, stat.tone.hover,
                   stat.onClick ? "cursor-pointer" : "cursor-default"
                 )}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm", stat.iconBg)}>
+                {/* subtle top-light sheen */}
+                <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+                <div className="relative flex items-start justify-between mb-3">
+                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", stat.tone.icon)}>
                     <stat.icon className="h-6 w-6" />
                   </div>
-                  <div className={cn("text-4xl font-black mb-0.5", stat.valueColor)}>{stat.value}</div>
+                  <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", stat.tone.value)}>{stat.value}</div>
                 </div>
-                <div className={cn("text-sm font-semibold mb-0.5", stat.titleColor || "text-gray-700")}>{stat.title}</div>
-                <div className={cn("text-xs", stat.subtextColor)}>{stat.subtext}</div>
+                <div className={cn("relative text-sm font-semibold mb-0.5", stat.tone.title)}>{stat.title}</div>
+                <div className={cn("relative text-xs font-medium", stat.tone.sub)}>{stat.subtext}</div>
               </div>
             ))}
           </div>
@@ -353,17 +405,17 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
 
       {/* QC Flagged Books Modal */}
       {flagsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setFlagsOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-4 max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setFlagsOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
 
             {/* Red header */}
-            <div className="px-6 py-5 flex items-center justify-between bg-red-50">
+            <div className="px-6 py-5 flex items-center justify-between bg-gradient-to-r from-red-50 to-rose-50">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500 text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-800">Non-Processable Books</h3>
+                  <h3 className="text-lg font-bold tracking-tight text-gray-800">Non-Processable Books</h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <span className="h-2 w-2 rounded-full bg-red-500" />
                     <span className="text-xs text-gray-500">Needs review</span>
@@ -378,16 +430,6 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </button>
             </div>
 
-            {/* Summary strip */}
-            {!loadingFlags && flags.length > 0 && (
-              <div className="flex items-center gap-6 px-6 py-3 bg-gray-50 border-b border-gray-100">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">Flagged Books</span>
-                  <span className="text-sm font-bold text-red-600">{flags.length}</span>
-                </div>
-              </div>
-            )}
-
             {/* Content */}
             {loadingFlags ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
@@ -395,49 +437,62 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-sm text-gray-400">Loading flagged books...</span>
               </div>
             ) : flags.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-2">
-                <span className="text-sm font-medium text-gray-500">No flagged books recorded yet</span>
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100">
+                  <CheckCircle2 className="h-7 w-7" />
+                </div>
+                <span className="text-sm font-semibold text-gray-600">No flagged books</span>
+                <span className="text-xs text-gray-400">Everything looks clean for today</span>
               </div>
             ) : (
-              <div className="overflow-y-auto flex-1">
-                <table className="w-full text-sm table-fixed">
+              <div className="overflow-y-auto flex-1 px-3 py-2">
+                <table className="w-full text-sm table-fixed border-separate border-spacing-y-1">
                   <colgroup>
-                    <col className="w-8" />
+                    <col className="w-10" />
+                    <col className="w-36" />
+                    <col className="hidden sm:table-column" />
                     <col className="w-28" />
-                    <col className="hidden sm:table-column w-40" />
-                    <col className="w-28" />
-                    <col className="w-28" />
-                    <col className="w-28" />
+                    <col className="w-52" />
+                    <col className="w-36" />
                   </colgroup>
-                  <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
+                  <thead className="sticky top-0 bg-white z-10">
                     <tr>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">#</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">ISBN</th>
-                      <th className="hidden sm:table-cell text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">Lot &amp; Box</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Issue</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Flagged By</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">#</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">ISBN</th>
+                      <th className="hidden sm:table-cell text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Title</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Lot &amp; Box</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Issue</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Flagged By</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody>
                     {flags.map((f, i) => (
-                      <tr key={f.scan_id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4 text-xs text-gray-300">{(flagsPagination.currentPage - 1) * flagsPagination.pageSize + i + 1}</td>
-                        <td className="py-3 px-4 font-semibold text-gray-800 truncate">{f.isbn}</td>
-                        <td className="hidden sm:table-cell py-3 px-4 text-gray-500 truncate">{f.title || '—'}</td>
-                        <td className="text-xs px-4 py-3">
-                          <span className="font-semibold text-blue-600">{f.assigned_box?.lot?.lot_number || '—'}</span>
+                      <tr key={f.scan_id} className="bg-gray-50/60 hover:bg-red-50/50 transition-colors align-middle [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl">
+                        <td className="py-2 px-3 text-xs font-medium text-gray-400 align-middle">{(flagsPagination.currentPage - 1) * flagsPagination.pageSize + i + 1}</td>
+                        <td className="py-2 px-3 font-mono text-xs font-semibold text-gray-800 truncate align-middle">{f.isbn}</td>
+                        <td className="hidden sm:table-cell py-2 px-3 text-gray-600 truncate align-middle">{f.title || '—'}</td>
+                        <td className="text-xs px-3 py-2 align-middle whitespace-nowrap">
+                          <span className="font-bold text-gray-800">{f.assigned_box?.lot?.lot_number || '—'}</span>
                           {f.assigned_box?.box_number && (
-                            <span className="text-gray-400 ml-1">{f.assigned_box.box_number}</span>
+                            <span className="ml-1.5 font-mono text-gray-400">{f.assigned_box.box_number}</span>
                           )}
                         </td>
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 whitespace-nowrap">
-                            {ISSUE_LABELS[f.issue] || f.issue}
-                          </span>
-                          {f.remarks && <span className="hidden sm:inline ml-2 text-xs text-gray-400">{f.remarks}</span>}
+                        <td className="py-2 px-3 align-middle">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700 whitespace-nowrap ring-1 ring-red-200/60">
+                              {ISSUE_LABELS[f.issue] || f.issue}
+                            </span>
+                            {f.remarks && <span className="text-[11px] text-gray-400 italic truncate">“{f.remarks}”</span>}
+                          </div>
                         </td>
-                        <td className="py-3 px-4 text-gray-500 truncate">{f.flagged_by_name || '—'}</td>
+                        <td className="py-2 px-3 align-middle">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-[10px] font-bold text-red-600 uppercase ring-1 ring-red-200/60">
+                              {(f.flagged_by_name || '—').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('') || '?'}
+                            </span>
+                            <span className="truncate text-gray-700 font-medium">{f.flagged_by_name || '—'}</span>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -465,35 +520,35 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       {/* Live Lots modal */}
       {liveLotsOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in"
           onClick={() => setLiveLotsOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 py-5 flex items-center justify-between bg-blue-50">
+            <div className={cn("px-6 py-5 flex items-center justify-between", M.headerBg)}>
               <div className="flex items-center gap-3">
                 {selectedLot ? (
                   <button
                     onClick={() => setSelectedLot(null)}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-gray-600 hover:text-gray-900 transition-colors"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-gray-600 hover:text-gray-900 shadow-sm transition-colors"
                     aria-label="Back to lots list"
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg", M.iconBg)}>
                     <Activity className="h-5 w-5" />
                   </div>
                 )}
                 <div>
-                  <h3 className="text-base font-bold text-gray-800">
+                  <h3 className="text-lg font-bold tracking-tight text-gray-800">
                     {selectedLot ? selectedLot.lot_number : 'Live Lots'}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="h-2 w-2 rounded-full bg-blue-500" />
+                    <span className={cn("h-2 w-2 rounded-full", M.dot)} />
                     <span className="text-xs text-gray-500">
                       {selectedLot ? 'Lot details' : `${activeLots.toLocaleString()} open lots`}
                     </span>
@@ -518,49 +573,35 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               /* Detail view */
               <div className="p-6 overflow-y-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
-                      <Package className="h-4 w-4" />
-                      Lot Number
+                  {[
+                    { label: 'Lot Number', value: selectedLot.lot_number, icon: Package },
+                    { label: 'Total Books', value: selectedLot.total_books.toLocaleString(), icon: BookOpen },
+                    { label: 'Total Boxes', value: selectedLot.total_boxes.toLocaleString(), icon: Package },
+                  ].map(({ label, value, icon: Icon }) => (
+                    <div key={label} className={cn("rounded-2xl border p-4 shadow-sm", M.border, M.softBg)}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className={cn("flex h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", M.iconBg)}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className={cn("text-[11px] font-bold uppercase tracking-wider", M.soft)}>{label}</span>
+                      </div>
+                      <p className="text-2xl font-black tracking-tight text-gray-800">{value}</p>
                     </div>
-                    <p className="text-lg font-bold text-gray-800">
-                      {selectedLot.lot_number}
-                    </p>
-                  </div>
+                  ))}
 
-                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
-                      <BookOpen className="h-4 w-4" />
-                      Total Books
-                    </div>
-                    <p className="text-lg font-bold text-gray-800">
-                      {selectedLot.total_books.toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">
-                      <Package className="h-4 w-4" />
-                      Total Boxes
-                    </div>
-                    <p className="text-lg font-bold text-gray-800">
-                      {selectedLot.total_boxes.toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="sm:col-span-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-blue-500 uppercase tracking-wide">
+                  <div className={cn("sm:col-span-3 rounded-2xl border p-5 shadow-sm", M.border, M.softBg)}>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={cn("flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider", M.soft)}>
                         <Activity className="h-4 w-4" />
                         Overall Completion Progress
                       </div>
-                      <span className="text-sm font-bold text-blue-600">
+                      <span className={cn("text-lg font-black tracking-tight", M.accent)}>
                         {selectedLot.completion_progress}%
                       </span>
                     </div>
-                    <div className="h-2.5 w-full rounded-full bg-blue-100 overflow-hidden">
+                    <div className={cn("h-3 w-full rounded-full overflow-hidden", M.track)}>
                       <div
-                        className="h-full rounded-full bg-blue-500 transition-all"
+                        className={cn("h-full rounded-full transition-all duration-500", M.bar)}
                         style={{ width: `${selectedLot.completion_progress}%` }}
                       />
                     </div>
@@ -569,58 +610,50 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : liveLots.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-2">
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                <div className={cn("h-12 w-12 rounded-full flex items-center justify-center", M.track, M.soft)}>
                   <Package className="h-6 w-6" />
                 </div>
                 <span className="text-sm font-medium text-gray-500">No open lots currently</span>
               </div>
             ) : (
               /* List view */
-              <div className="overflow-y-auto flex-1">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
-                    <tr>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot Number</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Boxes</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Books</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Progress</th>
-                      <th className="w-10" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {liveLots.map((lot) => (
-                      <tr
-                        key={lot.id}
-                        onClick={() => setSelectedLot(lot)}
-                        className="hover:bg-blue-50/50 transition-colors cursor-pointer"
-                      >
-                        <td className="py-3 px-4 font-semibold text-gray-800">{lot.lot_number}</td>
-                        <td className="py-3 px-4 text-right text-gray-700">{lot.total_boxes.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right text-gray-700">{lot.total_books.toLocaleString()}</td>
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-                            {lot.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-16 rounded-full bg-blue-100 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-blue-500"
-                                style={{ width: `${lot.completion_progress}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-gray-600">{lot.completion_progress}%</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <ChevronRight className="h-4 w-4 text-gray-400" />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="overflow-y-auto flex-1 p-3 space-y-2">
+                {liveLots.map((lot) => (
+                  <button
+                    key={lot.id}
+                    onClick={() => setSelectedLot(lot)}
+                    className={cn("group/lot w-full flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 text-left transition-all hover:shadow-sm hover:border-transparent", M.rowHover)}
+                  >
+                    <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm", M.iconBg)}>
+                      <Package className="h-5 w-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800 truncate">{lot.lot_number}</span>
+                        <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", M.chip)}>
+                          {lot.status}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-500">
+                        <span>{lot.total_boxes.toLocaleString()} boxes</span>
+                        <span className="h-1 w-1 rounded-full bg-gray-300" />
+                        <span>{lot.total_books.toLocaleString()} books</span>
+                      </div>
+                    </div>
+
+                    <div className="hidden sm:flex flex-col items-end gap-1 w-32 shrink-0">
+                      <span className={cn("text-xs font-bold", M.accent)}>{lot.completion_progress}%</span>
+                      <div className={cn("h-1.5 w-full rounded-full overflow-hidden", M.track)}>
+                        <div className={cn("h-full rounded-full", M.bar)} style={{ width: `${lot.completion_progress}%` }} />
+                      </div>
+                    </div>
+
+                    <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors group-hover/lot:bg-white", M.soft)}>
+                      <ChevronRight className="h-4 w-4" />
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -630,23 +663,23 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       {/* Daily Output Modal */}
       {dailyOutputOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in"
           onClick={() => setDailyOutputOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 max-h-[85vh] flex flex-col overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 py-5 flex items-center justify-between bg-green-50">
+            <div className={cn("px-6 py-5 flex items-center justify-between", M.headerBg)}>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500 text-white">
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg", M.iconBg)}>
                   <FileOutput className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-800">Daily Output</h3>
+                  <h3 className="text-lg font-bold tracking-tight text-gray-800">Daily Output</h3>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className={cn("h-2 w-2 rounded-full", M.dot)} />
                     <span className="text-xs text-gray-500">Books transmitted today</span>
                   </div>
                 </div>
@@ -661,14 +694,16 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
 
             {/* Summary strip */}
             {!loadingDailyOutput && dailyOutputRows.length > 0 && (
-              <div className="flex items-center gap-6 px-6 py-3 bg-gray-50 border-b border-gray-100">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">Books Transmitted</span>
-                  <span className="text-sm font-bold text-green-600">{totalDailyOutput}</span>
+              <div className={cn("flex items-center gap-3 px-6 py-3 border-b border-gray-100", M.softBg)}>
+                <div className="flex items-center gap-2 rounded-xl bg-white/70 px-3 py-1.5 shadow-sm ring-1 ring-black/5">
+                  <BookOpen className={cn("h-4 w-4", M.soft)} />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Transmitted</span>
+                  <span className={cn("text-sm font-bold", M.accent)}>{totalDailyOutput}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">Total Pages</span>
-                  <span className="text-sm font-bold text-green-600">
+                <div className="flex items-center gap-2 rounded-xl bg-white/70 px-3 py-1.5 shadow-sm ring-1 ring-black/5">
+                  <FileOutput className={cn("h-4 w-4", M.soft)} />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Total Pages</span>
+                  <span className={cn("text-sm font-bold", M.accent)}>
                     {dailyOutputRows.reduce((sum, r) => sum + (r.page_count || 0), 0).toLocaleString()}
                   </span>
                 </div>
@@ -682,39 +717,45 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-sm text-gray-400">Loading daily output...</span>
               </div>
             ) : dailyOutputRows.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-2">
-                <span className="text-sm font-medium text-gray-500">No books transmitted today</span>
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl ring-1", M.track, M.soft, M.border)}>
+                  <FileOutput className="h-7 w-7" />
+                </div>
+                <span className="text-sm font-semibold text-gray-600">No books transmitted today</span>
+                <span className="text-xs text-gray-400">Completed transmissions will appear here</span>
               </div>
             ) : (
-              <div className="overflow-auto flex-1">
-                <table className="min-w-[640px] w-full text-sm">
+              <div className="overflow-auto flex-1 px-3 py-2">
+                <table className="min-w-[640px] w-full text-sm border-separate border-spacing-y-1">
                   <colgroup>
                     <col className="w-10" />
                     <col className="w-36" />
                     <col />
                     <col className="w-28" />
                     <col className="w-28" />
-                    <col className="w-32" />
+                    <col className="w-36" />
                   </colgroup>
-                  <thead className="sticky top-0 bg-white border-b border-gray-100 z-10">
+                  <thead className="sticky top-0 bg-white z-10">
                     <tr>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">#</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">ISBN</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Lot</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Box</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">Completed</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">#</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">ISBN</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Title</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Lot</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Box</th>
+                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Completed</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody>
                     {dailyOutputRows.map((row, i) => (
-                      <tr key={row.isbn} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-3 px-4 text-xs text-gray-300">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
-                        <td className="py-3 px-4 font-mono text-xs text-gray-800 truncate">{row.isbn}</td>
-                        <td className="py-3 px-4 text-gray-600 truncate max-w-[200px]">{row.title || '—'}</td>
-                        <td className="py-3 px-4 font-semibold text-gray-800 truncate max-w-[140px]">{row.lot_number}</td>
-                        <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{row.box_number}</td>
-                        <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
+                      <tr key={row.isbn} className={cn("bg-gray-50/60 transition-colors [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl", M.rowHover)}>
+                        <td className="py-3 px-3 text-xs font-medium text-gray-400">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
+                        <td className="py-3 px-3 font-mono text-xs font-semibold text-gray-800 truncate">{row.isbn}</td>
+                        <td className="py-3 px-3 text-gray-600 truncate max-w-[200px]">{row.title || '—'}</td>
+                        <td className="py-3 px-3">
+                          <span className={cn("inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold whitespace-nowrap", M.chip)}>{row.lot_number}</span>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-xs text-gray-500 whitespace-nowrap">{row.box_number}</td>
+                        <td className="py-3 px-3 text-xs text-gray-500 whitespace-nowrap">
                           {row.completed_at ? new Date(row.completed_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </td>
                       </tr>
