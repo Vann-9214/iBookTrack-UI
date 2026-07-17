@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { fetchUserProfile } from "@/lib/auth-api"
 import { Loader2 } from "lucide-react"
+import { PageLoader } from "@/components/ui/page-loader"
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
@@ -26,11 +27,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }, [pathname, router])
 
   if (isAuthenticated === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    )
+    return <PageLoader text="Authenticating..." />
   }
 
   if (!isAuthenticated) {
