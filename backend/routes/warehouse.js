@@ -719,7 +719,7 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
         status: 'completed',
         total_scanned_books: 0,
         total_accepted_books: 0,
-        total_rejected_books: 0
+        total_nonprocessable_books: 0
       })
       .select()
       .single();
@@ -1456,7 +1456,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
     if (existingScan.scan_status === 'processable') {
       const { data: session } = await supabaseAdmin
         .from('box_sessions')
-        .select('total_accepted_books, total_rejected_books')
+        .select('total_accepted_books, total_nonprocessable_books')
         .eq('id', existingScan.session_id)
         .single()
         
@@ -1465,7 +1465,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
           .from('box_sessions')
           .update({
             total_accepted_books: Math.max(0, session.total_accepted_books - 1),
-            total_rejected_books: session.total_rejected_books + 1
+            total_nonprocessable_books: session.total_nonprocessable_books + 1
           })
           .eq('id', existingScan.session_id)
       }
@@ -1567,7 +1567,7 @@ router.post('/scans/:scan_id/tag', requireAuth, validateRequest({
     if (existing.scan_status === 'processable' && (status === 'non_processable' || status === 'reject')) {
       const { data: session } = await supabaseAdmin
         .from('box_sessions')
-        .select('total_accepted_books, total_rejected_books')
+        .select('total_accepted_books, total_nonprocessable_books')
         .eq('id', existing.session_id)
         .single()
         
@@ -1576,7 +1576,7 @@ router.post('/scans/:scan_id/tag', requireAuth, validateRequest({
           .from('box_sessions')
           .update({
             total_accepted_books: Math.max(0, session.total_accepted_books - 1),
-            total_rejected_books: session.total_rejected_books + 1
+            total_nonprocessable_books: session.total_nonprocessable_books + 1
           })
           .eq('id', existing.session_id)
       }

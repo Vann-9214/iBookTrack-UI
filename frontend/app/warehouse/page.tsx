@@ -408,15 +408,14 @@ export default function WarehousePage() {
     const missingCount = issues.filter(i => i.type === 'missing').length
     const extraCount = scannedBooks.filter(b => b.flag_issue === 'extra-book').length
     const mismatchedCount = scannedBooks.filter(b => b.flag_issue === 'mismatched-book').length
-
-    // Extra books were not originally expected in this box, so they shouldn't count towards the expected total.
-    const validScannedCount = scannedBooks.length - extraCount
+    // Extra books shouldn't count against the worker's expected total
+    const validScannedCount = scannedBooks.length - extraCount;
     const calculatedExpected = validScannedCount + missingCount
 
     if (expected !== calculatedExpected) {
       let deductionNotes = []
       if (extraCount > 0) deductionNotes.push(`${extraCount} extra`)
-      const deductionStr = deductionNotes.length > 0 ? ` (Note: ${deductionNotes.join(' and ')} books were subtracted from your physical scans)` : ''
+      const deductionStr = deductionNotes.length > 0 ? ` (Note: ${deductionNotes.join(' and ')} books were ignored from your physical scans)` : ''
       
       setSessionError(`Total expected books (${expected}) does not match valid scanned (${validScannedCount}) + missing (${missingCount}) books.${deductionStr}`)
       return
@@ -434,7 +433,7 @@ export default function WarehousePage() {
           box_number: currentBoxNumber,
           type: currentSession.type,
           force: true,
-          total_expected_books: parseInt(totalBooksExpected) || 0,
+          total_expected_books: expected,
           issues: issues,
           scanned_books: scannedBooks,
           book_type: brand

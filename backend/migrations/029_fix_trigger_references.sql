@@ -14,7 +14,7 @@ BEGIN
   SET 
     total_scanned_books = total_scanned_books + 1,
     total_accepted_books = CASE WHEN NEW.scan_status = 'processable' THEN total_accepted_books + 1 ELSE total_accepted_books END,
-    total_rejected_books = CASE WHEN NEW.scan_status = 'non_processable' THEN total_rejected_books + 1 ELSE total_rejected_books END
+    total_nonprocessable_books = CASE WHEN NEW.scan_status = 'non_processable' THEN total_nonprocessable_books + 1 ELSE total_nonprocessable_books END
   WHERE id = NEW.session_id;
   
   RETURN NEW;

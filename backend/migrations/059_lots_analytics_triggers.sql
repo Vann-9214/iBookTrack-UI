@@ -69,7 +69,7 @@ BEGIN
           WHERE b.lot_id = v_lot_id
         ),
         total_nonprocessable_books = (
-          SELECT COALESCE(SUM(bs.total_rejected_books), 0) 
+          SELECT COALESCE(SUM(bs.total_nonprocessable_books), 0) 
           FROM public.box_sessions bs 
           JOIN public.boxes b ON b.id = bs.box_id 
           WHERE b.lot_id = v_lot_id

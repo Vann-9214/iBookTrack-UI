@@ -22,10 +22,10 @@ BEGIN
       ELSE total_accepted_books 
     END,
     
-    -- Only increment total_rejected_books for physical books (e.g. 'extra', 'wrong_lot')
-    total_rejected_books = CASE 
-      WHEN NEW.scan_status = 'non_processable' AND (NEW.rejection_reason IS NULL OR NEW.rejection_reason != 'missing') THEN total_rejected_books + 1 
-      ELSE total_rejected_books 
+    -- Only increment total_nonprocessable_books for physical books (e.g. 'extra', 'wrong_lot')
+    total_nonprocessable_books = CASE 
+      WHEN NEW.scan_status = 'non_processable' AND (NEW.rejection_reason IS NULL OR NEW.rejection_reason != 'missing') THEN total_nonprocessable_books + 1 
+      ELSE total_nonprocessable_books 
     END
   WHERE id = NEW.session_id;
   

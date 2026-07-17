@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.warehouse_sessions (
                               CHECK (status IN ('in_progress', 'completed')),
   total_scanned_books   INTEGER     NOT NULL DEFAULT 0,
   total_accepted_books  INTEGER     NOT NULL DEFAULT 0,
-  total_rejected_books  INTEGER     NOT NULL DEFAULT 0,
+  total_nonprocessable_books  INTEGER     NOT NULL DEFAULT 0,
   
   -- Segregation boxes
   accepted_box_id UUID        REFERENCES public.boxes(id) ON DELETE SET NULL,
@@ -76,7 +76,7 @@ BEGIN
   SET 
     total_scanned_books = total_scanned_books + 1,
     total_accepted_books = CASE WHEN NEW.scan_status = 'processable' THEN total_accepted_books + 1 ELSE total_accepted_books END,
-    total_rejected_books = CASE WHEN NEW.scan_status = 'non_processable' THEN total_rejected_books + 1 ELSE total_rejected_books END
+    total_nonprocessable_books = CASE WHEN NEW.scan_status = 'non_processable' THEN total_nonprocessable_books + 1 ELSE total_nonprocessable_books END
   WHERE id = NEW.session_id;
   
   RETURN NEW;
