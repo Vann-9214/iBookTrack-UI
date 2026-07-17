@@ -95,36 +95,77 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     return (
       <Card className={cn("border-border bg-card border-t-2 shadow-sm", borderColor)}>
         <CardHeader className="pb-4">
-          <Skeleton className="h-5 w-40 rounded bg-muted-foreground/20" />
+          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
+            <div className="flex items-center gap-2.5">
+              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
+                <Workflow className="h-4 w-4" />
+              </span>
+              <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
+              <Skeleton className="h-4 w-12 rounded bg-muted-foreground/10" />
+            </div>
+            <Skeleton className="sm:ml-auto h-6 w-24 rounded-full bg-muted-foreground/10" />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="hidden lg:flex items-start gap-3">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div key={i} className="flex-1 min-w-0 flex flex-col items-center gap-0 rounded-xl">
-                <Skeleton className="h-9 w-9 rounded-full mb-2 bg-muted-foreground/20" />
-                <div className="w-full rounded-xl px-3 pt-3 pb-2 flex flex-col items-center gap-1">
-                  <Skeleton className="h-3.5 w-16 rounded bg-muted-foreground/20" />
-                  <Skeleton className="h-7 w-8 rounded bg-muted-foreground/20 my-1" />
-                  <Skeleton className="h-0.5 w-full rounded-full bg-muted-foreground/20" />
-                  <Skeleton className="h-2.5 w-10 rounded bg-muted-foreground/20" />
+            {pipelineSteps.map((step, i) => {
+              const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
+              return (
+                <div key={i} className="flex-1 min-w-0 flex flex-col items-center gap-0 rounded-xl">
+                  {/* Step number circle */}
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold mb-2 shadow-sm", cfg.nodeFill)}>
+                    {i + 1}
+                  </div>
+                  {/* Card body */}
+                  <div className={cn("w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 shadow-sm", cfg.cardBg)}>
+                    <span className="text-xs font-semibold text-gray-600">{step.label}</span>
+                    <Skeleton className="h-7 w-8 rounded bg-muted-foreground/10 my-0.5" />
+                    <div className={cn("h-0.5 w-full rounded-full my-1", cfg.bar)} />
+                    <div className="flex items-center gap-1">
+                      <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
+                      <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
+
+          {/* Legend */}
+          <div className="hidden lg:flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-1.5">
+              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-400" : "bg-blue-400")} />
+              <span className="text-xs text-muted-foreground">Active</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-orange-400" />
+              <span className="text-xs text-muted-foreground">Delayed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-gray-400" />
+              <span className="text-xs text-muted-foreground">Idle</span>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-3 lg:hidden">
-            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-10 w-10 shrink-0 rounded-full bg-muted-foreground/20" />
-                <div className="flex flex-col text-left gap-1">
-                  <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
-                  <Skeleton className="h-3 w-16 rounded bg-muted-foreground/20" />
+            {pipelineSteps.map((step, i) => {
+              const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold shadow-sm", cfg.nodeFill)}>
+                    {i + 1}
+                  </div>
+                  <div className="flex flex-col text-left gap-1">
+                    <span className="text-sm font-semibold text-gray-700">{step.label}</span>
+                    <Skeleton className="h-3 w-16 rounded bg-muted-foreground/10" />
+                  </div>
+                  <div className="ml-auto flex items-center gap-1">
+                    <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
+                    <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
+                  </div>
                 </div>
-                <div className="ml-auto flex items-center gap-1">
-                  <Skeleton className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-                  <Skeleton className="h-3 w-10 rounded bg-muted-foreground/20" />
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </CardContent>
       </Card>
@@ -135,13 +176,15 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     <>
       <Card className={cn("border-border bg-card border-t-2 shadow-sm", borderColor)}>
         <CardHeader className="pb-4">
-          <CardTitle className="flex flex-wrap items-center gap-2.5 text-card-foreground">
-            <span className={cn("flex h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
-              <Workflow className="h-4 w-4" />
-            </span>
-            <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
-            {currentLot && <span className="text-sm font-medium text-muted-foreground">| {currentLot}</span>}
-            <span className="ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">{todayLabel}</span>
+          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
+            <div className="flex items-center gap-2.5">
+              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
+                <Workflow className="h-4 w-4" />
+              </span>
+              <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
+              {currentLot && <span className="text-sm font-medium text-muted-foreground">| {currentLot}</span>}
+            </div>
+            <span className="sm:ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">{todayLabel}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
