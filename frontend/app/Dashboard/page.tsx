@@ -135,8 +135,16 @@ export default function DashboardPage() {
       const pipelineData = await pipelineRes.json()
       const boxesData = await boxesRes.json()
 
-      const boxes = boxesData.boxes || []
+      let boxes = boxesData.boxes || []
 
+      // Dashboard specific logic: Only show boxes processed today (has a session updated today)
+      const now = new Date()
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime()
+      
+      boxes = boxes.filter((b: any) => {
+        if (!b.box_sessions || b.box_sessions.length === 0) return false
+        return b.box_sessions.some((s: any) => new Date(s.updated_at).getTime() >= startOfDay)
+      })
       let dailyTransmitted = 0
       let simflexAllTime = 0
       let scanWipCount = 0
@@ -176,24 +184,20 @@ export default function DashboardPage() {
 
       STAGE_ORDER.forEach(stage => {
         let stageBoxes = boxes.filter((b: any) => {
-          if (stage === 'transmit') return b.current_stage === 'scan'
+          if (stage === 'transmit') return b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
           if (stage === 'storage') {
             const isActuallyStorage = b.current_stage === 'storage'
-            const isScanButFullyCompleted = b.current_stage === 'scan'
-              && scanEligibleBoxNums !== null
-              && transmitEligibleBoxNums !== null
-              && !scanEligibleBoxNums.has(b.box_number)
-              && !transmitEligibleBoxNums.has(b.box_number)
+            const isScanButFullyCompleted = b.current_stage === 'scan' && b.is_fully_completed_in_simflex
             return isActuallyStorage || isScanButFullyCompleted
+          }
+          if (stage === 'scan') {
+            return b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
           }
           return b.current_stage === stage
         })
 
         if (stage === 'warehouse') {
           stageBoxes = stageBoxes.filter((b: any) => b.total_books_expected > 0)
-        }
-        if (stage === 'scan' && scanEligibleBoxNums !== null) {
-          stageBoxes = stageBoxes.filter((b: any) => scanEligibleBoxNums!.has(b.box_number))
         }
 
         const bottleneckCount = (stage === 'transmit') ? 0 : stageBoxes.filter((b: any) => {
