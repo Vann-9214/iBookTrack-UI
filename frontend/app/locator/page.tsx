@@ -95,6 +95,7 @@ export default function WarehouseLocatorPage() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [expandedPendingLocations, setExpandedPendingLocations] = useState<Set<string>>(new Set())
 
   // Search
   const [searchValue, setSearchValue] = useState("")
@@ -545,35 +546,42 @@ export default function WarehouseLocatorPage() {
     }
   }
 
-  const handleConfirmAssignment = async (assignmentId: string) => {
-    setConfirmingId(assignmentId)
+  const handleConfirmAssignments = async (groupId: string, assignmentIds: string[]) => {
+    setConfirmingId(groupId)
     try {
-      const res = await authFetch(`${API_URL}/api/storage/assignments/${assignmentId}/confirm`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) { alert(data.error || 'Failed to confirm placement'); return }
+      const responses = await Promise.all(assignmentIds.map(assignmentId =>
+        authFetch(`${API_URL}/api/storage/assignments/${assignmentId}/confirm`, { method: 'POST' })
+      ))
+      const failedResponse = responses.find(response => !response.ok)
+      if (failedResponse) {
+        const data = await failedResponse.json()
+        alert(data.error || 'Failed to confirm placements')
+        return
+      }
       await Promise.all([fetchLocations(), fetchPendingAssignments()])
     } finally {
       setConfirmingId(null)
     }
   }
 
-  const handleRemovePendingAssignment = async (assignmentId: string) => {
-    setRemovingIds(prev => new Set(prev).add(assignmentId))
+  const handleRemovePendingAssignments = async (groupId: string, assignmentIds: string[]) => {
+    setRemovingIds(new Set(assignmentIds))
     try {
       const res = await authFetch(`${API_URL}/api/storage/assignments/batch`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignment_ids: [assignmentId] }),
+        body: JSON.stringify({ assignment_ids: assignmentIds }),
       })
       const data = await res.json()
-      if (!res.ok) { alert(data.error || 'Failed to remove pending assignment'); return }
-      await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
-    } finally {
-      setRemovingIds(prev => {
+      if (!res.ok) { alert(data.error || 'Failed to remove pending assignments'); return }
+      setExpandedPendingLocations(prev => {
         const next = new Set(prev)
-        next.delete(assignmentId)
+        next.delete(groupId)
         return next
       })
+      await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
+    } finally {
+      setRemovingIds(new Set())
     }
   }
 
@@ -623,6 +631,12 @@ export default function WarehouseLocatorPage() {
   const sectionLevels = getSectionLevels(activeSection)
   const selectedReadyBoxes = readyBoxes.filter(box => selectedReadyBoxIds.has(box.id))
   const suggestedLocation = selectedReadyBoxIds.size > 0 ? getSuggestedLocation(selectedReadyBoxIds.size) : null
+  const pendingLocationGroups = Object.values(pendingAssignments.reduce<Record<string, PendingAssignment[]>>((groups, assignment) => {
+    const group = groups[assignment.location_id] || []
+    group.push(assignment)
+    groups[assignment.location_id] = group
+    return groups
+  }, {}))
 
   const lastUpdateLabel = lastUpdated
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
@@ -1025,47 +1039,67 @@ export default function WarehouseLocatorPage() {
                   </div>
                 ) : (
                   <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
-                    {pendingAssignments.map(a => (
-                      <div key={a.assignment_id} className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 px-3 py-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Package className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-                          <span className="text-sm font-medium text-foreground truncate">{a.box_number}</span>
+                    {pendingLocationGroups.map(assignments => {
+                      const location = assignments[0]
+                      const groupId = location.location_id
+                      const assignmentIds = assignments.map(assignment => assignment.assignment_id)
+                      const isExpanded = expandedPendingLocations.has(groupId)
+                      const isRemoving = assignmentIds.some(id => removingIds.has(id))
+                      const isConfirming = confirmingId === groupId
+                      return (
+                        <div key={groupId} className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
+                          <div className="flex items-center gap-1 p-2">
+                            <button
+                              type="button"
+                              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
+                              onClick={() => setExpandedPendingLocations(prev => {
+                                const next = new Set(prev)
+                                if (next.has(groupId)) next.delete(groupId)
+                                else next.add(groupId)
+                                return next
+                              })}
+                              aria-expanded={isExpanded}
+                            >
+                              <MapPin className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                              <span className="truncate text-xs font-semibold text-foreground">Rack {location.rack_id} - Level {location.level}</span>
+                              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
+                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                            </button>
+                            <button
+                              type="button"
+                              title="Remove all boxes from this location"
+                              aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack_id}, Level ${location.level}`}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
+                              disabled={isRemoving || isConfirming}
+                              onClick={() => handleRemovePendingAssignments(groupId, assignmentIds)}
+                            >
+                              {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              title="Confirm all boxes at this location"
+                              aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack_id}, Level ${location.level}`}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
+                              disabled={isConfirming || isRemoving}
+                              onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
+                            >
+                              {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                          {isExpanded && (
+                            <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
+                              {assignments.map(assignment => (
+                                <div key={assignment.assignment_id} className="flex items-center gap-2 rounded-md bg-card/70 px-2 py-1.5">
+                                  <Package className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                                  <span className="truncate text-xs font-medium text-foreground">{assignment.box_number}</span>
+                                  {assignment.lot_number && <span className="ml-auto truncate text-[10px] text-muted-foreground">{assignment.lot_number}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
-                          <MapPin className="h-3 w-3 shrink-0" />
-                          {a.location_label}
-                        </div>
-                        <div className="mt-2 flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs text-destructive hover:text-destructive"
-                            disabled={removingIds.has(a.assignment_id)}
-                            onClick={() => handleRemovePendingAssignment(a.assignment_id)}
-                          >
-                            {removingIds.has(a.assignment_id) ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            ) : (
-                              <Trash2 className="h-3 w-3 mr-1" />
-                            )}
-                            Remove
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs"
-                            disabled={confirmingId === a.assignment_id || removingIds.has(a.assignment_id)}
-                            onClick={() => handleConfirmAssignment(a.assignment_id)}
-                          >
-                            {confirmingId === a.assignment_id ? (
-                              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                            ) : (
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                            )}
-                            Confirm
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
