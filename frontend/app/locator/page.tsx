@@ -5,7 +5,7 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Map } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Map, Warehouse } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
@@ -733,7 +733,7 @@ export default function WarehouseLocatorPage() {
               <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
                 <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
                   <Inbox className="h-4 w-4 text-primary shrink-0" />
-                  <h3 className="text-sm font-semibold text-card-foreground">Unassigned Storage Boxes</h3>
+                  <h3 className="text-sm font-semibold text-card-foreground">Unassigned Boxes</h3>
                   <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
                     {readyBoxes.length}
                   </span>
@@ -784,7 +784,10 @@ export default function WarehouseLocatorPage() {
               {/* Center warehouse layout */}
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
-                  <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
+                  <div className="flex items-center gap-2">
+                    <Warehouse className="h-4 w-4 text-primary shrink-0" />
+                    <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
+                  </div>
                   <div className="flex items-center gap-3">
                     {(() => {
                       const { totalUsed, totalCap } = getSectionStats(activeSection)
