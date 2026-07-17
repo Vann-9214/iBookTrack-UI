@@ -783,7 +783,7 @@ export default function WarehouseLocatorPage() {
 
               {/* Center warehouse layout */}
               <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
                   <h2 className="text-sm font-semibold text-card-foreground">Section {activeSection} — Warehouse Layout</h2>
                   <div className="flex items-center gap-3">
                     {(() => {
