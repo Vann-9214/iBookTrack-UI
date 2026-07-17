@@ -891,7 +891,7 @@ export default function WarehouseLocatorPage() {
                           onClick={handleAddLevel}
                           disabled={addingLevel}
                           title="Add level"
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
                         >
                           {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         </button>
@@ -899,7 +899,7 @@ export default function WarehouseLocatorPage() {
                           onClick={() => handleRemoveLevel()}
                           disabled={removingLevel || sectionLevels.length <= 1}
                           title={`Remove level ${Math.max(...sectionLevels)}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
                         >
                           {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
@@ -979,7 +979,7 @@ export default function WarehouseLocatorPage() {
                           disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
                           title="Add a new rack"
                           aria-label="Add a new rack"
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
                         >
                           {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                         </button>
@@ -988,7 +988,7 @@ export default function WarehouseLocatorPage() {
                           disabled={removingRack || sectionRacks.length <= 1}
                           title={`Remove last rack (${sectionRacks.at(-1)})`}
                           aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
                         >
                           {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
