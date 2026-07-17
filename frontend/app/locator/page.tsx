@@ -883,10 +883,10 @@ export default function WarehouseLocatorPage() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    <div className="grid grid-cols-[4.5rem_1px_minmax(0,1fr)_1px_4.5rem] items-start gap-3">
+                    <div className="grid grid-cols-[2rem_1px_minmax(0,1fr)_1px_2rem] items-start gap-3">
                       {/* Level controls */}
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="mb-1 text-center text-xs font-medium text-muted-foreground">Level</span>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
                         <button
                           onClick={handleAddLevel}
                           disabled={addingLevel}
@@ -972,8 +972,8 @@ export default function WarehouseLocatorPage() {
                       <div className="h-[5.5rem] bg-border" />
 
                       {/* Rack controls */}
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="mb-1 text-center text-xs font-medium text-muted-foreground">Racks</span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
                         <button
                           onClick={handleAddRack}
                           disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
