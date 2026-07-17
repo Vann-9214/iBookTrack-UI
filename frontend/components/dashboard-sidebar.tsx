@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useBrand } from '@/hooks/use-brand'
@@ -22,6 +22,7 @@ import {
   Scissors,
   ScanBarcode,
 } from 'lucide-react'
+import { PageLoader } from '@/components/ui/page-loader'
 
 type DashboardSidebarProps = {
   navigationLocked?: boolean
@@ -100,6 +101,7 @@ function MobileSectionLabel({ children, first = false }: { children: React.React
 export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarProps) {
   const [warehouseOpen, setWarehouseOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isNavigatingTo, setIsNavigatingTo] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
   const { colors } = useBrand()
@@ -107,7 +109,16 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
   const isActive = (href: string) => pathname === href
   const isWarehouseSection = pathname === '/warehouse' || pathname === '/inventory'
 
+  useEffect(() => {
+    setIsNavigatingTo(null)
+  }, [pathname])
+
   const navigate = (href: string) => {
+    if (pathname === href) {
+      setMobileOpen(false)
+      return
+    }
+    setIsNavigatingTo(href)
     router.push(href)
     setMobileOpen(false)
   }
@@ -153,6 +164,11 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
   return (
     <>
       {/* ══════════════════════════════════════════════════
+          GLOBAL LOADING OVERLAY (Drops as soon as page component chunks resolve and Next.js skeleton begins)
+          ══════════════════════════════════════════════════ */}
+      {isNavigatingTo && <PageLoader text="Transferring..." />}
+
+      {/* ══════════════════════════════════════════════════
           DESKTOP: collapsible rail sidebar (md and above)
           ══════════════════════════════════════════════════ */}
       <aside
@@ -197,7 +213,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/Dashboard')}
+            onClick={() => navigate('/Dashboard')}
             className={navItemCls(isActive('/Dashboard'))}
             aria-current={isActive('/Dashboard') ? 'page' : undefined}
             title="Dashboard"
@@ -213,7 +229,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/warehouse')}
+            onClick={() => navigate('/warehouse')}
             className={navItemCls(isActive('/warehouse'))}
             aria-current={isActive('/warehouse') ? 'page' : undefined}
             title="Warehouse"
@@ -227,7 +243,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/inventory')}
+            onClick={() => navigate('/inventory')}
             className={navItemCls(isActive('/inventory'))}
             aria-current={isActive('/inventory') ? 'page' : undefined}
             title="Inventory"
@@ -241,7 +257,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/cut')}
+            onClick={() => navigate('/cut')}
             className={navItemCls(isActive('/cut'))}
             aria-current={isActive('/cut') ? 'page' : undefined}
             title="Cut"
@@ -253,7 +269,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/qa')}
+            onClick={() => navigate('/qa')}
             className={navItemCls(isActive('/qa'))}
             aria-current={isActive('/qa') ? 'page' : undefined}
             title="Endorsement"
@@ -265,7 +281,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/scan')}
+            onClick={() => navigate('/scan')}
             className={navItemCls(isActive('/scan'))}
             aria-current={isActive('/scan') ? 'page' : undefined}
             title="Scan"
@@ -277,7 +293,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/checkpoints')}
+            onClick={() => navigate('/checkpoints')}
             className={navItemCls(isActive('/checkpoints'))}
             aria-current={isActive('/checkpoints') ? 'page' : undefined}
             title="Station Checkpoints"
@@ -289,7 +305,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/locator')}
+            onClick={() => navigate('/locator')}
             className={navItemCls(isActive('/locator'))}
             aria-current={isActive('/locator') ? 'page' : undefined}
             title="Storage Locator"
@@ -303,7 +319,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/transmission')}
+            onClick={() => navigate('/transmission')}
             className={navItemCls(isActive('/transmission'))}
             aria-current={isActive('/transmission') ? 'page' : undefined}
             title="Transmission Monitor"
@@ -315,7 +331,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => router.push('/reports')}
+            onClick={() => navigate('/reports')}
             className={navItemCls(isActive('/reports'))}
             aria-current={isActive('/reports') ? 'page' : undefined}
             title="Reports"
