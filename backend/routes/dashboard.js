@@ -213,8 +213,8 @@ router.get('/open-lots', requireAuth, validateRequest({
         boxes (
           id,
           current_stage,
-          total_books_expected,
-          books_transmitted
+          total_expected_books,
+          total_transmitted_books
         )
       `)
       .order('created_at', { ascending: false });
@@ -255,7 +255,7 @@ router.get('/open-lots', requireAuth, validateRequest({
       }
 
       boxes.forEach(box => {
-        totalBooks += (box.total_books_expected || 0);
+        totalBooks += (box.total_expected_books || 0);
         
         // Progress percentage based on stage, mimicking reports function
         const stages = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'];
@@ -516,7 +516,7 @@ router.get('/lot-details/:lot_number', requireAuth, validateRequest({
     // Fetch all boxes for this lot (with embedded book count)
     const { data: boxes, error: boxesError } = await db
       .from('boxes')
-      .select('id, current_stage, total_books_expected, books:books(count)')
+      .select('id, current_stage, total_expected_books, books:books(count)')
       .eq('lot_id', lot.id)
       .order('box_number')
     if (boxesError) throw boxesError
@@ -622,7 +622,7 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
     // Active Pipeline reflects boxes PROCESSED today (via box_sessions) and their CURRENT stage.
     let query = db
       .from('boxes')
-      .select('id, current_stage, box_type, total_books_expected, box_sessions!inner(id)')
+      .select('id, current_stage, box_type, total_expected_books, box_sessions!inner(id)')
       .gte('box_sessions.updated_at', startIso)
       .lt('box_sessions.updated_at', endIso)
     if (lotId) query = query.eq('lot_id', lotId)
@@ -658,7 +658,7 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
         const activities = groupedByBox[boxId]
         const b = boxes.find(bx => bx.id === boxId)
         let isCompleted = false
-        if (activities.length > 0 && activities.length >= (b.total_books_expected || 0)) {
+        if (activities.length > 0 && activities.length >= (b.total_expected_books || 0)) {
           isCompleted = activities.every(a => {
             const stat = String(a.transmission_status || '').trim().toUpperCase()
             return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED'

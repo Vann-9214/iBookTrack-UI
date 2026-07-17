@@ -109,7 +109,7 @@ interface BoxItem {
   id: string
   box_number: string
   current_stage: Stage
-  total_books_expected: number
+  total_expected_books: number
   is_fully_completed_in_simflex?: boolean
 
   lot: { lot_number: string } | null
@@ -124,7 +124,7 @@ interface BoxItem {
     scan_time_received?: string;
     updated_at?: string;
     status?: string;
-    total_scanned?: number;
+    total_scanned_books?: number;
   }[]
 }
 
@@ -151,7 +151,7 @@ interface Transition {
     box_number: string
     lot: { lot_number: string } | null
     current_stage: Stage
-    total_books_expected: number
+    total_expected_books: number
     created_at: string
   } | null
 
@@ -186,7 +186,7 @@ interface Transition {
   storage_user_name?: string
   storage_time_assigned?: string
 
-  total_scanned?: number
+  total_scanned_books?: number
   updated_at?: string
 }
 
@@ -859,7 +859,7 @@ export default function StationCheckpointsPage() {
       return b.current_stage === stage
     })
     if (stage === 'warehouse') {
-      stageBoxes = stageBoxes.filter(b => b.total_books_expected > 0)
+      stageBoxes = stageBoxes.filter(b => b.total_expected_books > 0)
     }
     acc[stage] = stageBoxes
     return acc
@@ -910,7 +910,7 @@ export default function StationCheckpointsPage() {
                     <div>
                       <h3 className="text-base font-semibold text-foreground">{scannedBox?.box.box_number}</h3>
                       <p className="text-xs text-muted-foreground">
-                        {scannedBox?.box.lot?.lot_number} ┬╖ <span className="capitalize">{scannedBox?.box.current_stage}</span> ┬╖ {scannedBox?.box.total_books_expected} books
+                        {scannedBox?.box.lot?.lot_number} ┬╖ <span className="capitalize">{scannedBox?.box.current_stage}</span> ┬╖ {scannedBox?.box.total_expected_books} books
                       </p>
                     </div>
                     <button onClick={() => setScannedBox(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
@@ -1345,7 +1345,7 @@ export default function StationCheckpointsPage() {
                                           <div className="min-w-[80px]">
                                             <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
                                             <span className="text-xs font-semibold text-foreground">
-                                              {box.box_sessions?.[0]?.total_scanned ?? 0} / {box.total_books_expected ?? 0}
+                                              {box.box_sessions?.[0]?.total_scanned_books ?? 0} / {box.total_expected_books ?? 0}
                                             </span>
                                           </div>
 
@@ -1996,7 +1996,7 @@ export default function StationCheckpointsPage() {
                             {/* Scan / Expected */}
                             <div className="w-[130px] shrink-0 flex flex-col">
                               <span className="text-sm font-semibold text-foreground">
-                                {t.total_scanned ?? 0} / {box.total_books_expected ?? 0}
+                                {t.total_scanned_books ?? 0} / {box.total_expected_books ?? 0}
                               </span>
                               <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">Books</span>
                             </div>

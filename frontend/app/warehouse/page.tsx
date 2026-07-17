@@ -40,6 +40,8 @@ const FLAG_ISSUES = [
   { value: "stamp-mark",           label: "Stamp mark on page" },
   { value: "thick-cardboard",      label: "Thick or cardboard pages" },
   { value: "torn-pages",           label: "Torn pages" },
+  { value: "mismatched-book",      label: "Mismatched Book" },
+  { value: "extra-book",           label: "Extra Book" },
 ]
 
 
@@ -68,7 +70,7 @@ interface WarehouseSession {
   id: string
   status: string
   type?: string
-  total_scanned: number
+  total_scanned_books: number
   total_processable: number
   total_non_processable: number
   box_id?: string | null
@@ -150,8 +152,8 @@ export default function WarehousePage() {
   // Complete session modal state
   const [totalBooksExpected, setTotalBooksExpected] = useState('')
   const [issueIsbn, setIssueIsbn] = useState('')
-  const [issueType, setIssueType] = useState<'missing' | 'extra'>('missing')
-  const [issues, setIssues] = useState<Array<{ isbn: string; type: 'missing' | 'extra'; title?: string; author?: string }>>([])
+  const [issueType, setIssueType] = useState<'missing'>('missing')
+  const [issues, setIssues] = useState<Array<{ isbn: string; type: 'missing'; title?: string; author?: string }>>([])
   const [fetchingIssueBook, setFetchingIssueBook] = useState(false)
   const [conflictModalState, setConflictModalState] = useState<{
     open: boolean,
@@ -348,7 +350,7 @@ export default function WarehousePage() {
       id: `pending-${Date.now()}`,
       status: 'completed',
       type: brand, // Store the brand active when session was started
-      total_scanned: 0,
+      total_scanned_books: 0,
       total_processable: 0, 
       total_non_processable: 0 
     })
@@ -404,11 +406,18 @@ export default function WarehousePage() {
     }
 
     const missingCount = issues.filter(i => i.type === 'missing').length
-    // Extra books are unaccounted and don't reduce the expected total.
-    const calculatedExpected = scannedBooks.length + missingCount
+    const extraCount = scannedBooks.filter(b => b.flag_issue === 'extra-book').length
+    const mismatchedCount = scannedBooks.filter(b => b.flag_issue === 'mismatched-book').length
+    // Extra books shouldn't count against the worker's expected total
+    const validScannedCount = scannedBooks.length - extraCount;
+    const calculatedExpected = validScannedCount + missingCount
 
     if (expected !== calculatedExpected) {
-      setSessionError(`Total expected books (${expected}) does not match total scanned (${scannedBooks.length}) + missing (${missingCount}) books.`)
+      let deductionNotes = []
+      if (extraCount > 0) deductionNotes.push(`${extraCount} extra`)
+      const deductionStr = deductionNotes.length > 0 ? ` (Note: ${deductionNotes.join(' and ')} books were ignored from your physical scans)` : ''
+      
+      setSessionError(`Total expected books (${expected}) does not match valid scanned (${validScannedCount}) + missing (${missingCount}) books.${deductionStr}`)
       return
     }
 
@@ -424,7 +433,7 @@ export default function WarehousePage() {
           box_number: currentBoxNumber,
           type: currentSession.type,
           force: true,
-          total_books_expected: parseInt(totalBooksExpected) || 0,
+          total_expected_books: expected,
           issues: issues,
           scanned_books: scannedBooks,
           book_type: brand
@@ -487,13 +496,13 @@ export default function WarehousePage() {
     }
 
     if (scannedBooks.some(b => b.isbn === cleanIsbn)) {
-      setSessionError(`You already scanned ISBN ${cleanIsbn} in your scan log. Remove it first if you want to re-add it as missing/extra.`)
+      setSessionError(`You already scanned ISBN ${cleanIsbn} in your scan log. Remove it first if you want to re-add it as missing.`)
       setIssueIsbn('')
       return
     }
     
     if (issues.some(i => i.isbn === cleanIsbn)) {
-      setSessionError(`ISBN ${cleanIsbn} is already listed as a missing/extra issue.`)
+      setSessionError(`ISBN ${cleanIsbn} is already listed as a missing issue.`)
       setIssueIsbn('')
       return
     }
@@ -622,7 +631,7 @@ export default function WarehousePage() {
     setScannedBooks(prev => [newBook, ...prev])
     setCurrentSession(prev => prev ? {
       ...prev,
-      total_scanned: prev.total_scanned + 1,
+      total_scanned_books: prev.total_scanned_books + 1,
       total_processable: scan_status === 'processable' ? prev.total_processable + 1 : prev.total_processable,
       total_non_processable: scan_status === 'non_processable' ? prev.total_non_processable + 1 : prev.total_non_processable,
     } : null)
@@ -666,7 +675,7 @@ export default function WarehousePage() {
     setBookCounter(prev => Math.max(0, prev - 1))
     setCurrentSession(prev => prev ? {
       ...prev,
-      total_scanned: Math.max(0, prev.total_scanned - 1),
+      total_scanned_books: Math.max(0, prev.total_scanned_books - 1),
       total_processable: book.scan_status === 'processable' ? Math.max(0, prev.total_processable - 1) : prev.total_processable,
       total_non_processable: book.scan_status === 'non_processable' ? Math.max(0, prev.total_non_processable - 1) : prev.total_non_processable,
     } : null)
@@ -744,39 +753,11 @@ export default function WarehousePage() {
                       </div>
                       <div>
                         <label className="text-sm font-bold text-foreground tracking-tight">Discrepancies</label>
-                        <p className="text-[11px] text-muted-foreground">Log any missing or extra books found in the physical box</p>
+                        <p className="text-[11px] text-muted-foreground">Log any missing books from the physical box</p>
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      {/* Type toggle */}
-                      <div className="flex gap-1 p-1 bg-muted/80 rounded-lg w-fit">
-                        <button
-                          type="button"
-                          onClick={() => setIssueType('missing')}
-                          className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
-                            issueType === 'missing'
-                              ? 'bg-red-500 text-white shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          <PackageMinus className="h-3.5 w-3.5" />
-                          Missing
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIssueType('extra')}
-                          className={`flex items-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold transition-colors ${
-                            issueType === 'extra'
-                              ? 'bg-primary text-primary-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          <PackagePlus className="h-3.5 w-3.5" />
-                          Extra
-                        </button>
-                      </div>
-
                       {/* Issue Input */}
                       <div className="flex gap-2">
                         <input
@@ -784,7 +765,7 @@ export default function WarehousePage() {
                           value={issueIsbn}
                           onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9]/g, ''))}
                           onKeyPress={handleIssueKeyPress}
-                          placeholder={issueType === 'missing' ? "Input ISBN..." : "Scan or input ISBN..."}
+                          placeholder="Input missing ISBN..."
                           className="flex-1 h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
                         />
                         <button
@@ -822,18 +803,10 @@ export default function WarehousePage() {
                               {issues.map((issue, index) => (
                                 <div
                                   key={index}
-                                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors shadow-sm ${
-                                    issue.type === 'missing'
-                                      ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40'
-                                      : 'bg-primary/5 border-primary/20 hover:border-primary/40'
-                                  }`}
+                                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors shadow-sm bg-red-500/5 border-red-500/20 hover:border-red-500/40"
                                 >
-                                  <div className={`flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${
-                                    issue.type === 'missing' ? 'bg-red-500/10' : 'bg-primary/10'
-                                  }`}>
-                                    {issue.type === 'missing'
-                                      ? <PackageMinus className="h-4 w-4 text-red-500" />
-                                      : <PackagePlus className="h-4 w-4 text-primary" />}
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-lg shrink-0 bg-red-500/10">
+                                    <PackageMinus className="h-4 w-4 text-red-500" />
                                   </div>
 
                                   <div className="flex-1 min-w-0">
@@ -843,10 +816,8 @@ export default function WarehousePage() {
                                     </div>
                                   </div>
 
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-medium shrink-0 ${
-                                    issue.type === 'missing' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'
-                                  }`}>
-                                    {issue.type === 'missing' ? 'Missing' : 'Extra'}
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-medium shrink-0 bg-red-500/10 text-red-500">
+                                    Missing
                                   </span>
 
                                   <button
@@ -872,7 +843,7 @@ export default function WarehousePage() {
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <div><span className="font-semibold text-foreground">{totalBooksExpected || 0}</span> Expected</div>
                     <div className="w-px h-3 bg-border" />
-                    <div><span className="font-semibold text-foreground">{currentSession?.total_scanned || 0}</span> Scanned</div>
+                    <div><span className="font-semibold text-foreground">{currentSession?.total_scanned_books || 0}</span> Scanned</div>
                     {issues.length > 0 && (
                       <>
                         <div className="w-px h-3 bg-border" />
@@ -1536,7 +1507,7 @@ export default function WarehousePage() {
                     </div>
                     <div>
                       <p className="text-[10px] sm:text-[11px] text-primary sm:text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
-                      <p className="text-xl sm:text-2xl font-bold text-primary sm:text-foreground leading-none mt-0.5">{currentSession.total_scanned}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-primary sm:text-foreground leading-none mt-0.5">{currentSession.total_scanned_books}</p>
                     </div>
                   </div>
                   <div className="bg-card border border-border rounded-xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1 text-center sm:flex-row sm:items-center sm:justify-start sm:gap-3 sm:text-left">

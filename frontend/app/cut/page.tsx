@@ -33,9 +33,9 @@ interface BookInBox {
 interface BoxEntry {
   id: string
   box_number: string
-  total_books_expected: number
+  total_expected_books: number
   lot: { lot_number: string } | null
-  box_sessions?: { status: string, inventory_time_send?: string, cut_time_received?: string, total_scanned?: number }[]
+  box_sessions?: { status: string, inventory_time_send?: string, cut_time_received?: string, total_scanned_books?: number }[]
 }
 
 export default function CutPage() {
@@ -321,7 +321,7 @@ export default function CutPage() {
                         const isExpanded = expandedBoxId === box.id
                         const rowBooks = boxBooks[box.id] || []
                         const isLoadingBooks = loadingBoxBooks === box.id
-                        const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                        const bookCount = box.box_sessions?.[0]?.total_scanned_books ?? box.total_expected_books ?? 0
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
                             <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
@@ -416,7 +416,7 @@ export default function CutPage() {
                         const isExpanded = expandedBoxId === box.id
                         const rowBooks = boxBooks[box.id] || []
                         const isLoadingBooks = loadingBoxBooks === box.id
-                        const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                        const bookCount = box.box_sessions?.[0]?.total_scanned_books ?? box.total_expected_books ?? 0
                         return (
                           <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
                             <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">

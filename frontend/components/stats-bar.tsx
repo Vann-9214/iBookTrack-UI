@@ -97,7 +97,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       const mappedLots = activeLots.map((l: any) => {
         const totalBoxProgress = l.boxes ? l.boxes.reduce((sum: number, box: any) => sum + box.progress, 0) : 0;
         const pct = l.total_boxes > 0 ? Math.round(totalBoxProgress / l.total_boxes) : 0;
-        const totalBooks = l.boxes ? l.boxes.reduce((sum: number, box: any) => sum + (box.total_books_expected || 0), 0) : 0;
+        const totalBooks = l.boxes ? l.boxes.reduce((sum: number, box: any) => sum + (box.total_expected_books || 0), 0) : 0;
 
         return {
           id: l.lot_id,

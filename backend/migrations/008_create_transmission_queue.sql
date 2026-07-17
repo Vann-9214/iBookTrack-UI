@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.transmission_queue (
   
   -- Transmission details
   books_received      INTEGER     NOT NULL DEFAULT 0,
-  books_transmitted   INTEGER     NOT NULL DEFAULT 0,
+  total_transmitted_books   INTEGER     NOT NULL DEFAULT 0,
   
   -- Status tracking
   status              TEXT        NOT NULL DEFAULT 'pending'

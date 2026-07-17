@@ -107,7 +107,7 @@ router.get('/', requireAuth, async (req, res) => {
         *,
         lot:lots(lot_number, type),
         box_sessions(
-          id, status, updated_at, total_scanned,
+          id, status, updated_at, total_scanned_books,
           warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, 
           warehouse_time_received, inventory_time_received, inventory_time_send, 
           cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received,
@@ -236,7 +236,7 @@ router.get('/', requireAuth, async (req, res) => {
           const activities = groupedByBox[boxId];
           const b = boxes.find(bx => bx.id === boxId);
           let isCompleted = false;
-          if (activities.length > 0 && activities.length >= (b.total_books_expected || 0)) {
+          if (activities.length > 0 && activities.length >= (b.total_expected_books || 0)) {
             isCompleted = activities.every(a => {
                const stat = String(a.transmission_status || '').trim().toUpperCase();
                return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED';
@@ -292,7 +292,7 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
     const db = supabaseAdmin || supabase
     
     // We use inner join on boxes to allow filtering by box_number and stage
-    let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_books_expected, books(title)`
+    let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_expected_books, books(title)`
     
     let query = db
       .from('box_sessions')
@@ -306,7 +306,7 @@ router.get('/pipeline-transitions', requireAuth, async (req, res) => {
         endorsement_time_received, endorsement_user_received,
         endorsement_time_send, endorsement_user_send,
         scan_time_received, scan_user_received,
-        total_scanned,
+        total_scanned_books,
         updated_at,
         box:boxes!inner(${boxSelect})
       `, { count: 'exact' })

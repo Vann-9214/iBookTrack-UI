@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS public.warehouse_sessions (
   -- Session tracking
   status          TEXT        NOT NULL DEFAULT 'in_progress'
                               CHECK (status IN ('in_progress', 'completed')),
-  total_scanned   INTEGER     NOT NULL DEFAULT 0,
-  total_accepted  INTEGER     NOT NULL DEFAULT 0,
-  total_rejected  INTEGER     NOT NULL DEFAULT 0,
+  total_scanned_books   INTEGER     NOT NULL DEFAULT 0,
+  total_accepted_books  INTEGER     NOT NULL DEFAULT 0,
+  total_nonprocessable_books  INTEGER     NOT NULL DEFAULT 0,
   
   -- Segregation boxes
   accepted_box_id UUID        REFERENCES public.boxes(id) ON DELETE SET NULL,
@@ -74,9 +74,9 @@ RETURNS TRIGGER AS $$
 BEGIN
   UPDATE public.warehouse_sessions
   SET 
-    total_scanned = total_scanned + 1,
-    total_accepted = CASE WHEN NEW.scan_status = 'processable' THEN total_accepted + 1 ELSE total_accepted END,
-    total_rejected = CASE WHEN NEW.scan_status = 'non_processable' THEN total_rejected + 1 ELSE total_rejected END
+    total_scanned_books = total_scanned_books + 1,
+    total_accepted_books = CASE WHEN NEW.scan_status = 'processable' THEN total_accepted_books + 1 ELSE total_accepted_books END,
+    total_nonprocessable_books = CASE WHEN NEW.scan_status = 'non_processable' THEN total_nonprocessable_books + 1 ELSE total_nonprocessable_books END
   WHERE id = NEW.session_id;
   
   RETURN NEW;

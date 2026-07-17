@@ -45,7 +45,7 @@ Shipment (SHIP-2025-001)
 
 **boxes**
 - Unique boxes within lots
-- Fields: box_number, lot_id, total_books_expected, books_received, books_transmitted, current_stage
+- Fields: box_number, lot_id, total_expected_books, books_received, total_transmitted_books, current_stage
 
 **books**
 - Individual book records
@@ -59,7 +59,7 @@ Shipment (SHIP-2025-001)
 
 **transmission_queue**
 - Tracks transmission progress
-- Fields: lot_id, box_id, books_received, books_transmitted, status
+- Fields: lot_id, box_id, books_received, total_transmitted_books, status
 
 **pipeline_events**
 - Audit trail for box movement through pipeline
