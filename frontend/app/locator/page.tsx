@@ -732,8 +732,8 @@ export default function WarehouseLocatorPage() {
       {/* Main Content */}
       <DashboardMain>
         <DashboardNavbar />
-        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="flex-1 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 min-h-0 overflow-hidden">
 
             {/* Page Header */}
             <header className="flex flex-col gap-3">
