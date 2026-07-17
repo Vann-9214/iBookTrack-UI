@@ -49,7 +49,7 @@ router.get('/locations', requireAuth, async (req, res) => {
           assigned_at,
           assigned_by_name,
           box:boxes(
-            id, box_number, total_books_expected, lot_id,
+            id, box_number, total_expected_books, lot_id,
             lot:lots(lot_number),
             books:books(
               isbn, title,
@@ -78,7 +78,7 @@ router.get('/locations', requireAuth, async (req, res) => {
         box_id: a.box?.id,
         box_number: a.box?.box_number,
         lot_number: a.box?.lot?.lot_number || null,
-        total_books: a.box?.total_books_expected || 0,
+        total_books: a.box?.total_expected_books || 0,
         books: (a.box?.books || [])
           .flatMap(b => {
             const processable = (b.scans || []).some(s => s.scan_status === 'processable')
@@ -236,7 +236,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
     let query = db()
       .from('boxes')
       .select(`
-        id, box_number, total_books_expected, lot_id,
+        id, box_number, total_expected_books, lot_id,
         lot:lots(lot_number),
         books:books(
           isbn, title,
@@ -280,7 +280,7 @@ router.get('/ready-boxes', requireAuth, async (req, res) => {
       id: b.id,
       box_number: b.box_number,
       lot_number: b.lot?.lot_number || null,
-      total_books: b.total_books_expected || 0,
+      total_books: b.total_expected_books || 0,
       books: (b.books || [])
         .flatMap(bk => {
           const processable = (bk.scans || []).some(s => s.scan_status === 'processable')
@@ -498,7 +498,7 @@ router.get('/pending-assignments', requireAuth, async (req, res) => {
         status,
         assigned_at,
         assigned_by_name,
-        box:boxes(id, box_number, total_books_expected, lot_id, box_type, lot:lots(lot_number)),
+        box:boxes(id, box_number, total_expected_books, lot_id, box_type, lot:lots(lot_number)),
         location:storage_locations(id, rack_id, level)
       `)
       .eq('status', 'pending')
@@ -520,7 +520,7 @@ router.get('/pending-assignments', requireAuth, async (req, res) => {
       box_id: a.box?.id,
       box_number: a.box?.box_number,
       lot_number: a.box?.lot?.lot_number || null,
-      total_books: a.box?.total_books_expected || 0,
+      total_books: a.box?.total_expected_books || 0,
       location_id: a.location?.id,
       rack_id: a.location?.rack_id,
       level: a.location?.level,

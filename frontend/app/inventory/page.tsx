@@ -36,8 +36,8 @@ interface Box {
   id: string
   box_number: string
   lot_id: string
-  total_books_expected: number
-  books_transmitted: number
+  total_expected_books: number
+  total_transmitted_books: number
   current_stage: string
   created_at: string
   lot: { lot_number: string; status: string; type?: string }
@@ -51,7 +51,7 @@ interface Box {
     endorsement_user_received?: string; 
     inventory_user_send?: string; 
     warehouse_time_received?: string;
-    total_scanned?: number;
+    total_scanned_books?: number;
     inventory_time_received?: string;
     inventory_time_send?: string;
   }[]
@@ -72,7 +72,7 @@ interface VerifScannedBook {
 interface VerifSession {
   id: string
   status: string
-  total_scanned: number
+  total_scanned_books: number
   total_processable: number
   total_non_processable: number
   box_id?: string | null
@@ -475,7 +475,7 @@ export default function InventoryPage() {
       const boxRes = await authFetch(`${API_URL}/api/boxes/${box.id}`)
       const boxData = await boxRes.json()
 
-      setVerifCurrentSession({ ...data.session, total_scanned: 0, total_processable: 0, total_non_processable: 0 })
+      setVerifCurrentSession({ ...data.session, total_scanned_books: 0, total_processable: 0, total_non_processable: 0 })
       setVerifBox(box)
       setVerifBooks(boxData.box?.books || [])
       setVerifScannedBooks([])
@@ -557,7 +557,7 @@ export default function InventoryPage() {
     setVerifScannedBooks(prev => [newBook, ...prev])
     setVerifCurrentSession(prev => prev ? {
       ...prev,
-      total_scanned: prev.total_scanned + 1,
+      total_scanned_books: prev.total_scanned_books + 1,
       total_processable: scan_status === 'processable' ? prev.total_processable + 1 : prev.total_processable,
       total_non_processable: scan_status === 'non_processable' ? prev.total_non_processable + 1 : prev.total_non_processable,
     } : null)
@@ -595,7 +595,7 @@ export default function InventoryPage() {
     setVerifBookCounter(prev => Math.max(0, prev - 1))
     setVerifCurrentSession(prev => prev ? {
       ...prev,
-      total_scanned: Math.max(0, prev.total_scanned - 1),
+      total_scanned_books: Math.max(0, prev.total_scanned_books - 1),
       total_processable: book.scan_status === 'processable' ? Math.max(0, prev.total_processable - 1) : prev.total_processable,
       total_non_processable: book.scan_status === 'non_processable' ? Math.max(0, prev.total_non_processable - 1) : prev.total_non_processable,
     } : null)
@@ -1112,7 +1112,7 @@ export default function InventoryPage() {
               <div style={{ borderRight: '1px solid #111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', border: '1.5px solid #111', background: 'transparent', display: 'inline-block' }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_books_expected || '—'}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14pt', fontWeight: 300 }}>{printBooks.length || printBox.total_expected_books || '—'}</div>
             </div>
             {/* Rows 2-5 - empty circle, no book count (filled manually) */}
             {printProcessRows.slice(1).map((label) => (
@@ -1403,7 +1403,7 @@ export default function InventoryPage() {
                     <div className="flex flex-col gap-2 pb-2">
                       {incomingBoxes.map(box => {
                         const activeSession = box.box_sessions?.[0]
-                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
+                        const bookCount = activeSession?.total_scanned_books ?? box.total_expected_books ?? 0
                         const isExpanded = expandedBox === box.id
                         const booksForBox = boxBooks[box.id] || []
                         const warehouseTime = box.box_sessions?.[0]?.warehouse_time_received
@@ -1710,7 +1710,7 @@ export default function InventoryPage() {
                             const rowBooks = verifRowBooks[box.id] || []
                             const isLoadingBooks = loadingVerifRowBooks === box.id
                             const activeSession = box.box_sessions?.[0]
-                            const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
+                            const bookCount = activeSession?.total_scanned_books ?? box.total_expected_books ?? 0
                             const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
                             const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
                             
@@ -1816,7 +1816,7 @@ export default function InventoryPage() {
                         const rowBooks = verifRowBooks[box.id] || []
                         const isLoadingBooks = loadingVerifRowBooks === box.id
                         const activeSession = box.box_sessions?.[0]
-                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
+                        const bookCount = activeSession?.total_scanned_books ?? box.total_expected_books ?? 0
                         const warehouseTime = box.box_sessions?.[0]?.inventory_time_received
                         const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
                         return (
@@ -2131,7 +2131,7 @@ export default function InventoryPage() {
                     <div className="flex flex-col gap-2 pb-2">
                       {outgoingBoxes.map(box => {
                         const activeSession = box.box_sessions?.[0]
-                        const bookCount = activeSession?.total_scanned ?? box.total_books_expected ?? 0
+                        const bookCount = activeSession?.total_scanned_books ?? box.total_expected_books ?? 0
                         const isExpanded = outgoingExpandedBoxId === box.id
                         const booksForBox: BookInBox[] = boxBooks[box.id] || []
                         const verifiedTime = box.latest_inventory_scan_at

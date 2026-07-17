@@ -46,7 +46,7 @@ const FLAG_ISSUES = [
 interface BoxEntry {
   id: string
   box_number: string
-  total_books_expected: number
+  total_expected_books: number
 
   lot: { lot_number: string } | null
   latest_endorsement_scan_at?: string | null
@@ -55,7 +55,7 @@ interface BoxEntry {
     cut_time_send?: string
     endorsement_time_received?: string
     status?: string
-    total_scanned?: number
+    total_scanned_books?: number
     updated_at?: string
   }[]
 }
@@ -91,7 +91,7 @@ interface WarehouseBook {
 interface InspSession {
   id: string
   status: string
-  total_scanned: number
+  total_scanned_books: number
   total_processable: number
   total_non_processable: number
   box_id?: string | null
@@ -347,7 +347,7 @@ export default function BookInspectionPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to start session')
-      setInspCurrentSession({ ...data.session, total_scanned: 0, total_processable: 0, total_non_processable: 0 })
+      setInspCurrentSession({ ...data.session, total_scanned_books: 0, total_processable: 0, total_non_processable: 0 })
       setInspBox(box)
       setInspScannedBooks([])
       setInspBookCounter(0)
@@ -406,7 +406,7 @@ export default function BookInspectionPage() {
     setInspScannedBooks(prev => [newBook, ...prev])
     setInspCurrentSession(prev => prev ? {
       ...prev,
-      total_scanned: prev.total_scanned + 1,
+      total_scanned_books: prev.total_scanned_books + 1,
       total_processable: scan_status === 'processable' ? prev.total_processable + 1 : prev.total_processable,
       total_non_processable: scan_status === 'non_processable' ? prev.total_non_processable + 1 : prev.total_non_processable,
     } : null)
@@ -439,7 +439,7 @@ export default function BookInspectionPage() {
     setInspBookCounter(p => Math.max(0, p - 1))
     setInspCurrentSession(prev => prev ? {
       ...prev,
-      total_scanned: Math.max(0, prev.total_scanned - 1),
+      total_scanned_books: Math.max(0, prev.total_scanned_books - 1),
       total_processable: book.scan_status === 'processable' ? Math.max(0, prev.total_processable - 1) : prev.total_processable,
       total_non_processable: book.scan_status === 'non_processable' ? Math.max(0, prev.total_non_processable - 1) : prev.total_non_processable,
     } : null)
@@ -693,7 +693,7 @@ export default function BookInspectionPage() {
                           const isExpanded = expandedBoxId === box.id
                           const rowBooks = boxBooks[box.id] || []
                           const isLoadingBooks = loadingBoxBooks === box.id
-                          const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                          const bookCount = box.box_sessions?.[0]?.total_scanned_books ?? box.total_expected_books ?? 0
                           return (
                             <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
                               <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">
@@ -930,7 +930,7 @@ export default function BookInspectionPage() {
                                       </div>
                                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleInspRow(box.id)}>
                                         <p className="text-sm font-semibold text-foreground">BOX: {box.box_number}</p>
-                                        <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
+                                        <p className="text-xs text-muted-foreground">LOT: {box.lot?.lot_number || '—'} · BOOKS: {box.box_sessions?.[0]?.total_scanned_books ?? box.total_expected_books ?? 0} <BookOpen className="inline h-3 w-3 mr-0.5" /></p>
                                       </div>
                                       {box.box_sessions?.[0]?.endorsement_time_received && (
                                         <div className="shrink-0 hidden sm:block text-right mr-2">
@@ -1023,7 +1023,7 @@ export default function BookInspectionPage() {
                         </div>
                         <div>
                           <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
-                          <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{inspCurrentSession?.total_scanned || 0}</p>
+                          <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{inspCurrentSession?.total_scanned_books || 0}</p>
                         </div>
                       </div>
                       <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
@@ -1199,7 +1199,7 @@ export default function BookInspectionPage() {
                           const isExpanded = expandedBoxId === box.id
                           const rowBooks = boxBooks[box.id] || []
                           const isLoadingBooks = loadingBoxBooks === box.id
-                          const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                          const bookCount = box.box_sessions?.[0]?.total_scanned_books ?? box.total_expected_books ?? 0
                           return (
                             <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
                               <div className="flex flex-col sm:flex-row sm:items-center px-4 py-3 gap-2 sm:gap-4">

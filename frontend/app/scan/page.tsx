@@ -29,13 +29,13 @@ interface BookInBox {
 interface BoxEntry {
   id: string
   box_number: string
-  total_books_expected: number
+  total_expected_books: number
   lot: { lot_number: string } | null
   box_sessions?: {
     status: string
     endorsement_time_send?: string
     scan_time_received?: string
-    total_scanned?: number
+    total_scanned_books?: number
   }[]
 }
 
@@ -260,7 +260,7 @@ export default function ScanPage() {
                       const rowBooks = boxBooks[box.id] || []
                       const isLoadingBooks = loadingBoxBooks === box.id
                       const sentSession = box.box_sessions?.find(s => s.status === 'sent')
-                      const bookCount = box.box_sessions?.[0]?.total_scanned ?? box.total_books_expected ?? 0
+                      const bookCount = box.box_sessions?.[0]?.total_scanned_books ?? box.total_expected_books ?? 0
 
                       return (
                         <div key={box.id} className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">

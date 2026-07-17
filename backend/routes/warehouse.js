@@ -94,14 +94,14 @@ router.post('/sessions/start', requireAuth, validateRequest({
       // Check if box already exists
       const { data: existingBox } = await supabaseAdmin
         .from('boxes')
-        .select('id, total_books_expected, current_stage')
+        .select('id, total_expected_books, current_stage')
         .eq('lot_id', lot.id)
         .eq('box_number', boxName)
         .maybeSingle()
 
       if (existingBox) {
         if (!req.body.force) {
-          if (existingBox.total_books_expected === 0) {
+          if (existingBox.total_expected_books === 0) {
             return res.status(409).json({ 
               error: 'BoxExistsWithZeroBooks', 
               message: `Box ${boxName} in Lot ${lot.lot_number} already exists but has 0 books. Do you want to proceed?`,
@@ -110,7 +110,7 @@ router.post('/sessions/start', requireAuth, validateRequest({
           } else {
             return res.status(409).json({ 
               error: 'BoxExistsWithBooks', 
-              message: `Box ${boxName} in Lot ${lot.lot_number} already exists and contains ${existingBox.total_books_expected} books. You cannot start a new session for this box.`,
+              message: `Box ${boxName} in Lot ${lot.lot_number} already exists and contains ${existingBox.total_expected_books} books. You cannot start a new session for this box.`,
               box: existingBox
             })
           }
@@ -125,7 +125,7 @@ router.post('/sessions/start', requireAuth, validateRequest({
             lot_id: lot.id,
             box_type: 'processable',
             current_stage: 'warehouse',
-            total_books_expected: 0
+            total_expected_books: 0
           })
           .select()
           .single()
@@ -262,7 +262,7 @@ router.post('/sessions/:session_id/scan', requireAuth, validateRequest({
           lot_id: lotId,
           box_type: boxType,
           current_stage: 'warehouse',
-          total_books_expected: 0
+          total_expected_books: 0
         })
         .select()
         .single()
@@ -418,6 +418,21 @@ router.post('/sessions/:session_id/scan', requireAuth, validateRequest({
         .from('user_flags')
         .insert(flagInsert);
       if (flagError) throw flagError;
+
+      if (rejection_reason === 'extra-book') {
+        const { error: bookUpdError } = await supabaseAdmin
+          .from('books')
+          .update({ is_extra: true })
+          .eq('id', scanLog.book_id || bookId);
+        if (bookUpdError) throw bookUpdError;
+      }
+      if (rejection_reason === 'mismatched-book') {
+        const { error: bookUpdError } = await supabaseAdmin
+          .from('books')
+          .update({ is_mismatch: true })
+          .eq('id', scanLog.book_id || bookId);
+        if (bookUpdError) throw bookUpdError;
+      }
     }
 
     res.status(201).json({ 
@@ -438,7 +453,7 @@ router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
     session_id: z.string().uuid()
   }),
   body: z.object({
-    total_books_expected: z.union([z.string(), z.number()]).optional().nullable(),
+    total_expected_books: z.union([z.string(), z.number()]).optional().nullable(),
     issues: z.array(z.any()).optional().nullable(),
     stage: z.string().optional().nullable(),
     book_type: z.string().optional().nullable()
@@ -446,7 +461,7 @@ router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
 }), async (req, res) => {
   try {
     const { session_id } = req.params
-    let { total_books_expected, issues, stage, book_type } = req.body
+    let { total_expected_books, issues, stage, book_type } = req.body
 
     if (book_type) {
       book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
@@ -504,10 +519,10 @@ router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
         }
       }
       
-      if (total_books_expected) {
+      if (total_expected_books) {
         await supabaseAdmin
           .from('boxes')
-          .update({ total_books_expected: parseInt(total_books_expected) })
+          .update({ total_expected_books: parseInt(total_expected_books) })
           .eq('id', session.box_id)
       }
     }
@@ -584,7 +599,7 @@ router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
             const flagInsert = {
               book_activity_id: actData.id,
               rejection_reason: issue.type,
-              notes: `Marked as ${issue.type} during session completion`
+              notes: `Marked as missing during session completion`
             }
             
             if (stage === 'inventory') flagInsert.inventory_flag_by = scannedBy;
@@ -592,6 +607,21 @@ router.post('/sessions/:session_id/complete', requireAuth, validateRequest({
             else flagInsert.warehouse_flag_by = scannedBy;
 
             await supabaseAdmin.from('user_flags').insert(flagInsert)
+            
+            if (b.flag_issue === 'extra-book') {
+              const { error: bookUpdError } = await supabaseAdmin
+                .from('books')
+                .update({ is_extra: true })
+                .eq('id', b.id);
+              if (bookUpdError) throw bookUpdError;
+            }
+            if (b.flag_issue === 'mismatched-book') {
+              const { error: bookUpdError } = await supabaseAdmin
+                .from('books')
+                .update({ is_mismatch: true })
+                .eq('id', b.id);
+              if (bookUpdError) throw bookUpdError;
+            }
           }
         }
       }
@@ -620,14 +650,14 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
     box_number: z.string().min(1, 'box_number is required'),
     type: z.string().optional().nullable(),
     force: z.boolean().optional(),
-    total_books_expected: z.union([z.string(), z.number()]).optional().nullable(),
+    total_expected_books: z.union([z.string(), z.number()]).optional().nullable(),
     issues: z.array(z.any()).optional().nullable(),
     scanned_books: z.array(z.any()).optional().nullable(),
     book_type: z.string().optional().nullable()
   })
 }), async (req, res) => {
   try {
-    let { lot_number, box_number, type, force, total_books_expected, issues, scanned_books, book_type } = req.body;
+    let { lot_number, box_number, type, force, total_expected_books, issues, scanned_books, book_type } = req.body;
     
     if (book_type) {
       book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
@@ -656,7 +686,7 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
     }
     let assignedBoxId = null;
     let existingBox = null;
-    let query = supabaseAdmin.from('boxes').select('id, total_books_expected, current_stage').eq('lot_id', lot.id).eq('box_number', box_number);
+    let query = supabaseAdmin.from('boxes').select('id, total_expected_books, current_stage').eq('lot_id', lot.id).eq('box_number', box_number);
     if (book_type) query = query.eq('box_type', book_type);
     else query = query.is('box_type', null);
     
@@ -664,7 +694,7 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
     if (box) {
       // A box number must be unique within a lot. If a box with this number
       // already holds books, reject rather than silently merging into it.
-      if (box.total_books_expected > 0) {
+      if (box.total_expected_books > 0) {
         return res.status(409).json({ error: `Box ${box_number} already exists in ${lot_number}. Please use a different box number.` });
       }
       assignedBoxId = box.id;
@@ -672,7 +702,7 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
     } else {
       const { data: newBox } = await supabaseAdmin
         .from('boxes')
-        .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_books_expected: parseInt(total_books_expected) || 0 })
+        .insert({ box_number, lot_id: lot.id, box_type: book_type || null, current_stage: 'warehouse', total_expected_books: parseInt(total_expected_books) || 0 })
         .select()
         .single();
       assignedBoxId = newBox.id;
@@ -687,9 +717,9 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
         warehouse_user_received: req.user.id,
         warehouse_time_received: new Date().toISOString(),
         status: 'completed',
-        total_scanned: 0,
-        total_accepted: 0,
-        total_rejected: 0
+        total_scanned_books: 0,
+        total_accepted_books: 0,
+        total_rejected_books: 0
       })
       .select()
       .single();
@@ -723,6 +753,21 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
         const flagInsert = { book_activity_id: actData.id, rejection_reason: b.flag_issue || null, notes: b.flag_remarks || null, warehouse_flag_by: req.user.id };
         const { error: fError } = await supabaseAdmin.from('user_flags').insert(flagInsert);
         if (fError) throw fError;
+
+        if (b.flag_issue === 'extra-book') {
+          const { error: bookUpdError } = await supabaseAdmin
+            .from('books')
+            .update({ is_extra: true })
+            .eq('id', bookId);
+          if (bookUpdError) throw bookUpdError;
+        }
+        if (b.flag_issue === 'mismatched-book') {
+          const { error: bookUpdError } = await supabaseAdmin
+            .from('books')
+            .update({ is_mismatch: true })
+            .eq('id', bookId);
+          if (bookUpdError) throw bookUpdError;
+        }
       }
     }
 
@@ -753,14 +798,14 @@ router.post('/sessions/bulk-save', requireAuth, validateRequest({
         }).select('id').single();
         if (actError) throw actError;
 
-        const flagInsert = { book_activity_id: actData.id, rejection_reason: issue.type, notes: `Marked as ${issue.type} during session bulk-complete`, warehouse_flag_by: req.user.id };
+        const flagInsert = { book_activity_id: actData.id, rejection_reason: issue.type, notes: `Marked as missing during session bulk-complete`, warehouse_flag_by: req.user.id };
         const { error: flError } = await supabaseAdmin.from('user_flags').insert(flagInsert);
         if (flError) throw flError;
       }
     }
 
-    if (total_books_expected && existingBox) {
-      await supabaseAdmin.from('boxes').update({ total_books_expected: parseInt(total_books_expected) }).eq('id', assignedBoxId);
+    if (total_expected_books && existingBox) {
+      await supabaseAdmin.from('boxes').update({ total_expected_books: parseInt(total_expected_books) }).eq('id', assignedBoxId);
     }
 
     res.status(201).json({ success: true, session });
@@ -1383,6 +1428,21 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
       .single()
     if (flagError) throw flagError;
 
+    if (rejection_reason === 'extra-book') {
+      const { error: bookUpdError } = await supabaseAdmin
+        .from('books')
+        .update({ is_extra: true })
+        .eq('id', existingScan.book_id);
+      if (bookUpdError) throw bookUpdError;
+    }
+    if (rejection_reason === 'mismatched-book') {
+      const { error: bookUpdError } = await supabaseAdmin
+        .from('books')
+        .update({ is_mismatch: true })
+        .eq('id', existingScan.book_id);
+      if (bookUpdError) throw bookUpdError;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('book_activity')
       .update({ scan_status: 'non_processable' })
@@ -1396,7 +1456,7 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
     if (existingScan.scan_status === 'processable') {
       const { data: session } = await supabaseAdmin
         .from('box_sessions')
-        .select('total_accepted, total_rejected')
+        .select('total_accepted_books, total_rejected_books')
         .eq('id', existingScan.session_id)
         .single()
         
@@ -1404,8 +1464,8 @@ router.patch('/scans/:scan_id/flag', requireAuth, async (req, res) => {
         await supabaseAdmin
           .from('box_sessions')
           .update({
-            total_accepted: Math.max(0, session.total_accepted - 1),
-            total_rejected: session.total_rejected + 1
+            total_accepted_books: Math.max(0, session.total_accepted_books - 1),
+            total_rejected_books: session.total_rejected_books + 1
           })
           .eq('id', existingScan.session_id)
       }
@@ -1477,6 +1537,21 @@ router.post('/scans/:scan_id/tag', requireAuth, validateRequest({
       .single();
     if (flagError) throw flagError;
 
+    if (remarks.trim() === 'extra-book') {
+      const { error: bookUpdError } = await supabaseAdmin
+        .from('books')
+        .update({ is_extra: true })
+        .eq('id', existing.book_id);
+      if (bookUpdError) throw bookUpdError;
+    }
+    if (remarks.trim() === 'mismatched-book') {
+      const { error: bookUpdError } = await supabaseAdmin
+        .from('books')
+        .update({ is_mismatch: true })
+        .eq('id', existing.book_id);
+      if (bookUpdError) throw bookUpdError;
+    }
+
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('book_activity')
       .update({
@@ -1492,7 +1567,7 @@ router.post('/scans/:scan_id/tag', requireAuth, validateRequest({
     if (existing.scan_status === 'processable' && (status === 'non_processable' || status === 'reject')) {
       const { data: session } = await supabaseAdmin
         .from('box_sessions')
-        .select('total_accepted, total_rejected')
+        .select('total_accepted_books, total_rejected_books')
         .eq('id', existing.session_id)
         .single()
         
@@ -1500,8 +1575,8 @@ router.post('/scans/:scan_id/tag', requireAuth, validateRequest({
         await supabaseAdmin
           .from('box_sessions')
           .update({
-            total_accepted: Math.max(0, session.total_accepted - 1),
-            total_rejected: session.total_rejected + 1
+            total_accepted_books: Math.max(0, session.total_accepted_books - 1),
+            total_rejected_books: session.total_rejected_books + 1
           })
           .eq('id', existing.session_id)
       }
