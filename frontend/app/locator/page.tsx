@@ -763,18 +763,22 @@ export default function WarehouseLocatorPage() {
                             : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
                         )}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Package className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <span className="text-sm font-medium text-foreground truncate">{b.box_number}</span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10">
+                            <Package className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-foreground">BOX: {b.box_number}</p>
+                            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                              {b.lot_number && (
+                                <span className="truncate">LOT: {b.lot_number}</span>
+                              )}
+                              {b.lot_number && <span>•</span>}
+                              <span className="whitespace-nowrap">BOOKS: {b.books.length}</span>
+                              <BookOpen className="h-3 w-3 shrink-0" />
+                            </div>
+                          </div>
                         </div>
-                        {b.lot_number && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                            {b.lot_number.toLowerCase().startsWith('lot') ? b.lot_number : `Lot ${b.lot_number}`}
-                          </p>
-                        )}
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {b.books.length} book{b.books.length !== 1 ? 's' : ''}
-                        </p>
                       </button>
                     ))}
                   </div>
