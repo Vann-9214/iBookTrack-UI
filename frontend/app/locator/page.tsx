@@ -649,7 +649,7 @@ export default function WarehouseLocatorPage() {
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
         <div className="flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6 max-w-7xl mx-auto">
+          <div className="flex min-w-0 flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
             {/* Header */}
             <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -742,7 +742,7 @@ export default function WarehouseLocatorPage() {
             )}
 
             {/* Warehouse Grid */}  
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,1fr)_3fr_minmax(260px,1fr)] gap-4 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
               {/* Unassigned storage boxes (left) */}
               <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
                 <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-t-2 border-t-primary/70 border-b border-b-primary/20 bg-primary/5 px-4 h-14">
