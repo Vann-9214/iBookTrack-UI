@@ -355,40 +355,54 @@ export default function DashboardPage() {
       <DashboardMain>
         <DashboardNavbar />
         <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+          <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
             {/* Page Header */}
             <header className="flex flex-col gap-3">
               {/* Title row — always visible */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                    <LayoutDashboard className="h-7 w-7" />
-                  </div>
-                  <div>
-                    <h1 className="text-[28px] sm:text-3xl font-black tracking-tighter text-foreground leading-none">
-                      Command Center
-                    </h1>
-                    <p className="mt-1.5 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                      Overview of operations for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white shadow-sm", brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>{brand}</span>
-                    </p>
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className={cn("p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                  <LayoutDashboard className="h-6 w-6 sm:h-7 sm:w-7" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">
+                        Command Center
+                      </h1>
+                      <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
+                        Overview of operations for{' '}
+                        <span className={cn(
+                          "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
+                          brand === 'jaguar'
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+                            : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                        )}>
+                          {brand}
+                        </span>
+                      </p>
+                    </div>
+                    {/* Search + Refresh — right side */}
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <button
+                        onClick={() => setSearchOpen(true)}
+                        className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg bg-primary text-primary-foreground shadow-md hover:bg-primary/90 active:scale-95 transition-all"
+                        aria-label="Search"
+                      >
+                        <Search className="h-4 w-4" />
+                      </button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setSearchOpen(true)}
+                        className="hidden sm:inline-flex gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shrink-0"
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                        Search
+                      </Button>
+                      <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} lastUpdated={lastStatsUpdate} storageKey="dashboard" className="hidden sm:flex" />
+                    </div>
                   </div>
                 </div>
-                {/* Refresh + timestamp — hidden on mobile */}
-                <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} lastUpdated={lastStatsUpdate} storageKey="dashboard" className="hidden sm:flex" />
-              </div>
-
-              {/* Controls row — scan + search always on one line */}
-              <div className="flex items-center gap-2 justify-end"> 
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={() => setSearchOpen(true)}
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shrink-0"
-                >
-                  <Search className="h-4 w-4" />
-                  <span className="hidden xs:inline">Search ISBN / Lot</span>
-                  <span className="xs:hidden">Search</span>
-                </Button>
               </div>
 
               {/* Search Dashboard Modal */}

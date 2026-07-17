@@ -286,20 +286,20 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
 
   const stats = [
     {
-      title: "Live Lots",
-      value: activeLots.toLocaleString(),
-      subtext: "actively processing",
-      icon: Activity,
-      tone: TONE.theme,
-      onClick: openLiveLots,
-    },
-    {
       title: "Non-Processable",
       value: unaccounted.toLocaleString(),
       subtext: "flagged today",
       icon: AlertTriangle,
       tone: TONE.red,
       onClick: openFlags,
+    },
+    {
+      title: "Live Lots",
+      value: activeLots.toLocaleString(),
+      subtext: "actively processing",
+      icon: Activity,
+      tone: TONE.theme,
+      onClick: openLiveLots,
     },
     {
       title: "Daily Output",
@@ -359,7 +359,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 key={stat.title}
                 onClick={stat.onClick}
                 className={cn(
-                  "rounded-2xl border p-3 flex items-center gap-3 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97]",
+                  "rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97] overflow-hidden",
                   stat.tone.card,
                   stat.onClick ? "cursor-pointer" : "cursor-default"
                 )}
@@ -367,8 +367,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", stat.tone.icon)}>
                   <stat.icon className="h-4 w-4" />
                 </div>
-                <div className="min-w-0">
-                  <div className={cn("text-xl font-black leading-none tracking-tight", stat.tone.value)}>{stat.value}</div>
+                <div className="min-w-0 flex-1">
+                  <div className={cn("text-lg font-black leading-none tracking-tight truncate", stat.tone.value)}>{stat.value}</div>
                   <div className={cn("text-[11px] font-semibold truncate mt-1", stat.tone.title)}>{stat.title}</div>
                 </div>
               </div>

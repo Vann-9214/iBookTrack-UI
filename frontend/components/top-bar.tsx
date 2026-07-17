@@ -24,6 +24,10 @@ import {
   XCircle,
   AlertCircle,
   ScanLine,
+  ChevronDown,
+  Zap,
+  Leaf,
+  User,
 } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -118,12 +122,26 @@ function decodeTokenUser(token: string | null): NavbarUser | null {
   }
 }
 
+/* ── Brand icon map ─────────────────────── */
+const BRAND_ICONS: Record<Brand, typeof Zap> = {
+  mustang: Zap,
+  jaguar: Leaf,
+}
+
+/* ── Brand gradient configs ─────────────── */
+const BRAND_GRADIENTS: Record<Brand, { from: string; to: string }> = {
+  mustang: { from: '#1658EB', to: '#6366f1' },
+  jaguar: { from: '#16a34a', to: '#22d3ee' },
+}
+
 export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disableBrandToggle?: boolean; navigationLocked?: boolean } = {}) {
   const [user, setUser] = useState<NavbarUser>(fallbackUser)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const router = useRouter()
   const { brand, setBrand, colors } = useBrand()
 
   const initials = getInitials(user.name, user.email)
+  const gradient = BRAND_GRADIENTS[brand]
 
   useEffect(() => {
     const syncUser = async () => {
@@ -149,81 +167,123 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
   }
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border/70 bg-white/80 backdrop-blur-md shadow-sm px-6 md:px-6 pl-14 md:pl-6">
-      {/* Mustang / Jaguar toggle */}
-      <div className="relative flex items-center rounded-full border border-black/5 bg-gray-100/90 p-0.5 w-[160px] shadow-inner">
-        {/* Animated Background Pill */}
-        <div 
-          className="absolute top-0.5 bottom-0.5 rounded-full transition-all duration-300 ease-out shadow-md pointer-events-none"
+    <header
+      className="relative flex h-14 shrink-0 items-center gap-2 sm:gap-4 px-3 sm:px-6 pl-14 sm:pl-16 md:pl-6"
+      style={{
+        background: 'rgba(255, 255, 255, 0.72)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        ['--topbar-accent' as string]: colors.accent,
+      }}
+    >
+      {/* ── Animated gradient bottom border ──────────── */}
+      <div
+        className="topbar-gradient-border absolute bottom-0 left-0 right-0 h-[1.5px]"
+        style={{
+          ['--topbar-accent' as string]: colors.accent,
+          opacity: 0.65,
+        }}
+      />
+
+      {/* ── Brand Switcher ───────────────────────────── */}
+      <div
+        className="relative flex items-center rounded-lg p-0.5 gap-0.5 shrink-0"
+        style={{
+          background: `linear-gradient(135deg, ${colors.accent}08, ${colors.accent}04)`,
+          border: `1px solid ${colors.accent}15`,
+        }}
+      >
+        {/* Background Pill */}
+        <div
+          className="absolute top-0.5 bottom-0.5 rounded-md pointer-events-none"
           style={{
-            width: 'calc(50% - 2px)',
-            left: brand === 'mustang' ? '2px' : '50%',
-            backgroundImage: `linear-gradient(135deg, ${BRAND_COLORS[brand].accent}, color-mix(in srgb, ${BRAND_COLORS[brand].accent} 78%, #000))`,
-            boxShadow: `0 2px 8px color-mix(in srgb, ${BRAND_COLORS[brand].accent} 45%, transparent)`,
+            width: 'calc(50% - 3px)',
+            left: brand === 'mustang' ? '2px' : 'calc(50% + 1px)',
+            backgroundImage: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`,
           }}
         />
+
         {(['mustang', 'jaguar'] as Brand[]).map((b) => {
-          const isSelected = brand === b;
-          return disableBrandToggle ? (
-            <SessionOngoingTooltip key={b} side="bottom">
-              <span className="relative z-10 flex-1 flex justify-center">
-                <button
-                  onClick={() => setBrand(b)}
-                  disabled
-                  className={cn(
-                    'w-full py-1.5 text-xs font-semibold rounded-full transition-colors duration-300 capitalize opacity-50 cursor-not-allowed',
-                    isSelected ? 'text-white' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {BRAND_COLORS[b].label}
-                </button>
-              </span>
-            </SessionOngoingTooltip>
-          ) : (
+          const isSelected = brand === b
+          const Icon = BRAND_ICONS[b]
+
+          const buttonContent = (
             <button
               key={b}
-              onClick={() => setBrand(b)}
+              onClick={() => !disableBrandToggle && setBrand(b)}
+              disabled={disableBrandToggle}
               className={cn(
-                'relative z-10 flex-1 py-1.5 text-xs font-semibold rounded-full transition-colors duration-300 capitalize',
-                isSelected ? 'text-white' : 'text-muted-foreground hover:text-foreground'
+                'relative z-10 flex w-full items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 text-[11px] sm:text-xs font-semibold leading-none rounded-md capitalize select-none',
+                isSelected
+                  ? 'text-white'
+                  : 'text-gray-500 hover:text-gray-700',
+                disableBrandToggle && 'opacity-50 cursor-not-allowed',
               )}
             >
+              <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               {BRAND_COLORS[b].label}
             </button>
+          )
+
+          return disableBrandToggle ? (
+            <SessionOngoingTooltip key={b} side="bottom">
+              <span className="relative z-10 flex flex-1">{buttonContent}</span>
+            </SessionOngoingTooltip>
+          ) : (
+            <span key={b} className="relative z-10 flex flex-1">
+              {buttonContent}
+            </span>
           )
         })}
       </div>
 
-      {/* Scan QR button — mobile only */}
+      {/* ── Scan QR button — mobile only ─────────────── */}
       <button
         onClick={() => router.push('/scan-qr')}
-        className="sm:hidden flex items-center justify-center w-9 h-9 rounded-full border border-border bg-background hover:bg-muted transition"
+        className="sm:hidden flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0"
         aria-label="Scan QR"
-        style={{ color: colors.accent }}
+        style={{
+          color: colors.accent,
+          borderColor: `${colors.accent}25`,
+          background: `${colors.accent}08`,
+        }}
       >
-        <ScanLine className="w-5 h-5" />
+        <ScanLine className="w-4 h-4" />
       </button>
 
-      {/* Spacer */}
+      {/* ── Spacer ───────────────────────────────────── */}
       <div className="flex-1" />
 
-
-      {/* User profile */}
+      {/* ── User Profile ─────────────────────────────── */}
       {navigationLocked ? (
         <SessionOngoingTooltip side="bottom">
           <span className="inline-flex">
             <button
               type="button"
               aria-label="Account"
-              className="flex items-center gap-2.5 rounded-full border border-border px-2 py-1.5 transition hover:bg-muted pointer-events-none opacity-50 cursor-not-allowed"
+              className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition-all duration-200 pointer-events-none opacity-50 cursor-not-allowed"
               disabled
+              style={{
+                border: `1px solid ${colors.accent}20`,
+                background: `${colors.accent}06`,
+              }}
             >
-              <Avatar className="h-7 w-7 shrink-0">
-                <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              {/* Gradient avatar ring */}
+              <div className="relative">
+                <div
+                  className="topbar-avatar-ring absolute -inset-[2px] rounded-full"
+                  style={{ ['--topbar-accent' as string]: colors.accent, opacity: 0.5 }}
+                />
+                <Avatar className="h-7 w-7 shrink-0 relative ring-2 ring-white">
+                  <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                  <AvatarFallback
+                    className="text-[10px] font-bold text-white"
+                    style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
+                  >
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
                 {user.name}
               </span>
@@ -231,43 +291,137 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
           </span>
         </SessionOngoingTooltip>
       ) : (
-        <DropdownMenu modal={false}>
+        <DropdownMenu modal={false} open={dropdownOpen} onOpenChange={setDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
               aria-label="Account"
-              className="flex items-center gap-2.5 rounded-full border border-border px-2 py-1.5 transition hover:bg-muted"
+              className={cn(
+                'group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-all duration-200',
+                'hover:shadow-md active:scale-[0.97]',
+              )}
+              style={{
+                border: `1px solid ${dropdownOpen ? colors.accent + '35' : colors.accent + '15'}`,
+                background: dropdownOpen
+                  ? `linear-gradient(135deg, ${colors.accent}10, ${colors.accent}05)`
+                  : `${colors.accent}04`,
+              }}
             >
-              <Avatar className="h-7 w-7 shrink-0">
-                <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
-                <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              {/* Gradient avatar ring */}
+              <div className="relative">
+                <div
+                  className="topbar-avatar-ring absolute -inset-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ ['--topbar-accent' as string]: colors.accent }}
+                />
+                <Avatar className="h-7 w-7 shrink-0 relative ring-2 ring-white">
+                  <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                  <AvatarFallback
+                    className="text-[10px] font-bold text-white"
+                    style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
+                  >
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
               <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
                 {user.name}
               </span>
+              <ChevronDown
+                className={cn(
+                  'hidden sm:block w-3.5 h-3.5 text-muted-foreground transition-transform duration-200',
+                  dropdownOpen && 'rotate-180',
+                )}
+              />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="w-64 rounded-2xl p-2"
+            className="w-72 rounded-2xl p-0 overflow-hidden border-0 shadow-xl shadow-black/10"
             onCloseAutoFocus={(event) => event.preventDefault()}
-            sideOffset={8}
+            sideOffset={12}
+            style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(0,0,0,0.06)',
+            }}
           >
-            <DropdownMenuLabel className="px-3 py-2">
-              <span className="block truncate text-sm font-semibold text-foreground">{user.name}</span>
-              <span className="block truncate text-xs font-normal text-muted-foreground">{user.email}</span>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="group gap-3 rounded-xl px-3 py-2.5" onClick={() => router.push('/settings')}>
-              <Settings className="h-4 w-4 group-hover:text-white group-focus:text-white" />
-              <span>Settings</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="gap-3 rounded-xl px-3 py-2.5" onClick={handleLogout} variant="destructive">
-              <LogOut className="h-4 w-4" />
-              <span>Log Out</span>
-            </DropdownMenuItem>
+            {/* ── Profile header with gradient bg ─── */}
+            <div
+              className="relative px-4 pt-5 pb-4 overflow-hidden"
+              style={{
+                background: `linear-gradient(135deg, ${colors.accent}12, ${colors.accent}06, transparent)`,
+              }}
+            >
+              {/* Subtle glow orb */}
+              <div
+                className="topbar-glow absolute -top-4 -right-4 w-24 h-24 rounded-full blur-2xl pointer-events-none"
+                style={{ background: `${colors.accent}15` }}
+              />
+
+              <div className="relative flex items-center gap-3">
+                {/* Large avatar with gradient ring */}
+                <div className="relative">
+                  <div
+                    className="topbar-avatar-ring absolute -inset-[2.5px] rounded-full"
+                    style={{ ['--topbar-accent' as string]: colors.accent }}
+                  />
+                  <Avatar className="h-11 w-11 shrink-0 relative ring-[2.5px] ring-white">
+                    <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
+                    <AvatarFallback
+                      className="text-sm font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})` }}
+                    >
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
+            {/* ── Menu items ────────────────────────── */}
+            <div className="p-1.5">
+              <DropdownMenuItem
+                className="group gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
+                onClick={() => router.push('/settings')}
+              >
+                <div
+                  className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors duration-200"
+                  style={{
+                    background: `${colors.accent}10`,
+                    color: colors.accent,
+                  }}
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Settings</span>
+                  <span className="text-[11px] text-muted-foreground">Preferences & account</span>
+                </div>
+              </DropdownMenuItem>
+
+              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-1" />
+
+              <DropdownMenuItem
+                className="group gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
+                onClick={handleLogout}
+                variant="destructive"
+              >
+                <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-red-50 text-red-500 group-hover:bg-red-500 group-hover:text-white group-focus:bg-red-500 group-focus:text-white transition-colors duration-200">
+                  <LogOut className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">Log Out</span>
+                  <span className="text-[11px] opacity-70">End your session</span>
+                </div>
+              </DropdownMenuItem>
+            </div>
           </DropdownMenuContent>
         </DropdownMenu>
       )}
