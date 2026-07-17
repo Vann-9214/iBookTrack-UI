@@ -135,8 +135,25 @@ export default function DashboardPage() {
       const pipelineData = await pipelineRes.json()
       const boxesData = await boxesRes.json()
 
-      const boxes = boxesData.boxes || []
+      let boxes = boxesData.boxes || []
 
+      // Dashboard specific logic: Only show boxes processed today (has a session updated today)
+      const now = new Date()
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0).getTime()
+      
+      boxes = boxes.filter((b: any) => {
+        if (!b.box_sessions || b.box_sessions.length === 0) return false
+        // Check if any actual stage transition happened today, not just updated_at
+        return b.box_sessions.some((s: any) => {
+          const times = [
+            s.warehouse_time_received, s.inventory_time_received, s.inventory_time_send,
+            s.cut_time_received, s.cut_time_send, s.endorsement_time_received, s.endorsement_time_send,
+            s.scan_time_received, b.latest_inventory_scan_at, b.latest_endorsement_scan_at
+          ].filter(Boolean)
+          
+          return times.some(t => new Date(t).getTime() >= startOfDay)
+        })
+      })
       let dailyTransmitted = 0
       let simflexAllTime = 0
       let scanWipCount = 0
@@ -176,24 +193,20 @@ export default function DashboardPage() {
 
       STAGE_ORDER.forEach(stage => {
         let stageBoxes = boxes.filter((b: any) => {
-          if (stage === 'transmit') return b.current_stage === 'scan'
+          if (stage === 'transmit') return b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
           if (stage === 'storage') {
             const isActuallyStorage = b.current_stage === 'storage'
-            const isScanButFullyCompleted = b.current_stage === 'scan'
-              && scanEligibleBoxNums !== null
-              && transmitEligibleBoxNums !== null
-              && !scanEligibleBoxNums.has(b.box_number)
-              && !transmitEligibleBoxNums.has(b.box_number)
+            const isScanButFullyCompleted = b.current_stage === 'scan' && b.is_fully_completed_in_simflex
             return isActuallyStorage || isScanButFullyCompleted
+          }
+          if (stage === 'scan') {
+            return b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
           }
           return b.current_stage === stage
         })
 
         if (stage === 'warehouse') {
           stageBoxes = stageBoxes.filter((b: any) => b.total_books_expected > 0)
-        }
-        if (stage === 'scan' && scanEligibleBoxNums !== null) {
-          stageBoxes = stageBoxes.filter((b: any) => scanEligibleBoxNums!.has(b.box_number))
         }
 
         const bottleneckCount = (stage === 'transmit') ? 0 : stageBoxes.filter((b: any) => {
@@ -341,55 +354,75 @@ export default function DashboardPage() {
       {/* Main Content */}
       <DashboardMain>
         <DashboardNavbar />
-        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+          <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
             {/* Page Header */}
             <header className="flex flex-col gap-3">
               {/* Title row — always visible */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-                <div className="flex items-center gap-4">
-                  <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                    <LayoutDashboard className="h-7 w-7" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
-                      Command Center
-                    </h1>
-                    <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                      Overview of operations for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
-                    </p>
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className={cn("p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                  <LayoutDashboard className="h-6 w-6 sm:h-7 sm:w-7" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0">
+                      <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">
+                        Command Center
+                      </h1>
+                      <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
+                        Overview of operations for{' '}
+                        <span className={cn(
+                          "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
+                          brand === 'jaguar'
+                            ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+                            : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                        )}>
+                          {brand}
+                        </span>
+                      </p>
+                    </div>
+                    {/* Search + Refresh — right side */}
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      {/* Mobile Refresh Button (Icon Only) */}
+                      <button
+                        onClick={refreshAll}
+                        disabled={isRefreshing}
+                        className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+                        aria-label="Refresh Dashboard"
+                      >
+                        <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                      </button>
+                      
+                      {/* Desktop Search Button */}
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => setSearchOpen(true)}
+                        className="hidden sm:inline-flex gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shrink-0"
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                        Search
+                      </Button>
+                      
+                      {/* Desktop Refresh Control */}
+                      <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} lastUpdated={lastStatsUpdate} storageKey="dashboard" className="hidden sm:flex" />
+                    </div>
                   </div>
                 </div>
-                {/* Refresh + timestamp — hidden on mobile */}
-                <RefreshControl onRefresh={refreshAll} refreshing={isRefreshing} lastUpdated={lastStatsUpdate} storageKey="dashboard" className="hidden sm:flex" />
-              </div>
-
-              {/* Controls row — scan + search always on one line */}
-              <div className="flex items-center gap-2 justify-end"> 
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={() => setSearchOpen(true)}
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shrink-0"
-                >
-                  <Search className="h-4 w-4" />
-                  <span className="hidden xs:inline">Search ISBN / Lot</span>
-                  <span className="xs:hidden">Search</span>
-                </Button>
               </div>
 
               {/* Search Dashboard Modal */}
               {searchOpen && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSearchOpen(false)}>
-                    <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setSearchOpen(false)}>
+                    <div className="bg-card border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-md max-h-[88vh] flex flex-col overflow-hidden animate-modal-in" onClick={e => e.stopPropagation()}>
                       {/* Header */}
-                      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/30 bg-primary/10">
-                            <Search className="h-5 w-5 text-primary" />
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary shadow-sm">
+                            <Search className="h-5 w-5" />
                           </div>
                           <div>
-                            <h3 className="text-base font-semibold text-foreground">Search Dashboard</h3>
+                            <h3 className="text-lg font-bold tracking-tight text-foreground">Search Dashboard</h3>
                             <p className="text-xs text-muted-foreground">Search by ISBN or view all books in a lot</p>
                           </div>
                         </div>
@@ -507,8 +540,10 @@ export default function DashboardPage() {
               <Card className="border-border bg-card">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      {searchResult.type === 'isbn' ? <Book className="h-5 w-5" /> : <Package className="h-5 w-5" />}
+                    <CardTitle className="flex items-center gap-2 text-lg font-bold tracking-tight">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                        {searchResult.type === 'isbn' ? <Book className="h-4 w-4" /> : <Package className="h-4 w-4" />}
+                      </span>
                       {searchResult.type === 'isbn' ? 'ISBN Search Result' : 'Lot Search Results'}
                     </CardTitle>
                     <button
@@ -691,23 +726,39 @@ export default function DashboardPage() {
 
       {/* Box Scan Modal */}
       {(boxScanModal || loadingBoxScan) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setBoxScanModal(null)}>
-          <div className="bg-card border border-border rounded-xl shadow-xl p-5 w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">{boxScanModal?.box.box_number}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books_expected} books
-                </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setBoxScanModal(null)}>
+          <div className="bg-card border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-modal-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-primary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary shadow-sm">
+                  <Package className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold tracking-tight text-foreground">{boxScanModal?.box.box_number}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {boxScanModal?.box.lot?.lot_number} · <span className="capitalize">{boxScanModal?.box.current_stage}</span> · {boxScanModal?.box.total_books_expected} books
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setBoxScanModal(null)} className="text-muted-foreground hover:text-foreground text-lg leading-none">✕</button>
+              <button onClick={() => setBoxScanModal(null)} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
             {loadingBoxScan ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">Loading contents...</p>
+              <div className="flex flex-col items-center justify-center gap-3 py-14">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Loading contents...</p>
+              </div>
             ) : boxScanModal && boxScanModal.books.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">No scan records found for this box.</p>
+              <div className="flex flex-col items-center justify-center gap-3 py-14">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground ring-1 ring-border">
+                  <Package className="h-7 w-7" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">No scan records</p>
+                <p className="text-xs text-muted-foreground">This box has no scanned books yet.</p>
+              </div>
             ) : (
-              <div className="overflow-y-auto flex-1">
+              <div className="overflow-y-auto flex-1 px-5 py-4">
                 <table className="w-full text-xs">
                   <thead className="sticky top-0 bg-card">
                     <tr className="text-muted-foreground border-b border-border">
@@ -719,7 +770,7 @@ export default function DashboardPage() {
                   </thead>
                   <tbody>
                     {boxScanModal?.books.map((book: any, i: number) => (
-                      <tr key={book.id} className="border-b border-border/40 last:border-0">
+                      <tr key={book.id} className="border-b border-border/40 last:border-0 hover:bg-muted/40 transition-colors">
                         <td className="py-1.5 text-muted-foreground pr-2">{i + 1}</td>
                         <td className="py-1.5 pr-3">{book.isbn}</td>
                         <td className="py-1.5 pr-3 max-w-[260px] truncate text-foreground">{book.title || '—'}</td>

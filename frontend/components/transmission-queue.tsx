@@ -135,15 +135,15 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
-    <Card className="border-border bg-card flex flex-col overflow-hidden p-0 h-full">
+    <Card className={cn("border-border bg-card flex flex-col overflow-hidden p-0 h-full border-t-2 shadow-sm", brand === 'jaguar' ? "border-t-green-500" : "border-t-blue-600")}>
       {/* Header - sticky */}
-      <div className={cn("flex items-center justify-between px-5 py-4 border-b shrink-0", brand === 'jaguar' ? "bg-green-50 border-green-100" : "bg-blue-50 border-blue-100")}>
+      <div className={cn("flex items-center justify-between px-5 py-4 border-b shrink-0", brand === 'jaguar' ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100" : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100")}>
         <div className="flex items-center gap-3">
-          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")}>
+          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-800">Live Transmission Feed</p>
+            <p className="text-base font-bold tracking-tight text-gray-800">Live WIP Books</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className={cn("h-1.5 w-1.5 rounded-full", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")} />
               <span className={cn("text-xs font-medium", brand === 'jaguar' ? "text-green-500" : "text-blue-500")}>
@@ -165,29 +165,37 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
 
       <CardContent className="flex-1 p-0 min-h-0">
         {propLoading || loading ? (
-          <div className="h-full overflow-hidden px-4 py-3">
-            <div className="flex gap-3 mb-3">
-              <Skeleton className="h-8 w-28 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-32 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-20 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-28 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-24 rounded bg-muted-foreground/20" />
-              <Skeleton className="h-8 w-20 rounded bg-muted-foreground/20" />
-            </div>
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="flex gap-3 py-2 border-b border-gray-50 last:border-0">
-                <Skeleton className="h-4 w-20 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-28 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-36 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-16 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-28 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-24 rounded bg-muted-foreground/20" />
-                <Skeleton className="h-4 w-20 ml-auto rounded bg-muted-foreground/20" />
-              </div>
-            ))}
+          <div className="h-full overflow-hidden flex flex-col relative z-0">
+            <Table>
+              <TableHeader className="bg-white/50 backdrop-blur-sm">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Lot</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <TableRow key={i} className="border-border/50 hover:bg-transparent">
+                    <TableCell><Skeleton className="h-3.5 w-24 sm:w-28 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-12 sm:w-16 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-10 sm:w-12 rounded bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-12 sm:w-14 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-20 sm:w-24 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-6 sm:w-8 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-16 sm:w-20 rounded-full bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-16 sm:w-20 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell><Skeleton className="h-3.5 w-10 sm:w-12 ml-auto rounded-sm bg-muted-foreground/10" /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         ) : scans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
