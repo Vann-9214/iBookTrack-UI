@@ -656,7 +656,7 @@ export default function WarehouseLocatorPage() {
             </header>
 
             {/* Search */}
-            <div className="flex items-center gap-2 justify-end">
+            <div className="flex items-center gap-2 justify-center">
               <div className="relative flex-1 max-w-lg bg-white">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
