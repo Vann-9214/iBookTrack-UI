@@ -74,6 +74,7 @@ type ReadyBox = {
 
 type SearchResult = {
   assignment_id: string
+  status?: 'pending' | 'confirmed'
   box_id: string
   box_number: string
   lot_number: string | null
@@ -103,6 +104,10 @@ export default function WarehouseLocatorPage() {
   const [searchUnlocated, setSearchUnlocated] = useState<{ box_number: string }[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchDone, setSearchDone] = useState(false)
+  const [searchKind, setSearchKind] = useState<'box' | 'lot' | 'isbn' | null>(null)
+  const [appliedSearchQuery, setAppliedSearchQuery] = useState('')
+  const [searchValidationError, setSearchValidationError] = useState<string | null>(null)
+  const [lotSearchSummary, setLotSearchSummary] = useState<{ lotNumbers: string[] } | null>(null)
   const [highlightedCells, setHighlightedCells] = useState<Set<string>>(new Set())
 
   // Section navigation
@@ -282,22 +287,68 @@ export default function WarehouseLocatorPage() {
   }
 
   const handleSearch = async () => {
-    const q = searchValue.trim()
-    if (!q) { setHighlightedCells(new Set()); setSearchDone(false); setSearchResults([]); return }
+    const rawQuery = searchValue.trim()
+    if (!rawQuery) { clearSearch(); return }
+
+    const boxMatch = rawQuery.match(/^box\s*(?:[:#-]\s*)?(.+)$/i)
+    const lotMatch = rawQuery.match(/^lot\s*(?:[:#-]\s*)?(.+)$/i)
+    const normalizedIsbn = rawQuery.replace(/[\s-]/g, '')
+    const isFullIsbn = /^(?:\d{9}[\dXx]|\d{13})$/.test(normalizedIsbn)
+    const kind = boxMatch ? 'box' : lotMatch ? 'lot' : isFullIsbn ? 'isbn' : null
+    const query = boxMatch?.[1].trim() || (lotMatch ? `Lot ${lotMatch[1].trim()}` : normalizedIsbn)
+
+    if (!kind || !query) {
+      setSearchValidationError('Enter Box before a box number, Lot before a lot number, or a complete 10/13-digit ISBN.')
+      setSearchDone(false)
+      setSearchResults([])
+      setSearchUnlocated([])
+      setHighlightedCells(new Set())
+      setLotSearchSummary(null)
+      return
+    }
+
+    setSearchKind(kind)
+    setAppliedSearchQuery(query.toLowerCase())
+    setSearchValidationError(null)
     setSearchLoading(true)
     setSearchDone(false)
+    setLotSearchSummary(null)
     try {
-      const res = await authFetch(`${API_URL}/api/storage/search?q=${encodeURIComponent(q)}`)
+      const res = await authFetch(`${API_URL}/api/storage/search?q=${encodeURIComponent(query)}&box_type=${encodeURIComponent(brand)}&search_type=${kind}`)
       const data = await res.json()
       if (res.ok) {
-        setSearchResults(data.results || [])
+        const normalizedQuery = query.toLowerCase()
+        const rawResults: SearchResult[] = data.results || []
+        const results = kind === 'lot'
+          ? rawResults.filter(result => result.lot_number?.toLowerCase() === normalizedQuery)
+          : kind === 'box'
+            ? rawResults.filter(result => result.box_number.toLowerCase() === normalizedQuery)
+            : rawResults
+        const pendingAssignmentIds = new Set(pendingAssignments.map(assignment => assignment.assignment_id))
+        const pendingBoxIds = new Set(pendingAssignments.map(assignment => assignment.box_id))
+        const confirmedResults = results.filter(result =>
+          result.status !== 'pending' &&
+          !pendingAssignmentIds.has(result.assignment_id) &&
+          !pendingBoxIds.has(result.box_id)
+        )
+        const matchedBoxIds = new Set(results.map(result => result.box_id))
+        const matchingPendingLocations = pendingAssignments
+          .filter(assignment =>
+            (kind === 'box' && assignment.box_number.toLowerCase() === normalizedQuery) ||
+            (kind === 'lot' && assignment.lot_number?.toLowerCase() === normalizedQuery) ||
+            matchedBoxIds.has(assignment.box_id)
+          )
+          .map(assignment => assignment.location_id)
+
+        setSearchResults(results)
         setSearchUnlocated(data.unlocated || [])
-        const cells = new Set<string>((data.results || []).map((r: SearchResult) => `${r.rack_id}-${r.level}`))
-        setHighlightedCells(cells)
-        // Auto-navigate to section of first result
-        if ((data.results || []).length > 0) {
-          const firstRack: string = data.results[0].rack_id
-          // Detect section: bare letters = section 1, "S{n}-X" = section n
+        setLotSearchSummary(data.lot_summary ? {
+          lotNumbers: data.lot_summary.lot_numbers || [],
+        } : null)
+        setHighlightedCells(new Set(confirmedResults.map(result => `${result.rack_id}-${result.level}`)))
+        setExpandedPendingLocations(new Set(matchingPendingLocations))
+        if (confirmedResults.length > 0) {
+          const firstRack = confirmedResults[0].rack_id
           const match = firstRack.match(/^S(\d+)-/)
           setActiveSection(match ? parseInt(match[1]) : 1)
         }
@@ -313,6 +364,11 @@ export default function WarehouseLocatorPage() {
     setHighlightedCells(new Set())
     setSearchResults([])
     setSearchUnlocated([])
+    setSearchKind(null)
+    setAppliedSearchQuery('')
+    setSearchValidationError(null)
+    setLotSearchSummary(null)
+    setExpandedPendingLocations(new Set())
     setSearchDone(false)
   }
 
@@ -633,12 +689,35 @@ export default function WarehouseLocatorPage() {
   const sectionLevels = getSectionLevels(activeSection)
   const selectedReadyBoxes = readyBoxes.filter(box => selectedReadyBoxIds.has(box.id))
   const suggestedLocation = selectedReadyBoxIds.size > 0 ? getSuggestedLocation(selectedReadyBoxIds.size) : null
-  const pendingLocationGroups = Object.values(pendingAssignments.reduce<Record<string, PendingAssignment[]>>((groups, assignment) => {
+  const activeSearchQuery = searchDone ? appliedSearchQuery : ''
+  const filteredReadyBoxes = activeSearchQuery
+    ? readyBoxes.filter(box =>
+        searchKind === 'box' ? box.box_number.toLowerCase() === activeSearchQuery :
+        searchKind === 'lot' ? box.lot_number?.toLowerCase() === activeSearchQuery :
+        box.books.some(book => book.isbn.replace(/[\s-]/g, '').toLowerCase() === activeSearchQuery)
+      )
+    : readyBoxes
+  const matchedSearchBoxIds = new Set(searchResults.map(result => result.box_id))
+  const filteredPendingAssignments = activeSearchQuery
+    ? pendingAssignments.filter(assignment =>
+        searchKind === 'box' ? assignment.box_number.toLowerCase() === activeSearchQuery :
+        searchKind === 'lot' ? assignment.lot_number?.toLowerCase() === activeSearchQuery :
+        matchedSearchBoxIds.has(assignment.box_id)
+      )
+    : pendingAssignments
+  const pendingLocationGroups = Object.values(filteredPendingAssignments.reduce<Record<string, PendingAssignment[]>>((groups, assignment) => {
     const group = groups[assignment.location_id] || []
     group.push(assignment)
     groups[assignment.location_id] = group
     return groups
   }, {}))
+  const visibleLotSearchBoxCount = new Set([
+    ...filteredReadyBoxes.map(box => box.id),
+    ...filteredPendingAssignments.map(assignment => assignment.box_id),
+    ...searchResults.map(result => result.box_id),
+  ]).size
+  const confirmedDetailAssignments = detailSlot?.assignments.filter(assignment => assignment.status !== 'pending') || []
+  const pendingDetailAssignments = detailSlot?.assignments.filter(assignment => assignment.status === 'pending') || []
 
   const lastUpdateLabel = lastUpdated
     ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`
@@ -676,9 +755,9 @@ export default function WarehouseLocatorPage() {
               <div className="relative flex-1 max-w-lg bg-white">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Search by ISBN, Box #, or Lot #…"
+                  placeholder="Full ISBN, Box [number], or Lot [number]…"
                   value={searchValue}
-                  onChange={e => setSearchValue(e.target.value)}
+                  onChange={e => { setSearchValue(e.target.value); setSearchValidationError(null) }}
                   onKeyDown={e => e.key === "Enter" && handleSearch()}
                   className="pl-9 h-10"
                 />
@@ -692,36 +771,64 @@ export default function WarehouseLocatorPage() {
                 </Button>
               )}
             </div>
+            {searchValidationError && (
+              <p className="text-center text-xs text-destructive">{searchValidationError}</p>
+            )}
 
             {/* Search results */}
             {searchDone && (
               <div className="flex flex-col gap-2">
-                {searchResults.length > 0 ? (
-                  searchResults.map(r => (
-                    <div key={r.assignment_id} className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-                      <MapPin className="h-4 w-4 text-primary shrink-0" />
-                      <div className="flex-1 text-sm">
-                        <span className="font-semibold text-foreground">{r.box_number}</span>
-                        {r.lot_number && <span className="text-muted-foreground ml-2">· {r.lot_number.toLowerCase().startsWith('lot') ? r.lot_number : `Lot ${r.lot_number}`}</span>}
-                      </div>
-                      <span className="text-sm font-semibold text-primary">{r.location_label}</span>
-                      <button onClick={() => {
-                        const loc = locations.find(l => l.id === r.location_id)
-                        if (loc) {
-                          const match = loc.rack_id.match(/^S(\d+)-/)
-                          setActiveSection(match ? parseInt(match[1]) : 1)
-                          setDetailSlot(loc)
-                        }
-                      }} className="text-xs underline text-muted-foreground hover:text-foreground">View slot</button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <p className="text-sm text-amber-700 dark:text-amber-400">
-                      No located box found for &ldquo;{searchValue}&rdquo;.
-                      {searchUnlocated.length > 0 && ` Found box(es) not yet assigned to a storage location: ${searchUnlocated.map(u => u.box_number).join(', ')}`}
+                {lotSearchSummary ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                    <Package className="h-4 w-4 shrink-0 text-primary" />
+                    <p className="text-sm font-semibold text-primary">
+                      Found {visibleLotSearchBoxCount} boxes in {lotSearchSummary.lotNumbers.map(number => number.toLowerCase().startsWith('lot') ? number : `Lot ${number}`).join(', ')}
                     </p>
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  searchResults.map(r => {
+                    const isPending = r.status === 'pending' || pendingAssignments.some(assignment =>
+                      assignment.assignment_id === r.assignment_id || assignment.box_id === r.box_id
+                    )
+                    return isPending ? (
+                      <div key={r.assignment_id} className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950/30">
+                        <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+                        <div className="flex-1 text-sm">
+                          <span className="font-semibold text-foreground">Found in Pending Assignments: {r.box_number}</span>
+                          {r.lot_number && <span className="ml-2 text-muted-foreground">· {r.lot_number.toLowerCase().startsWith('lot') ? r.lot_number : `Lot ${r.lot_number}`}</span>}
+                        </div>
+                        <span className="text-sm font-semibold text-amber-700 dark:text-amber-300">{r.location_label}</span>
+                      </div>
+                    ) : (
+                      <div key={r.assignment_id} className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                        <MapPin className="h-4 w-4 shrink-0 text-primary" />
+                        <div className="flex-1 text-sm">
+                          <span className="font-semibold text-foreground">{r.box_number}</span>
+                          {r.lot_number && <span className="ml-2 text-muted-foreground">· {r.lot_number.toLowerCase().startsWith('lot') ? r.lot_number : `Lot ${r.lot_number}`}</span>}
+                        </div>
+                        <span className="text-sm font-semibold text-primary">{r.location_label}</span>
+                        <button onClick={() => {
+                          const loc = locations.find(l => l.id === r.location_id)
+                          if (loc) {
+                            const match = loc.rack_id.match(/^S(\d+)-/)
+                            setActiveSection(match ? parseInt(match[1]) : 1)
+                            setDetailSlot(loc)
+                          }
+                        }} className="text-xs underline text-muted-foreground hover:text-foreground">View slot</button>
+                      </div>
+                    )
+                  })
+                ) : searchUnlocated.length > 0 ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                    <Inbox className="h-4 w-4 shrink-0 text-primary" />
+                    <p className="font-semibold text-foreground text-sm">
+                      Found in Unassigned Boxes: <span className="font-semibold">{searchUnlocated.map(box => box.box_number).join(', ')}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 dark:bg-amber-900/20">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+                    <p className="text-sm text-amber-700 dark:text-amber-400">No box found for &ldquo;{searchValue}&rdquo;.</p>
                   </div>
                 )}
               </div>
@@ -751,7 +858,7 @@ export default function WarehouseLocatorPage() {
                   <Inbox className="h-4 w-4 text-primary shrink-0" />
                   <h3 className="text-sm font-semibold text-card-foreground">Unassigned Boxes</h3>
                   <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
-                    {readyBoxes.length}
+                    {filteredReadyBoxes.length}
                   </span>
                 </div>
                 {loadingReady ? (
@@ -759,22 +866,22 @@ export default function WarehouseLocatorPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-xs">Loading unassigned boxes…</span>
                   </div>
-                ) : readyBoxes.length === 0 ? (
+                ) : filteredReadyBoxes.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
                     <Package className="h-7 w-7 opacity-30" />
-                    <p className="text-xs">No unassigned boxes</p>
-                    <p className="text-[10px] max-w-[200px]">Scan-stage boxes with completed transmission will appear here.</p>
+                    <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
+                    <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
                   </div>
                 ) : (
                   <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
-                    {readyBoxes.map(b => (
+                    {filteredReadyBoxes.map(b => (
                       <button
                         key={b.id}
                         type="button"
                         onClick={() => selectReadyBox(b)}
                         className={cn(
                           "w-full rounded-lg border px-3 py-2 text-left transition-colors",
-                          selectedReadyBoxIds.has(b.id)
+                          selectedReadyBoxIds.has(b.id) || activeSearchQuery
                             ? "border-primary bg-primary/10 ring-2 ring-primary/30"
                             : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
                         )}
@@ -1024,7 +1131,7 @@ export default function WarehouseLocatorPage() {
                   <Clock className="h-4 w-4 text-amber-500 shrink-0" />
                   <h3 className="text-sm font-semibold text-card-foreground">Pending Assignment</h3>
                   <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-600">
-                    {pendingAssignments.length}
+                    {filteredPendingAssignments.length}
                   </span>
                 </div>
                 {loadingPending ? (
@@ -1032,11 +1139,11 @@ export default function WarehouseLocatorPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-xs">Loading pending assignments…</span>
                   </div>
-                ) : pendingAssignments.length === 0 ? (
+                ) : filteredPendingAssignments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
                     <CheckCircle2 className="h-7 w-7 opacity-30" />
-                    <p className="text-xs">No pending assignments</p>
-                    <p className="text-[10px] max-w-[200px]">Assigned boxes awaiting physical placement confirmation will appear here.</p>
+                    <p className="text-xs">{activeSearchQuery ? 'No matching pending boxes' : 'No pending assignments'}</p>
+                    <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Assigned boxes awaiting physical placement confirmation will appear here.'}</p>
                   </div>
                 ) : (
                   <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
@@ -1049,7 +1156,7 @@ export default function WarehouseLocatorPage() {
                       const isConfirming = confirmingId === groupId
                       return (
                         <div key={groupId} className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
-                          <div className="flex items-center gap-1 p-2">
+                          <div className={cn("flex items-center gap-1 rounded-md border border-transparent p-2", activeSearchQuery && !isExpanded && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
                             <button
                               type="button"
                               className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
@@ -1090,7 +1197,7 @@ export default function WarehouseLocatorPage() {
                           {isExpanded && (
                             <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
                               {assignments.map(assignment => (
-                                <div key={assignment.assignment_id} className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
+                                <div key={assignment.assignment_id} className={cn("flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2", activeSearchQuery && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
                                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10">
                                     <Package className="h-5 w-5 text-amber-600" />
                                   </div>
@@ -1214,11 +1321,21 @@ export default function WarehouseLocatorPage() {
               </button>
             )}
 
+            {pendingDetailAssignments.length > 0 && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2.5 text-amber-800 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="text-xs font-semibold">{pendingDetailAssignments.length} box{pendingDetailAssignments.length !== 1 ? 'es are' : ' is'} pending placement</p>
+                  <p className="mt-0.5 text-[10px] opacity-80">Pending boxes are reserved for this location but are not shown as physically stored until confirmed.</p>
+                </div>
+              </div>
+            )}
+
             {/* Box list */}
             <div className="flex-1 overflow-y-auto flex flex-col gap-2">
-              {detailSlot.assignments.length === 0 ? (
+              {confirmedDetailAssignments.length === 0 ? (
                 <div className="flex items-center justify-center py-10 text-sm text-muted-foreground border border-dashed border-border rounded-lg">
-                  This slot is empty
+                  {pendingDetailAssignments.length > 0 ? 'No boxes have been physically placed yet' : 'This slot is empty'}
                 </div>
               ) : (
                 <>
@@ -1227,16 +1344,15 @@ export default function WarehouseLocatorPage() {
                       <input
                         type="checkbox"
                         id="select-all"
-                        checked={detailSlot.assignments.every(a => selectedRemoveAssignments.has(a.assignment_id))}
+                        checked={confirmedDetailAssignments.every(a => selectedRemoveAssignments.has(a.assignment_id))}
                         onChange={() => {
-                          const all = new Set(detailSlot.assignments.map(a => a.assignment_id))
                           setSelectedRemoveAssignments(prev => {
                             const current = new Set(prev)
-                            const allSelected = detailSlot.assignments.every(a => current.has(a.assignment_id))
+                            const allSelected = confirmedDetailAssignments.every(a => current.has(a.assignment_id))
                             if (allSelected) {
-                              detailSlot.assignments.forEach(a => current.delete(a.assignment_id))
+                              confirmedDetailAssignments.forEach(a => current.delete(a.assignment_id))
                             } else {
-                              detailSlot.assignments.forEach(a => current.add(a.assignment_id))
+                              confirmedDetailAssignments.forEach(a => current.add(a.assignment_id))
                             }
                             return current
                           })
@@ -1260,7 +1376,7 @@ export default function WarehouseLocatorPage() {
                       </Button>
                     )}
                   </div>
-                  {detailSlot.assignments.map(a => (
+                  {confirmedDetailAssignments.map(a => (
                     <div key={a.assignment_id} className={cn(
                       "rounded-lg border bg-muted/40 transition-colors",
                       selectedRemoveAssignments.has(a.assignment_id) ? "border-primary bg-primary/5" : "border-border"

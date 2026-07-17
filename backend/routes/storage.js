@@ -418,34 +418,74 @@ router.delete('/assignments/batch', requireAuth, async (req, res) => {
 // Search by ISBN or box_number — returns the rack/level location
 router.get('/search', requireAuth, async (req, res) => {
   try {
-    const { q } = req.query
+    const { q, box_type, search_type } = req.query
     if (!q || !String(q).trim()) {
       return res.status(400).json({ success: false, error: 'Search query is required' })
     }
 
     const query = String(q).trim()
 
-    // Try matching by box_number first
-    const { data: boxByNumber } = await db()
-      .from('boxes')
-      .select('id, box_number')
-      .ilike('box_number', `%${query}%`)
-      .limit(10)
+    let boxByNumber = []
+    if (search_type === 'box') {
+      let boxQuery = db()
+        .from('boxes')
+        .select('id, box_number')
+        .ilike('box_number', query)
+        .limit(10)
+      if (box_type) {
+        const normalizedBoxType = box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase()
+        boxQuery = boxQuery.eq('box_type', normalizedBoxType)
+      }
+      const { data } = await boxQuery
+      boxByNumber = data || []
+    }
 
-    // Try matching by ISBN in book_activity (join with books table)
-    const { data: scansByIsbn } = await db()
-      .from('book_activity')
-      .select('book:books!inner(box_id, isbn, title)')
-      .ilike('book.isbn', `%${query}%`)
-      .limit(10)
+    let scansByIsbn = []
+    if (search_type === 'isbn') {
+      const { data } = await db()
+        .from('book_activity')
+        .select('book:books!inner(box_id, isbn, title)')
+        .ilike('book.isbn', query)
+        .limit(10)
+      scansByIsbn = data || []
+    }
 
+    const { data: lotsByNumber } = search_type === 'lot'
+      ? await db()
+          .from('lots')
+          .select('id, lot_number')
+          .ilike('lot_number', query)
+          .limit(10)
+      : { data: [] }
+
+    let boxesByLot = []
+    let lotBoxCount = 0
+    if (lotsByNumber?.length) {
+      let boxesByLotQuery = db()
+        .from('boxes')
+        .select('id, box_number', { count: 'exact' })
+        .in('lot_id', lotsByNumber.map(lot => lot.id))
+        .limit(10)
+      if (box_type) {
+        const normalizedBoxType = box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase()
+        boxesByLotQuery = boxesByLotQuery.eq('box_type', normalizedBoxType)
+      }
+      const { data, count } = await boxesByLotQuery
+      boxesByLot = data || []
+      lotBoxCount = count || 0
+    }
+    const lotSummary = lotsByNumber?.length
+      ? { lot_numbers: lotsByNumber.map(lot => lot.lot_number), box_count: lotBoxCount }
+      : null
+
+    const matchedBoxes = [...(boxByNumber || []), ...boxesByLot]
     const boxIds = new Set([
-      ...(boxByNumber || []).map(b => b.id),
+      ...matchedBoxes.map(b => b.id),
       ...(scansByIsbn || []).map(s => s.book?.box_id).filter(Boolean),
     ])
 
     if (boxIds.size === 0) {
-      return res.json({ success: true, results: [], message: 'No boxes found matching the search' })
+      return res.json({ success: true, results: [], lot_summary: lotSummary, message: 'No boxes found matching the search' })
     }
 
     // Find assignments for these boxes
@@ -453,6 +493,7 @@ router.get('/search', requireAuth, async (req, res) => {
       .from('storage_assignments')
       .select(`
         id,
+        status,
         box:boxes(id, box_number, lot:lots(lot_number)),
         location:storage_locations(id, rack_id, level)
       `)
@@ -462,6 +503,7 @@ router.get('/search', requireAuth, async (req, res) => {
 
     const results = (assignments || []).map(a => ({
       assignment_id: a.id,
+      status: a.status || 'confirmed',
       box_id: a.box?.id,
       box_number: a.box?.box_number,
       lot_number: a.box?.lot?.lot_number || null,
@@ -474,11 +516,11 @@ router.get('/search', requireAuth, async (req, res) => {
     // Also report which matched boxes are NOT yet in storage
     const assignedBoxIds = new Set(results.map(r => r.box_id))
     const unlocated = Array.from(boxIds).filter(id => !assignedBoxIds.has(id)).map(id => {
-      const box = (boxByNumber || []).find(b => b.id === id)
+      const box = matchedBoxes.find(b => b.id === id)
       return { box_id: id, box_number: box?.box_number || id, located: false }
     })
 
-    res.json({ success: true, results, unlocated })
+    res.json({ success: true, results, unlocated, lot_summary: lotSummary })
   } catch (error) {
     logger.error('Storage search error:', error)
     res.status(500).json({ success: false, error: error.message })
