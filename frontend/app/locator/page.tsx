@@ -731,7 +731,7 @@ export default function WarehouseLocatorPage() {
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,1fr)_3fr_minmax(260px,1fr)] gap-4 items-start">
               {/* Unassigned storage boxes (left) */}
               <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
-                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-t-2 border-t-primary/70 border-b border-b-primary/20 bg-primary/5 px-4 h-14">
                   <Inbox className="h-4 w-4 text-primary shrink-0" />
                   <h3 className="text-sm font-semibold text-card-foreground">Unassigned Boxes</h3>
                   <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
@@ -782,8 +782,8 @@ export default function WarehouseLocatorPage() {
               </div>
 
               {/* Center warehouse layout */}
-              <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-3 pb-3 border-b border-border">
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-xl border-t-2 border-t-primary/70 border-b border-b-primary/20 bg-primary/5 px-4 h-14">
                   <div className="flex items-center gap-2">
                     <Warehouse className="h-4 w-4 text-primary shrink-0" />
                     <h2 className="text-sm font-semibold text-card-foreground">Storage Layout</h2>
@@ -1001,7 +1001,7 @@ export default function WarehouseLocatorPage() {
 
               {/* Pending assignment (right) */}
               <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px]">
-                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border">
+                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-t-2 border-t-amber-500/70 border-b border-b-amber-300/40 bg-amber-50 px-4 h-14 dark:border-t-amber-400/70 dark:border-b-amber-700/50 dark:bg-amber-950/30">
                   <Clock className="h-4 w-4 text-amber-500 shrink-0" />
                   <h3 className="text-sm font-semibold text-card-foreground">Pending Assignment</h3>
                   <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-semibold text-amber-600">
