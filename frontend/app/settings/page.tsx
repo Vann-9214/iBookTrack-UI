@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
+import { PageHeader } from '@/components/page-header'
+import { Settings } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { authFetch, fetchUserProfile } from '@/lib/auth-api'
 
@@ -215,17 +217,14 @@ export default function SettingsPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
-        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
             {/* Page Header */}
-            <header>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Settings
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Manage your account settings and preferences
-              </p>
-            </header>
+            <PageHeader
+              title="Settings"
+              subtitle="Manage your account settings and preferences"
+              icon={Settings}
+            />
 
             {/* Tabs */}
             <div className="border-b border-gray-200">

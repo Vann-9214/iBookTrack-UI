@@ -149,7 +149,7 @@ export default function ReportsPage() {
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
-        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
           {/* Header */}
           <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 flex-wrap">
@@ -158,11 +158,11 @@ export default function ReportsPage() {
                 <BarChart3 className="h-7 w-7" />
               </div>
               <div>
-                <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
                   LOT Status Report
                 </h1>
-                <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5 flex-wrap">
-                  Real-time movement and completion status of all lots for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
+                  Real-time movement and completion status of all lots for <span className={cn("inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none", brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>{brand}</span>
                   {timestamp && <span className="ml-2 hidden sm:inline">· Updated {timestamp}</span>}
                 </p>
               </div>
@@ -171,32 +171,120 @@ export default function ReportsPage() {
           </header>
 
           {/* Summary cards */}
+          {(() => {
+            const isJaguar = brand === 'jaguar'
+            const TONE = {
+              theme: isJaguar
+                ? {
+                    card: "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60",
+                    icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
+                    value: "text-emerald-700",
+                    title: "text-emerald-950/70",
+                    sub: "text-emerald-600/80",
+                    hover: "hover:shadow-emerald-200/60",
+                    activeRing: "ring-2 ring-emerald-500/50 border-emerald-400 shadow-md",
+                  }
+                : {
+                    card: "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-blue-200/70 ring-blue-100/60",
+                    icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
+                    value: "text-blue-700",
+                    title: "text-blue-950/70",
+                    sub: "text-blue-600/80",
+                    hover: "hover:shadow-blue-200/60",
+                    activeRing: "ring-2 ring-blue-500/50 border-blue-400 shadow-md",
+                  },
+              emerald: {
+                card: "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60",
+                icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
+                value: "text-emerald-700",
+                title: "text-emerald-950/70",
+                sub: "text-emerald-600/80",
+                hover: "hover:shadow-emerald-200/60",
+                activeRing: "ring-2 ring-emerald-500/50 border-emerald-400 shadow-md",
+              },
+              amber: {
+                card: "bg-gradient-to-br from-amber-50 to-orange-100/40 border-amber-200/70 ring-amber-100/60",
+                icon: "bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25",
+                value: "text-amber-700",
+                title: "text-amber-950/70",
+                sub: "text-amber-600/80",
+                hover: "hover:shadow-amber-200/60",
+                activeRing: "ring-2 ring-amber-500/50 border-amber-400 shadow-md",
+              },
+              blue: {
+                card: "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-blue-200/70 ring-blue-100/60",
+                icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
+                value: "text-blue-700",
+                title: "text-blue-950/70",
+                sub: "text-blue-600/80",
+                hover: "hover:shadow-blue-200/60",
+                activeRing: "ring-2 ring-blue-500/50 border-blue-400 shadow-md",
+              },
+              solid: isJaguar
+                ? {
+                    card: "bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-600/40 ring-emerald-300/30 text-white",
+                    icon: "bg-white/20 shadow-black/10",
+                    value: "text-white",
+                    title: "text-white/90",
+                    sub: "text-white/70",
+                    hover: "hover:shadow-emerald-500/40",
+                    activeRing: "ring-2 ring-white/50 shadow-lg",
+                  }
+                : {
+                    card: "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600/40 ring-blue-300/30 text-white",
+                    icon: "bg-white/20 shadow-black/10",
+                    value: "text-white",
+                    title: "text-white/90",
+                    sub: "text-white/70",
+                    hover: "hover:shadow-blue-500/40",
+                    activeRing: "ring-2 ring-white/50 shadow-lg",
+                  },
+            } as const
+
+            return (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {(['all', 'closed', 'open', 'in-progress'] as FilterStatus[]).map(s => {
               const meta = s === 'all' ? null : STATUS_META[s]
-              const Icon = meta?.icon
+              const Icon = meta?.icon || Package
               const count = counts[s]
               const active = filter === s
+
+              let tone
+              if (s === 'all') tone = TONE.solid
+              else if (s === 'closed') tone = TONE.emerald
+              else if (s === 'open') tone = TONE.amber
+              else if (s === 'in-progress') tone = TONE.blue
+              else tone = TONE.theme
+
               return (
-                <button
+                <div
                   key={s}
                   onClick={() => setFilter(s)}
                   className={cn(
-                    'flex flex-col items-start gap-1.5 rounded-xl border p-4 text-left transition-all',
-                    active ? 'border-primary bg-primary/5 shadow-sm' : 'border-border bg-card hover:bg-muted/50'
+                    "group relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300 cursor-pointer",
+                    tone.card,
+                    active ? tone.activeRing : cn("hover:-translate-y-1 hover:shadow-xl", tone.hover)
                   )}
                 >
-                  <div className="flex items-center gap-2 w-full">
-                    {Icon && <Icon className={cn('h-4 w-4', meta?.color)} />}
-                    <span className={cn('text-xs font-semibold uppercase tracking-wider', meta?.color ?? 'text-muted-foreground')}>
-                      {s === 'all' ? 'All Lots' : STATUS_META[s].label}
-                    </span>
+                  <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+                  <div className="relative flex items-start justify-between mb-3">
+                    <div className={cn("flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300", tone.icon, !active && "group-hover:scale-110")}>
+                      <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    </div>
+                    <div className={cn("text-3xl sm:text-4xl font-black mb-0.5 tracking-tight tabular-nums", tone.value)}>{count}</div>
                   </div>
-                  <span className="text-2xl font-bold text-foreground">{count}</span>
-                </button>
+                  <div className={cn("relative text-sm font-semibold mb-0.5 truncate", tone.title)}>
+                    {s === 'all' ? 'All Lots' : STATUS_META[s].label}
+                  </div>
+                  <div className={cn("relative text-xs font-medium truncate", tone.sub)}>
+                    {active ? 'Currently filtered' : 'Click to filter'}
+                  </div>
+                </div>
               )
             })}
           </div>
+          )
+          })()}
 
           {/* Filter & Search bar */}
           <div className="flex items-center gap-3 flex-wrap">
