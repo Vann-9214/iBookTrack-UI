@@ -20,8 +20,16 @@ const BrandContext = createContext<BrandContextValue | null>(null)
 export function BrandProvider({ children }: { children: ReactNode }) {
   const [brand, setBrandState] = useState<Brand>('mustang')
 
+  useEffect(() => {
+    const saved = localStorage.getItem('ibooktrack_brand') as Brand
+    if (saved === 'mustang' || saved === 'jaguar') {
+      setBrandState(saved)
+    }
+  }, [])
+
   const setBrand = (b: Brand) => {
     setBrandState(b)
+    localStorage.setItem('ibooktrack_brand', b)
   }
 
   useEffect(() => {

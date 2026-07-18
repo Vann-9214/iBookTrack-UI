@@ -1053,7 +1053,7 @@ router.get('/isbn-stream', requireAuth, async (req, res) => {
   const initialIsbn = req.query.isbn
   if (initialIsbn) {
     try {
-      const { ilmsApi } = await import('../services/ilms-api.js')
+      const { ilmsApi } = await import('../services/ilms/api.js')
       const ilmsResult = await ilmsApi.searchBookByISBN(initialIsbn)
       send('isbn-result', { isbn: initialIsbn, success: ilmsResult.success, data: ilmsResult.data || null, source: ilmsResult.source || null, error: ilmsResult.error || null })
     } catch (err) {
@@ -1117,7 +1117,7 @@ router.post('/isbn-stream/query', requireAuth, validateRequest({
       }
     }
 
-    const { ilmsApi } = await import('../services/ilms-api.js')
+    const { ilmsApi } = await import('../services/ilms/api.js')
     let ilmsResult;
     const projectLabel = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'iLMS'
     
@@ -1179,7 +1179,7 @@ router.get('/search/isbn/:isbn', requireAuth, async (req, res) => {
     const { isbn } = req.params
 
     // First, try to get book details from iLMS API
-    const { ilmsApi } = await import('../services/ilms-api.js')
+    const { ilmsApi } = await import('../services/ilms/api.js')
     const ilmsResult = await ilmsApi.searchBookByISBN(isbn)
 
     let bookTitle = null
