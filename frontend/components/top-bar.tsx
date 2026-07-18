@@ -158,6 +158,12 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
       }
     }
     syncUser()
+
+    const handleUpdate = () => {
+      syncUser()
+    }
+    window.addEventListener('ibooktrack-user-updated', handleUpdate)
+    return () => window.removeEventListener('ibooktrack-user-updated', handleUpdate)
   }, [])
 
   const handleLogout = async () => {

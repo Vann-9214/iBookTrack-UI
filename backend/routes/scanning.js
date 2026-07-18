@@ -16,8 +16,8 @@ import { logger } from '../utils/logger.js'
  */
 
 import express from 'express'
-import simflexDb from '../services/simflex-db.js'
-import pipelineCounts from '../services/pipeline-counts.js'
+import scanManagerApi from '../services/scan_manager/api/index.js'
+import scanManagerStatusCounts from '../services/scan_manager/status-counts.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import { supabaseAdmin } from '../config/supabase.js'
@@ -54,8 +54,8 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
 
     if (wipOnly) {
       const [byStage, stageCounts] = await Promise.all([
-        simflexDb.getScanningByStage(fromDate, toDate, location, newProcessOnly),
-        pipelineCounts.getStageCounts(fromDate, toDate, location),
+        scanManagerApi.getScanningByStage(fromDate, toDate, location, newProcessOnly),
+        scanManagerStatusCounts.getStageCounts(fromDate, toDate, location),
       ])
 
       const SCAN_STAGES = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval']
@@ -74,15 +74,15 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
     }
 
     const [summary, byMachine, byStage, data, allTime, dailyOutput, stageCounts, completedTransmissions, allBooks] = await Promise.all([
-      simflexDb.getTodayScanningSummary(fromDate, toDate, location, newProcessOnly),
-      simflexDb.getScanningByMachine(fromDate, toDate, location, newProcessOnly),
-      simflexDb.getScanningByStage(fromDate, toDate, location, newProcessOnly),
-      simflexDb.getScanningData(fromDate, toDate, location, newProcessOnly),
-      simflexDb.getTotalScansAllTime(),
-      simflexDb.getDailyOutputCount(fromDate === toDate ? fromDate : undefined, location),
-      pipelineCounts.getStageCounts(fromDate, toDate, location),
-      simflexDb.getCompletedTransmissionsCount(fromDate, toDate, location, newProcessOnly),
-      simflexDb.getAllBooksToday(fromDate, toDate, location, newProcessOnly)
+      scanManagerApi.getTodayScanningSummary(fromDate, toDate, location, newProcessOnly),
+      scanManagerApi.getScanningByMachine(fromDate, toDate, location, newProcessOnly),
+      scanManagerApi.getScanningByStage(fromDate, toDate, location, newProcessOnly),
+      scanManagerApi.getScanningData(fromDate, toDate, location, newProcessOnly),
+      scanManagerApi.getTotalScansAllTime(),
+      scanManagerApi.getDailyOutputCount(fromDate === toDate ? fromDate : undefined, location),
+      scanManagerStatusCounts.getStageCounts(fromDate, toDate, location),
+      scanManagerApi.getCompletedTransmissionsCount(fromDate, toDate, location, newProcessOnly),
+      scanManagerApi.getAllBooksToday(fromDate, toDate, location, newProcessOnly)
     ])
 
     // Use the same query as the raw-rows endpoint so the pipeline card
@@ -90,8 +90,8 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
     // Only filter by date when the caller explicitly passes a range; otherwise
     // return the full scan-stage dataset so the dashboard matches the modal.
     const scanStageResult = req.query.from && req.query.to
-      ? await simflexDb.getScanStageBoxes(fromDate, toDate, location)
-      : await simflexDb.getScanStageBoxes(undefined, undefined, location)
+      ? await scanManagerApi.getScanStageBoxes(fromDate, toDate, location)
+      : await scanManagerApi.getScanStageBoxes(undefined, undefined, location)
     logger.info('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error)
     const scanBooks = scanStageResult.count || 0
 
@@ -182,7 +182,7 @@ router.get('/live', requireAuth, validateRequest(baseQuerySchema), async (req, r
 router.get('/scan-rows', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
-    const result = await simflexDb.getScanStageBoxes(undefined, undefined, location)
+    const result = await scanManagerApi.getScanStageBoxes(undefined, undefined, location)
     res.json({ success: true, rows: result.data || [], count: result.count })
   } catch (error) {
     logger.error('Error in /scan-rows:', error)
@@ -214,7 +214,7 @@ router.get('/transmit-rows', requireAuth, async (req, res) => {
     const boxType = location.charAt(0).toUpperCase() + location.slice(1).toLowerCase()
 
     // 1. Fetch raw Simflex rows for this location (Transmission_Archive ONGOING today)
-    const simResult = await simflexDb.getTransmitStageRows(location)
+    const simResult = await scanManagerApi.getTransmitStageRows(location)
     const simRows = simResult.data || []
 
     if (simRows.length === 0) {
@@ -306,7 +306,7 @@ router.get('/machine-books', requireAuth, async (req, res) => {
     const machine = String(req.query.machine || '').trim()
     if (!machine) return res.status(400).json({ success: false, error: 'machine query param required' })
 
-    const result = await simflexDb.getBooksByMachine(
+    const result = await scanManagerApi.getBooksByMachine(
       req.query.from,
       req.query.to,
       machine,
@@ -328,7 +328,7 @@ router.get('/machine-books', requireAuth, async (req, res) => {
 router.get('/ranking', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
-    const result = await simflexDb.getScanningRanking(req.query.date, location)
+    const result = await scanManagerApi.getScanningRanking(req.query.date, location)
     res.json(result)
   } catch (error) {
     res.status(500).json({ success: false, error: error.message })
@@ -342,7 +342,7 @@ router.get('/ranking', requireAuth, validateRequest(baseQuerySchema), async (req
 router.get('/export', requireAuth, validateRequest(baseQuerySchema), async (req, res) => {
   try {
     const location = req.query.location || 'mustang'
-    const result = await simflexDb.getScanningExportData(req.query.date, location)
+    const result = await scanManagerApi.getScanningExportData(req.query.date, location)
     if (!result.success) return res.status(500).json(result)
     const rows = result.data
     const headers = ['ScanDate', 'ScanUser', 'BoxNumber', 'ISBN', 'PageCount', 'Status', 'Machine', 'Updated']
@@ -378,7 +378,7 @@ router.get('/simflex-status', requireAuth, validateRequest({
     const isbnList = String(isbns).split(',').map(s => s.trim()).filter(Boolean)
     if (isbnList.length === 0) return res.json({ success: true, statuses: {} })
 
-    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+    const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
     const result = await getSimflexStatusForISBNs(isbnList, location)
 
     if (!result.success) {
@@ -435,7 +435,7 @@ router.post('/enrich-ilms', requireAuth, async (req, res) => {
 
     // Limit to max 100 per request just in case
     const safeIsbns = isbns.slice(0, 100)
-    const { ilmsApi } = await import('../services/ilms-api.js')
+    const { ilmsApi } = await import('../services/ilms/api.js')
 
     const results = await Promise.all(
       safeIsbns.map(async (isbn) => {

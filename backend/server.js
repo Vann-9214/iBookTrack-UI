@@ -35,7 +35,6 @@ import reportsRoutes   from './routes/reports.js'
 import scanningRoutes  from './routes/scanning.js'
 import storageRoutes   from './routes/storage.js'
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js'
-import { startSimflexPoller } from './services/simflex-poller.js'
 import { logger } from './utils/logger.js'
 
 const app  = express()
@@ -158,9 +157,6 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`🚀 Backend running at http://localhost:${PORT}`)
   // Verify Supabase connection on startup
   await testConnection()
-  // User explicitly requested NO polling. Sync and auto-advance now happens
-  // in real-time when a user reloads/refreshes the page via GET /api/boxes.
-  // startSimflexPoller()
 })
 
 // Drop idle HTTP connections after 2 minutes so the process can't accumulate

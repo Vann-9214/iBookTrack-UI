@@ -15,7 +15,7 @@ import { logger } from '../utils/logger.js'
 import express from 'express'
 import { supabaseAdmin } from '../config/supabase.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
-import { ilmsApi } from '../services/ilms-api.js'
+import { ilmsApi } from '../services/ilms/api.js'
 import { z } from 'zod'
 import { validateRequest } from '../middleware/validateRequest.js'
 
