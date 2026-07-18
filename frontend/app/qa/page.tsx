@@ -529,7 +529,7 @@ export default function BookInspectionPage() {
       <DashboardSidebar navigationLocked={inspSessionActive} />
       <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
         <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
-        <main className="flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
+        <main className="ambient-bg flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
           <div className={cn("mx-auto w-full flex-1 flex flex-col", inspSessionActive ? "max-w-full" : "max-w-6xl")}>
 
             {/* Header */}
@@ -539,11 +539,11 @@ export default function BookInspectionPage() {
                   <CheckCircle className="h-7 w-7" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
                     Endorsement Station
                   </h1>
-                  <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                    Receive boxes from Cut, inspect books, then send to Scan for <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                  <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
+                    Receive boxes from Cut, inspect books, then send to Scan for <span className={cn("inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none", brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>{brand}</span>
                   </p>
                 </div>
               </div>

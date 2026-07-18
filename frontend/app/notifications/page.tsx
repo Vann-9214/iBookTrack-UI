@@ -98,7 +98,7 @@ export default function NotificationsPage() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
-        <div className="flex-1 h-0 min-h-0 overflow-y-auto">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
             {/* Page Header */}
             <header className="flex items-start justify-between gap-4">
@@ -108,17 +108,17 @@ export default function NotificationsPage() {
                     <Bell className="h-7 w-7" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                    <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
                       Notifications
                     </h1>
-                    <p className="mt-1 text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                    <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
                       {loading
                         ? 'Loading live notifications...'
                         : error
                           ? `Unable to refresh live notifications: ${error}`
                           : displayUnreadCount > 0
                             ? `You have ${displayUnreadCount} unread notification${displayUnreadCount !== 1 ? 's' : ''} for`
-                        : 'All notifications read for'} <span className={cn("px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider text-white", brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}>{brand}</span>
+                        : 'All notifications read for'} <span className={cn("inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none", brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>{brand}</span>
                     </p>
                   </div>
                 </div>
