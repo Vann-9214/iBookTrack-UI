@@ -23,22 +23,6 @@ if (!ILMS_AUTH_TOKEN) {
   console.warn('⚠️  ILMS_AUTH_TOKEN is not set in .env — all iLMS API calls will fail.')
 }
 
-export function getTokenPayload(token) {
-  if (!token) return null
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    return JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'))
-  } catch {
-    return null
-  }
-}
-
-export const ILMS_TOKEN_PAYLOAD = getTokenPayload(ILMS_AUTH_TOKEN)
-export const ILMS_TOKEN_IS_EXPIRED = ILMS_TOKEN_PAYLOAD?.exp
-  ? Date.now() >= ILMS_TOKEN_PAYLOAD.exp * 1000
-  : false
-
 // ── Per-project endpoint URLs ─────────────────────────────────────────────────
 const PROJECT_ENDPOINTS = {
   mustang: process.env.ILMS_MUSTANG_URL,

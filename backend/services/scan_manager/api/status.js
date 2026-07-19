@@ -73,17 +73,3 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
     return { success: false, error: error.message, data: [] }
   }
 }
-
-/**
- * Count books added in the requested date range (for the given location) whose
- * latest Simflex status is Transmission_Archive COMPLETED.
- *
- * Matches the legacy tool logic:
- *   - Date filter on DateAdded (the day the ISBN was registered in Simflex)
- *   - Uses the correct Simflex config (database) per location — no machine hostname filter needed
- *   - Deduplicates by latest-status-per-ISBN in JavaScript (Simflex API has no window functions)
- *
- * @param {string} [startDate]
- * @param {string} [endDate]
- * @param {'mustang'|'jaguar'} [location='mustang']
- */

@@ -201,4 +201,4 @@ export async function getStageCounts(startDate, endDate, location = 'mustang') {
   }
 }
 
-export default { getStageCounts, STAGE_DEFINITIONS }
+export default { getStageCounts }
