@@ -80,8 +80,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 const isValidIsbn = (isbn: string): boolean => {
-  const digits = isbn.replace(/[^0-9]/g, '')
-  return digits.length === 10 || digits.length === 13
+  const cleaned = isbn.replace(/[^0-9Xx]/g, '')
+  return cleaned.length === 10 || cleaned.length === 13
 }
 
 // Normalize lot names for comparison: Lot 1, lot-1, Lot-3(1), 1, 1(1) all become "lot1" / "lot3(1)"
@@ -486,11 +486,11 @@ export default function WarehousePage() {
   }
 
   const handleAddIssue = async () => {
-    const cleanIsbn = issueIsbn.trim().replace(/[^0-9]/g, '')
+    const cleanIsbn = issueIsbn.trim().replace(/[^0-9Xx]/g, '')
     if (!cleanIsbn) return
 
     if (!isValidIsbn(cleanIsbn)) {
-      setSessionError('Input is not a valid ISBN (must be 10 or 13 digits).')
+      setSessionError('Input is not a valid ISBN (must be 10 or 13 characters).')
       setIssueIsbn('')
       return
     }
@@ -553,9 +553,9 @@ export default function WarehousePage() {
     
     setSessionError(null)
     
-    const cleanIsbn = isbn.replace(/[^0-9]/g, '')
+    const cleanIsbn = isbn.replace(/[^0-9Xx]/g, '')
     if (!isValidIsbn(cleanIsbn)) {
-      setSessionError('Scanned code is not a valid ISBN (must be 10 or 13 digits).')
+      setSessionError('Scanned code is not a valid ISBN (must be 10 or 13 characters).')
       return
     }
 
@@ -763,7 +763,7 @@ export default function WarehousePage() {
                         <input
                           type="text"
                           value={issueIsbn}
-                          onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9]/g, ''))}
+                          onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9Xx]/g, ''))}
                           onKeyPress={handleIssueKeyPress}
                           placeholder="Input missing ISBN..."
                           className="flex-1 h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"
