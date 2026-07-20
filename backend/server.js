@@ -8,7 +8,7 @@
  *     addresses (localhost / 192.168.x.x / 10.x.x.x / 172.16–31.x.x) are allowed.
  *   - Apply a global rate limiter to every route (prevents abuse / DoS).
  *   - Mount all API route modules under /api/*
- *   - Start the HTTP server and kick off the Simflex background poller.
+ *   - Start the HTTP server and kick off the Scan Manager background poller.
  *
  * Environment variables used here:
  *   PORT           — TCP port the server listens on (default 5000)

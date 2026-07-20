@@ -5,9 +5,9 @@ import { getSimflexStatusForISBNs } from './api/index.js'
 /**
  * services/scan-refresh.js
  * 
- * Provides on-demand synchronization with Simflex.
+ * Provides on-demand synchronization with Scan Manager.
  * Called manually by users via the frontend "Refresh" buttons
- * to check Simflex and advance a box's stage (scan -> transmit -> storage).
+ * to check Scan Manager and advance a box's stage (scan -> transmit -> storage).
  */
 
 // Use admin client if available (bypasses RLS), fall back to anon client
@@ -21,7 +21,7 @@ async function advanceBoxStage(boxId, fromStage, toStage) {
 }
 
 /**
- * Check a single box against Simflex and advance its stage if warranted.
+ * Check a single box against Scan Manager and advance its stage if warranted.
  *
  * @param {{ id, box_number, lot_id, current_stage, box_type }} box
  * @returns {Promise<{ advanced: boolean, newStage: string, message: string }>}
@@ -43,7 +43,7 @@ export async function syncBoxWithSimflex(box) {
     // Deduplicate ISBNs
     const isbns = [...new Set(scans.map(s => s.books?.isbn))]
 
-    // Query Simflex for the latest status of each ISBN
+    // Query Scan Manager for the latest status of each ISBN
     const simflexResult = await getSimflexStatusForISBNs(isbns, box.box_type || 'mustang')
     if (!simflexResult.success) {
       return { advanced: false, newStage: box.current_stage, message: 'Failed to query Simflex.' }
