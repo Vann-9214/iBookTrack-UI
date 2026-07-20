@@ -732,8 +732,8 @@ export default function WarehouseLocatorPage() {
       {/* Main Content */}
       <DashboardMain>
         <DashboardNavbar />
-        <div className="ambient-bg flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="flex-1 flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 min-h-0 overflow-hidden">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+          <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
 
             {/* Page Header */}
             <header className="flex flex-col gap-3">
@@ -881,435 +881,401 @@ export default function WarehouseLocatorPage() {
             )}
 
             {/* Warehouse Grid */}  
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              {/* Storage Layout Column (Left/Center) */}
-              <div className="lg:col-span-2 h-full min-h-0 flex flex-col">
-                <div className={cn("rounded-2xl border border-border/80 bg-card/90 dark:bg-card/75 backdrop-blur-md p-4 shadow-md border-t-2 transition-all duration-300 hover:shadow-lg flex flex-col h-full min-h-0", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
-                  <div className={cn("-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-2xl border-b px-4 h-14",
-                    brand === 'jaguar' 
-                      ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100 dark:from-emerald-950/20 dark:to-green-950/20 dark:border-green-900/40" 
-                      : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-900/40"
-                  )}>
-                    <div className="flex items-center gap-2">
-                      <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", 
-                        brand === 'jaguar' 
-                          ? "bg-gradient-to-br from-emerald-500 to-green-600" 
-                          : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                      )}>
-                        <Warehouse className="h-4.5 w-4.5" />
-                      </div>
-                      <h2 className="text-sm font-bold text-card-foreground">Storage Layout</h2>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {(() => {
-                        const { totalUsed, totalCap } = getSectionStats(activeSection)
-                        const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
-                        return totalCap > 0 ? (
-                           <span className="text-xs text-muted-foreground font-medium">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
-                        ) : null
-                      })()}
-                      <div className="relative" ref={sectionDropdownRef}>
-                        <Button
-                          variant="outline"
-                          className="h-9 gap-2 px-3 bg-card text-foreground hover:bg-accent border border-border"
-                          onClick={() => setSectionDropdownOpen(o => !o)}
-                        >
-                          <LayoutGrid className="h-4 w-4" />
-                          <span className="text-sm">Section {activeSection}</span>
-                          {sectionDropdownOpen
-                            ? <ChevronUp className="h-3.5 w-3.5" />
-                            : <ChevronDown className="h-3.5 w-3.5" />}
-                        </Button>
-                        {sectionDropdownOpen && (
-                          <div className="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-xl border border-border bg-card shadow-lg p-3">
-                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Select Section</p>
-                            <div className="grid grid-cols-5 gap-1.5">
-                              {Array.from({ length: totalSections }, (_, i) => i + 1).map(s => {
-                                const { totalUsed, totalCap, locCount } = getSectionStats(s)
-                                const pct = totalCap > 0 ? (totalUsed / totalCap) * 100 : 0
-                                const dotColor = locCount === 0 ? 'bg-muted-foreground/25' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : pct > 0 ? 'bg-emerald-500' : 'bg-muted-foreground/25'
-                                return (
-                                  <button
-                                    key={s}
-                                    onClick={() => { setActiveSection(s); setSectionDropdownOpen(false) }}
-                                    className={cn(
-                                      "flex flex-col items-center justify-center gap-1 h-10 rounded-lg border text-xs font-semibold transition-all cursor-pointer",
-                                      activeSection === s
-                                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                        : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/60"
-                                    )}
-                                  >
-                                    <span>{s}</span>
-                                    <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-end py-4">
-                              <div className="flex items-center gap-4.5 flex-wrap">
-                                <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-emerald-500" />Active</span>
-                                <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-amber-500" />70–90%</span>
-                                <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-red-500" />&gt;90%</span>
-                                <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>
-                              </div>
-                            </div>
-                              <div className="flex items-center gap-1.5 justify-end">
-                                {totalSections > 1 && (
-                                  <button
-                                    onClick={() => handleRemoveSection(totalSections)}
-                                    disabled={removingSection}
-                                    className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-destructive/50 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50 cursor-pointer"
-                                    title={`Remove Section ${totalSections}`}
-                                  >
-                                    {removingSection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                                    Remove
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
-                                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors cursor-pointer"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                  Add
-                                </button>
-                              </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
+              {/* Unassigned storage boxes (left) */}
+              <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
+                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                    <Inbox className="h-4.5 w-4.5" />
                   </div>
-
-                  {selectedReadyBoxes.length > 0 && (
-                    <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary font-medium shadow-sm animate-pulse shrink-0">
-                      <MapPin className="h-4 w-4 shrink-0" />
-                      {suggestedLocation
-                        ? <>Suggested for <strong>{selectedReadyBoxes.length} selected box{selectedReadyBoxes.length !== 1 ? 'es' : ''}</strong>: Rack {suggestedLocation.rack_id} — Level {suggestedLocation.level}. Click any available slot to assign.</>
-                        : <>No storage slot currently has available capacity for the selected boxes.</>}
-                    </div>
-                  )}
-
-                  {loadingLocations ? (
-                    <div className="flex flex-col items-center justify-center flex-1 gap-3 text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                      <span className="text-sm">Loading storage map…</span>
-                    </div>
-                  ) : (
-                    <div className="flex-1 overflow-y-auto min-h-0 pr-1 flex flex-col gap-3">
-                      <div className="grid grid-cols-[2rem_1px_minmax(0,1fr)_1px_2rem] items-start gap-3 max-w-lg mx-auto w-full">
-                        {/* Level controls */}
-                        <div className="flex flex-col items-start gap-1">
-                          <span className="mb-1 text-left text-xs font-semibold text-muted-foreground">Level</span>
-                          <button
-                            onClick={handleAddLevel}
-                            disabled={addingLevel}
-                            title="Add level"
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-40"
-                          >
-                            {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-4 w-4" />}
-                          </button>
-                          <button
-                            onClick={() => handleRemoveLevel()}
-                            disabled={removingLevel || sectionLevels.length <= 1}
-                            title={`Remove level ${Math.max(...sectionLevels)}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-40"
-                          >
-                            {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          </button>
-                        </div>
-
-                        <div className="w-[1px] h-24 bg-border/60 self-center" />
-
-                        {/* Rack headers and storage slots */}
-                        <div className="grid min-w-0 items-center gap-2" style={{ gridTemplateColumns: `1em repeat(${sectionRacks.length}, minmax(0, 1fr))` }}>
-                          <div />
-                          {sectionRacks.map(r => (
-                            <div key={r} className="pb-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
-                          ))}
-
-                          {sectionLevels.map(level => (
-                            <div key={level} className="contents">
-                              <div className="flex aspect-square items-center justify-start pl-0 text-sm font-semibold text-foreground">{level}</div>
-                              {sectionRacks.map(rack => {
-                                const loc = getLocation(rackId(activeSection, rack), level)
-                                const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
-                                const isSuggested = suggestedLocation?.id === loc?.id
-                                const pendingCount = loc ? getPendingCount(loc) : 0
-                                const used = loc?.used ?? 0
-                                const capacity = loc?.capacity ?? 20
-                                const canFitSelected = capacity - used - pendingCount >= selectedReadyBoxIds.size
-                                return (
-                                  <button
-                                    key={`${rack}-${level}`}
-                                    onClick={() => {
-                                      if (!loc) return
-                                      if (selectedReadyBoxIds.size > 0 && canFitSelected) {
-                                        openAssign(loc)
-                                        return
-                                      }
-                                      setDetailSlot(loc)
-                                    }}
-                                    disabled={!loc}
-                                    title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
-                                    className={cn(
-                                      "aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5 max-w-[80px] w-full mx-auto",
-                                      loc ? pendingCount > 0 && used === 0 ? "bg-amber-100 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800 text-amber-700 dark:text-amber-400" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
-                                      isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
-                                      isSuggested && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10 animate-pulse",
-                                      loc && "hover:scale-105 hover:shadow-md cursor-pointer"
-                                    )}
-                                  >
-                                    {provisioningSection && !loc ? (
-                                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
-                                    ) : loc && pendingCount > 0 ? (
-                                      <>
-                                        <Package className="h-4 w-4 text-foreground/60" />
-                                        <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
-                                        <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"><Clock className="h-2.5 w-2.5" />{pendingCount} pending</span>
-                                      </>
-                                    ) : loc && used > 0 ? (
-                                      <>
-                                        <Package className="h-4 w-4 text-foreground/60" />
-                                        <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
-                                      </>
-                                    ) : loc ? (
-                                      <Plus className="h-4 w-4 text-muted-foreground/40" />
-                                    ) : null}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          ))}
-                        </div>
-
-                        <div className="w-[1px] h-24 bg-border/60 self-center" />
-
-                        {/* Rack controls */}
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="mb-1 text-right text-xs font-semibold text-muted-foreground">Racks</span>
-                          <button
-                            onClick={handleAddRack}
-                            disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
-                            title="Add a new rack"
-                            aria-label="Add a new rack"
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-40"
-                          >
-                            {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-4 w-4" />}
-                          </button>
-                          <button
-                            onClick={() => handleRemoveRack()}
-                            disabled={removingRack || sectionRacks.length <= 1}
-                            title={`Remove last rack (${sectionRacks.at(-1)})`}
-                            aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
-                            className="flex h-8 w-8 items-center justify-center rounded-xl border border-destructive/20 bg-destructive/5 text-destructive hover:bg-destructive hover:text-destructive-foreground shadow-sm transition-all duration-200 cursor-pointer disabled:opacity-40"
-                          >
-                            {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <h3 className="text-sm font-bold text-card-foreground">Unassigned Boxes</h3>
+                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
+                    {filteredReadyBoxes.length}
+                  </span>
                 </div>
+                {loadingReady ? (
+                  <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-xs">Loading unassigned boxes…</span>
+                  </div>
+                ) : filteredReadyBoxes.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
+                    <Package className="h-7 w-7 opacity-30" />
+                    <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
+                    <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
+                    {filteredReadyBoxes.map(b => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => selectReadyBox(b)}
+                        className={cn(
+                          "w-full rounded-lg border px-3 py-2 text-left transition-colors",
+                          selectedReadyBoxIds.has(b.id) || activeSearchQuery
+                            ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                            : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10">
+                            <Package className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-foreground">BOX: {b.box_number}</p>
+                            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                              {b.lot_number && (
+                                <span className="truncate">LOT: {b.lot_number}</span>
+                              )}
+                              {b.lot_number && <span>•</span>}
+                              <span className="whitespace-nowrap">BOOKS: {b.books.length}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Lists Column (Right) */}
-              <div className="lg:col-span-1 flex flex-col gap-4 h-full min-h-0">
-                
-                {/* Unassigned storage boxes */}
-                <div className={cn("rounded-2xl border border-border/80 bg-card/90 dark:bg-card/75 backdrop-blur-md p-4 shadow-md flex flex-col flex-1 min-h-0 border-t-2 transition-all duration-300 hover:shadow-lg", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
-                  <div className={cn("-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-2xl border-b px-4 h-14", 
-                    brand === 'jaguar' 
-                      ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100 dark:from-emerald-950/20 dark:to-green-950/20 dark:border-green-900/40" 
-                      : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-900/40"
-                  )}>
-                    <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", 
-                      brand === 'jaguar' 
-                        ? "bg-gradient-to-br from-emerald-500 to-green-600" 
-                        : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                    )}>
-                      <Inbox className="h-4.5 w-4.5" />
+              {/* Center warehouse layout */}
+              <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
+                <div className="-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                      <Warehouse className="h-4.5 w-4.5" />
                     </div>
-                    <h3 className="text-sm font-bold text-card-foreground">Unassigned Boxes</h3>
-                    <span className={cn("ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold", 
-                      brand === 'jaguar' 
-                        ? "bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400" 
-                        : "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
-                    )}>
-                      {filteredReadyBoxes.length}
-                    </span>
+                    <h2 className="text-sm font-bold text-card-foreground">Storage Layout</h2>
                   </div>
-                  {loadingReady ? (
-                    <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-xs">Loading unassigned boxes…</span>
-                    </div>
-                  ) : filteredReadyBoxes.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground flex-1">
-                      <Package className="h-7 w-7 opacity-30" />
-                      <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
-                      <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
-                    </div>
-                  ) : (
-                    <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
-                      {filteredReadyBoxes.map(b => (
-                        <button
-                          key={b.id}
-                          type="button"
-                          onClick={() => selectReadyBox(b)}
-                          className={cn(
-                            "w-full rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.99] cursor-pointer",
-                            selectedReadyBoxIds.has(b.id) || activeSearchQuery
-                              ? "border-primary bg-primary/10 ring-2 ring-primary/20 shadow-sm"
-                              : "border-border/60 bg-muted/30 hover:border-primary/30 hover:bg-primary/5"
-                          )}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all shadow-sm",
-                              selectedReadyBoxIds.has(b.id) || activeSearchQuery
-                                ? "border-primary/20 bg-primary/20"
-                                : "border-primary/15 bg-primary/10"
-                            )}>
-                              <Package className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-semibold text-foreground">BOX: {b.box_number}</p>
-                              <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                                {b.lot_number && (
-                                  <span className="truncate">LOT: {b.lot_number}</span>
-                                )}
-                                {b.lot_number && <span>•</span>}
-                                <span className="whitespace-nowrap">BOOKS: {b.books.length}</span>
-                              </div>
+                  <div className="flex items-center gap-3">
+                    {(() => {
+                      const { totalUsed, totalCap } = getSectionStats(activeSection)
+                      const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
+                      return totalCap > 0 ? (
+                         <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
+                      ) : null
+                    })()}
+                    <div className="relative" ref={sectionDropdownRef}>
+                      <Button
+                        variant="outline"
+                        className="h-9 gap-2 px-3 bg-card text-foreground hover:bg-accent border border-border"
+                        onClick={() => setSectionDropdownOpen(o => !o)}
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                        <span className="text-sm">Section {activeSection}</span>
+                        {sectionDropdownOpen
+                          ? <ChevronUp className="h-3.5 w-3.5" />
+                          : <ChevronDown className="h-3.5 w-3.5" />}
+                      </Button>
+                      {sectionDropdownOpen && (
+                        <div className="absolute right-0 top-full mt-1.5 z-30 w-64 rounded-xl border border-border bg-card shadow-lg p-3">
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Select Section</p>
+                          <div className="grid grid-cols-5 gap-1.5">
+                            {Array.from({ length: totalSections }, (_, i) => i + 1).map(s => {
+                              const { totalUsed, totalCap, locCount } = getSectionStats(s)
+                              const pct = totalCap > 0 ? (totalUsed / totalCap) * 100 : 0
+                              const dotColor = locCount === 0 ? 'bg-muted-foreground/25' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : pct > 0 ? 'bg-emerald-500' : 'bg-muted-foreground/25'
+                              return (
+                                <button
+                                  key={s}
+                                  onClick={() => { setActiveSection(s); setSectionDropdownOpen(false) }}
+                                  className={cn(
+                                    "flex flex-col items-center justify-center gap-1 h-10 rounded-lg border text-xs font-semibold transition-all",
+                                    activeSection === s
+                                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                      : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/60"
+                                  )}
+                                >
+                                  <span>{s}</span>
+                                  <span className={cn("h-1.5 w-1.5 rounded-full", dotColor)} />
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-end py-4">
+                            <div className="flex items-center gap-4.5 flex-wrap">
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-emerald-500" />Active</span>
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-amber-500" />70–90%</span>
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-red-500" />&gt;90%</span>
+                              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>
                             </div>
                           </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Pending assignment */}
-                <div className="rounded-2xl border border-border/80 bg-card/90 dark:bg-card/75 backdrop-blur-md p-4 shadow-md flex flex-col flex-1 min-h-0 border-t-2 border-t-amber-500 transition-all duration-300 hover:shadow-lg">
-                  <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-2xl border-b border-amber-100 dark:border-amber-900/40 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 px-4 h-14">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shrink-0">
-                      <Clock className="h-4.5 w-4.5" />
-                    </div>
-                    <h3 className="text-sm font-bold text-card-foreground">Pending Assignment</h3>
-                    <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 dark:bg-amber-500/20 px-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                      {filteredPendingAssignments.length}
-                    </span>
-                  </div>
-                  {loadingPending ? (
-                    <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-xs">Loading pending assignments…</span>
-                    </div>
-                  ) : filteredPendingAssignments.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground flex-1">
-                      <CheckCircle2 className="h-7 w-7 opacity-30" />
-                      <p className="text-xs">{activeSearchQuery ? 'No matching pending boxes' : 'No pending assignments'}</p>
-                      <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Assigned boxes awaiting physical placement confirmation will appear here.'}</p>
-                    </div>
-                  ) : (
-                    <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
-                      {pendingLocationGroups.map(assignments => {
-                        const location = assignments[0]
-                        const groupId = location.location_id
-                        const assignmentIds = assignments.map(assignment => assignment.assignment_id)
-                        const isExpanded = expandedPendingLocations.has(groupId)
-                        const isRemoving = assignmentIds.some(id => removingIds.has(id))
-                        const isConfirming = confirmingId === groupId
-                        return (
-                          <div key={groupId} className="overflow-hidden rounded-xl border border-amber-200/60 bg-amber-500/5 dark:border-amber-800/40 dark:bg-amber-950/10 shadow-sm">
-                            <div className={cn("flex items-center gap-1.5 rounded-lg border border-transparent p-2 transition-all", activeSearchQuery && !isExpanded && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
+                            <div className="flex items-center gap-1.5 justify-end">
+                              {totalSections > 1 && (
+                                <button
+                                  onClick={() => handleRemoveSection(totalSections)}
+                                  disabled={removingSection}
+                                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-destructive/50 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+                                  title={`Remove Section ${totalSections}`}
+                                >
+                                  {removingSection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                  Remove
+                                </button>
+                              )}
                               <button
-                                type="button"
-                                className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-amber-100/70 dark:hover:bg-amber-900/30 cursor-pointer"
-                                onClick={() => setExpandedPendingLocations(prev => {
-                                  const next = new Set(prev)
-                                  if (next.has(groupId)) next.delete(groupId)
-                                  else next.add(groupId)
-                                  return next
-                                })}
-                                aria-expanded={isExpanded}
+                                onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
                               >
-                                <MapPin className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                                <span className="truncate text-xs font-semibold text-foreground">Rack {location.rack_id} - Level {location.level}</span>
-                                <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
-                                {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
-                              </button>
-                              <button
-                                type="button"
-                                title="Remove all boxes from this location"
-                                aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack_id}, Level ${location.level}`}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40 cursor-pointer"
-                                disabled={isRemoving || isConfirming}
-                                onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
-                              >
-                                {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                              </button>
-                              <button
-                                type="button"
-                                title="Confirm all boxes at this location"
-                                aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack_id}, Level ${location.level}`}
-                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40 cursor-pointer"
-                                disabled={isConfirming || isRemoving}
-                                onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
-                              >
-                                {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                <Plus className="h-3 w-3" />
+                                Add
                               </button>
                             </div>
-                            {isExpanded && (
-                              <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
-                                {assignments.map(assignment => (
-                                  <div key={assignment.assignment_id} className={cn("flex items-center gap-3 rounded-xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm bg-card p-3", 
-                                    activeSearchQuery 
-                                      ? "border-primary/50 bg-primary/5 ring-2 ring-primary/20 shadow-sm" 
-                                      : "border-border/60 hover:border-amber-500/30"
-                                  )}>
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 shadow-sm">
-                                      <Package className="h-5 w-5 text-amber-600" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                      <p className="truncate text-sm font-bold text-foreground">BOX: {assignment.box_number}</p>
-                                      <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-                                        {assignment.lot_number && <span className="truncate">LOT: {assignment.lot_number}</span>}
-                                        {assignment.lot_number && <span>•</span>}
-                                        <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
-                                      </div>
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-1">
-                                      <button
-                                        type="button"
-                                        title={`Remove box ${assignment.box_number}`}
-                                        aria-label={`Remove pending box ${assignment.box_number}`}
-                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40 cursor-pointer"
-                                        disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
-                                        onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
-                                      >
-                                        {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        title={`Confirm box ${assignment.box_number}`}
-                                        aria-label={`Confirm pending box ${assignment.box_number}`}
-                                        className="flex h-8 w-8 items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-40 cursor-pointer"
-                                        disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
-                                        onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
-                                      >
-                                        {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                      </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {selectedReadyBoxes.length > 0 && (
+                  <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
+                    <MapPin className="h-4 w-4 shrink-0" />
+                    {suggestedLocation
+                      ? <>Suggested for <strong>{selectedReadyBoxes.length} selected box{selectedReadyBoxes.length !== 1 ? 'es' : ''}</strong>: Rack {suggestedLocation.rack_id} — Level {suggestedLocation.level}. Click any available slot to assign.</>
+                      : <>No storage slot currently has available capacity for the selected boxes.</>}
+                  </div>
+                )}
+
+                {loadingLocations ? (
+                  <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="text-sm">Loading storage map…</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-[2rem_1px_minmax(0,1fr)_1px_2rem] items-start gap-3">
+                      {/* Level controls */}
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
+                        <button
+                          onClick={handleAddLevel}
+                          disabled={addingLevel}
+                          title="Add level"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                        >
+                          {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
+                          onClick={() => handleRemoveLevel()}
+                          disabled={removingLevel || sectionLevels.length <= 1}
+                          title={`Remove level ${Math.max(...sectionLevels)}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                        >
+                          {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+
+                      <div className="h-[5.5rem] bg-border" />
+
+                      {/* Rack headers and storage slots */}
+                      <div className="grid min-w-0 items-center gap-2" style={{ gridTemplateColumns: `1em repeat(${sectionRacks.length}, minmax(0, 1fr))` }}>
+                        <div />
+                        {sectionRacks.map(r => (
+                          <div key={r} className="pb-1 text-center text-sm font-semibold text-foreground">Rack {r}</div>
+                        ))}
+
+                        {sectionLevels.map(level => (
+                          <div key={level} className="contents">
+                            <div className="flex aspect-square items-center justify-start pl-0 text-sm font-semibold text-foreground">{level}</div>
+                            {sectionRacks.map(rack => {
+                              const loc = getLocation(rackId(activeSection, rack), level)
+                              const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
+                              const isSuggested = suggestedLocation?.id === loc?.id
+                              const pendingCount = loc ? getPendingCount(loc) : 0
+                              const used = loc?.used ?? 0
+                              const capacity = loc?.capacity ?? 20
+                              const canFitSelected = capacity - used - pendingCount >= selectedReadyBoxIds.size
+                              return (
+                                <button
+                                  key={`${rack}-${level}`}
+                                  onClick={() => {
+                                    if (!loc) return
+                                    if (selectedReadyBoxIds.size > 0 && canFitSelected) {
+                                      openAssign(loc)
+                                      return
+                                    }
+                                    setDetailSlot(loc)
+                                  }}
+                                  disabled={!loc}
+                                  title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
+                                  className={cn(
+                                    "aspect-square rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
+                                    loc ? pendingCount > 0 && used === 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
+                                    isHighlighted && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10",
+                                    isSuggested && "ring-4 ring-primary ring-offset-2 ring-offset-background scale-105 z-10 animate-pulse",
+                                    loc && "hover:scale-105 hover:shadow-md cursor-pointer"
+                                  )}
+                                >
+                                  {provisioningSection && !loc ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                                  ) : loc && pendingCount > 0 ? (
+                                    <>
+                                      <Package className="h-4 w-4 text-foreground/60" />
+                                      <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                      <span className="inline-flex items-center gap-0.5 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"><Clock className="h-2.5 w-2.5" />{pendingCount} pending</span>
+                                    </>
+                                  ) : loc && used > 0 ? (
+                                    <>
+                                      <Package className="h-4 w-4 text-foreground/60" />
+                                      <span className="text-[10px] font-semibold text-foreground/70 leading-tight">{used}/{capacity}</span>
+                                    </>
+                                  ) : loc ? (
+                                    <Plus className="h-4 w-4 text-muted-foreground/40" />
+                                  ) : null}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="h-[5.5rem] bg-border" />
+
+                      {/* Rack controls */}
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
+                        <button
+                          onClick={handleAddRack}
+                          disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
+                          title="Add a new rack"
+                          aria-label="Add a new rack"
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                        >
+                          {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
+                          onClick={() => handleRemoveRack()}
+                          disabled={removingRack || sectionRacks.length <= 1}
+                          title={`Remove last rack (${sectionRacks.at(-1)})`}
+                          aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
+                          className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                        >
+                          {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+
+              {/* Pending assignment (right) */}
+              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2 border-t-amber-500">
+                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 text-amber-600">
+                    <Clock className="h-4.5 w-4.5" />
+                  </div>
+                  <h3 className="text-sm font-bold text-card-foreground">Pending Assignment</h3>
+                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
+                    {filteredPendingAssignments.length}
+                  </span>
+                </div>
+                {loadingPending ? (
+                  <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-xs">Loading pending assignments…</span>
+                  </div>
+                ) : filteredPendingAssignments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
+                    <CheckCircle2 className="h-7 w-7 opacity-30" />
+                    <p className="text-xs">{activeSearchQuery ? 'No matching pending boxes' : 'No pending assignments'}</p>
+                    <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Assigned boxes awaiting physical placement confirmation will appear here.'}</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
+                    {pendingLocationGroups.map(assignments => {
+                      const location = assignments[0]
+                      const groupId = location.location_id
+                      const assignmentIds = assignments.map(assignment => assignment.assignment_id)
+                      const isExpanded = expandedPendingLocations.has(groupId)
+                      const isRemoving = assignmentIds.some(id => removingIds.has(id))
+                      const isConfirming = confirmingId === groupId
+                      return (
+                        <div key={groupId} className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
+                          <div className={cn("flex items-center gap-1 rounded-md border border-transparent p-2", activeSearchQuery && !isExpanded && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
+                            <button
+                              type="button"
+                              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
+                              onClick={() => setExpandedPendingLocations(prev => {
+                                const next = new Set(prev)
+                                if (next.has(groupId)) next.delete(groupId)
+                                else next.add(groupId)
+                                return next
+                              })}
+                              aria-expanded={isExpanded}
+                            >
+                              <MapPin className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                              <span className="truncate text-xs font-semibold text-foreground">Rack {location.rack_id} - Level {location.level}</span>
+                              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
+                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                            </button>
+                            <button
+                              type="button"
+                              title="Remove all boxes from this location"
+                              aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack_id}, Level ${location.level}`}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
+                              disabled={isRemoving || isConfirming}
+                              onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
+                            >
+                              {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                            </button>
+                            <button
+                              type="button"
+                              title="Confirm all boxes at this location"
+                              aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack_id}, Level ${location.level}`}
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
+                              disabled={isConfirming || isRemoving}
+                              onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
+                            >
+                              {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                          {isExpanded && (
+                            <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
+                              {assignments.map(assignment => (
+                                <div key={assignment.assignment_id} className={cn("flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2", activeSearchQuery && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10">
+                                    <Package className="h-5 w-5 text-amber-600" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-semibold text-foreground">BOX: {assignment.box_number}</p>
+                                    <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                                      {assignment.lot_number && <span className="truncate">LOT: {assignment.lot_number}</span>}
+                                      {assignment.lot_number && <span>•</span>}
+                                      <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
                                     </div>
                                   </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
+                                  <div className="flex shrink-0 items-center gap-0.5">
+                                    <button
+                                      type="button"
+                                      title={`Remove box ${assignment.box_number}`}
+                                      aria-label={`Remove pending box ${assignment.box_number}`}
+                                      className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                                      disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
+                                      onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
+                                    >
+                                      {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title={`Confirm box ${assignment.box_number}`}
+                                      aria-label={`Confirm pending box ${assignment.box_number}`}
+                                      className="flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                                      disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
+                                      onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
+                                    >
+                                      {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
