@@ -13,4 +13,4 @@ ALTER TABLE public.lots ADD COLUMN IF NOT EXISTS total_transmitted_books INTEGER
 ALTER TABLE public.lots ADD COLUMN IF NOT EXISTS total_missing_books INTEGER DEFAULT 0;
 ALTER TABLE public.lots ADD COLUMN IF NOT EXISTS total_extra_books INTEGER DEFAULT 0;
 ALTER TABLE public.lots ADD COLUMN IF NOT EXISTS total_nonprocessable_books INTEGER DEFAULT 0;
-ALTER TABLE public.lots ADD COLUMN IF NOT EXISTS total_accepted_books INTEGER DEFAULT 0;
+ALTER TABLE public.lots ADD COLUMN IF NOT EXISTS total_processable_books INTEGER DEFAULT 0;

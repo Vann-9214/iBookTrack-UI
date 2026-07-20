@@ -13,7 +13,8 @@ export const getLocationsService = async () => {
 
   const normalized = locations.map(loc => ({
     id: loc.id,
-    rack_id: loc.rack_id,
+    shelf: loc.shelf,
+    rack: loc.rack,
     level: loc.level,
     capacity: loc.capacity,
     used: (loc.assignments || []).filter(a => (a.status || 'confirmed') === 'confirmed').length,
@@ -45,7 +46,8 @@ export const provisionLocationsService = async (req) => {
 
   const rows = racks.flatMap(rack =>
     levels.map(level => ({
-      rack_id: sec === 1 ? rack : `S${sec}-${rack}`,
+      shelf: sec,
+      rack: rack,
       level: Number(level),
       capacity: Number(capacity),
     }))
@@ -54,13 +56,13 @@ export const provisionLocationsService = async (req) => {
   const { error: upsertError } = await storageRepo.upsertStorageLocations(rows);
   if (upsertError) throw upsertError;
 
-  const rackIds = rows.map(r => r.rack_id);
-  const { data, error: fetchError } = await storageRepo.getStorageLocationsByIds(rackIds);
+  const { data, error: fetchError } = await storageRepo.getStorageLocationsWithAssignments();
   if (fetchError) throw fetchError;
 
   const normalized = (data || []).map(loc => ({
     id: loc.id,
-    rack_id: loc.rack_id,
+    shelf: loc.shelf,
+    rack: loc.rack,
     level: loc.level,
     capacity: loc.capacity,
     used: 0,
@@ -151,7 +153,7 @@ export const assignBatchService = async (req) => {
 
   const currentCount = (existing || []).length;
   if (currentCount + box_ids.length > location.capacity) {
-    throw { status: 400, message: `Rack ${location.rack_id} Level ${location.level} can only hold ${location.capacity} boxes. ${currentCount} already assigned, ${box_ids.length} selected.` };
+    throw { status: 400, message: `Shelf ${location.shelf} Rack ${location.rack} Level ${location.level} can only hold ${location.capacity} boxes. ${currentCount} already assigned, ${box_ids.length} selected.` };
   }
 
   const { data: alreadyAssigned, error: alreadyError } = await storageRepo.getStorageAssignmentsByBoxIds(box_ids);
@@ -253,10 +255,10 @@ export const searchStorageService = async (req) => {
     box_id: a.box?.id,
     box_number: a.box?.box_number,
     lot_number: a.box?.lot?.lot_number || null,
-    rack_id: a.location?.rack_id,
+    rack: a.location?.rack,
     level: a.location?.level,
     location_id: a.location?.id,
-    location_label: `Rack ${a.location?.rack_id} – Level ${a.location?.level}`,
+    location_label: `Shelf ${a.location?.shelf} - Rack ${a.location?.rack} - Level ${a.location?.level}`,
   }));
 
   const assignedBoxIds = new Set(results.map(r => r.box_id));
@@ -282,9 +284,9 @@ export const getPendingAssignmentsService = async (req) => {
     lot_number: a.box?.lot?.lot_number || null,
     total_books: a.box?.total_expected_books || 0,
     location_id: a.location?.id,
-    rack_id: a.location?.rack_id,
+    rack: a.location?.rack,
     level: a.location?.level,
-    location_label: `Rack ${a.location?.rack_id} – Level ${a.location?.level}`,
+    location_label: `Shelf ${a.location?.shelf} - Rack ${a.location?.rack} - Level ${a.location?.level}`,
   }));
 
   return { success: true, assignments };
@@ -304,3 +306,5 @@ export const confirmAssignmentService = async (req) => {
 
   return { success: true, assignment: { id: assignment.id, status: assignment.status } };
 };
+
+

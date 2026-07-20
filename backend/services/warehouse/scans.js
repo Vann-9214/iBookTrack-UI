@@ -346,7 +346,7 @@ export const flagScanService = async (req, res) => {
     if (existingScan.scan_status === 'processable') {
       const { data: session } = await supabaseAdmin
         .from('box_sessions')
-        .select('total_accepted_books, total_nonprocessable_books')
+        .select('total_processable_books, total_nonprocessable_books')
         .eq('id', existingScan.session_id)
         .single()
         
@@ -354,7 +354,7 @@ export const flagScanService = async (req, res) => {
         await supabaseAdmin
           .from('box_sessions')
           .update({
-            total_accepted_books: Math.max(0, session.total_accepted_books - 1),
+            total_processable_books: Math.max(0, session.total_processable_books - 1),
             total_nonprocessable_books: session.total_nonprocessable_books + 1
           })
           .eq('id', existingScan.session_id)
@@ -446,7 +446,7 @@ export const tagScanService = async (req, res) => {
     if (existing.scan_status === 'processable' && (status === 'non_processable' || status === 'reject')) {
       const { data: session } = await supabaseAdmin
         .from('box_sessions')
-        .select('total_accepted_books, total_nonprocessable_books')
+        .select('total_processable_books, total_nonprocessable_books')
         .eq('id', existing.session_id)
         .single()
         
@@ -454,7 +454,7 @@ export const tagScanService = async (req, res) => {
         await supabaseAdmin
           .from('box_sessions')
           .update({
-            total_accepted_books: Math.max(0, session.total_accepted_books - 1),
+            total_processable_books: Math.max(0, session.total_processable_books - 1),
             total_nonprocessable_books: session.total_nonprocessable_books + 1
           })
           .eq('id', existing.session_id)
