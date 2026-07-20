@@ -5,11 +5,13 @@ import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Warehouse, RefreshCw } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
 import { DashboardNavbar } from "@/components/top-bar"
+import { PageHeader } from "@/components/page-header"
 import { useBrand } from "@/hooks/use-brand"
 import { DashboardMain } from "../Dashboard/DashboardMain"
 
@@ -732,53 +734,39 @@ export default function WarehouseLocatorPage() {
       {/* Main Content */}
       <DashboardMain>
         <DashboardNavbar />
-        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
 
             {/* Page Header */}
-            <header className="flex flex-col gap-3">
-              {/* Title row — always visible */}
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className={cn("p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                  <Warehouse className="h-6 w-6 sm:h-7 sm:w-7" />
+            <PageHeader
+              title="Storage Locator"
+              subtitle={
+                <>
+                  Find the physical location of any box for{' '}
+                  <span className={cn(
+                    "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
+                    brand === 'jaguar'
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+                      : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                  )}>
+                    {brand}
+                  </span>
+                </>
+              }
+              icon={Warehouse}
+              rightContent={
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={refreshLocator}
+                    disabled={isRefreshing}
+                    className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+                    aria-label="Refresh Locator"
+                  >
+                    <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                  </button>
+                  <RefreshControl onRefresh={refreshLocator} refreshing={isRefreshing} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                      <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">
-                        Storage Locator
-                      </h1>
-                      <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-                        Find the physical location of any box for{' '}
-                        <span className={cn(
-                          "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
-                          brand === 'jaguar'
-                            ? 'bg-gradient-to-r from-emerald-500 to-green-600'
-                            : 'bg-gradient-to-r from-blue-500 to-indigo-600'
-                        )}>
-                          {brand}
-                        </span>
-                      </p>
-                    </div>
-                    {/* Refresh — right side */}
-                    <div className="flex items-center gap-2 shrink-0 ml-3">
-                      {/* Mobile Refresh Button (Icon Only) */}
-                      <button
-                        onClick={refreshLocator}
-                        disabled={isRefreshing}
-                        className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
-                        aria-label="Refresh Locator"
-                      >
-                        <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-                      </button>
-                      
-                      {/* Desktop Refresh Control */}
-                      <RefreshControl onRefresh={refreshLocator} refreshing={isRefreshing} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </header>
+              }
+            />
 
             {/* Search */}
             <div className="flex items-center gap-2 justify-center max-w-xl mx-auto w-full">
@@ -883,79 +871,85 @@ export default function WarehouseLocatorPage() {
             {/* Warehouse Grid */}  
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
               {/* Unassigned storage boxes (left) */}
-              <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
-                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
-                    <Inbox className="h-4.5 w-4.5" />
+              <Card className="h-fit max-h-[640px]">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
+                      <Inbox className="h-4.5 w-4.5" />
+                    </div>
+                    <CardTitle className="text-base">Unassigned Boxes</CardTitle>
                   </div>
-                  <h3 className="text-sm font-bold text-card-foreground">Unassigned Boxes</h3>
-                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
+                  <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
                     {filteredReadyBoxes.length}
                   </span>
-                </div>
-                {loadingReady ? (
-                  <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-xs">Loading unassigned boxes…</span>
-                  </div>
-                ) : filteredReadyBoxes.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
-                    <Package className="h-7 w-7 opacity-30" />
-                    <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
-                    <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
-                    {filteredReadyBoxes.map(b => (
-                      <button
-                        key={b.id}
-                        type="button"
-                        onClick={() => selectReadyBox(b)}
-                        className={cn(
-                          "w-full rounded-lg border px-3 py-2 text-left transition-colors",
-                          selectedReadyBoxIds.has(b.id) || activeSearchQuery
-                            ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                            : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
-                        )}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10">
-                            <Package className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-foreground">BOX: {b.box_number}</p>
-                            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                              {b.lot_number && (
-                                <span className="truncate">LOT: {b.lot_number}</span>
-                              )}
-                              {b.lot_number && <span>•</span>}
-                              <span className="whitespace-nowrap">BOOKS: {b.books.length}</span>
+                </CardHeader>
+                <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                  {loadingReady ? (
+                    <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs">Loading unassigned boxes…</span>
+                    </div>
+                  ) : filteredReadyBoxes.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
+                      <Package className="h-7 w-7 opacity-30" />
+                      <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
+                      <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
+                      {filteredReadyBoxes.map(b => (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => selectReadyBox(b)}
+                          className={cn(
+                            "w-full rounded-lg border px-3 py-2 text-left transition-colors",
+                            selectedReadyBoxIds.has(b.id) || activeSearchQuery
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                              : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10">
+                              <Package className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-foreground">BOX: {b.box_number}</p>
+                              <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                                {b.lot_number && (
+                                  <span className="truncate">LOT: {b.lot_number}</span>
+                                )}
+                                {b.lot_number && <span>•</span>}
+                                <span className="whitespace-nowrap">BOOKS: {b.books.length}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Center warehouse layout */}
-              <div className={cn("rounded-xl border border-border bg-card p-4 shadow-sm border-t-2", brand === 'jaguar' ? 'border-t-emerald-500' : 'border-t-blue-600')}>
-                <div className="-mx-4 -mt-4 mb-3 flex items-center justify-between rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 text-primary">
                       <Warehouse className="h-4.5 w-4.5" />
                     </div>
-                    <h2 className="text-sm font-bold text-card-foreground">Storage Layout</h2>
+                    <div>
+                      <CardTitle className="text-base">Storage Layout</CardTitle>
+                      {(() => {
+                        const { totalUsed, totalCap } = getSectionStats(activeSection)
+                        const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
+                        return totalCap > 0 ? (
+                          <p className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</p>
+                        ) : null
+                      })()}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    {(() => {
-                      const { totalUsed, totalCap } = getSectionStats(activeSection)
-                      const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
-                      return totalCap > 0 ? (
-                         <span className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</span>
-                      ) : null
-                    })()}
+                  <CardAction>
                     <div className="relative" ref={sectionDropdownRef}>
                       <Button
                         variant="outline"
@@ -1024,10 +1018,10 @@ export default function WarehouseLocatorPage() {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                {selectedReadyBoxes.length > 0 && (
+                  </CardAction>
+                </CardHeader>
+                <CardContent>
+                  {selectedReadyBoxes.length > 0 && (
                   <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
                     <MapPin className="h-4 w-4 shrink-0" />
                     {suggestedLocation
@@ -1157,129 +1151,133 @@ export default function WarehouseLocatorPage() {
 
                   </div>
                 )}
-              </div>
+                </CardContent>
+              </Card>
 
               {/* Pending assignment (right) */}
-              <div className="rounded-xl border border-border bg-card p-4 shadow-sm flex flex-col h-fit max-h-[640px] border-t-2 border-t-amber-500">
-                <div className="-mx-4 -mt-4 mb-3 flex items-center gap-2 rounded-t-xl border-b border-b-border bg-muted/30 px-4 h-14">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 text-amber-600">
-                    <Clock className="h-4.5 w-4.5" />
+              <Card className="h-fit max-h-[640px]">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/10 ring-1 ring-amber-500/20 text-amber-600">
+                      <Clock className="h-4.5 w-4.5" />
+                    </div>
+                    <CardTitle className="text-base">Pending Assignment</CardTitle>
                   </div>
-                  <h3 className="text-sm font-bold text-card-foreground">Pending Assignment</h3>
-                  <span className="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
+                  <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
                     {filteredPendingAssignments.length}
                   </span>
-                </div>
-                {loadingPending ? (
-                  <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-xs">Loading pending assignments…</span>
-                  </div>
-                ) : filteredPendingAssignments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
-                    <CheckCircle2 className="h-7 w-7 opacity-30" />
-                    <p className="text-xs">{activeSearchQuery ? 'No matching pending boxes' : 'No pending assignments'}</p>
-                    <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Assigned boxes awaiting physical placement confirmation will appear here.'}</p>
-                  </div>
-                ) : (
-                  <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
-                    {pendingLocationGroups.map(assignments => {
-                      const location = assignments[0]
-                      const groupId = location.location_id
-                      const assignmentIds = assignments.map(assignment => assignment.assignment_id)
-                      const isExpanded = expandedPendingLocations.has(groupId)
-                      const isRemoving = assignmentIds.some(id => removingIds.has(id))
-                      const isConfirming = confirmingId === groupId
-                      return (
-                        <div key={groupId} className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
-                          <div className={cn("flex items-center gap-1 rounded-md border border-transparent p-2", activeSearchQuery && !isExpanded && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
-                            <button
-                              type="button"
-                              className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
-                              onClick={() => setExpandedPendingLocations(prev => {
-                                const next = new Set(prev)
-                                if (next.has(groupId)) next.delete(groupId)
-                                else next.add(groupId)
-                                return next
-                              })}
-                              aria-expanded={isExpanded}
-                            >
-                              <MapPin className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                              <span className="truncate text-xs font-semibold text-foreground">Rack {location.rack_id} - Level {location.level}</span>
-                              <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
-                              {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
-                            </button>
-                            <button
-                              type="button"
-                              title="Remove all boxes from this location"
-                              aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack_id}, Level ${location.level}`}
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
-                              disabled={isRemoving || isConfirming}
-                              onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
-                            >
-                              {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                            </button>
-                            <button
-                              type="button"
-                              title="Confirm all boxes at this location"
-                              aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack_id}, Level ${location.level}`}
-                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
-                              disabled={isConfirming || isRemoving}
-                              onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
-                            >
-                              {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                            </button>
-                          </div>
-                          {isExpanded && (
-                            <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
-                              {assignments.map(assignment => (
-                                <div key={assignment.assignment_id} className={cn("flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2", activeSearchQuery && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10">
-                                    <Package className="h-5 w-5 text-amber-600" />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-semibold text-foreground">BOX: {assignment.box_number}</p>
-                                    <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                                      {assignment.lot_number && <span className="truncate">LOT: {assignment.lot_number}</span>}
-                                      {assignment.lot_number && <span>•</span>}
-                                      <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
+                </CardHeader>
+                <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                  {loadingPending ? (
+                    <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-xs">Loading pending assignments…</span>
+                    </div>
+                  ) : filteredPendingAssignments.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
+                      <CheckCircle2 className="h-7 w-7 opacity-30" />
+                      <p className="text-xs">{activeSearchQuery ? 'No matching pending boxes' : 'No pending assignments'}</p>
+                      <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Assigned boxes awaiting physical placement confirmation will appear here.'}</p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-y-auto -mr-1 pr-1 space-y-2 min-h-0">
+                      {pendingLocationGroups.map(assignments => {
+                        const location = assignments[0]
+                        const groupId = location.location_id
+                        const assignmentIds = assignments.map(assignment => assignment.assignment_id)
+                        const isExpanded = expandedPendingLocations.has(groupId)
+                        const isRemoving = assignmentIds.some(id => removingIds.has(id))
+                        const isConfirming = confirmingId === groupId
+                        return (
+                          <div key={groupId} className="overflow-hidden rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/20">
+                            <div className={cn("flex items-center gap-1 rounded-md border border-transparent p-2", activeSearchQuery && !isExpanded && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
+                              <button
+                                type="button"
+                                className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-left hover:bg-amber-100/70 dark:hover:bg-amber-900/30"
+                                onClick={() => setExpandedPendingLocations(prev => {
+                                  const next = new Set(prev)
+                                  if (next.has(groupId)) next.delete(groupId)
+                                  else next.add(groupId)
+                                  return next
+                                })}
+                                aria-expanded={isExpanded}
+                              >
+                                <MapPin className="h-3.5 w-3.5 shrink-0 text-amber-600" />
+                                <span className="truncate text-xs font-semibold text-foreground">Rack {location.rack_id} - Level {location.level}</span>
+                                <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
+                                {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                              </button>
+                              <button
+                                type="button"
+                                title="Remove all boxes from this location"
+                                aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack_id}, Level ${location.level}`}
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
+                                disabled={isRemoving || isConfirming}
+                                onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
+                              >
+                                {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              </button>
+                              <button
+                                type="button"
+                                title="Confirm all boxes at this location"
+                                aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack_id}, Level ${location.level}`}
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
+                                disabled={isConfirming || isRemoving}
+                                onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
+                              >
+                                {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                              </button>
+                            </div>
+                            {isExpanded && (
+                              <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
+                                {assignments.map(assignment => (
+                                  <div key={assignment.assignment_id} className={cn("flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2", activeSearchQuery && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 bg-amber-500/10">
+                                      <Package className="h-5 w-5 text-amber-600" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-semibold text-foreground">BOX: {assignment.box_number}</p>
+                                      <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                                        {assignment.lot_number && <span className="truncate">LOT: {assignment.lot_number}</span>}
+                                        {assignment.lot_number && <span>•</span>}
+                                        <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-0.5">
+                                      <button
+                                        type="button"
+                                        title={`Remove box ${assignment.box_number}`}
+                                        aria-label={`Remove pending box ${assignment.box_number}`}
+                                        className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                                        disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
+                                        onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
+                                      >
+                                        {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        title={`Confirm box ${assignment.box_number}`}
+                                        aria-label={`Confirm pending box ${assignment.box_number}`}
+                                        className="flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                                        disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
+                                        onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
+                                      >
+                                        {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                                      </button>
                                     </div>
                                   </div>
-                                  <div className="flex shrink-0 items-center gap-0.5">
-                                    <button
-                                      type="button"
-                                      title={`Remove box ${assignment.box_number}`}
-                                      aria-label={`Remove pending box ${assignment.box_number}`}
-                                      className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
-                                      disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
-                                      onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
-                                    >
-                                      {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      title={`Confirm box ${assignment.box_number}`}
-                                      aria-label={`Confirm pending box ${assignment.box_number}`}
-                                      className="flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40"
-                                      disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
-                                      onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
-                                    >
-                                      {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
-          </div>
         </div>
       </DashboardMain>
 
