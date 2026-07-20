@@ -80,7 +80,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
 const isValidIsbn = (isbn: string): boolean => {
-  const cleaned = isbn.replace(/[^0-9Xx]/g, '')
+  const cleaned = isbn.replace(/[^0-9a-zA-Z]/g, '')
   return cleaned.length === 10 || cleaned.length === 13
 }
 
@@ -486,7 +486,7 @@ export default function WarehousePage() {
   }
 
   const handleAddIssue = async () => {
-    const cleanIsbn = issueIsbn.trim().replace(/[^0-9Xx]/g, '')
+    const cleanIsbn = issueIsbn.trim().replace(/[^0-9a-zA-Z]/g, '').toUpperCase()
     if (!cleanIsbn) return
 
     if (!isValidIsbn(cleanIsbn)) {
@@ -553,7 +553,7 @@ export default function WarehousePage() {
     
     setSessionError(null)
     
-    const cleanIsbn = isbn.replace(/[^0-9Xx]/g, '')
+    const cleanIsbn = isbn.replace(/[^0-9a-zA-Z]/g, '').toUpperCase()
     if (!isValidIsbn(cleanIsbn)) {
       setSessionError('Scanned code is not a valid ISBN (must be 10 or 13 characters).')
       return
@@ -763,7 +763,7 @@ export default function WarehousePage() {
                         <input
                           type="text"
                           value={issueIsbn}
-                          onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9Xx]/g, ''))}
+                          onChange={(e) => setIssueIsbn(e.target.value.replace(/[^0-9a-zA-Z]/g, '').toUpperCase())}
                           onKeyPress={handleIssueKeyPress}
                           placeholder="Input missing ISBN..."
                           className="flex-1 h-10 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 font-mono"

@@ -45,7 +45,7 @@ export const isbnStreamService = async (req, res) => {
 export const queryIsbnStreamService = async (req, res) => {
   const { isbn, type, allowExisting } = req.body
 
-  const cleaned = isbn.replace(/[^0-9a-zA-Z]/g, '')
+  const cleaned = isbn.replace(/[^0-9a-zA-Z]/g, '').toUpperCase()
   if (cleaned.length !== 10 && cleaned.length !== 13) {
     return res.status(400).json({ success: false, error: 'Invalid ISBN. Must be 10 or 13 characters.' })
   }
@@ -86,22 +86,10 @@ export const queryIsbnStreamService = async (req, res) => {
     if (type) {
       const projResult = await ilmsApi.searchByProject(cleaned, type)
       const results = Array.isArray(projResult.data) ? projResult.data : (projResult.data ? [projResult.data] : [])
-      const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9a-zA-Z]/g, '') === cleaned) || null
-      let error = null
-
-      if (!firstHit) {
-        if (results.length > 0) {
-          error = `ISBN ${cleaned} was not found in ${projectLabel} records. The ${projectLabel} iLMS search returned results, but none matched that exact ISBN.`
-        } else {
-          const otherProject = type.toLowerCase() === 'mustang' ? 'Jaguar' : 'Mustang'
-          const otherLookup = await ilmsApi.searchByProject(cleaned, otherProject.toLowerCase())
-          if (otherLookup.success) {
-            error = `ISBN ${cleaned} was not found in ${projectLabel} records. It does appear in ${otherProject} records, so this session may be using the wrong project.`
-          } else {
-            error = `ISBN ${cleaned} was not found in ${projectLabel} records. No exact match was returned by the ${projectLabel} iLMS endpoint.`
-          }
-        }
-      }
+      const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() === cleaned) || null
+      const error = firstHit
+        ? null
+        : `ISBN ${cleaned} was not found in ${projectLabel} records. No exact match was returned by the ${projectLabel} iLMS endpoint.`
 
       ilmsResult = {
         success: !!firstHit,
@@ -112,7 +100,7 @@ export const queryIsbnStreamService = async (req, res) => {
     } else {
       const rawResult = await ilmsApi.searchBookByISBN(cleaned)
       let firstHit = rawResult.data
-      if (firstHit && firstHit.ISBN && firstHit.ISBN.replace(/[^0-9a-zA-Z]/g, '') !== cleaned) {
+      if (firstHit && firstHit.ISBN && firstHit.ISBN.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() !== cleaned) {
         // iLMS did a fuzzy search; reject the title match
         firstHit = null
       }
