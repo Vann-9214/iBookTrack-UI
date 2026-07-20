@@ -27,7 +27,7 @@ type DashboardSidebarProps = {
   navigationLocked?: boolean
 }
 
-function StorageLocatorIcon({ className }: { className?: string }) {
+export function StorageLocatorIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
       <rect x="2" y="2" width="2.5" height="20" rx="0.5" />
