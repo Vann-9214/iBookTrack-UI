@@ -82,8 +82,12 @@ export const getLotStatusService = async (req, res) => {
 
       // 2. Individual Book Progress (50% to 100%)
       let bookAverage = 0;
-      if (baseProgress === 50 && proc.length > 0) {
-        let totalBookScore = 0;
+      let totalBookScore = 0;
+      let pending_books = 0;
+      let wip_books = 0;
+      let transmitted_books = 0;
+
+      if (proc.length > 0) {
         for (const scan of proc) {
           const status = (scan.transmission_status || '').toUpperCase();
           let score = 0;
@@ -99,8 +103,14 @@ export const getLotStatusService = async (req, res) => {
           else if (status.includes('COMPLETE') || status.includes('RECEIVED') || status.includes('SENT') || stage === 'storage') score = 100;
           
           totalBookScore += score;
+          
+          if (score === 100) transmitted_books++;
+          else if (score > 0) wip_books++;
+          else pending_books++;
         }
-        bookAverage = totalBookScore / proc.length;
+        if (baseProgress === 50) {
+          bookAverage = totalBookScore / proc.length;
+        }
       } else if (stage === 'storage') {
         bookAverage = 100;
       }
@@ -138,6 +148,9 @@ export const getLotStatusService = async (req, res) => {
         total_expected_books: b.total_expected_books || 0,
         processable: proc.length,
         non_processable: bScans.length - proc.length,
+        pending_books,
+        wip_books,
+        transmitted_books,
         time_in_stage,
         turnaround_time,
         is_stalled

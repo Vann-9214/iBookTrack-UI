@@ -463,7 +463,10 @@ export default function ReportsPage() {
                                         <th className="px-4 py-2 text-left font-semibold text-muted-foreground w-24">Turnaround</th>
                                         <th className="px-4 py-2 text-left font-semibold text-muted-foreground min-w-[200px]">Progress</th>
                                         <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-16">Total</th>
-                                        <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-20">Processable</th>
+                                          <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-24">Processable</th>
+                                          <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-20">Pending</th>
+                                          <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-16">WIP</th>
+                                          <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-24">Transmitted</th>
                                         <th className="px-6 py-2 text-right font-semibold text-muted-foreground w-24">Non-Processable</th>
                                       </tr>
                                     </thead>
@@ -500,6 +503,9 @@ export default function ReportsPage() {
                                           </td>
                                           <td className="px-4 py-1.5 text-right text-muted-foreground tabular-nums">{box.total_books}</td>
                                           <td className="px-4 py-1.5 text-right font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">{box.processable}</td>
+                                          <td className="px-4 py-1.5 text-right font-medium text-amber-600 dark:text-amber-400 tabular-nums">{box.pending_books || 0}</td>
+                                          <td className="px-4 py-1.5 text-right font-medium text-blue-600 dark:text-blue-400 tabular-nums">{box.wip_books || 0}</td>
+                                          <td className="px-4 py-1.5 text-right font-medium text-violet-600 dark:text-violet-400 tabular-nums">{box.transmitted_books || 0}</td>
                                           <td className="px-6 py-1.5 text-right font-medium text-red-600 dark:text-red-400 tabular-nums">
                                             {box.non_processable > 0 ? box.non_processable : '-'}
                                           </td>
