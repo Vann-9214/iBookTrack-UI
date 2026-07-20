@@ -128,7 +128,14 @@ export const getLotStatusService = async (req, res) => {
           const hours = (new Date() - new Date(stageTime)) / (1000 * 60 * 60);
           time_in_stage = hours;
           if (hours > 24 && stage !== 'storage' && stage !== 'transmit') {
-            is_stalled = true;
+            if (stage === 'scan') {
+              // In Scan, only flag as stalled if all books are completely transmitted but it hasn't moved to storage
+              if (proc.length > 0 && transmitted_books === proc.length) {
+                is_stalled = true;
+              }
+            } else {
+              is_stalled = true;
+            }
           }
         }
         
