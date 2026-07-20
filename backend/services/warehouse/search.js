@@ -27,7 +27,7 @@ export const isbnStreamService = async (req, res) => {
   const initialIsbn = req.query.isbn
   if (initialIsbn) {
     try {
-      const { ilmsApi } = await import('../services/ilms/api.js')
+      const { ilmsApi } = await import('../ilms/api.js')
       const ilmsResult = await ilmsApi.searchBookByISBN(initialIsbn)
       send('isbn-result', { isbn: initialIsbn, success: ilmsResult.success, data: ilmsResult.data || null, source: ilmsResult.source || null, error: ilmsResult.error || null })
     } catch (err) {
@@ -51,8 +51,6 @@ export const queryIsbnStreamService = async (req, res) => {
   }
 
   try {
-    const { supabaseAdmin } = await import('../config/supabase.js');
-
     // Only block global duplicates for normal scans. Missing/extra issue entries
     // are allowed to reference books already scanned in other lots/boxes.
     if (!allowExisting) {
@@ -81,7 +79,7 @@ export const queryIsbnStreamService = async (req, res) => {
       }
     }
 
-    const { ilmsApi } = await import('../services/ilms/api.js')
+    const { ilmsApi } = await import('../ilms/api.js')
     let ilmsResult;
     const projectLabel = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'iLMS'
     
@@ -142,7 +140,7 @@ export const searchIsbnService = async (req, res) => {
     const { isbn } = req.params
 
     // First, try to get book details from iLMS API
-    const { ilmsApi } = await import('../services/ilms/api.js')
+    const { ilmsApi } = await import('../ilms/api.js')
     const ilmsResult = await ilmsApi.searchBookByISBN(isbn)
 
     let bookTitle = null
