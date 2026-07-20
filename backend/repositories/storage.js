@@ -10,7 +10,7 @@ export const getStorageLocationsWithAssignments = async () => {
   return await supabaseAdmin
     .from('storage_locations')
     .select(`
-      id, rack_id, level, capacity,
+      id, shelf, shelf, rack, level, capacity,
       assignments:storage_assignments(
         id, status, assigned_at, assigned_by_name,
         box:boxes(
@@ -23,27 +23,27 @@ export const getStorageLocationsWithAssignments = async () => {
         )
       )
     `)
-    .order('rack_id', { ascending: true })
+    .order('rack', { ascending: true })
     .order('level', { ascending: true });
 };
 
 export const upsertStorageLocations = async (rows) => {
   return await supabaseAdmin
     .from('storage_locations')
-    .upsert(rows, { onConflict: 'rack_id,level', ignoreDuplicates: true });
+    .upsert(rows, { onConflict: 'shelf,rack,level', ignoreDuplicates: true });
 };
 
 export const getStorageLocationsByIds = async (rackIds) => {
   return await supabaseAdmin
     .from('storage_locations')
-    .select('id, rack_id, level, capacity')
-    .in('rack_id', rackIds);
+    .select('id, shelf, shelf, rack, level, capacity')
+    .in('rack', rackIds);
 };
 
 export const getStorageLocationById = async (id) => {
   return await supabaseAdmin
     .from('storage_locations')
-    .select('capacity, assignments:storage_assignments(id), rack_id, level')
+    .select('capacity, assignments:storage_assignments(id), shelf, rack, level')
     .eq('id', id)
     .single();
 };
@@ -53,7 +53,7 @@ export const updateStorageLocationCapacity = async (id, capacity) => {
     .from('storage_locations')
     .update({ capacity })
     .eq('id', id)
-    .select('id, rack_id, level, capacity')
+    .select('id, shelf, shelf, rack, level, capacity')
     .single();
 };
 
@@ -182,7 +182,7 @@ export const getStorageAssignmentsForSearch = async (boxIds) => {
     .select(`
       id, status,
       box:boxes(id, box_number, lot:lots(lot_number)),
-      location:storage_locations(id, rack_id, level)
+      location:storage_locations(id, shelf, shelf, rack, level)
     `)
     .in('box_id', Array.from(boxIds));
 };
@@ -193,7 +193,7 @@ export const getPendingStorageAssignments = async (boxType) => {
     .select(`
       id, status, assigned_at, assigned_by_name,
       box:boxes(id, box_number, total_expected_books, lot_id, box_type, lot:lots(lot_number)),
-      location:storage_locations(id, rack_id, level)
+      location:storage_locations(id, shelf, shelf, rack, level)
     `)
     .eq('status', 'pending');
 

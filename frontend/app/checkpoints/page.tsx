@@ -127,7 +127,7 @@ interface BoxItem {
     updated_at?: string;
     status?: string;
     total_scanned_books?: number;
-    total_processable_books?: number;
+    total_processable_books: number;
   }[]
 }
 
