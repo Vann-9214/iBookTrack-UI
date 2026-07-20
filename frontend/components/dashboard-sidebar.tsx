@@ -14,7 +14,6 @@ import {
   MapPin,
   CheckCircle,
   Radio,
-  Map,
   BarChart3,
   ChevronRight,
   X,
@@ -26,6 +25,21 @@ import { PageLoader } from '@/components/ui/page-loader'
 
 type DashboardSidebarProps = {
   navigationLocked?: boolean
+}
+
+export function StorageLocatorIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+      <rect x="2" y="2" width="2.5" height="20" rx="0.5" />
+      <rect x="19.5" y="2" width="2.5" height="20" rx="0.5" />
+      <rect x="5" y="3" width="4" height="4" />
+      <rect x="5" y="9.5" width="4" height="4" />
+      <rect x="10" y="9.5" width="4" height="4" />
+      <rect x="5" y="16" width="4" height="4" />
+      <rect x="10" y="16" width="4" height="4" />
+      <rect x="15" y="16" width="3.5" height="4" />
+    </svg>
+  )
 }
 
 function LockedNavButton({
@@ -311,7 +325,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             title="Storage Locator"
           >
             {isActive('/locator') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><Map className="h-5 w-5" /></IconCell>
+            <IconCell><StorageLocatorIcon className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
           </LockedNavButton>
 
@@ -457,7 +471,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
           </button>
 
           <button onClick={() => navigate('/locator')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>
-            <Map className="h-5 w-5 shrink-0" />
+            <StorageLocatorIcon className="h-5 w-5 shrink-0" />
             Storage Locator
           </button>
 

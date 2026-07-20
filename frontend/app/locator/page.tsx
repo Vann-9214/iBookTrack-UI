@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
-import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, Warehouse, RefreshCw } from "lucide-react"
+import { Search, MapPin, Package, X, Plus, Minus, Loader2, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, Trash2, BookOpen, AlertTriangle, LayoutGrid, Pencil, Check, CheckCircle2, Inbox, Clock, RefreshCw } from "lucide-react"
+import { StorageLocatorIcon } from "@/components/dashboard-sidebar"
 import { RefreshControl } from "@/components/refresh-control"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
@@ -752,7 +753,7 @@ export default function WarehouseLocatorPage() {
                   </span>
                 </>
               }
-              icon={Warehouse}
+              icon={StorageLocatorIcon}
               rightContent={
                 <div className="flex items-center gap-2">
                   <button
@@ -957,7 +958,7 @@ export default function WarehouseLocatorPage() {
                       ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
                       : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
                     )}>
-                      <Warehouse className="h-5 w-5" />
+                      <StorageLocatorIcon className="h-5 w-5" />
                     </div>
                     <div className="flex flex-col justify-center">
                       <CardTitle className="text-base">Storage Layout</CardTitle>

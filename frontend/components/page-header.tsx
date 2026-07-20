@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils"
 import { useBrand } from "@/hooks/use-brand"
-import { LucideIcon } from "lucide-react"
 
 interface PageHeaderProps {
   title: string
   subtitle?: React.ReactNode
-  icon: LucideIcon
+  icon: React.ComponentType<{ className?: string }>
   rightContent?: React.ReactNode
 }
 
