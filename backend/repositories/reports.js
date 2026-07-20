@@ -22,7 +22,7 @@ export const getLots = async (brandType) => {
 export const getAllBoxesWithSessions = async () => {
   const { data, error } = await supabaseAdmin
     .from('boxes')
-    .select('id, lot_id, current_stage, box_number, total_expected_books, box_sessions(status)');
+    .select('id, lot_id, current_stage, box_number, total_expected_books, box_sessions(status, warehouse_time_received, inventory_time_received, cut_time_received, endorsement_time_received, scan_time_received, updated_at)');
     
   if (error) throw error;
   return data || [];

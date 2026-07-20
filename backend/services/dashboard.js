@@ -98,11 +98,26 @@ export const getOpenLotsService = async (req) => {
 
     boxes.forEach(box => {
       totalBooks += (box.total_expected_books || 0);
-      const stages = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'];
-      const sIndex = stages.indexOf(box.current_stage || '');
-      let boxProgress = sIndex >= 0 ? 10 + Math.round((sIndex / (stages.length - 1)) * 90) : 0;
-      if (box.current_stage === 'storage') boxProgress = 100;
-      lotBoxProgressSum += boxProgress;
+      
+      let baseProgress = 0;
+      const stage = box.current_stage || '';
+      const sessionStatus = box.box_sessions && box.box_sessions.length > 0 ? box.box_sessions[0].status : 'received';
+
+      if (stage === 'warehouse') {
+        baseProgress = 10;
+      } else if (stage === 'inventory') {
+        baseProgress = sessionStatus === 'received' ? 15 : (sessionStatus === 'completed' ? 20 : 25);
+      } else if (stage === 'cut') {
+        baseProgress = sessionStatus === 'received' ? 30 : (sessionStatus === 'completed' ? 35 : 40);
+      } else if (stage === 'endorsement') {
+        baseProgress = sessionStatus === 'received' ? 43 : (sessionStatus === 'completed' ? 46 : 48);
+      } else if (stage === 'scan' || stage === 'transmit') {
+        baseProgress = 50;
+      } else if (stage === 'storage') {
+        baseProgress = 100;
+      }
+      
+      lotBoxProgressSum += baseProgress;
     });
 
     const completionProgress = totalBoxes > 0 ? Math.round(lotBoxProgressSum / totalBoxes) : 0;
