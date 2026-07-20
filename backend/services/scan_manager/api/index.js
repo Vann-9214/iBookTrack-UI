@@ -23,7 +23,6 @@ export const {
 } = stages
 
 export const {
-  getSimflexStatusForISBNsInternal,
   getSimflexStatusForISBNs
 } = status
 
