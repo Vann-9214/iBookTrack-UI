@@ -2,7 +2,7 @@
 /**
  * routes/lots.js
  *
- * Routes for lot management and Simflex transmission summaries.
+ * Routes for lot management and Scan Manager transmission summaries.
  */
 
 import express from 'express';

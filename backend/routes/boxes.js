@@ -13,7 +13,7 @@ import { logger } from '../utils/logger.js'
  *   POST /api/boxes/:id/receive              — Mark a box as received at the current station
  *   POST /api/boxes/:id/advance              — Advance a box to the next pipeline stage
  *   POST /api/boxes/:id/rollback             — Roll a box back to a previous stage (undo)
- *   POST /api/boxes/:id/check-simflex        — Manually trigger a Simflex status check for a box
+ *   POST /api/boxes/:id/check-simflex        — Manually trigger a Scan Manager status check for a box
  *   DELETE /api/boxes/:id                    — Delete a box and its related records
  *
  * All routes require authentication (requireAuth middleware).
@@ -29,7 +29,7 @@ const router = express.Router()
 
 /**
  * Dynamically updates transmission_status in book_activity for all processable
- * books in a box based on their exact current Simflex status.
+ * books in a box based on their exact current Scan Manager status.
  */
 async function syncBoxTransmissionStatus(boxId, db, location) {
   try {
@@ -54,7 +54,7 @@ async function syncBoxTransmissionStatus(boxId, db, location) {
 
     const simflexResult = await getSimflexStatusForISBNs(isbns, boxLocation.toLowerCase())
     if (!simflexResult.success) {
-      console.warn('Failed to reach Simflex for transmission_status sync:', simflexResult.error)
+      console.warn('Failed to reach Scan Manager for transmission_status sync:', simflexResult.error)
       return
     }
 
@@ -265,7 +265,7 @@ router.get('/', requireAuth, async (req, res) => {
       boxes = boxes.filter(b => !(b.current_stage === 'storage' && assignedIds.has(b.id)))
     }
 
-    // Automatically sync Simflex transmission_status for scan boxes in the background
+    // Automatically sync Scan Manager transmission_status for scan boxes in the background
     const scanBoxes = boxes.filter(b => b.current_stage === 'scan' || b.current_stage === 'transmit')
     if (scanBoxes.length > 0) {
       Promise.all(scanBoxes.map(async b => {
@@ -644,7 +644,7 @@ router.post('/:id/advance', requireAuth, validateRequest({
 
     const nextStage = STAGE_ORDER[currentIdx + 1]
 
-    // Validate Scan → Storage: all processable ISBNs must be verified in Simflex
+    // Validate Scan → Storage: all processable ISBNs must be verified in Scan Manager
     if (box.current_stage === 'scan' && nextStage === 'storage') {
       const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
 
@@ -908,7 +908,7 @@ router.post('/:id/rollback', requireAuth, async (req, res) => {
   }
 })
 
-// Get enriched transmission view for a box: all ISBNs with Simflex status + transmission date
+// Get enriched transmission view for a box: all ISBNs with Scan Manager status + transmission date
 // GET /api/boxes/:id/transmission
 router.get('/:id/transmission', requireAuth, async (req, res) => {
   try {
@@ -950,7 +950,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
     const allScans = scans || []
     const processableScans = allScans.filter(s => s.scan_status === 'processable')
 
-    // 3. Batch-fetch Simflex status for all processable ISBNs
+    // 3. Batch-fetch Scan Manager status for all processable ISBNs
     const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
     const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))]
     let simflexMap = {}
@@ -1000,7 +1000,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
   }
 })
 
-// Check Simflex transmission status for all processable books in a box.
+// Check Scan Manager transmission status for all processable books in a box.
 // Syncs and auto-advances the box stage if warranted.
 router.post('/:id/check-simflex', requireAuth, async (req, res) => {
   try {
@@ -1033,7 +1033,7 @@ router.post('/:id/check-simflex', requireAuth, async (req, res) => {
       message: syncResult.message
     })
   } catch (error) {
-    logger.error('Check Simflex error:', error)
+    logger.error('Check Scan Manager error:', error)
     res.status(500).json({ success: false, error: error.message })
   }
 })

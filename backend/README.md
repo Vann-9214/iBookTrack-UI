@@ -24,7 +24,7 @@ Listeners inside this folder react to application events (e.g., `BOX_COMPLETED`)
 ### 📁 `jobs/`
 
 Contains background tasks, scheduled scripts, and cron jobs.
-This is primarily used for low-frequency safety polling or nightly reconciliation tasks. For instance, if an external API (like iLMS or Simflex) does not support webhooks, a script here can safely run every hour to guarantee our database remains perfectly synced without overloading external servers.
+This is primarily used for low-frequency safety polling or nightly reconciliation tasks. For instance, if an external API (like iLMS or Scan Manager) does not support webhooks, a script here can safely run every hour to guarantee our database remains perfectly synced without overloading external servers.
 
 ### 📁 `legacy/`
 
@@ -54,7 +54,7 @@ These files act as a simple directory or map for your API and should remain extr
 ### 📁 `services/`
 
 The "Chefs" of the application where the core business logic lives.
-This is where heavy math, complex data orchestration, and integrations with external APIs (like iLMS or Simflex) take place. Services are called by controllers, execute the core rules of your business, and return clean data back up the chain.
+This is where heavy math, complex data orchestration, and integrations with external APIs (like iLMS or Scan Manager) take place. Services are called by controllers, execute the core rules of your business, and return clean data back up the chain.
 
 ### 📁 `types/`
 

@@ -2,16 +2,16 @@ import { logger } from '../../../utils/logger.js'
 /**
  * services/scan_manager-api.js
  *
- * Queries the Simflex WMS (Warehouse Management System) via its REST API.
- * Simflex tracks the scanning pipeline status of every ISBN (Scanning,
+ * Queries the Scan Manager WMS (Warehouse Management System) via its REST API.
+ * Scan Manager tracks the scanning pipeline status of every ISBN (Scanning,
  * Preval, Tif2PDF, Validate, Transmission_Archive, etc.).
  *
  * All date parameters are sanitized through safeDate() before being
  * embedded in SQL strings to prevent SQL injection.
  *
  * Required environment variables:
- *   SIMFLEX_API_URL          — Full URL to the Simflex SOAP/REST endpoint
- *   SIMFLEX_API_KEY          — API key issued by Simflex
+ *   SIMFLEX_API_URL          — Full URL to the Scan Manager SOAP/REST endpoint
+ *   SIMFLEX_API_KEY          — API key issued by Scan Manager
  *   SIMFLEX_MUSTANG_CONFIG   — Config identifier for Mustang (MDE)
  *   SIMFLEX_JAGUAR_CONFIG    — Config identifier for Jaguar (US) — optional
  */
@@ -104,7 +104,7 @@ export function safeDate(value) {
 
 // ── Status normalization ─────────────────────────────────────────────────────
 /**
- * Normalize Simflex status strings so the Transmission Monitor matches the
+ * Normalize Scan Manager status strings so the Transmission Monitor matches the
  * legacy tool. Jaguar-specific statuses are folded into the standard stage.
  * QA rows are excluded from the monitored workflow.
  */
@@ -124,11 +124,11 @@ export function isMonitoredStatus(status) {
 
 // ── Core query helper ─────────────────────────────────────────────────────────
 /**
- * Sends a raw SQL script string to the Simflex API and returns the result rows.
- * Simflex returns [[row, row, ...]] — we unwrap the outer array automatically.
+ * Sends a raw SQL script string to the Scan Manager API and returns the result rows.
+ * Scan Manager returns [[row, row, ...]] — we unwrap the outer array automatically.
  *
  * @param {string} script    - SQL SELECT statement (no DDL/DML allowed by API)
- * @param {string} [location] - 'mustang' (default) | 'jaguar' — selects the Simflex config
+ * @param {string} [location] - 'mustang' (default) | 'jaguar' — selects the Scan Manager config
  * @returns {Array} rows
  */
 export async function query(script, location = 'mustang', attempt = 1) {
@@ -148,7 +148,7 @@ export async function query(script, location = 'mustang', attempt = 1) {
     // which happen after the connection has been idle for a while.
     const isNetworkError = err.code && ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EPIPE', 'ECONNREFUSED'].includes(err.code)
     if (isNetworkError && attempt === 1) {
-      console.warn(`Simflex query network error (${err.code}), retrying once…`)
+      console.warn(`Scan Manager query network error (${err.code}), retrying once…`)
       return query(script, location, 2)
     }
     throw err

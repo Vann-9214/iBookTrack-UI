@@ -86,7 +86,7 @@ export async function getTodayScanningSummary(startDate, endDate, location = 'mu
 }
 
 /**
- * For a list of ISBNs, return the latest Simflex row per ISBN that has a
+ * For a list of ISBNs, return the latest Scan Manager row per ISBN that has a
  * machine or user. This enriches status-only rows with the actual scan
  * workstation and operator that Scan Manager reports for the book.
  *
@@ -236,7 +236,7 @@ export async function getScanningByStage(startDate, endDate, location = 'mustang
       : sql`CAST(DateAdded AS DATE) = CAST(GETDATE() AS DATE)`
 
     // Fetch all rows for the location and date range, then deduplicate by latest
-    // status per ISBN in JavaScript (Simflex API does not support window functions).
+    // status per ISBN in JavaScript (Scan Manager API does not support window functions).
     const rows = await query(sql`SELECT TOP 10000 ISBN, Status, Updated FROM zeusz_IsbnStatus WHERE ${sql.raw(dateWhere)}${sql.raw(reworkFilter(newProcessOnly))} ORDER BY Updated DESC`,
       location
     )
@@ -275,7 +275,7 @@ export async function getScanningByStage(startDate, endDate, location = 'mustang
 }
 
 /**
- * Get the all-time total scan count from Simflex.
+ * Get the all-time total scan count from Scan Manager.
  * Used to display a "grand total scanned" figure on the dashboard.
  */
 export async function getTotalScansAllTime() {
@@ -360,7 +360,7 @@ export async function getScanningExportData(date, location = 'mustang') {
  * Dashboard Scan stage (step 5) — counts distinct ISBNs in any of the
  * pre-transmission statuses: Scanning, Validate, Tif2PDF, and Preval,
  * both ONGOING and COMPLETED. Filtered to "New Process Only" (IsRework = 'False')
- * so the dashboard/Checkpoints Scan card matches the Simflex grid when the
+ * so the dashboard/Checkpoints Scan card matches the Scan Manager grid when the
  * "New Process Only" checkbox is checked.
  *
  * @param {string} [startDate]

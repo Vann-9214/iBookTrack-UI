@@ -9,7 +9,7 @@ import { logger } from '../utils/logger.js'
  *                                       Supports optional filtering by lot_number or lot range
  *   GET /api/dashboard/open-lots      — Open lots with box/book stats and completion progress
  *   GET /api/dashboard/qc-flags       — List of all open QC flags (books flagged for issues)
- *   GET /api/dashboard/daily-output   — Today's completed transmissions from Simflex
+ *   GET /api/dashboard/daily-output   — Today's completed transmissions from Scan Manager
  *   GET /api/dashboard/lot-details/:lot_number — Stage breakdown and book status counts for a lot
  *   GET /api/dashboard/pipeline-stats — Pipeline stage counts grouped by box type
  *
@@ -427,7 +427,7 @@ router.get('/daily-output', requireAuth, validateRequest({
     const start = (page - 1) * limit
     const paginatedSimflexRows = (simflexRows || []).slice(start, start + limit)
 
-    // Enrich Simflex rows with local book data (title + lot/box via books -> boxes -> lots)
+    // Enrich Scan Manager rows with local book data (title + lot/box via books -> boxes -> lots)
     const isbns = paginatedSimflexRows.map(r => r.isbn).filter(Boolean)
     let booksByIsbn = {}
     if (isbns.length > 0) {
@@ -639,7 +639,7 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
       stageCountsByType[stage] = { mustang: 0, jaguar: 0, total: 0 }
     })
 
-    // 2. Check Simflex for active boxes (in 'scan' or 'transmit' stage)
+    // 2. Check Scan Manager for active boxes (in 'scan' or 'transmit' stage)
     // to determine their real-time Dashboard stage based strictly on their ISBNs.
     const activeBoxIds = boxes.filter(b => b.current_stage === 'scan' || b.current_stage === 'transmit').map(b => b.id)
 
@@ -656,7 +656,7 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
         const isbns = [...new Set(activities.map(a => a.books?.isbn))]
         const location = selectedBrand || 'mustang'
         
-        // Query Simflex live for these exact ISBNs (ignoring Simflex BoxNumbers entirely)
+        // Query Scan Manager live for these exact ISBNs (ignoring Scan Manager BoxNumbers entirely)
         const simflexResult = await getSimflexStatusForISBNs(isbns, location)
         const simflexData = simflexResult.success ? simflexResult.data : []
 
@@ -699,7 +699,7 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
 
     // 3. Aggregate the counts using the live overrides
     boxes.forEach(b => {
-      // Use the live Simflex override if we have one, otherwise use the base Supabase stage
+      // Use the live Scan Manager override if we have one, otherwise use the base Supabase stage
       const effectiveStage = boxStateOverrides[b.id] || b.current_stage
 
       if (stageCountsByType[effectiveStage]) {

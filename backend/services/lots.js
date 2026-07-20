@@ -3,7 +3,7 @@
  *
  * Contains the core business logic for lots.
  * Handles tasks like fetching paginated lot lists, calculating transmission
- * summaries across boxes, and querying external services (Simflex).
+ * summaries across boxes, and querying external services (Scan Manager).
  */
 
 import * as lotsRepo from '../repositories/lots.js';
