@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '../../config/supabase.js';
 import { logger } from '../../utils/logger.js';
-import * as warehouseRepo from '../../repositories/warehouse.js';
+
 
 export const scanBookService = async (req, res) => {
   try {
