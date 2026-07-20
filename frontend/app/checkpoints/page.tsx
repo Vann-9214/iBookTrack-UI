@@ -111,6 +111,7 @@ interface BoxItem {
   box_number: string
   current_stage: Stage
   total_expected_books: number
+  total_transmitted_books?: number
   is_fully_completed_in_simflex?: boolean
 
   lot: { lot_number: string } | null
@@ -126,7 +127,7 @@ interface BoxItem {
     updated_at?: string;
     status?: string;
     total_scanned_books?: number;
-    total_accepted_books?: number;
+    total_processable_books?: number;
   }[]
 }
 
@@ -1347,7 +1348,7 @@ export default function StationCheckpointsPage() {
                                           <div className="min-w-[80px]">
                                             <span className="text-[10px] uppercase font-bold text-muted-foreground block">Books</span>
                                             <span className="text-xs font-semibold text-foreground">
-                                              {box.box_sessions?.[0]?.total_accepted_books ?? 0} / {box.total_expected_books ?? 0}
+                                              {box.box_sessions?.[0]?.total_processable_books ?? 0} / {box.total_expected_books ?? 0}
                                             </span>
                                           </div>
 
@@ -1865,7 +1866,14 @@ export default function StationCheckpointsPage() {
                         <div className="w-[130px] shrink-0">Stage</div>
                       </div>
                       <div className="w-[180px] shrink-0">Status</div>
-                      <div className="w-[130px] shrink-0">Books</div>
+                      <div className="w-[130px] shrink-0">
+                        Books
+                        <div className="text-[8px] opacity-75 font-medium mt-0.5 normal-case tracking-normal">(Processable / Expected)</div>
+                      </div>
+                      <div className="w-[110px] shrink-0">
+                        Transmitted
+                        <div className="text-[8px] opacity-75 font-medium mt-0.5 normal-case tracking-normal">(Transmitted / Processable)</div>
+                      </div>
                       <div className="w-[150px] shrink-0 min-w-0">Holder</div>
                       <div className="w-[100px] shrink-0 ml-auto pr-4 text-right">Updated / Created</div>
                       <div className="w-4 shrink-0"></div>
@@ -1995,12 +2003,18 @@ export default function StationCheckpointsPage() {
                               </span>
                             </div>
 
-                            {/* Scan / Expected */}
+                            {/* Processable / Expected */}
                             <div className="w-[130px] shrink-0 flex flex-col">
                               <span className="text-sm font-semibold text-foreground">
-                                {t.total_scanned_books ?? 0} / {box.total_expected_books ?? 0}
+                                {t.total_processable_books ?? 0} / {box.total_expected_books ?? 0}
                               </span>
-                              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wide">Books</span>
+                            </div>
+
+                            {/* Transmitted */}
+                            <div className="w-[110px] shrink-0 flex flex-col">
+                              <span className="text-sm font-semibold text-foreground">
+                                {box.total_transmitted_books ?? 0} / {t.total_processable_books ?? 0}
+                              </span>
                             </div>
 
                             {/* Holder */}

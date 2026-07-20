@@ -39,7 +39,7 @@ export const getBoxesBaseQuery = (lot_id, box_type, current_stage, box_number, i
       *,
       lot:lots(lot_number, type),
       box_sessions(
-        id, status, updated_at, total_scanned_books, total_accepted_books,
+        id, status, updated_at, total_scanned_books, total_processable_books,
         warehouse_user_received, inventory_user_received, endorsement_user_received, inventory_user_send, 
         warehouse_time_received, inventory_time_received, inventory_time_send, 
         cut_time_received, cut_time_send, endorsement_time_received, endorsement_time_send, scan_time_received,
@@ -111,7 +111,7 @@ export const getLotsBySearch = async (safeSearch) => {
 };
 
 export const getPipelineTransitionsQuery = (limitNum, offsetNum, stage, box_type, search, date_from, date_to, lotIds) => {
-  let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_expected_books, books(title)`;
+  let boxSelect = `id, box_number, created_at, lot:lots(lot_number), box_type, current_stage, total_expected_books, total_transmitted_books, books(title)`;
   let query = supabaseAdmin
     .from('box_sessions')
     .select(`
@@ -124,7 +124,7 @@ export const getPipelineTransitionsQuery = (limitNum, offsetNum, stage, box_type
       endorsement_time_received, endorsement_user_received,
       endorsement_time_send, endorsement_user_send,
       scan_time_received, scan_user_received,
-      total_scanned_books, total_accepted_books,
+      total_scanned_books, total_processable_books,
       updated_at,
       box:boxes!inner(${boxSelect})
     `, { count: 'exact' });

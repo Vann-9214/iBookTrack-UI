@@ -510,19 +510,9 @@ export default function InventoryPage() {
       return
     }
 
-    const expectedWarehouseBooksCount = warehouseBooks.filter(wb => wb.rejection_reason !== 'missing').length;
-    if (verifScannedBooks.length >= expectedWarehouseBooksCount) {
-      toast({ 
-        title: 'Scan Limit Reached', 
-        description: `You cannot scan more than the expected number of books (${expectedWarehouseBooksCount}).`, 
-        variant: 'destructive' 
-      })
-      return
-    }
-
     setLoadingVerifBooks(true)
     // Look up warehouse status for this ISBN so the inventory scan inherits it
-    const warehouseStatus = warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())?.scan_status ?? 'processable'
+    const warehouseStatus = warehouseBook?.scan_status ?? 'processable'
     try {
       const res = await authFetch(`${API_URL}/api/books/ilms/search/${isbn}`)
       const data = await res.json()
@@ -718,11 +708,17 @@ export default function InventoryPage() {
 
     const expectedWarehouseBooks = warehouseBooks.filter(wb => wb.rejection_reason !== 'missing');
     
-    const isFullyMatched = expectedWarehouseBooks.length === verifScannedBooks.length &&
-      expectedWarehouseBooks.every(wb => verifScannedBooks.some(vb => vb.isbn === wb.isbn));
-      
-    if (!isFullyMatched) {
-      toast({ title: 'Discrepancy Detected', description: 'Your scans must perfectly match the Warehouse guide before you can complete the session.', variant: 'destructive' })
+    const missingBooks = expectedWarehouseBooks.filter(wb => !verifScannedBooks.some(vb => vb.isbn === wb.isbn));
+    const extraBooks = verifScannedBooks.filter(vb => !expectedWarehouseBooks.some(wb => wb.isbn === vb.isbn));
+
+    if (missingBooks.length > 0 || extraBooks.length > 0) {
+      if (missingBooks.length > 0 && extraBooks.length > 0) {
+        toast({ title: 'Mismatch Detected', description: `You are missing ${missingBooks.length} expected book(s) and have ${extraBooks.length} extra book(s).`, variant: 'destructive' })
+      } else if (missingBooks.length > 0) {
+        toast({ title: 'Mismatch Detected', description: `You are missing ${missingBooks.length} expected book(s) from the Warehouse guide.`, variant: 'destructive' })
+      } else {
+        toast({ title: 'Mismatch Detected', description: `You have ${extraBooks.length} extra book(s) that were not in the Warehouse guide. Please remove them before completing.`, variant: 'destructive' })
+      }
       return
     }
     setVerifTotalBooksExpected('')

@@ -19,9 +19,9 @@ BEGIN
       ELSE total_scanned_books + 1 
     END,
     
-    total_accepted_books = CASE 
-      WHEN NEW.scan_status = 'processable' THEN total_accepted_books + 1 
-      ELSE total_accepted_books 
+    total_processable_books = CASE 
+      WHEN NEW.scan_status = 'processable' THEN total_processable_books + 1 
+      ELSE total_processable_books 
     END,
     
     -- Increment total_nonprocessable_books for BOTH missing books AND physical non-processable books

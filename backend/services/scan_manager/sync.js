@@ -57,10 +57,14 @@ export async function syncBoxWithSimflex(box) {
     )
     const allCompleted = results.every(r => r.transmissionCompleted)
 
+    const doneCount = results.filter(r => r.transmissionCompleted).length
+
+    // Update total_transmitted_books for this box
+    await db().from('boxes').update({ total_transmitted_books: doneCount }).eq('id', box.id)
+
     // ── Stage transition logic ────────────────────────────────────────────────
     if (box.current_stage === 'scan' && anyTransmitting && !allCompleted) {
       // Some ISBNs are transmitting but not all done yet.
-      const doneCount = results.filter(r => r.transmissionCompleted).length
       logger.info(`[Scan Sync] 📤 Box ${box.box_number} is transmitting (${doneCount}/${isbns.length} done). Box stays in 'scan'.`)
       return { advanced: false, newStage: 'scan', message: `Still Transmitting (${doneCount}/${isbns.length} ISBNs done)` }
       
