@@ -875,20 +875,20 @@ export default function WarehouseLocatorPage() {
                 ? "border-emerald-200/60 ring-emerald-100/50 hover:shadow-emerald-200/50"
                 : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
               )}>
-                <CardHeader className={cn("flex flex-row items-start justify-between -mx-6 -mt-6 mb-3 px-6 py-4 rounded-t-xl border-b", brand === 'jaguar'
+                <CardHeader className={cn("flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b", brand === 'jaguar'
                   ? "bg-gradient-to-br from-emerald-50 to-green-100/40 border-b-emerald-200/70"
                   : "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-b-blue-200/70"
                 )}>
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-center gap-3">
                     <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg", brand === 'jaguar'
                       ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
                       : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
                     )}>
                       <Inbox className="h-5 w-5" />
                     </div>
-                    <CardTitle className="text-base pt-2">Unassigned Boxes</CardTitle>
+                    <CardTitle className="text-base">Unassigned Boxes</CardTitle>
                   </div>
-                  <span className={cn("inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold", brand === 'jaguar'
+                  <span className={cn("inline-flex h-5 min-w-[1.25rem] self-center items-center justify-center rounded-full px-1.5 text-[10px] font-bold", brand === 'jaguar'
                     ? "bg-emerald-500/10 text-emerald-600"
                     : "bg-blue-500/10 text-blue-600"
                   )}>
@@ -948,18 +948,18 @@ export default function WarehouseLocatorPage() {
                 ? "border-emerald-200/60 ring-emerald-100/50 hover:shadow-emerald-200/50"
                 : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
               )}>
-                <CardHeader className={cn("flex flex-row items-start justify-between -mx-6 -mt-6 mb-3 px-6 py-4 rounded-t-xl border-b", brand === 'jaguar'
+                <CardHeader className={cn("flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b", brand === 'jaguar'
                   ? "bg-gradient-to-br from-emerald-50 to-green-100/40 border-b-emerald-200/70"
                   : "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-b-blue-200/70"
                 )}>
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-center gap-3">
                     <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg", brand === 'jaguar'
                       ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
                       : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
                     )}>
                       <Warehouse className="h-5 w-5" />
                     </div>
-                    <div className="pt-1.5">
+                    <div className="flex flex-col justify-center">
                       <CardTitle className="text-base">Storage Layout</CardTitle>
                       {(() => {
                         const { totalUsed, totalCap } = getSectionStats(activeSection)
@@ -970,7 +970,7 @@ export default function WarehouseLocatorPage() {
                       })()}
                     </div>
                   </div>
-                  <CardAction>
+                  <CardAction className="self-center">
                     <div className="relative" ref={sectionDropdownRef}>
                       <Button
                         variant="outline"
@@ -1177,14 +1177,14 @@ export default function WarehouseLocatorPage() {
 
               {/* Pending assignment (right) */}
               <Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition-all duration-300 hover:shadow-amber-200/50">
-                <CardHeader className="flex flex-row items-start justify-between -mx-6 -mt-6 mb-3 px-6 py-4 rounded-t-xl border-b border-b-amber-200/70 bg-gradient-to-br from-amber-50 to-orange-100/40">
-                  <div className="flex items-start gap-3">
+                <CardHeader className="flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b border-b-amber-200/70 bg-gradient-to-br from-amber-50 to-orange-100/40">
+                  <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25">
                       <Clock className="h-5 w-5" />
                     </div>
-                    <CardTitle className="text-base pt-2">Pending Assignment</CardTitle>
+                    <CardTitle className="text-base">Pending Assignment</CardTitle>
                   </div>
-                  <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
+                  <span className="inline-flex h-5 min-w-[1.25rem] self-center items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
                     {filteredPendingAssignments.length}
                   </span>
                 </CardHeader>
