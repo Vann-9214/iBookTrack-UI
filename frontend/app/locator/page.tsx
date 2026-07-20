@@ -24,11 +24,7 @@ const DEFAULT_RACKS = ["A", "B", "C", "D"]
 const DEFAULT_LEVELS = [4, 3, 2, 1]
 const DEFAULT_SECTIONS = 26
 
-// rack_id naming: Section 1 uses bare "A"/"B" for backward compat with existing data;
-// sections 2+ use "S{n}-A" etc.
-function rackId(section: number, rack: string) {
-  return section === 1 ? rack : `S${section}-${rack}`
-}
+
 
 type BookEntry = { isbn: string; title: string }
 
@@ -54,14 +50,16 @@ type PendingAssignment = {
   lot_number: string | null
   total_books: number
   location_id: string
-  rack_id: string
+  shelf: number
+  rack: string
   level: number
   location_label: string
 }
 
 type StorageLocation = {
   id: string
-  rack_id: string
+  shelf: number
+  rack: string
   level: number
   capacity: number
   used: number
@@ -82,7 +80,8 @@ type SearchResult = {
   box_id: string
   box_number: string
   lot_number: string | null
-  rack_id: string
+  shelf: number
+  rack: string
   level: number
   location_id: string
   location_label: string
@@ -217,17 +216,14 @@ export default function WarehouseLocatorPage() {
   }, [brand, fetchReadyBoxes, fetchPendingAssignments])
 
   const getLocation = (rack: string, level: number) =>
-    locations.find(l => l.rack_id === rack && l.level === level)
+    locations.find(l => l.shelf === activeSection && l.rack === rack && l.level === level)
 
   const getPendingCount = (location: StorageLocation) =>
     location.assignments.filter(assignment => assignment.status === 'pending').length
 
   const getReservedCount = (location: StorageLocation) => location.used + getPendingCount(location)
 
-  const getSectionFromRackId = (rack: string) => {
-    const match = rack.match(/^S(\d+)-/)
-    return match ? Number(match[1]) : 1
-  }
+  
 
   const getSuggestedLocation = (requiredCapacity = 1) =>
     locations
@@ -240,15 +236,15 @@ export default function WarehouseLocatorPage() {
         const capacityDifference = bReserved / b.capacity - aReserved / a.capacity
         if (capacityDifference !== 0) return capacityDifference
         if (aReserved !== bReserved) return bReserved - aReserved
-        return a.rack_id.localeCompare(b.rack_id) || a.level - b.level
+        return a.rack.localeCompare(b.rack) || a.level - b.level
       })[0]
 
   // Derive the unique rack letters for a section from actual DB locations
   const getSectionRacks = (section: number): string[] => {
     const prefix = section === 1 ? '' : `S${section}-`
     const raw = locations
-      .filter(l => section === 1 ? !l.rack_id.includes('-') : l.rack_id.startsWith(prefix))
-      .map(l => section === 1 ? l.rack_id : l.rack_id.replace(prefix, ''))
+      .filter(l => l.shelf === section)
+      .map(l => l.rack)
     const letters = [...new Set(raw)].sort()
     return letters.length > 0 ? letters : DEFAULT_RACKS
   }
@@ -257,7 +253,7 @@ export default function WarehouseLocatorPage() {
   const getSectionLevels = (section: number): number[] => {
     const prefix = section === 1 ? '' : `S${section}-`
     const raw = locations
-      .filter(l => section === 1 ? !l.rack_id.includes('-') : l.rack_id.startsWith(prefix))
+      .filter(l => l.shelf === section)
       .map(l => l.level)
     const uniq = [...new Set(raw)].sort((a, b) => b - a)
     return uniq.length > 0 ? uniq : DEFAULT_LEVELS
@@ -266,7 +262,7 @@ export default function WarehouseLocatorPage() {
   // Summary stats for a section
   const getSectionStats = (section: number) => {
     const prefix = section === 1 ? '' : `S${section}-`
-    const locs = locations.filter(l => section === 1 ? !l.rack_id.includes('-') : l.rack_id.startsWith(prefix))
+    const locs = locations.filter(l => l.shelf === section)
     const totalUsed = locs.reduce((s, l) => s + l.used, 0)
     const totalCap = locs.reduce((s, l) => s + l.capacity, 0)
     return { totalUsed, totalCap, locCount: locs.length }
@@ -349,10 +345,10 @@ export default function WarehouseLocatorPage() {
         setLotSearchSummary(data.lot_summary ? {
           lotNumbers: data.lot_summary.lot_numbers || [],
         } : null)
-        setHighlightedCells(new Set(confirmedResults.map(result => `${result.rack_id}-${result.level}`)))
+        setHighlightedCells(new Set(confirmedResults.map(result => `${result.rack}-${result.level}`)))
         setExpandedPendingLocations(new Set(matchingPendingLocations))
         if (confirmedResults.length > 0) {
-          const firstRack = confirmedResults[0].rack_id
+          const firstRack = confirmedResults[0].rack
           const match = firstRack.match(/^S(\d+)-/)
           setActiveSection(match ? parseInt(match[1]) : 1)
         }
@@ -388,7 +384,7 @@ export default function WarehouseLocatorPage() {
     else next.add(box.id)
     setSelectedReadyBoxIds(next)
     const suggestedLocation = getSuggestedLocation(next.size)
-    if (suggestedLocation) setActiveSection(getSectionFromRackId(suggestedLocation.rack_id))
+    if (suggestedLocation) setActiveSection(suggestedLocation.shelf)
   }
 
   // Add a new rack column (next letter) with slots for every existing level
@@ -412,7 +408,7 @@ export default function WarehouseLocatorPage() {
       setLocations(prev => {
         const merged = [...prev]
         for (const loc of newSlots) {
-          if (!merged.find(l => l.rack_id === loc.rack_id && l.level === loc.level)) merged.push(loc)
+          if (!merged.find(l => l.rack === loc.rack && l.level === loc.level)) merged.push(loc)
         }
         return merged
       })
@@ -424,8 +420,8 @@ export default function WarehouseLocatorPage() {
     const racks = getSectionRacks(activeSection)
     if (racks.length <= 1) return
     const lastRack = racks[racks.length - 1]
-    const lastRackId = rackId(activeSection, lastRack)
-    const rackLocs = locations.filter(l => l.rack_id === lastRackId)
+    const lastRackId = lastRack
+    const rackLocs = locations.filter(l => l.shelf === activeSection && l.rack === lastRackId)
     const occupiedLocs = rackLocs.filter(l => getReservedCount(l) > 0)
     if (occupiedLocs.length > 0) {
       setWarningModal(
@@ -443,7 +439,7 @@ export default function WarehouseLocatorPage() {
       for (const loc of rackLocs) {
         await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
       }
-      setLocations(prev => prev.filter(l => l.rack_id !== lastRackId))
+      setLocations(prev => prev.filter(l => !(l.shelf === activeSection && l.rack === lastRackId)))
     } finally { setRemovingRack(false) }
   }
 
@@ -467,7 +463,7 @@ export default function WarehouseLocatorPage() {
       setLocations(prev => {
         const merged = [...prev]
         for (const loc of newSlots) {
-          if (!merged.find(l => l.rack_id === loc.rack_id && l.level === loc.level)) merged.push(loc)
+          if (!merged.find(l => l.rack === loc.rack && l.level === loc.level)) merged.push(loc)
         }
         return merged
       })
@@ -480,13 +476,13 @@ export default function WarehouseLocatorPage() {
     const levels = getSectionLevels(activeSection)
     if (levels.length <= 1) return
     const topLevel = Math.max(...levels)
-    const rackIds = racks.map(r => rackId(activeSection, r))
-    const topLocs = locations.filter(l => rackIds.includes(l.rack_id) && l.level === topLevel)
+    const rackIds = racks.map(r => r)
+    const topLocs = locations.filter(l => (l.shelf === activeSection && rackIds.includes(l.rack)) && l.level === topLevel)
     const occupiedLocs = topLocs.filter(l => getReservedCount(l) > 0)
     if (occupiedLocs.length > 0) {
       setWarningModal(
         `Level ${topLevel} has ${occupiedLocs.length} occupied slot${occupiedLocs.length > 1 ? 's' : ''}: ` +
-        `${occupiedLocs.map(l => `Rack ${l.rack_id.includes('-') ? l.rack_id.split('-')[1] : l.rack_id} (${getReservedCount(l)} box${getReservedCount(l) !== 1 ? 'es' : ''})`).join(', ')}. ` +
+        `${occupiedLocs.map(l => `Rack ${l.rack.includes('-') ? l.rack.split('-')[1] : l.rack} (${getReservedCount(l)} box${getReservedCount(l) !== 1 ? 'es' : ''})`).join(', ')}. ` +
         `Clear all boxes from this level before removing it.`
       )
       setPendingRemove(null)
@@ -499,14 +495,14 @@ export default function WarehouseLocatorPage() {
       for (const loc of topLocs) {
         await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
       }
-      setLocations(prev => prev.filter(l => !(rackIds.includes(l.rack_id) && l.level === topLevel)))
+      setLocations(prev => prev.filter(l => !((l.shelf === activeSection && rackIds.includes(l.rack)) && l.level === topLevel)))
     } finally { setRemovingLevel(false) }
   }
 
   const handleRemoveSection = async (section: number, confirmed = false) => {
     if (section <= 1) return
-    const sectionRacks = getSectionRacks(section).map((r: string) => rackId(section, r))
-    const sectionLocs = locations.filter(l => sectionRacks.includes(l.rack_id))
+    const sectionRacks = getSectionRacks(section).map((r: string) => r)
+    const sectionLocs = locations.filter(l => (l.shelf === activeSection && sectionRacks.includes(l.rack)))
     const hasBoxes = sectionLocs.some(l => getReservedCount(l) > 0)
     if (hasBoxes) {
       const occupied = sectionLocs.filter(l => getReservedCount(l) > 0)
@@ -523,7 +519,7 @@ export default function WarehouseLocatorPage() {
       for (const loc of sectionLocs) {
         await authFetch(`${API_URL}/api/storage/locations/${loc.id}`, { method: 'DELETE' })
       }
-      setLocations(prev => prev.filter(l => !sectionRacks.includes(l.rack_id)))
+      setLocations(prev => prev.filter(l => !(l.shelf === activeSection && sectionRacks.includes(l.rack))))
       const newTotal = section - 1
       setTotalSections(newTotal)
       setActiveSection(Math.min(activeSection, newTotal))
@@ -569,12 +565,12 @@ export default function WarehouseLocatorPage() {
       // Replace/add all 16 slots for this section; preserve assignment data for existing ones
       setLocations(prev => {
         const incoming: StorageLocation[] = data.locations || []
-        const incomingKeys = new Set(incoming.map(l => `${l.rack_id}-${l.level}`))
+        const incomingKeys = new Set(incoming.map(l => `${l.shelf}-${l.rack}-${l.level}`))
         // Keep all locations NOT belonging to this section, then add the full section set
-        const others = prev.filter(l => !incomingKeys.has(`${l.rack_id}-${l.level}`))
+        const others = prev.filter(l => !incomingKeys.has(`${l.rack}-${l.level}`))
         // For each incoming slot, preserve existing assignments/used if already loaded
         const merged = incoming.map(loc => {
-          const existing = prev.find(l => l.rack_id === loc.rack_id && l.level === loc.level)
+          const existing = prev.find(l => l.rack === loc.rack && l.level === loc.level)
           return existing ?? loc
         })
         return [...others, ...merged]
@@ -682,8 +678,8 @@ export default function WarehouseLocatorPage() {
   useEffect(() => {
     if (loadingLocations || provisioningSection) return
     const expectedCount = DEFAULT_RACKS.length * DEFAULT_LEVELS.length // 16
-    const sectionRacks = DEFAULT_RACKS.map(r => rackId(activeSection, r))
-    const existingCount = locations.filter(l => sectionRacks.includes(l.rack_id)).length
+    const sectionRacks = DEFAULT_RACKS.map(r => r)
+    const existingCount = locations.filter(l => (l.shelf === activeSection && sectionRacks.includes(l.rack))).length
     if (existingCount < expectedCount) {
       provisionSection(activeSection)
     }
@@ -829,7 +825,7 @@ export default function WarehouseLocatorPage() {
                         <button onClick={() => {
                           const loc = locations.find(l => l.id === r.location_id)
                           if (loc) {
-                            const match = loc.rack_id.match(/^S(\d+)-/)
+                            const match = loc.rack.match(/^S(\d+)-/)
                             setActiveSection(match ? parseInt(match[1]) : 1)
                             setDetailSlot(loc)
                           }
@@ -1047,7 +1043,7 @@ export default function WarehouseLocatorPage() {
                   <div className="mb-3 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-primary">
                     <MapPin className="h-4 w-4 shrink-0" />
                     {suggestedLocation
-                      ? <>Suggested for <strong>{selectedReadyBoxes.length} selected box{selectedReadyBoxes.length !== 1 ? 'es' : ''}</strong>: Rack {suggestedLocation.rack_id} — Level {suggestedLocation.level}. Click any available slot to assign.</>
+                      ? <>Suggested for <strong>{selectedReadyBoxes.length} selected box{selectedReadyBoxes.length !== 1 ? 'es' : ''}</strong>: Rack {suggestedLocation.rack} — Level {suggestedLocation.level}. Click any available slot to assign.</>
                       : <>No storage slot currently has available capacity for the selected boxes.</>}
                   </div>
                 )}
@@ -1094,8 +1090,8 @@ export default function WarehouseLocatorPage() {
                           <div key={level} className="contents">
                             <div className="flex h-28 items-center justify-start pl-0 text-sm font-semibold text-foreground">{level}</div>
                             {sectionRacks.map(rack => {
-                              const loc = getLocation(rackId(activeSection, rack), level)
-                              const isHighlighted = highlightedCells.has(`${rackId(activeSection, rack)}-${level}`)
+                              const loc = getLocation(rack, level)
+                              const isHighlighted = highlightedCells.has(`${rack}-${level}`)
                               const isSuggested = suggestedLocation?.id === loc?.id
                               const pendingCount = loc ? getPendingCount(loc) : 0
                               const used = loc?.used ?? 0
@@ -1113,7 +1109,7 @@ export default function WarehouseLocatorPage() {
                                     setDetailSlot(loc)
                                   }}
                                   disabled={!loc}
-                                  title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rackId(activeSection, rack)} — Level ${level} (${used}/${capacity})` : undefined}
+                                  title={loc ? `${selectedReadyBoxIds.size > 0 && canFitSelected ? `Assign ${selectedReadyBoxIds.size} selected box${selectedReadyBoxIds.size !== 1 ? 'es' : ''} to ` : ''}Rack ${rack} — Level ${level} (${used}/${capacity})` : undefined}
                                   className={cn(
                                     "h-28 w-full rounded-xl border-2 transition-all duration-200 flex flex-col items-center justify-center gap-0.5",
                                     loc ? pendingCount > 0 && used === 0 ? "bg-amber-100 border-amber-400 dark:bg-amber-900/30 dark:border-amber-600" : getCapacityColor(used, capacity) : "bg-muted border-border opacity-40",
@@ -1225,14 +1221,14 @@ export default function WarehouseLocatorPage() {
                                 aria-expanded={isExpanded}
                               >
                                 <MapPin className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                                <span className="truncate text-xs font-semibold text-foreground">Rack {location.rack_id} - Level {location.level}</span>
+                                <span className="truncate text-xs font-semibold text-foreground">Rack {location.rack} - Level {location.level}</span>
                                 <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
                                 {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
                               </button>
                               <button
                                 type="button"
                                 title="Remove all boxes from this location"
-                                aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack_id}, Level ${location.level}`}
+                                aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack}, Level ${location.level}`}
                                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
                                 disabled={isRemoving || isConfirming}
                                 onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
@@ -1242,7 +1238,7 @@ export default function WarehouseLocatorPage() {
                               <button
                                 type="button"
                                 title="Confirm all boxes at this location"
-                                aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack_id}, Level ${location.level}`}
+                                aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack}, Level ${location.level}`}
                                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
                                 disabled={isConfirming || isRemoving}
                                 onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
@@ -1320,7 +1316,7 @@ export default function WarehouseLocatorPage() {
               <div className="flex-1 min-w-0">
                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-primary shrink-0" />
-                  Rack {detailSlot.rack_id} — Level {detailSlot.level}
+                  Rack {detailSlot.rack} — Level {detailSlot.level}
                 </h3>
                 {editingCapacity ? (
                   <div className="flex items-center gap-1.5 mt-1.5">
@@ -1510,7 +1506,7 @@ export default function WarehouseLocatorPage() {
               <div>
                 <h3 className="text-base font-semibold text-foreground">Assign Box to Slot</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Rack {assignSlot.rack_id} — Level {assignSlot.level} &nbsp;·&nbsp; {assignSlot.used}/{assignSlot.capacity} used{getPendingCount(assignSlot) > 0 ? ` · ${getPendingCount(assignSlot)} pending` : ''}
+                  Rack {assignSlot.rack} — Level {assignSlot.level} &nbsp;·&nbsp; {assignSlot.used}/{assignSlot.capacity} used{getPendingCount(assignSlot) > 0 ? ` · ${getPendingCount(assignSlot)} pending` : ''}
                 </p>
               </div>
               {!assignLoading && (

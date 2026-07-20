@@ -371,7 +371,13 @@ export default function BookInspectionPage() {
       return
     }
 
-    const prevStatus = (warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase())?.scan_status ?? 'processable') as 'processable' | 'non_processable'
+    const warehouseBook = warehouseBooks.find(wb => wb.isbn.trim().toLowerCase() === cleanedIsbn.toLowerCase());
+    if (warehouseBook?.rejection_reason === 'missing') {
+      toast.error('This book was marked as missing by the inventory guide and cannot be verified.')
+      return
+    }
+
+    const prevStatus = (warehouseBook?.scan_status ?? 'processable') as 'processable' | 'non_processable'
 
     setLoadingInspSession(true)
     try {
@@ -483,6 +489,23 @@ export default function BookInspectionPage() {
   const handleOpenInspComplete = () => {
     if (!inspCurrentSession) return
     if (inspScannedBooks.length === 0) { toast.error('Scan at least one book before completing.'); return }
+
+    const expectedWarehouseBooks = warehouseBooks.filter(wb => wb.rejection_reason !== 'missing');
+    
+    const missingBooks = expectedWarehouseBooks.filter(wb => !inspScannedBooks.some(vb => vb.isbn === wb.isbn));
+    const extraBooks = inspScannedBooks.filter(vb => !expectedWarehouseBooks.some(wb => wb.isbn === vb.isbn));
+
+    if (missingBooks.length > 0 || extraBooks.length > 0) {
+      if (missingBooks.length > 0 && extraBooks.length > 0) {
+        toast.error(`Mismatch: Missing ${missingBooks.length} expected book(s) and found ${extraBooks.length} extra book(s).`)
+      } else if (missingBooks.length > 0) {
+        toast.error(`Mismatch: You are missing ${missingBooks.length} expected book(s) from the Inventory guide.`)
+      } else {
+        toast.error(`Mismatch: You have ${extraBooks.length} extra book(s). Please remove them before completing.`)
+      }
+      return
+    }
+
     setInspConfirmComplete(true)
   }
 
@@ -1139,8 +1162,17 @@ export default function BookInspectionPage() {
                               <div className="col-span-1 text-right"></div>
                             </div>
                             <div className="space-y-1.5 max-h-96 overflow-y-auto">
-                              {inspScannedBooks.map((book, idx) => (
-                                <div key={`${book.id}-${idx}`} className="grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors items-center">
+                              {inspScannedBooks
+                                .map((book) => {
+                                  const warehouseBook = warehouseBooks.find(wb => wb.isbn === book.isbn)
+                                  const isMatch = warehouseBook && warehouseBook.scan_status === book.scan_status
+                                  return { book, isMatch }
+                                })
+                                .sort((a, b) => b.book.timestamp.getTime() - a.book.timestamp.getTime())
+                                .map(({ book, isMatch }, idx) => (
+                                <div key={`${book.id}-${idx}`} className={cn("grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center",
+                                  isMatch ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' : 'bg-red-100 border-red-300'
+                                )}>
                                   <div className="col-span-3">
                                     <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                                   </div>

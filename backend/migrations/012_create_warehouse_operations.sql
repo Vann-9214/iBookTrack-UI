@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.warehouse_sessions (
   status          TEXT        NOT NULL DEFAULT 'in_progress'
                               CHECK (status IN ('in_progress', 'completed')),
   total_scanned_books   INTEGER     NOT NULL DEFAULT 0,
-  total_accepted_books  INTEGER     NOT NULL DEFAULT 0,
+  total_processable_books  INTEGER     NOT NULL DEFAULT 0,
   total_nonprocessable_books  INTEGER     NOT NULL DEFAULT 0,
   
   -- Segregation boxes
@@ -75,7 +75,7 @@ BEGIN
   UPDATE public.warehouse_sessions
   SET 
     total_scanned_books = total_scanned_books + 1,
-    total_accepted_books = CASE WHEN NEW.scan_status = 'processable' THEN total_accepted_books + 1 ELSE total_accepted_books END,
+    total_processable_books = CASE WHEN NEW.scan_status = 'processable' THEN total_processable_books + 1 ELSE total_processable_books END,
     total_nonprocessable_books = CASE WHEN NEW.scan_status = 'non_processable' THEN total_nonprocessable_books + 1 ELSE total_nonprocessable_books END
   WHERE id = NEW.session_id;
   

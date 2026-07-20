@@ -62,8 +62,8 @@ BEGIN
           JOIN public.boxes b ON b.id = bs.box_id 
           WHERE b.lot_id = v_lot_id
         ),
-        total_accepted_books = (
-          SELECT COALESCE(SUM(bs.total_accepted_books), 0) 
+        total_processable_books = (
+          SELECT COALESCE(SUM(bs.total_processable_books), 0) 
           FROM public.box_sessions bs 
           JOIN public.boxes b ON b.id = bs.box_id 
           WHERE b.lot_id = v_lot_id

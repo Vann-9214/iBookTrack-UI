@@ -374,7 +374,7 @@ export const bulkSaveSessionService = async (req, res) => {
         warehouse_time_received: new Date().toISOString(),
         status: 'completed',
         total_scanned_books: 0,
-        total_accepted_books: 0,
+        total_processable_books: 0,
         total_nonprocessable_books: 0
       })
       .select()
