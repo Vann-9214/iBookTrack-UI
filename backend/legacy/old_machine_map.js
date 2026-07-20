@@ -1,6 +1,6 @@
 /**
  * Legacy MACHINE_ID_MAP
- * Originally used to map Simflex network hostnames to physical barcoded sticker IDs.
+ * Originally used to map Scan Manager network hostnames to physical barcoded sticker IDs.
  * Retired on 2026-07-18 because Zeus natively returns the correct Machine Name.
  */
 export const MACHINE_ID_MAP = {

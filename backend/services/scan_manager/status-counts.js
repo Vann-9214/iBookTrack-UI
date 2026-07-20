@@ -2,15 +2,15 @@ import { logger } from '../../utils/logger.js'
 /**
  * services/pipeline-counts.js
  *
- * Sole purpose: query Simflex and return per-stage ISBN counts for today
+ * Sole purpose: query Scan Manager and return per-stage ISBN counts for today
  * (or a custom date range).
  *
- * Simflex status format:  "<StageName> <KEYWORD>"
+ * Scan Manager status format:  "<StageName> <KEYWORD>"
  *   KEYWORD = COMPLETED | ONGOING | FAILED
  *
  * Active stage groups tracked here:
  *   ┌─────────────────────┬──────────────────────────────────────────────────┐
- *   │ Simflex stage key   │ Statuses                                         │
+ *   │ Scan Manager stage key   │ Statuses                                         │
  *   ├─────────────────────┼──────────────────────────────────────────────────┤
  *   │ Scanning            │ Scanning COMPLETED / ONGOING / FAILED            │
  *   │ Validate            │ Validate COMPLETED / ONGOING / FAILED            │
@@ -21,7 +21,7 @@ import { logger } from '../../utils/logger.js'
  *
  * Each stage object in the response:
  *   {
- *     stage:     string,  // Simflex key, e.g. "Tif2PDF"
+ *     stage:     string,  // Scan Manager key, e.g. "Tif2PDF"
  *     label:     string,  // UI label,    e.g. "PDF Conversion"
  *     Completed: number,
  *     Ongoing:   number,
@@ -37,7 +37,7 @@ import https from 'https'
 import dotenv from 'dotenv'
 dotenv.config({ path: new URL('../.env', import.meta.url) })
 
-// ── Simflex connection ────────────────────────────────────────────────────────
+// ── Scan Manager connection ────────────────────────────────────────────────────────
 const SIMFLEX_API_URL        = process.env.SIMFLEX_API_URL
 const SIMFLEX_API_KEY        = process.env.SIMFLEX_API_KEY
 const SIMFLEX_MUSTANG_CONFIG = process.env.SIMFLEX_MUSTANG_CONFIG
@@ -87,7 +87,7 @@ async function query(script, location = 'mustang', attempt = 1) {
 }
 
 // ── Stage definitions ─────────────────────────────────────────────────────────
-// Maps Simflex stage prefix → display label.
+// Maps Scan Manager stage prefix → display label.
 // Order here controls the order returned in the response.
 //
 // ── Active groups (used by Dashboard Scan & Transmit cards) ──────────────────

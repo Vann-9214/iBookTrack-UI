@@ -52,7 +52,7 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
       }
     })
 
-    // Ensure every requested ISBN appears in the result (even if not in Simflex yet)
+    // Ensure every requested ISBN appears in the result (even if not in Scan Manager yet)
     isbns.forEach(isbn => {
       if (!byIsbn[isbn]) {
         byIsbn[isbn] = {
@@ -69,7 +69,7 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
 
     return { success: true, data: Object.values(byIsbn) }
   } catch (error) {
-    logger.error('Error fetching Simflex status for ISBNs:', error)
+    logger.error('Error fetching Scan Manager status for ISBNs:', error)
     return { success: false, error: error.message, data: [] }
   }
 }
