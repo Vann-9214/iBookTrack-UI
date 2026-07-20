@@ -1201,11 +1201,11 @@ export default function WarehousePage() {
                     <Skeleton className="h-8 w-56 bg-muted-foreground/20" />
                     <Skeleton className="h-4 w-72 bg-muted-foreground/20" />
                   </div>
-                  <div className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl w-full overflow-hidden relative">
-                    <Skeleton className="absolute top-0 left-0 right-0 h-1 rounded-none bg-muted-foreground/20" />
+                  <div className="bg-card border border-border rounded-2xl shadow-lg shadow-black/5 ring-1 ring-black/5 w-full overflow-hidden relative">
+                    <Skeleton className="absolute top-0 left-0 right-0 h-1 rounded-none bg-primary/20" />
                     <div className="p-8 md:p-10 space-y-6">
                       <div className="flex items-center gap-5 mb-2">
-                        <Skeleton className="w-14 h-14 rounded-2xl bg-muted-foreground/20" />
+                        <Skeleton className="w-14 h-14 rounded-2xl bg-primary/10" />
                         <div className="space-y-2 flex-1">
                           <Skeleton className="h-6 w-48 bg-muted-foreground/20" />
                           <Skeleton className="h-4 w-3/4 max-w-sm bg-muted-foreground/20" />
@@ -1228,12 +1228,22 @@ export default function WarehousePage() {
               ) : (
                 <div className="flex flex-col items-center w-full max-w-2xl">
                   <div className="mb-8 text-center space-y-2">
-                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Warehouse Receiving</h1>
-                    <p className="text-sm text-muted-foreground">Select a lot and box to initialize a new scanning session</p>
+                    <h1 className="text-3xl font-black tracking-tighter text-foreground">Warehouse Receiving</h1>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Select a lot and box to initialize a new scanning session for{' '}
+                      <span className={cn(
+                        "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
+                        brand === 'jaguar'
+                          ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                      )}>
+                        {brand}
+                      </span>
+                    </p>
                   </div>
-                  <div className="bg-card border border-border shadow-xl shadow-black/5 rounded-2xl w-full overflow-hidden relative">
+                  <div className="bg-card border border-border rounded-2xl shadow-lg shadow-black/5 ring-1 ring-black/5 w-full overflow-hidden relative">
                     {/* Accent strip */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-primary/80" />
 
                     {loading && (
                       <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-card">
@@ -1246,17 +1256,17 @@ export default function WarehousePage() {
 
                     <div className="p-8 md:p-10">
                     <div className="flex items-center gap-5 mb-8">
-                      <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 shrink-0">
-                        <Package className="h-7 w-7 text-primary" />
+                      <div className={cn("flex items-center justify-center w-14 h-14 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+                        <Package className="h-7 w-7" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-foreground">Start Receiving Session</h2>
-                        <p className="text-sm text-muted-foreground mt-1.5">Select a lot and box to begin scanning books into inventory.</p>
+                        <h2 className="text-xl font-black tracking-tight text-foreground">Start Receiving Session</h2>
+                        <p className="text-sm font-medium text-muted-foreground mt-1.5">Select a lot and box to begin scanning books into inventory.</p>
                       </div>
                     </div>
 
                     <div className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 rounded-xl bg-muted/30 border border-border">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 rounded-xl bg-muted/40 border border-border shadow-inner shadow-black/[0.02]">
                         {/* Lot Selector */}
                         <div className="flex flex-col gap-2.5">
                           <label className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center justify-between">
