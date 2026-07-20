@@ -492,25 +492,25 @@ export default function DashboardPage() {
                               {searchType === "isbn" ? "ISBN Number" : "Lot Number"}
                             </label>
                             <Input
-                              placeholder={searchType === "isbn" ? "ISBN number (digits only)" : "Lot number, e.g., 64"}
+                              placeholder={searchType === "isbn" ? "ISBN number" : "Lot number, e.g., 64"}
                               value={searchValue}
                               onChange={(e) => {
                                 if (searchType === "isbn") {
-                                  setSearchValue(e.target.value.replace(/[^0-9]/g, ''))
+                                  setSearchValue(e.target.value.replace(/[^0-9a-zA-Z]/g, ''))
                                 } else {
                                   setSearchValue(e.target.value)
                                 }
                               }}
-                              inputMode={searchType === "isbn" ? "numeric" : "text"}
+                              inputMode="text"
                             />
                             {searchType === "isbn" && searchValue.length > 0 && (
                               <p className={`text-xs mt-1 ${
-                                searchValue.length === 13 ? 'text-emerald-600'
+                                (searchValue.length === 10 || searchValue.length === 13) ? 'text-emerald-600'
                                 : searchValue.length > 13 ? 'text-amber-500'
                                 : 'text-muted-foreground'
                               }`}>
-                                {searchValue.length} digit{searchValue.length !== 1 ? 's' : ''}
-                                {searchValue.length === 13 ? ' ✓' : ''}
+                                {searchValue.length} character{searchValue.length !== 1 ? 's' : ''}
+                                {(searchValue.length === 10 || searchValue.length === 13) ? ' ✓' : ''}
                               </p>
                             )}
                           </div>

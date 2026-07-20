@@ -1275,15 +1275,15 @@ export default function InventoryPage() {
                 onChange={e => {
                   let val = e.target.value
                   if (searchType === 'isbn') {
-                    val = val.replace(/\D/g, '').slice(0, 13)
+                    val = val.replace(/[^0-9a-zA-Z]/g, '').slice(0, 13)
                   }
                   setSearchQuery(val)
                 }}
-                inputMode={searchType === 'isbn' ? 'numeric' : 'text'}
+                inputMode="text"
                 maxLength={searchType === 'isbn' ? 13 : undefined}
                 placeholder={
                   searchType === 'isbn'
-                    ? 'ISBN (10 or 13 digits)'
+                    ? 'ISBN (10 or 13 characters)'
                     : searchType === 'lot'
                       ? 'Search by lot number...'
                       : 'Search by box number...'

@@ -45,9 +45,9 @@ export const isbnStreamService = async (req, res) => {
 export const queryIsbnStreamService = async (req, res) => {
   const { isbn, type, allowExisting } = req.body
 
-  const digits = isbn.replace(/[^0-9]/g, '')
-  if (digits.length !== 10 && digits.length !== 13) {
-    return res.status(400).json({ success: false, error: 'Invalid ISBN. Must be 10 or 13 digits.' })
+  const cleaned = isbn.replace(/[^0-9a-zA-Z]/g, '').toUpperCase()
+  if (cleaned.length !== 10 && cleaned.length !== 13) {
+    return res.status(400).json({ success: false, error: 'Invalid ISBN. Must be 10 or 13 characters.' })
   }
 
   try {
@@ -60,7 +60,7 @@ export const queryIsbnStreamService = async (req, res) => {
           id,
           box:boxes(box_number, box_type, lot:lots(lot_number))
         `)
-        .eq('isbn', digits)
+        .eq('isbn', cleaned)
       if (type) query = query.eq('book_type', type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
       else query = query.is('book_type', null);
 
@@ -74,7 +74,7 @@ export const queryIsbnStreamService = async (req, res) => {
         const boxType = existingBook.box?.box_type || 'unknown'
         return res.json({
           success: false,
-          error: `Duplicate ISBN: ${digits} is already scanned in ${lotLabel}, Box ${boxNumber} (${boxType}).`
+          error: `Duplicate ISBN: ${cleaned} is already scanned in ${lotLabel}, Box ${boxNumber} (${boxType}).`
         });
       }
     }
@@ -84,24 +84,12 @@ export const queryIsbnStreamService = async (req, res) => {
     const projectLabel = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'iLMS'
     
     if (type) {
-      const projResult = await ilmsApi.searchByProject(digits, type)
+      const projResult = await ilmsApi.searchByProject(cleaned, type)
       const results = Array.isArray(projResult.data) ? projResult.data : (projResult.data ? [projResult.data] : [])
-      const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9]/g, '') === digits) || null
-      let error = null
-
-      if (!firstHit) {
-        if (results.length > 0) {
-          error = `ISBN ${digits} was not found in ${projectLabel} records. The ${projectLabel} iLMS search returned results, but none matched that exact ISBN.`
-        } else {
-          const otherProject = type.toLowerCase() === 'mustang' ? 'Jaguar' : 'Mustang'
-          const otherLookup = await ilmsApi.searchByProject(digits, otherProject.toLowerCase())
-          if (otherLookup.success) {
-            error = `ISBN ${digits} was not found in ${projectLabel} records. It does appear in ${otherProject} records, so this session may be using the wrong project.`
-          } else {
-            error = `ISBN ${digits} was not found in ${projectLabel} records. No exact match was returned by the ${projectLabel} iLMS endpoint.`
-          }
-        }
-      }
+      const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() === cleaned) || null
+      const error = firstHit
+        ? null
+        : `ISBN ${cleaned} was not found in ${projectLabel} records. No exact match was returned by the ${projectLabel} iLMS endpoint.`
 
       ilmsResult = {
         success: !!firstHit,
@@ -110,28 +98,28 @@ export const queryIsbnStreamService = async (req, res) => {
         error
       }
     } else {
-      const rawResult = await ilmsApi.searchBookByISBN(digits)
+      const rawResult = await ilmsApi.searchBookByISBN(cleaned)
       let firstHit = rawResult.data
-      if (firstHit && firstHit.ISBN && firstHit.ISBN.replace(/[^0-9]/g, '') !== digits) {
+      if (firstHit && firstHit.ISBN && firstHit.ISBN.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() !== cleaned) {
         // iLMS did a fuzzy search; reject the title match
         firstHit = null
       }
       ilmsResult = {
         success: !!firstHit,
         data: firstHit,
-        error: firstHit ? null : (rawResult.error || `ISBN ${digits} was not found in Mustang or Jaguar iLMS records.`)
+        error: firstHit ? null : (rawResult.error || `ISBN ${cleaned} was not found in Mustang or Jaguar iLMS records.`)
       }
     }
 
     res.json({
-      isbn: digits,
+      isbn: cleaned,
       success: ilmsResult.success,
       data: ilmsResult.data || null,
       source: ilmsResult.source || null,
       error: ilmsResult.error || null
     })
   } catch (err) {
-    res.status(500).json({ isbn: digits, success: false, data: null, error: err.message })
+    res.status(500).json({ isbn: cleaned, success: false, data: null, error: err.message })
   }
 }
 

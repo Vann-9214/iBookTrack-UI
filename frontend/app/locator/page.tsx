@@ -293,12 +293,12 @@ export default function WarehouseLocatorPage() {
     const boxMatch = rawQuery.match(/^box\s*(?:[:#-]\s*)?(.+)$/i)
     const lotMatch = rawQuery.match(/^lot\s*(?:[:#-]\s*)?(.+)$/i)
     const normalizedIsbn = rawQuery.replace(/[\s-]/g, '')
-    const isFullIsbn = /^(?:\d{9}[\dXx]|\d{13})$/.test(normalizedIsbn)
+    const isFullIsbn = /^(?:[\dA-Za-z]{10}|[\dA-Za-z]{13})$/.test(normalizedIsbn)
     const kind = boxMatch ? 'box' : lotMatch ? 'lot' : isFullIsbn ? 'isbn' : null
     const query = boxMatch?.[1].trim() || (lotMatch ? `Lot ${lotMatch[1].trim()}` : normalizedIsbn)
 
     if (!kind || !query) {
-      setSearchValidationError('Enter Box before a box number, Lot before a lot number, or a complete 10/13-digit ISBN.')
+      setSearchValidationError('Enter Box before a box number, Lot before a lot number, or a complete 10/13-character ISBN.')
       setSearchDone(false)
       setSearchResults([])
       setSearchUnlocated([])

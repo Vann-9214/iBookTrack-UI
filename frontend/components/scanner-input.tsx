@@ -19,8 +19,8 @@ export function ScannerInput({ onScan }: ScannerInputProps) {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Only allow numbers
-    const value = e.target.value.replace(/[^0-9]/g, '')
+    // Allow numbers and letters (ISBN-10 can end with X)
+    const value = e.target.value.replace(/[^0-9a-zA-Z]/g, '')
     setScanInput(value)
   }
 

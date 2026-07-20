@@ -356,7 +356,7 @@ export default function ScanQrPage() {
 
   const handleScan = async (text: string, format: ScanFormat) => {
     if (format === 'barcode') {
-      const isbn = text.replace(/[^0-9]/g, '')
+      const isbn = text.replace(/[^0-9a-zA-Z]/g, '')
 
       // Show card immediately in loading state
       setScanResult({
