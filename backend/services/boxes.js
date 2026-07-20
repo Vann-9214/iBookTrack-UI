@@ -6,6 +6,7 @@
 
 import { logger } from '../utils/logger.js';
 import * as boxesRepo from '../repositories/boxes.js';
+import { generateLotCandidates } from '../utils/lotUtils.js';
 
 const syncBoxTransmissionStatus = async (boxId, location) => {
   try {
@@ -329,9 +330,7 @@ export const getBoxByIdService = async (req) => {
 
 export const getBoxesByLotNumberService = async (req) => {
   const { lot_number } = req.params;
-  const raw = lot_number.trim();
-  const num = raw.replace(/^lot[-\s]*/i, '').trim();
-  const candidates = [raw, `Lot-${num}`, `LOT-${num}`, `Lot ${num}`, `lot-${num}`];
+  const candidates = generateLotCandidates(lot_number);
   
   let lot = null;
   for (const candidate of candidates) {

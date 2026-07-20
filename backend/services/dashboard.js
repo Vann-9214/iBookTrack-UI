@@ -8,6 +8,7 @@ import { logger } from '../utils/logger.js';
 import * as dashboardRepo from '../repositories/dashboard.js';
 import scanManagerApi from './scan_manager/api/index.js';
 import { ilmsApi } from './ilms/api.js';
+import { generateLotCandidates } from '../utils/lotUtils.js';
 
 export const getStatsService = async (req) => {
   const { lot_number, lot_range_start, lot_range_end, box_type } = req.query;
@@ -245,9 +246,7 @@ export const getDailyOutputService = async (req) => {
 
 export const getLotDetailsService = async (req) => {
   const { lot_number } = req.params;
-  const raw = lot_number.trim();
-  const num = raw.replace(/^lot[-\s]*/i, '').trim();
-  const candidates = [raw, `Lot-${num}`, `LOT-${num}`, `Lot ${num}`, `lot-${num}`];
+  const candidates = generateLotCandidates(lot_number);
 
   let lot = null;
   for (const candidate of candidates) {
