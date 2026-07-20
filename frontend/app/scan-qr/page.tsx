@@ -344,7 +344,7 @@ function QrResultCard({
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ScanQrPage() {
   const router = useRouter()
-  const { colors } = useBrand()
+  const { colors, brand } = useBrand()
   const [scanResult, setScanResult] = useState<ScanResult | null>(null)
 
   // Fetch title + location for a single ISBN from the backend
@@ -439,7 +439,7 @@ export default function ScanQrPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className={cn("flex flex-col h-screen overflow-hidden bg-background", `theme-${brand}`)}>
 
       {/* Minimal header — no navbar, no brand toggle */}
       <div
@@ -458,7 +458,7 @@ export default function ScanQrPage() {
         <h1 className="text-base font-semibold text-foreground">QR / Barcode Scanner</h1>
       </div>
 
-      <main className="flex-1 overflow-y-auto p-4 space-y-4">
+      <main className="ambient-bg flex-1 overflow-y-auto p-4 space-y-4">
 
         {/* Scanner */}
         <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">

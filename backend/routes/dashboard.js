@@ -18,8 +18,8 @@ import { logger } from '../utils/logger.js'
 
 import express from 'express'
 import { supabase, supabaseAdmin } from '../config/supabase.js'
-import simflexDb from '../services/simflex-db.js'
-import { ilmsApi } from '../services/ilms-api.js'
+import scanManagerApi from '../services/scan_manager/api/index.js'
+import { ilmsApi } from '../services/ilms/api.js'
 import { requireAuth } from '../middleware/authMiddleware.js'
 import { z } from 'zod'
 import { validateRequest } from '../middleware/validateRequest.js'
@@ -418,7 +418,7 @@ router.get('/daily-output', requireAuth, validateRequest({
     const userBrand = req.query.brand === 'jaguar' ? 'jaguar' : req.user?.user_metadata?.brand === 'jaguar' ? 'jaguar' : 'mustang'
     const location = userBrand
 
-    const { success, rows: simflexRows } = await simflexDb.getDailyOutputRows(undefined, location, true)
+    const { success, rows: simflexRows } = await scanManagerApi.getDailyOutputRows(undefined, location, true)
     if (!success) {
       return res.status(502).json({ error: 'Failed to fetch daily output from Simflex' })
     }
@@ -600,6 +600,7 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
     const { lot_number, brand } = req.query
     const selectedBrand = (brand === 'jaguar' || brand === 'mustang') ? brand : null
     const db = supabaseAdmin || supabase
+    const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
 
     let lotId = null
     if (lot_number) {
@@ -608,118 +609,111 @@ router.get('/pipeline-stats', requireAuth, validateRequest({
         .select('id')
         .eq('lot_number', lot_number)
         .single()
-
       if (lot) lotId = lot.id
     }
 
-    // Today range in UTC
     const now = new Date()
     const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0))
     const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0))
     const startIso = startOfDay.toISOString()
     const endIso = endOfDay.toISOString()
 
-    // Active Pipeline reflects boxes PROCESSED today (via box_sessions) and their CURRENT stage.
+    // 1. Fetch boxes PROCESSED today
     let query = db
       .from('boxes')
       .select('id, current_stage, box_type, total_expected_books, box_sessions!inner(id)')
       .gte('box_sessions.updated_at', startIso)
       .lt('box_sessions.updated_at', endIso)
+    
     if (lotId) query = query.eq('lot_id', lotId)
+    if (selectedBrand) query = query.eq('box_type', selectedBrand.charAt(0).toUpperCase() + selectedBrand.slice(1).toLowerCase())
 
     let { data: boxes, error: boxesError } = await query
     if (boxesError) throw boxesError
 
-    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage', 'transmit']
+    boxes = boxes || []
+    
+    const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage']
     const stageCountsByType = {}
     STAGE_ORDER.forEach(stage => {
       stageCountsByType[stage] = { mustang: 0, jaguar: 0, total: 0 }
     })
 
-    boxes = boxes || []
+    // 2. Check Simflex for active boxes (in 'scan' or 'transmit' stage)
+    // to determine their real-time Dashboard stage based strictly on their ISBNs.
+    const activeBoxIds = boxes.filter(b => b.current_stage === 'scan' || b.current_stage === 'transmit').map(b => b.id)
 
-    // Compute is_fully_completed_in_simflex for 'scan' stage boxes
-    let scanCompletionMap = {}
-    const scanBoxIds = boxes.filter(b => b.current_stage === 'scan').map(b => b.id)
-    if (scanBoxIds.length > 0) {
-      const { data: scanActivities } = await db.from('book_activity')
-        .select('book_id, transmission_status, books!inner(box_id)')
-        .in('books.box_id', scanBoxIds)
+    const boxStateOverrides = {} // box_id -> "scan" | "transmit" | "storage"
+
+    if (activeBoxIds.length > 0) {
+      // Get processable books for these active boxes
+      const { data: activities } = await db.from('book_activity')
+        .select('book_id, scan_status, books!inner(isbn, box_id)')
+        .in('books.box_id', activeBoxIds)
         .eq('scan_status', 'processable')
-      
-      const groupedByBox = {}
-      scanBoxIds.forEach(id => { groupedByBox[id] = [] })
-      if (scanActivities) {
-        scanActivities.forEach(act => {
-          if (act.books && act.books.box_id) groupedByBox[act.books.box_id].push(act)
+
+      if (activities && activities.length > 0) {
+        const isbns = [...new Set(activities.map(a => a.books?.isbn))]
+        const location = selectedBrand || 'mustang'
+        
+        // Query Simflex live for these exact ISBNs (ignoring Simflex BoxNumbers entirely)
+        const simflexResult = await getSimflexStatusForISBNs(isbns, location)
+        const simflexData = simflexResult.success ? simflexResult.data : []
+
+        // Map status back to the Supabase box
+        const boxGroups = {}
+        activities.forEach(a => {
+          const boxId = a.books?.box_id
+          if (!boxGroups[boxId]) boxGroups[boxId] = { isbns: [], completed: 0, transmitting: 0 }
+          const isbn = a.books?.isbn
+          boxGroups[boxId].isbns.push(isbn)
+          
+          const simStatus = simflexData.find(s => s.isbn === isbn)
+          if (simStatus) {
+            if (simStatus.transmissionCompleted) {
+              boxGroups[boxId].completed++
+            } else if (simStatus.latestStatus?.toLowerCase().includes('transmit')) {
+              boxGroups[boxId].transmitting++
+            }
+          }
         })
-      }
-      for (const boxId of scanBoxIds) {
-        const activities = groupedByBox[boxId]
-        const b = boxes.find(bx => bx.id === boxId)
-        let isCompleted = false
-        if (activities.length > 0 && activities.length >= (b.total_expected_books || 0)) {
-          isCompleted = activities.every(a => {
-            const stat = String(a.transmission_status || '').trim().toUpperCase()
-            return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED'
-          })
+
+        // Determine the real-time stage for the Dashboard
+        for (const boxId of activeBoxIds) {
+          const group = boxGroups[boxId]
+          if (!group || group.isbns.length === 0) continue
+
+          const allCompleted = group.completed === group.isbns.length
+          const anyTransmitting = group.transmitting > 0 || group.completed > 0
+
+          if (allCompleted) {
+            boxStateOverrides[boxId] = 'storage'
+          } else if (anyTransmitting) {
+            boxStateOverrides[boxId] = 'transmit'
+          } else {
+            boxStateOverrides[boxId] = 'scan'
+          }
         }
-        scanCompletionMap[boxId] = isCompleted
       }
     }
 
+    // 3. Aggregate the counts using the live overrides
     boxes.forEach(b => {
-      b.is_fully_completed_in_simflex = scanCompletionMap[b.id] || false
+      // Use the live Simflex override if we have one, otherwise use the base Supabase stage
+      const effectiveStage = boxStateOverrides[b.id] || b.current_stage
+
+      if (stageCountsByType[effectiveStage]) {
+        const type = (b.box_type || '').toString().toLowerCase()
+        const normalizedType = type === 'jaguar' ? 'jaguar' : 'mustang'
+        stageCountsByType[effectiveStage][normalizedType]++
+        stageCountsByType[effectiveStage].total++
+      }
     })
 
-    console.log(`[DASHBOARD PIPELINE] Fetched ${boxes.length} boxes for today's sessions:`)
-    boxes.forEach(b => {
-      console.log(`- Box ${b.id} (type: ${b.box_type}, stage: ${b.current_stage}, fullyCompleted: ${b.is_fully_completed_in_simflex})`)
-    })
-
-    const filteredBoxes = boxes
-    
-    STAGE_ORDER.forEach(stage => {
-      filteredBoxes.forEach(b => {
-        let matches = false
-        if (stage === 'transmit') {
-          matches = b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
-        } else if (stage === 'storage') {
-          const isActuallyStorage = b.current_stage === 'storage'
-          const isScanButFullyCompleted = b.current_stage === 'scan' && b.is_fully_completed_in_simflex
-          matches = isActuallyStorage || isScanButFullyCompleted
-        } else if (stage === 'scan') {
-          matches = b.current_stage === 'scan' && !b.is_fully_completed_in_simflex
-        } else {
-          matches = b.current_stage === stage
-        }
-        
-        if (matches) {
-          const type = (b.box_type || '').toString().toLowerCase()
-          const normalizedType = type === 'jaguar' ? 'jaguar' : 'mustang'
-          stageCountsByType[stage][normalizedType]++
-          stageCountsByType[stage].total++
-        }
-      })
-    })
-
-    // Flat totals filtered by the selected brand when provided
     const stageCounts = {}
     STAGE_ORDER.forEach(stage => {
       stageCounts[stage] = selectedBrand ? stageCountsByType[stage][selectedBrand] : stageCountsByType[stage].total
     })
-
-    // Transmit stage is driven by live Simflex status, filtered by brand/location
-    try {
-      const location = selectedBrand || 'mustang'
-      const [transmitResult] = await Promise.all([
-        simflexDb.getTransmitStageBoxes(undefined, undefined, location),
-      ])
-      stageCounts.transmit = transmitResult.success ? transmitResult.count : 0
-    } catch (simflexError) {
-      console.warn('Simflex stage count failed:', simflexError.message)
-      stageCounts.transmit = 0
-    }
 
     res.json({ stageCounts, stageCountsByType, today: startIso.split('T')[0] })
   } catch (error) {

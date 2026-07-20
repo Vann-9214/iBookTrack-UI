@@ -137,7 +137,7 @@ router.get('/:lot_number/transmission-summary', requireAuth, validateRequest({
     const nonProcessableScans = allScans.filter(s => s.scan_status === 'non_processable')
 
     // 3. Fetch Simflex status for all unique processable ISBNs
-    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+    const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
     const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))]
 
     let simflexMap = {}

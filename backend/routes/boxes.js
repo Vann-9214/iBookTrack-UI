@@ -33,7 +33,7 @@ const router = express.Router()
  */
 async function syncBoxTransmissionStatus(boxId, db, location) {
   try {
-    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+    const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
 
     let boxLocation = location
     if (!boxLocation) {
@@ -646,7 +646,7 @@ router.post('/:id/advance', requireAuth, validateRequest({
 
     // Validate Scan → Storage: all processable ISBNs must be verified in Simflex
     if (box.current_stage === 'scan' && nextStage === 'storage') {
-      const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+      const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
 
       const { data: scans } = await db
         .from('book_activity')
@@ -951,7 +951,7 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
     const processableScans = allScans.filter(s => s.scan_status === 'processable')
 
     // 3. Batch-fetch Simflex status for all processable ISBNs
-    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+    const { getSimflexStatusForISBNs } = await import('../services/scan_manager/api/index.js')
     const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))]
     let simflexMap = {}
     if (uniqueIsbns.length > 0) {
@@ -1001,86 +1001,36 @@ router.get('/:id/transmission', requireAuth, async (req, res) => {
 })
 
 // Check Simflex transmission status for all processable books in a box.
-// Returns status only — does NOT auto-advance the stage.
-// Box must be in 'scan' stage. Stage advancement to storage must be done manually via /advance.
+// Syncs and auto-advances the box stage if warranted.
 router.post('/:id/check-simflex', requireAuth, async (req, res) => {
   try {
     const { id } = req.params
     const db = supabaseAdmin || supabase
-    const { getSimflexStatusForISBNs } = await import('../services/simflex-db.js')
+    const { syncBoxWithSimflex } = await import('../services/scan_manager/sync.js')
 
     // 1. Get the box
     const { data: box, error: boxError } = await db
       .from('boxes')
-      .select('id, lot_id, current_stage, box_number, lot:lots(lot_number)')
+      .select('id, lot_id, current_stage, box_number, box_type, lot:lots(lot_number)')
       .eq('id', id)
       .single()
 
     if (boxError || !box) return res.status(404).json({ success: false, error: 'Box not found' })
 
-    if (box.current_stage !== 'scan') {
+    if (box.current_stage !== 'scan' && box.current_stage !== 'transmit') {
       return res.status(400).json({
         success: false,
-        error: `Box is in '${box.current_stage}' stage, not 'scan'. Only boxes in scan stage can be checked.`
+        error: `Box is in '${box.current_stage}' stage. Only boxes in scan or transmit stage can be synced.`
       })
     }
 
-    // 2. Get all processable ISBNs in this box from book_activity
-    const { data: scans, error: scansError } = await db
-      .from('book_activity')
-      .select('scan_status, books!inner(isbn, title, box_id)')
-      .eq('books.box_id', id)
-      .eq('scan_status', 'processable')
+    const syncResult = await syncBoxWithSimflex(box)
 
-    if (scansError) throw scansError
-
-    if (!scans || scans.length === 0) {
-      return res.json({
-        success: true,
-        autoAdvanced: false,
-        message: 'No processable books found in this box.',
-        isbns: [],
-        simflexResults: [],
-        allCompleted: false,
-      })
-    }
-
-    const isbns = [...new Set(scans.map(s => s.books?.isbn))]
-
-    // 3. Query Simflex for all ISBNs
-    const simflexResult = await getSimflexStatusForISBNs(isbns)
-
-    if (!simflexResult.success) {
-      return res.status(502).json({
-        success: false,
-        error: 'Failed to reach Simflex: ' + (simflexResult.error || 'Unknown error'),
-      })
-    }
-
-    const simflexData = simflexResult.data
-
-    // 4. Check if every processable ISBN has Transmission_Archive COMPLETED
-    const notCompleted = simflexData.filter(r => !r.transmissionCompleted)
-    const allCompleted = notCompleted.length === 0
-
-    // 5. Report status only — stage remains 'scan' until a user manually assigns a storage locator.
-    //    Use POST /:id/advance to move the box to storage.
-    const autoAdvanced = false
-    const finalStage = box.current_stage
-
-    return res.json({
+    res.json({
       success: true,
-      autoAdvanced,
-      allCompleted,
-      finalStage,
-      totalProcessable: isbns.length,
-      completedCount: simflexData.filter(r => r.transmissionCompleted).length,
-      pendingCount: notCompleted.length,
-      message: allCompleted
-        ? `All ${isbns.length} books confirmed transmitted. Box is ready to be assigned to a storage locator.`
-        : `${notCompleted.length} of ${isbns.length} books not yet completed in Simflex. Box remains in Scan.`,
-      simflexResults: simflexData,
-      notCompleted: notCompleted.map(r => ({ isbn: r.isbn, latestStatus: r.latestStatus })),
+      autoAdvanced: syncResult.advanced,
+      finalStage: syncResult.newStage,
+      message: syncResult.message
     })
   } catch (error) {
     logger.error('Check Simflex error:', error)

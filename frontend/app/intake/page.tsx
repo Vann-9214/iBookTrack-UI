@@ -7,8 +7,13 @@ import { ValidationStatus } from '@/components/validation-status'
 import { BatchQueue } from '@/components/batch-queue'
 import { AlertBox } from '@/components/alert-box'
 import { DashboardNavbar } from '@/components/top-bar'
+import { PageHeader } from '@/components/page-header'
+import { Inbox } from 'lucide-react'
+import { useBrand } from '@/hooks/use-brand'
+import { cn } from '@/lib/utils'
 
 export default function IntakePage() {
+  const { brand } = useBrand()
   const [timestamp, setTimestamp] = useState<string>('')
 
   useEffect(() => {
@@ -16,27 +21,22 @@ export default function IntakePage() {
   }, [])
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background">
+    <div className={cn("flex h-dvh overflow-hidden bg-background", `theme-${brand}`)}>
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
-        <div className="flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
           {/* Header */}
-          <header className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                Intake & Validation
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Monitor incoming book batches and validation pipeline
-              </p>
-            </div>
-            <div className="text-right">
+          <PageHeader
+            title="Intake & Validation"
+            subtitle="Monitor incoming book batches and validation pipeline"
+            icon={Inbox}
+            rightContent={
               <p className="text-xs text-muted-foreground">
                 Last Updated: {timestamp || 'Loading...'}
               </p>
-            </div>
-          </header>
+            }
+          />
 
           {/* Alert if any critical issues */}
           <AlertBox />
