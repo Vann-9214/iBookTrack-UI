@@ -63,33 +63,70 @@ export const getLotStatusService = async (req, res) => {
         b.current_stage === 'storage'
       );
       
-      // Progress percentage based on stage
-      // We start at 10% (so warehouse is never 0%) and distribute the remaining 90%
-      const stages = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage'];
-      const sIndex = stages.indexOf(b.current_stage || '');
-      let progress = sIndex >= 0 ? 10 + Math.round((sIndex / (stages.length - 1)) * 90) : 0;
+      // 1. Box Journey Base Progress (0% to 50%)
+      let baseProgress = 0;
+      const stage = b.current_stage || '';
+      const sessionStatus = b.box_sessions && b.box_sessions.length > 0 ? b.box_sessions[0].status : 'received';
 
-      // Sub-stage progress for early stages based on box_sessions status
-      if (sIndex >= 0 && sIndex <= 3) {
-        const sessionStatus = b.box_sessions && b.box_sessions.length > 0 ? b.box_sessions[0].status : 'received';
-        
-        if (sessionStatus === 'completed') {
-          progress += 7; // Roughly half of the 15% stage gap
-        } else if (sessionStatus === 'sent') {
-          progress += 12; // 12% leaves a 3% gap for transit to the next stage's 'received' base
-        }
+      if (stage === 'warehouse') {
+        baseProgress = 10;
+      } else if (stage === 'inventory') {
+        baseProgress = sessionStatus === 'received' ? 15 : (sessionStatus === 'completed' ? 20 : 25);
+      } else if (stage === 'cut') {
+        baseProgress = sessionStatus === 'received' ? 30 : (sessionStatus === 'completed' ? 35 : 40);
+      } else if (stage === 'endorsement') {
+        baseProgress = sessionStatus === 'received' ? 43 : (sessionStatus === 'completed' ? 46 : 48);
+      } else if (stage === 'scan' || stage === 'transmit' || stage === 'storage') {
+        baseProgress = 50;
       }
 
-      // Enhance progress based on real-time transmission status
-      if (proc.length > 0) {
-        if (trans.length === proc.length) {
-          progress = 100;
-        } else if (trans.length > 0 && progress < 100 && sIndex >= 4) {
-          const remaining = 100 - progress;
-          progress += Math.round(remaining * (trans.length / proc.length));
+      // 2. Individual Book Progress (50% to 100%)
+      let bookAverage = 0;
+      if (baseProgress === 50 && proc.length > 0) {
+        let totalBookScore = 0;
+        for (const scan of proc) {
+          const status = (scan.transmission_status || '').toUpperCase();
+          let score = 0;
+          if (status.includes('SCANNING ONGOING')) score = 10;
+          else if (status.includes('SCANNING COMPLETED')) score = 20;
+          else if (status.includes('VALIDATE ONGOING')) score = 30;
+          else if (status.includes('VALIDATE COMPLETED')) score = 40;
+          else if (status.includes('TIF2PDF ONGOING') || status.includes('PDF CONVERSION ONGOING')) score = 50;
+          else if (status.includes('TIF2PDF COMPLETED') || status.includes('PDF CONVERSION COMPLETED')) score = 60;
+          else if (status.includes('PREVAL ONGOING')) score = 70;
+          else if (status.includes('PREVAL COMPLETED')) score = 80;
+          else if (status.includes('ARCHIVE ONGOING') || status.includes('TRANSMIT ONGOING') || status.includes('TRANSMISSION_ARCHIVE ONGOING')) score = 90;
+          else if (status.includes('COMPLETE') || status.includes('RECEIVED') || status.includes('SENT') || stage === 'storage') score = 100;
+          
+          totalBookScore += score;
         }
-      } else if (b.current_stage === 'storage') {
-         progress = 100;
+        bookAverage = totalBookScore / proc.length;
+      } else if (stage === 'storage') {
+        bookAverage = 100;
+      }
+
+      let progress = Math.round(baseProgress + (bookAverage / 2));
+
+      const session = b.box_sessions && b.box_sessions.length > 0 ? b.box_sessions[0] : null;
+      let time_in_stage = null;
+      let turnaround_time = null;
+      let is_stalled = false;
+
+      if (session) {
+        const stageTime = session[`${stage}_time_received`] || session.updated_at;
+        if (stageTime) {
+          const hours = (new Date() - new Date(stageTime)) / (1000 * 60 * 60);
+          time_in_stage = hours;
+          if (hours > 24 && stage !== 'storage' && stage !== 'transmit') {
+            is_stalled = true;
+          }
+        }
+        
+        const start = session.warehouse_time_received;
+        const end = session.scan_time_received;
+        if (start && end) {
+          turnaround_time = (new Date(end) - new Date(start)) / (1000 * 60 * 60);
+        }
       }
 
       return {
@@ -100,7 +137,10 @@ export const getLotStatusService = async (req, res) => {
         total_books: bScans.length,
         total_expected_books: b.total_expected_books || 0,
         processable: proc.length,
-        non_processable: bScans.length - proc.length
+        non_processable: bScans.length - proc.length,
+        time_in_stage,
+        turnaround_time,
+        is_stalled
       };
     }).sort((a, b) => a.box_number.localeCompare(b.box_number, undefined, { numeric: true }));
 
@@ -123,6 +163,19 @@ export const getLotStatusService = async (req, res) => {
       }
     }
 
+    const simflex_breakdown = {};
+    for (const scan of processableScans) {
+      const status = (scan.transmission_status || '').toUpperCase();
+      let label = 'Pending';
+      if (status.includes('SCANNING')) label = 'Scanning';
+      else if (status.includes('VALIDATE')) label = 'Validate';
+      else if (status.includes('TIF2PDF') || status.includes('PDF CONVERSION')) label = 'PDF Conversion';
+      else if (status.includes('PREVAL')) label = 'Preval';
+      else if (status.includes('ARCHIVE') || status.includes('TRANSMIT') || status.includes('COMPLETE') || status.includes('RECEIVED') || status.includes('SENT')) label = 'Transmit';
+      
+      simflex_breakdown[label] = (simflex_breakdown[label] || 0) + 1;
+    }
+
     return {
       lot_id: lot.id,
       lot_number: lot.lot_number,
@@ -136,6 +189,8 @@ export const getLotStatusService = async (req, res) => {
       transmitted: transmittedScans.length,
       non_processable: nonProcessableScans.length,
       pending: pendingScans.length,
+      is_stalled: boxList.some(b => b.is_stalled),
+      simflex_breakdown,
       boxes: boxList,
     };
   });

@@ -51,6 +51,19 @@ const STATUS_META: Record<ComputedStatus, { label: string; color: string; bg: st
   'in-progress': { label: 'In-Progress', color: 'text-blue-700 dark:text-blue-400',   bg: 'bg-blue-100 dark:bg-blue-900/30',      icon: Clock },
 }
 
+
+const formatTime = (hours: number | null | undefined) => {
+  if (hours === null || hours === undefined) return '-';
+  if (hours === 0) return '0m';
+  const totalMins = Math.round(hours * 60);
+  if (totalMins === 0) return '0m';
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+}
+
 export default function ReportsPage() {
   const { brand } = useBrand()
   const [lots, setLots] = useState<LotStatusRow[]>([])
@@ -374,9 +387,23 @@ export default function ReportsPage() {
                           <td className="px-4 py-3 font-semibold text-foreground">
                             <div className="flex items-center gap-2">
                               <ChevronDown className={cn("h-4 w-4 transition-transform text-muted-foreground group-hover:text-foreground", expandedLots.has(lot.lot_id) ? "rotate-180" : "-rotate-90")} />
-                              {lot.lot_number}
+                              <div className="flex flex-col">
+                              <div className="flex items-center gap-2 font-bold text-foreground group-hover:text-primary transition-colors">
+                                {lot.lot_number}
+                                {lot.is_stalled && <AlertCircle className="h-3.5 w-3.5 text-red-500" title="Boxes are stalled in pipeline" />}
+                              </div>
+                              {lot.simflex_breakdown && Object.keys(lot.simflex_breakdown).length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {Object.entries(lot.simflex_breakdown).map(([stage, count]) => (
+                                    <span key={stage} className="inline-flex items-center gap-1 rounded bg-muted/60 px-1.5 py-0.5 text-[9px] font-semibold text-muted-foreground border border-border/50">
+                                      {stage}: <span className="text-foreground">{count}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          </td>
+                          </div>
+                        </td>
                           <td className="px-4 py-3">
                             <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap', meta.bg, meta.color)}>
                               <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -432,6 +459,8 @@ export default function ReportsPage() {
                                       <tr>
                                         <th className="px-6 py-2 text-left font-semibold text-muted-foreground w-32">Box Number</th>
                                         <th className="px-4 py-2 text-left font-semibold text-muted-foreground w-28">Stage</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-muted-foreground w-24">Duration</th>
+                                        <th className="px-4 py-2 text-left font-semibold text-muted-foreground w-24">Turnaround</th>
                                         <th className="px-4 py-2 text-left font-semibold text-muted-foreground min-w-[200px]">Progress</th>
                                         <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-16">Total</th>
                                         <th className="px-4 py-2 text-right font-semibold text-muted-foreground w-20">Processable</th>
@@ -446,6 +475,17 @@ export default function ReportsPage() {
                                             <span className={cn("text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0", box.current_stage === 'storage' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400" : "bg-muted text-muted-foreground")}>
                                               {box.current_stage}
                                             </span>
+                                          </td>
+                                          <td className="px-4 py-1.5">
+                                            {box.time_in_stage !== null && box.time_in_stage !== undefined ? (
+                                              <span className={cn("flex items-center gap-1 text-[11px] font-medium", box.is_stalled ? "text-red-600 dark:text-red-400" : "text-muted-foreground")}>
+                                                {box.is_stalled && <AlertCircle className="h-3 w-3" />}
+                                                {formatTime(box.time_in_stage)}
+                                              </span>
+                                            ) : '-'}
+                                          </td>
+                                          <td className="px-4 py-1.5 text-[11px] font-medium text-muted-foreground">
+                                            {formatTime(box.turnaround_time)}
                                           </td>
                                           <td className="px-4 py-1.5">
                                             <div className="flex items-center gap-2 max-w-[300px]">
