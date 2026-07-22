@@ -1,0 +1,25 @@
+export const FLAG_ISSUES = [
+  { value: 'bleed-through', label: 'Bleed-through on page' },
+  { value: 'brittle', label: 'Brittle on page' },
+  { value: 'cannot-detach-sticky', label: 'Cannot be detached or sticky pages' },
+  { value: 'cd-only', label: 'CD only, no text content' },
+  { value: 'map-spanning', label: 'Contains a map spanning the entire book' },
+  { value: 'split-pages', label: 'Contains split pages' },
+  { value: 'cutoff-text', label: 'Cutoff text on page' },
+  { value: 'illegible-text', label: 'Illegible text' },
+  { value: 'inverted-contrast', label: 'Inverted contrast: White on black background' },
+  { value: 'missing-pages', label: 'Missing page/s' },
+  { value: 'no-content', label: 'No content or body text' },
+  { value: 'obscured-highlight', label: 'Obscured text due to highlight marker' },
+  { value: 'obscured-watermark', label: 'Obscured text due to watermarks' },
+  { value: 'oversized', label: 'Oversized and cannot fit in the scanner' },
+  { value: 'pen-marks', label: 'Pen marks on page' },
+  { value: 'pop-up-book', label: 'Pop-up book' },
+  { value: 'postcard-only', label: 'Postcard only' },
+  { value: 'stained-dirty', label: 'Stained or dirty page' },
+  { value: 'stamp-mark', label: 'Stamp mark on page' },
+  { value: 'thick-cardboard', label: 'Thick or cardboard pages' },
+  { value: 'torn-pages', label: 'Torn pages' },
+] as const
+
+export type FlagIssue = (typeof FLAG_ISSUES)[number]['value']
