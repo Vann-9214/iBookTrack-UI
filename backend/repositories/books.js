@@ -39,7 +39,7 @@ export const getScanRecord = async (id) => {
     const { rows } = await db.query(query, [id]);
     if (rows.length === 0) return { data: null, error: null };
     
-    // Format to match old Supabase nested object style for the frontend/services
+    // Format to match old nested object style for the frontend/services
     const row = rows[0];
     const data = {
       id: row.id,

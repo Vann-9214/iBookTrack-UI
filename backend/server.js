@@ -155,7 +155,7 @@ app.use(globalErrorHandler)
 // ── Start server ──────────────────────────────────────────────────────────────
 const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`🚀 Backend running at http://localhost:${PORT}`)
-  // Verify Supabase connection on startup
+  // Verify DB connection on startup
   await testConnection()
 })
 

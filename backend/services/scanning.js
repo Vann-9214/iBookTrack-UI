@@ -75,18 +75,18 @@ export const getLiveScanningService = async (req) => {
   if (allIsbns.size > 0) {
     const isbns = Array.from(allIsbns);
     const chunkSize = 200;
-    const supabaseMap = {};
+    const dbMap = {};
     for (let i = 0; i < isbns.length; i += chunkSize) {
       const chunk = isbns.slice(i, i + chunkSize);
       const { data: dbBooks, error } = await scanningRepo.getBooksByIsbns(chunk);
       if (error) {
-        logger.error("Supabase Error fetching lot/box:", error);
+        logger.error("Database Error fetching lot/box:", error);
       }
       if (dbBooks && dbBooks.length > 0) {
         for (const b of dbBooks) {
           const boxObj = Array.isArray(b.box) ? b.box[0] : b.box;
           const lotObj = boxObj && Array.isArray(boxObj.lot) ? boxObj.lot[0] : (boxObj?.lot || null);
-          supabaseMap[b.isbn] = {
+          dbMap[b.isbn] = {
             box: boxObj?.box_number || '—',
             lot: lotObj?.lot_number || '—'
           };
@@ -95,13 +95,13 @@ export const getLiveScanningService = async (req) => {
     }
     processedAllBooks = processedAllBooks.map(b => ({
       ...b,
-      BoxNumber: supabaseMap[b.ISBN]?.box || '—',
-      LotNumber: supabaseMap[b.ISBN]?.lot || '—'
+      BoxNumber: dbMap[b.ISBN]?.box || '—',
+      LotNumber: dbMap[b.ISBN]?.lot || '—'
     }));
     processedRecentScans = processedRecentScans.map(b => ({
       ...b,
-      BoxNumber: supabaseMap[b.ISBN]?.box || '—',
-      LotNumber: supabaseMap[b.ISBN]?.lot || '—'
+      BoxNumber: dbMap[b.ISBN]?.box || '—',
+      LotNumber: dbMap[b.ISBN]?.lot || '—'
     }));
   }
 

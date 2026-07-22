@@ -62,7 +62,7 @@ export const listSessions = async (req, res) => {
   return await sessionsService.listSessionsService(req, res);
 }
 
-// Fetch historical lots from Supabase (instead of live from iLMS)
+// Fetch historical lots from database (instead of live from iLMS)
 // Used to populate the Lot dropdown on the session start screen
 export const getIlmsLots = async (req, res) => {
   return await lotsService.getIlmsLotsService(req, res);

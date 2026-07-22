@@ -56,7 +56,7 @@ export const getLotsList = async (offset, limit, search, lotType) => {
 
   const { rows } = await db.query(query, params);
   
-  // Format to match old Supabase response shape: boxes: [{ count: X }]
+  // Format to match old response shape: boxes: [{ count: X }]
   return rows.map(row => ({
     id: row.id,
     lot_number: row.lot_number,
@@ -120,7 +120,7 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
 
   const { rows } = await db.query(query, boxIds);
   
-  // Map flattened rows back to Supabase nested structure expected by the frontend
+  // Map flattened rows back to nested structure expected by the frontend
   return rows.map(row => ({
     id: row.id,
     scan_status: row.scan_status,
