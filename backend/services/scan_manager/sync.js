@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger.js'
-import { supabaseAdmin, supabase } from '../config/supabase.js'
+import { db } from '../../config/db.js'
 import { getSimflexStatusForISBNs } from './api/index.js'
 
 /**
@@ -10,16 +10,6 @@ import { getSimflexStatusForISBNs } from './api/index.js'
  * to check Scan Manager and advance a box's stage (scan -> transmit -> storage).
  */
 
-// Use admin client if available (bypasses RLS), fall back to anon client
-const db = () => supabaseAdmin || supabase
-
-/**
- * Advances a box from one pipeline stage to another.
- */
-async function advanceBoxStage(boxId, fromStage, toStage) {
-  await db().from('boxes').update({ current_stage: toStage }).eq('id', boxId)
-}
-
 /**
  * Check a single box against Scan Manager and advance its stage if warranted.
  *
@@ -29,19 +19,19 @@ async function advanceBoxStage(boxId, fromStage, toStage) {
 export async function syncBoxWithSimflex(box) {
   try {
     // Get all processable ISBNs assigned to this box
-    const { data: scans, error: scansError } = await db()
-      .from('book_activity')
-      .select('scan_status, books!inner(isbn, box_id)')
-      .eq('books.box_id', box.id)
-      .eq('scan_status', 'processable')
+    const { rows: scans } = await db.query(`
+      SELECT ba.scan_status, b.isbn, b.box_id as "books.box_id" 
+      FROM book_activity ba 
+      JOIN books b ON ba.book_id = b.id 
+      WHERE b.box_id = $1 AND ba.scan_status = 'processable'
+    `, [box.id]);
 
-    if (scansError) throw scansError
     if (!scans || scans.length === 0) {
       return { advanced: false, newStage: box.current_stage, message: 'No processable books found in box.' }
     }
 
     // Deduplicate ISBNs
-    const isbns = [...new Set(scans.map(s => s.books?.isbn))]
+    const isbns = [...new Set(scans.map(s => s.isbn))];
 
     // Query Scan Manager for the latest status of each ISBN
     const simflexResult = await getSimflexStatusForISBNs(isbns, box.box_type || 'mustang')
@@ -60,7 +50,7 @@ export async function syncBoxWithSimflex(box) {
     const doneCount = results.filter(r => r.transmissionCompleted).length
 
     // Update total_transmitted_books for this box
-    await db().from('boxes').update({ total_transmitted_books: doneCount }).eq('id', box.id)
+    await db.query('UPDATE boxes SET total_transmitted_books = $1 WHERE id = $2', [doneCount, box.id]);
 
     // ── Stage transition logic ────────────────────────────────────────────────
     if (box.current_stage === 'scan' && anyTransmitting && !allCompleted) {

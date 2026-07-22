@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../../config/supabase.js';
+import { db } from '../../config/db.js';
 import { logger } from '../../utils/logger.js';
 
 
@@ -15,23 +15,35 @@ export const checkBoxExistsService = async (req, res) => {
       book_type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
     }
 
-    // Resolve the lot (matching the same type-scoping rules as bulk-save)
-    let lotQuery = supabaseAdmin.from('lots').select('id').eq('lot_number', lot_number)
-    if (book_type) lotQuery = lotQuery.eq('type', book_type)
-    else lotQuery = lotQuery.is('type', null)
+    // Resolve the lot
+    let lotQuery = 'SELECT id FROM lots WHERE lot_number = $1';
+    let lotParams = [lot_number];
+    if (book_type) {
+      lotQuery += ' AND type = $2';
+      lotParams.push(book_type);
+    } else {
+      lotQuery += ' AND type IS NULL';
+    }
 
-    const { data: lot } = await lotQuery.maybeSingle()
+    const { rows: lotRows } = await db.query(lotQuery + ' LIMIT 1', lotParams);
+    const lot = lotRows[0] || null;
 
     // If the lot doesn't exist yet, no boxes can exist inside it.
     if (!lot) {
       return res.json({ success: true, exists: false })
     }
 
-    let boxQuery = supabaseAdmin.from('boxes').select('id').eq('lot_id', lot.id).eq('box_number', box_number)
-    if (book_type) boxQuery = boxQuery.eq('box_type', book_type)
-    else boxQuery = boxQuery.is('box_type', null)
+    let boxQuery = 'SELECT id FROM boxes WHERE lot_id = $1 AND box_number = $2';
+    let boxParams = [lot.id, box_number];
+    if (book_type) {
+      boxQuery += ' AND box_type = $3';
+      boxParams.push(book_type);
+    } else {
+      boxQuery += ' AND box_type IS NULL';
+    }
 
-    const { data: box } = await boxQuery.maybeSingle()
+    const { rows: boxRows } = await db.query(boxQuery + ' LIMIT 1', boxParams);
+    const box = boxRows[0] || null;
 
     res.json({ success: true, exists: !!box })
   } catch (error) {
@@ -44,44 +56,34 @@ export const getRejectedBooksService = async (req, res) => {
   try {
     const { limit = 50, today } = req.query
     const requestedLimit = Math.min(parseInt(limit) || 50, 50)
-
-    // Fetch a generous pool so we can filter by today's latest flag and still return 10
     const fetchLimit = today === 'true' ? requestedLimit * 5 : requestedLimit
 
-    const { data: userFlags, error } = await supabaseAdmin
-      .from('user_flags')
-      .select(`
-        id,
-        rejection_reason,
-        notes,
-        warehouse_flag_by,
-        warehouse_flag_at,
-        inventory_flag_by,
-        inventory_flag_at,
-        endorsement_flag_by,
-        endorsement_flag_at,
-        warehouse_user:profiles!warehouse_flag_by(name),
-        inventory_user:profiles!inventory_flag_by(name),
-        endorsement_user:profiles!endorsement_flag_by(name),
-        book_activity(
-          id,
-          warehouse_scan_at,
-          books!inner(
-            isbn,
-            title,
-            box:boxes(
-              box_number,
-              lot:lots(lot_number)
-            )
-          )
-        )
-      `)
-      .order('warehouse_flag_at', { ascending: false })
-      .limit(fetchLimit)
-
-    if (error) throw error
-
-    const firstRel = (rel) => Array.isArray(rel) ? rel[0] : rel
+    const query = `
+      SELECT 
+        uf.id, uf.rejection_reason, uf.notes,
+        uf.warehouse_flag_by, uf.warehouse_flag_at,
+        uf.inventory_flag_by, uf.inventory_flag_at,
+        uf.endorsement_flag_by, uf.endorsement_flag_at,
+        wu.name as "warehouse_user.name",
+        iu.name as "inventory_user.name",
+        eu.name as "endorsement_user.name",
+        ba.id as "book_activity.id",
+        ba.warehouse_scan_at,
+        b.isbn, b.title,
+        bx.box_number, l.lot_number
+      FROM user_flags uf
+      LEFT JOIN users wu ON uf.warehouse_flag_by = wu.id
+      LEFT JOIN users iu ON uf.inventory_flag_by = iu.id
+      LEFT JOIN users eu ON uf.endorsement_flag_by = eu.id
+      JOIN book_activity ba ON uf.book_activity_id = ba.id
+      JOIN books b ON ba.book_id = b.id
+      LEFT JOIN boxes bx ON b.box_id = bx.id
+      LEFT JOIN lots l ON bx.lot_id = l.id
+      ORDER BY uf.warehouse_flag_at DESC
+      LIMIT $1
+    `;
+    
+    const { rows: userFlags } = await db.query(query, [fetchLimit]);
 
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
@@ -89,16 +91,11 @@ export const getRejectedBooksService = async (req, res) => {
     tomorrowStart.setDate(tomorrowStart.getDate() + 1)
 
     let mappedRejectedBooks = (userFlags || []).map(uf => {
-      const ba = firstRel(uf.book_activity) || {}
-      const book = firstRel(ba.books) || {}
-      const box = firstRel(book.box) || {}
-      const lot = firstRel(box.lot) || {}
-
       // Determine the latest flag among warehouse, inventory, and endorsement
       const flagCandidates = [
-        { at: uf.warehouse_flag_at, by: firstRel(uf.warehouse_user)?.name },
-        { at: uf.inventory_flag_at, by: firstRel(uf.inventory_user)?.name },
-        { at: uf.endorsement_flag_at, by: firstRel(uf.endorsement_user)?.name },
+        { at: uf.warehouse_flag_at, by: uf['warehouse_user.name'] },
+        { at: uf.inventory_flag_at, by: uf['inventory_user.name'] },
+        { at: uf.endorsement_flag_at, by: uf['endorsement_user.name'] },
       ].filter(c => c.at)
 
       const latestFlag = flagCandidates.sort(
@@ -106,14 +103,14 @@ export const getRejectedBooksService = async (req, res) => {
       )[0]
 
       return {
-        id: ba.id || uf.id,
-        isbn: book.isbn || null,
-        title: book.title || null,
+        id: uf['book_activity.id'] || uf.id,
+        isbn: uf.isbn || null,
+        title: uf.title || null,
         rejection_reason: uf.rejection_reason || null,
-        scanned_at: latestFlag?.at || ba.warehouse_scan_at || null,
+        scanned_at: latestFlag?.at || uf.warehouse_scan_at || null,
         scanned_by_name: latestFlag?.by || null,
-        assigned_box: box.box_number
-          ? { box_number: box.box_number, lot: lot.lot_number ? { lot_number: lot.lot_number } : null }
+        assigned_box: uf.box_number
+          ? { box_number: uf.box_number, lot: uf.lot_number ? { lot_number: uf.lot_number } : null }
           : null
       }
     })
@@ -136,4 +133,3 @@ export const getRejectedBooksService = async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 }
-

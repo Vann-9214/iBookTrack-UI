@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../../config/supabase.js';
+import { db } from '../../config/db.js';
 import { logger } from '../../utils/logger.js';
 
 
@@ -54,24 +54,31 @@ export const queryIsbnStreamService = async (req, res) => {
     // Only block global duplicates for normal scans. Missing/extra issue entries
     // are allowed to reference books already scanned in other lots/boxes.
     if (!allowExisting) {
-      let query = supabaseAdmin
-        .from('books')
-        .select(`
-          id,
-          box:boxes(box_number, box_type, lot:lots(lot_number))
-        `)
-        .eq('isbn', cleaned)
-      if (type) query = query.eq('book_type', type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
-      else query = query.is('book_type', null);
+      let query = `
+        SELECT b.id, bx.box_number, bx.box_type, l.lot_number
+        FROM books b
+        LEFT JOIN boxes bx ON b.box_id = bx.id
+        LEFT JOIN lots l ON bx.lot_id = l.id
+        WHERE b.isbn = $1
+      `;
+      const params = [cleaned];
+      if (type) {
+        query += ` AND b.book_type = $2`;
+        params.push(type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
+      } else {
+        query += ` AND b.book_type IS NULL`;
+      }
+      
+      const { rows: existingBooks } = await db.query(query + ' LIMIT 1', params);
+      const existingBook = existingBooks[0] || null;
 
-      const { data: existingBook } = await query.limit(1).maybeSingle();
       if (existingBook) {
-        const rawLot = existingBook.box?.lot?.lot_number || 'unknown'
+        const rawLot = existingBook.lot_number || 'unknown'
         const lotLabel = rawLot.toLowerCase().startsWith('lot')
           ? rawLot.charAt(0).toUpperCase() + rawLot.slice(1)
           : `Lot ${rawLot}`
-        const boxNumber = existingBook.box?.box_number || 'unknown'
-        const boxType = existingBook.box?.box_type || 'unknown'
+        const boxNumber = existingBook.box_number || 'unknown'
+        const boxType = existingBook.box_type || 'unknown'
         return res.json({
           success: false,
           error: `Duplicate ISBN: ${cleaned} is already scanned in ${lotLabel}, Box ${boxNumber} (${boxType}).`
@@ -143,39 +150,27 @@ export const searchIsbnService = async (req, res) => {
       ilmsLotNo = ilmsData.LotNo
     }
 
-    // Search in warehouse scan logs (include user_flags for rejection_reason)
-    const { data: scans, error: scanError } = await supabaseAdmin
-      .from('book_activity')
-      .select(`
-        *,
-        user_flags(rejection_reason),
-        books!inner(
-          isbn,
-          title,
-          book_type,
-          box:boxes(
-            box_number,
-            current_stage,
-            lot:lots(lot_number)
-          )
-        )
-      `)
-      .eq('books.isbn', isbn)
-      .order('warehouse_scan_at', { ascending: false })
+    // Search in warehouse scan logs
+    const { rows: scans } = await db.query(`
+      SELECT ba.*, uf.rejection_reason, b.isbn, b.title, b.book_type, bx.box_number, bx.current_stage, l.lot_number
+      FROM book_activity ba
+      LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
+      JOIN books b ON ba.book_id = b.id
+      LEFT JOIN boxes bx ON b.box_id = bx.id
+      LEFT JOIN lots l ON bx.lot_id = l.id
+      WHERE b.isbn = $1
+      ORDER BY ba.warehouse_scan_at DESC
+    `, [isbn]);
 
-    if (scanError) throw scanError
-
-    // Also search current book location in books table
-    const { data: book, error: bookError } = await supabaseAdmin
-      .from('books')
-      .select(`
-        *,
-        box:boxes(box_number, lot:lots(lot_number))
-      `)
-      .eq('isbn', isbn)
-      .single()
-
-    if (bookError && bookError.code !== 'PGRST116') throw bookError
+    // Search current book location in books table
+    const { rows: bookRows } = await db.query(`
+      SELECT b.*, bx.box_number, l.lot_number
+      FROM books b
+      LEFT JOIN boxes bx ON b.box_id = bx.id
+      LEFT JOIN lots l ON bx.lot_id = l.id
+      WHERE b.isbn = $1 LIMIT 1
+    `, [isbn]);
+    const book = bookRows[0] || null;
 
     // Determine box location
     let boxNumber = null
@@ -183,18 +178,16 @@ export const searchIsbnService = async (req, res) => {
     let inWarehouse = false
     
     if (scans && scans.length > 0) {
-      // Use most recent scan
       const latestScan = scans[0]
-      boxNumber = latestScan.books?.box?.box_number || null
-      lotNumber = latestScan.books?.box?.lot?.lot_number || null
+      boxNumber = latestScan.box_number || null
+      lotNumber = latestScan.lot_number || null
       inWarehouse = true
     } else if (book) {
-      boxNumber = book.box?.box_number || null
-      lotNumber = book.box?.lot?.lot_number || null
+      boxNumber = book.box_number || null
+      lotNumber = book.lot_number || null
       inWarehouse = true
     }
 
-    // If book found in iLMS or database, return success
     const bookFound = ilmsData || book || (scans && scans.length > 0)
 
     if (!bookFound) {
@@ -212,17 +205,23 @@ export const searchIsbnService = async (req, res) => {
         title: bookTitle || book?.title || 'Unknown',
         box_number: boxNumber || ilmsBoxNo || 'Not in warehouse yet',
         lot_number: lotNumber || ilmsLotNo || 'Unknown',
-        current_stage: scans?.[0]?.books?.box?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
+        current_stage: scans?.[0]?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
         scan_status: scans?.[0]?.scan_status || null,
-        rejection_reason: (Array.isArray(scans?.[0]?.user_flags) ? scans[0].user_flags[0] : scans?.[0]?.user_flags)?.rejection_reason || null,
-        book_type: scans?.[0]?.books?.book_type || book?.book_type || null,
+        rejection_reason: scans?.[0]?.rejection_reason || null,
+        book_type: scans?.[0]?.book_type || book?.book_type || null,
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
         in_warehouse: inWarehouse,
         in_ilms: !!ilmsData
       },
-      scans,
-      currentLocation: book || null,
+      scans: scans.map(s => ({
+        ...s,
+        user_flags: { rejection_reason: s.rejection_reason },
+        books: { isbn: s.isbn, title: s.title, book_type: s.book_type, box: { box_number: s.box_number, current_stage: s.current_stage, lot: { lot_number: s.lot_number } } }
+      })),
+      currentLocation: book ? {
+        ...book, box: { box_number: book.box_number, lot: { lot_number: book.lot_number } }
+      } : null,
       ilmsData: ilmsData || null
     })
   } catch (error) {
@@ -230,4 +229,3 @@ export const searchIsbnService = async (req, res) => {
     res.status(500).json({ success: false, error: error.message })
   }
 }
-

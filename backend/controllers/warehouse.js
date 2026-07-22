@@ -1,5 +1,4 @@
 import { logger } from '../utils/logger.js';
-import { supabaseAdmin } from '../config/supabase.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import * as sessionsService from '../services/warehouse/sessions.js';
 import * as scansService from '../services/warehouse/scans.js';
