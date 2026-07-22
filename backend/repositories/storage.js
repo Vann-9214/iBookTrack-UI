@@ -12,7 +12,7 @@ export const getStorageLocationsWithAssignments = async () => {
     .select(`
       id, shelf, shelf, rack, level, capacity,
       assignments:storage_assignments(
-        id, status, assigned_at, assigned_by_name,
+        id, status, assigned_at,
         box:boxes(
           id, box_number, total_expected_books, lot_id,
           lot:lots(lot_number),
@@ -191,7 +191,7 @@ export const getPendingStorageAssignments = async (boxType) => {
   let query = supabaseAdmin
     .from('storage_assignments')
     .select(`
-      id, status, assigned_at, assigned_by_name,
+      id, status, assigned_at,
       box:boxes(id, box_number, total_expected_books, lot_id, box_type, lot:lots(lot_number)),
       location:storage_locations(id, shelf, shelf, rack, level)
     `)

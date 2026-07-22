@@ -22,7 +22,6 @@ export const getLocationsService = async () => {
       assignment_id: a.id,
       status: a.status || 'confirmed',
       assigned_at: a.assigned_at,
-      assigned_by_name: a.assigned_by_name,
       box_id: a.box?.id,
       box_number: a.box?.box_number,
       lot_number: a.box?.lot?.lot_number || null,
@@ -178,7 +177,6 @@ export const assignBatchService = async (req) => {
     box_id,
     status: 'pending',
     assigned_by: req.user.id,
-    assigned_by_name: req.user.user_metadata?.full_name || req.user.email,
   }));
 
   const { data: assignments, error: insertError } = await storageRepo.insertStorageAssignments(assignmentsToInsert);
@@ -278,7 +276,6 @@ export const getPendingAssignmentsService = async (req) => {
     assignment_id: a.id,
     status: a.status,
     assigned_at: a.assigned_at,
-    assigned_by_name: a.assigned_by_name,
     box_id: a.box?.id,
     box_number: a.box?.box_number,
     lot_number: a.box?.lot?.lot_number || null,
