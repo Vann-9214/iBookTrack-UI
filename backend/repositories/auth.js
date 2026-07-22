@@ -1,56 +1,39 @@
 /**
  * repositories/auth.js
  *
- * Database access layer for authentication.
- * Wraps Supabase Auth and database operations for users and profiles.
+ * Database access layer for authentication using standard PostgreSQL.
  */
 
-import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { db } from '../config/db.js';
 
-export const getProfileById = async (userId) => {
-  if (!supabaseAdmin || !userId) return null;
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('name, email')
-    .eq('id', userId)
-    .single();
-  if (error || !data) return null;
-  return data;
+export const getUserByEmail = async (email) => {
+    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    return rows[0] || null;
+};
+
+export const getUserById = async (userId) => {
+    if (!userId) return null;
+    const { rows } = await db.query('SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1', [userId]);
+    return rows[0] || null;
+};
+
+export const createUser = async (name, email, passwordHash, role = 'user') => {
+    const { rows } = await db.query(
+        'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, created_at',
+        [name, email, passwordHash, role]
+    );
+    return rows[0];
 };
 
 export const updateProfile = async (userId, name, email) => {
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .update({ name, email })
-    .eq('id', userId)
-    .select('name, email')
-    .single();
-  return { data, error };
+    const { rows } = await db.query(
+        'UPDATE users SET name = $1, email = $2, updated_at = NOW() WHERE id = $3 RETURNING id, name, email, role',
+        [name, email, userId]
+    );
+    return { data: rows[0] || null, error: null };
 };
 
-export const signUp = async (email, password, name) => {
-  return await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { name }, emailRedirectTo: undefined }
-  });
-};
-
-export const signInWithPassword = async (email, password) => {
-  return await supabase.auth.signInWithPassword({ email, password });
-};
-
-export const refreshSession = async (refresh_token) => {
-  return await supabase.auth.refreshSession({ refresh_token });
-};
-
-export const updateAuthUser = async (userId, email, name) => {
-  return await supabaseAdmin.auth.admin.updateUserById(userId, {
-    email,
-    user_metadata: { name, full_name: name }
-  });
-};
-
-export const updateAuthPassword = async (userId, password) => {
-  return await supabaseAdmin.auth.admin.updateUserById(userId, { password });
+export const updatePassword = async (userId, passwordHash) => {
+    await db.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [passwordHash, userId]);
+    return { error: null };
 };
