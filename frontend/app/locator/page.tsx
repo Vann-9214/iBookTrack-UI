@@ -32,7 +32,6 @@ type Assignment = {
   assignment_id: string
   status?: 'pending' | 'confirmed'
   assigned_at: string
-  assigned_by_name: string | null
   box_id: string
   box_number: string
   lot_number: string | null
@@ -44,7 +43,6 @@ type PendingAssignment = {
   assignment_id: string
   status: 'pending' | 'confirmed'
   assigned_at: string
-  assigned_by_name: string | null
   box_id: string
   box_number: string
   lot_number: string | null
