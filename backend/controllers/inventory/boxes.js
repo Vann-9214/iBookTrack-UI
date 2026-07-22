@@ -4,8 +4,8 @@
  * Handles HTTP request/response flow for boxes routes.
  */
 
-import { logger } from '../utils/logger.js';
-import * as boxesService from '../services/boxes.js';
+import { logger } from '../../utils/logger.js';
+import * as boxesService from '../../services/inventory/boxes.js';
 
 export const getBoxes = async (req, res) => {
   try {

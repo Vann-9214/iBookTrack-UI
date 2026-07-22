@@ -9,7 +9,7 @@ import rateLimit from 'express-rate-limit';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import * as schemas from '../validators/auth.js';
-import * as controller from '../controllers/auth.js';
+import * as controller from '../controllers/auth/auth.js';
 
 const router = express.Router();
 

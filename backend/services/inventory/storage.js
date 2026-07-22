@@ -1,11 +1,11 @@
 /**
- * services/storage.js
+ * services/inventory/storage.js
  *
  * Business logic for physical storage locator system.
  */
 
-import { logger } from '../utils/logger.js';
-import * as storageRepo from '../repositories/storage.js';
+import { logger } from '../../utils/logger.js';
+import * as storageRepo from '../../repositories/inventory/storage.js';
 
 export const getLocationsService = async () => {
   const { data: locations, error } = await storageRepo.getStorageLocationsWithAssignments();

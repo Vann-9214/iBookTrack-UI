@@ -6,8 +6,8 @@
  * and sends the formatted JSON response back to the client.
  */
 
-import { logger } from '../utils/logger.js';
-import * as booksService from '../services/books.js';
+import { logger } from '../../utils/logger.js';
+import * as booksService from '../../services/inventory/books.js';
 
 export const getBooks = async (req, res) => {
   try {

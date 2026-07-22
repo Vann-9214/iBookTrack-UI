@@ -5,7 +5,7 @@
  * Uses vanilla PostgreSQL queries.
  */
 
-import { db } from '../config/db.js';
+import { db } from '../../config/db.js';
 
 export const getBooksByIsbns = async (isbns) => {
   if (!isbns || isbns.length === 0) return { data: [], error: null };

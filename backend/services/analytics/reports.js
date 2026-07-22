@@ -1,10 +1,10 @@
 /**
- * services/reports.js
+ * services/analytics/reports.js
  *
  * Business logic for report generation.
  */
 
-import * as reportsRepo from '../repositories/reports.js';
+import * as reportsRepo from '../../repositories/analytics/reports.js';
 
 export const getLotStatusService = async (req, res) => {
   const { type } = req.query;

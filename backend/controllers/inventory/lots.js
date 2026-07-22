@@ -6,8 +6,8 @@
  * and formats the final JSON response or error.
  */
 
-import { logger } from '../utils/logger.js';
-import * as lotsService from '../services/lots.js';
+import { logger } from '../../utils/logger.js';
+import * as lotsService from '../../services/inventory/lots.js';
 
 export const getLots = async (req, res) => {
   try {

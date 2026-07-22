@@ -20,7 +20,7 @@ Full turnover documentation lives in [`docs/`](./docs):
 
 - **Frontend:** Next.js 15, React 19, TypeScript, Tailwind v4, shadcn/ui
 - **Backend:** Node.js 20+, Express 4 (ES modules)
-- **Database:** Supabase (PostgreSQL + Auth + RLS)
+- **Database:** Neon PostgreSQL (with custom Auth via JWT)
 - **External:** Innodata Simflex WMS API, iLMS metadata API
 
 ## 🚀 Quick Start
@@ -30,9 +30,9 @@ Full turnover documentation lives in [`docs/`](./docs):
 cd backend  && npm install
 cd ../frontend && npm install
 
-# 2. Configure (copy .env.example → .env and fill in Supabase keys)
+# 2. Configure (copy .env.example → .env and fill in DB keys)
 
-# 3. Run migrations in Supabase SQL Editor (backend/migrations/001..025 in order)
+# 3. Run migrations in your PostgreSQL client (backend/migrations/001..025 in order)
 
 # 4. Start (two terminals)
 cd backend  && npm run dev      # http://localhost:5000

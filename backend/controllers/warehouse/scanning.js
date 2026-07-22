@@ -4,8 +4,8 @@
  * Handles HTTP request/response flow for scanning operations.
  */
 
-import { logger } from '../utils/logger.js';
-import * as scanningService from '../services/scanning.js';
+import { logger } from '../../utils/logger.js';
+import * as scanningService from '../../services/warehouse/scanning.js';
 
 export const getLiveScanning = async (req, res) => {
   try {

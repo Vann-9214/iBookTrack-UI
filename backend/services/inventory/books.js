@@ -1,14 +1,14 @@
 /**
- * services/books.js
+ * services/inventory/books.js
  *
  * Contains the core business logic for the books domain.
  * Integrates with external systems (like the iLMS API) and processes data
  * before it is saved or returned to the user.
  */
 
-import * as booksRepo from '../repositories/books.js';
-import { ilmsApi } from '../services/ilms/api.js';
-import { logger } from '../utils/logger.js';
+import * as booksRepo from '../../repositories/inventory/books.js';
+import { ilmsApi } from '../../services/ilms/api.js';
+import { logger } from '../../utils/logger.js';
 
 export const getBooksService = async (req, res) => {
   const { box_id } = req.query;

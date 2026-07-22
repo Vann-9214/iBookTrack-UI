@@ -5,7 +5,7 @@
  * Uses vanilla PostgreSQL queries.
  */
 
-import { db } from '../config/db.js';
+import { db } from '../../config/db.js';
 
 export const getLotsCount = async (search, lotType) => {
   let query = 'SELECT COUNT(*) as count FROM lots WHERE 1=1';

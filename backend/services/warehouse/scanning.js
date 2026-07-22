@@ -1,14 +1,14 @@
 /**
- * services/scanning.js
+ * services/warehouse/scanning.js
  *
  * Business logic for scanning operations.
- * Orchestrates calls to Scan Manager API, iLMS API, and Supabase repo.
+ * Orchestrates calls to Scan Manager API, iLMS API, and database repo.
  */
 
-import { logger } from '../utils/logger.js';
-import * as scanningRepo from '../repositories/scanning.js';
-import scanManagerApi from './scan_manager/api/index.js';
-import scanManagerStatusCounts from './scan_manager/status-counts.js';
+import { logger } from '../../utils/logger.js';
+import * as scanningRepo from '../../repositories/warehouse/scanning.js';
+import scanManagerApi from '../scan_manager/api/index.js';
+import scanManagerStatusCounts from '../scan_manager/status-counts.js';
 
 export const getLiveScanningService = async (req) => {
   const today = new Date().toISOString().split('T')[0];
@@ -239,7 +239,7 @@ export const getSimflexStatusService = async (req) => {
   const isbnList = String(isbns).split(',').map(s => s.trim()).filter(Boolean);
   if (isbnList.length === 0) return { success: true, statuses: {} };
 
-  const { getSimflexStatusForISBNs } = await import('./scan_manager/api/index.js');
+  const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
   const result = await getSimflexStatusForISBNs(isbnList, location);
 
   if (!result.success) {
@@ -277,7 +277,7 @@ export const enrichIlmsService = async (req) => {
   }
 
   const safeIsbns = isbns.slice(0, 100);
-  const { ilmsApi } = await import('./ilms/api.js');
+  const { ilmsApi } = await import('../ilms/api.js');
 
   const results = await Promise.all(
     safeIsbns.map(async (isbn) => {

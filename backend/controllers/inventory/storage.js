@@ -4,8 +4,8 @@
  * Handles HTTP request/response flow for storage operations.
  */
 
-import { logger } from '../utils/logger.js';
-import * as storageService from '../services/storage.js';
+import { logger } from '../../utils/logger.js';
+import * as storageService from '../../services/inventory/storage.js';
 
 export const getLocations = async (req, res) => {
   try {

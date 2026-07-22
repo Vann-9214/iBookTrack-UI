@@ -1,12 +1,12 @@
 /**
- * services/lots.js
+ * services/inventory/lots.js
  *
  * Contains the core business logic for lots.
  * Handles tasks like fetching paginated lot lists, calculating transmission
  * summaries across boxes, and querying external services (Scan Manager).
  */
 
-import * as lotsRepo from '../repositories/lots.js';
+import * as lotsRepo from '../../repositories/inventory/lots.js';
 
 const VALID_LOT_TYPES = ['Mustang', 'Jaguar'];
 
@@ -58,7 +58,7 @@ export const getLotTransmissionSummaryService = async (req, res) => {
   const processableScans = allScans.filter(s => s.scan_status === 'processable');
   const nonProcessableScans = allScans.filter(s => s.scan_status === 'non_processable');
 
-  const { getSimflexStatusForISBNs } = await import('./scan_manager/api/index.js');
+  const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
   const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))];
 
   let simflexMap = {};

@@ -4,7 +4,7 @@
  * Database access layer for authentication using standard PostgreSQL.
  */
 
-import { db } from '../config/db.js';
+import { db } from '../../config/db.js';
 
 export const getUserByEmail = async (email) => {
     const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);

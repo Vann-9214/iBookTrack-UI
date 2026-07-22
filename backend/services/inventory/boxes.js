@@ -1,16 +1,16 @@
 /**
- * services/boxes.js
+ * services/inventory/boxes.js
  *
  * Business logic for box pipeline and management.
  */
 
-import { logger } from '../utils/logger.js';
-import * as boxesRepo from '../repositories/boxes.js';
-import { generateLotCandidates } from '../utils/lotUtils.js';
+import { logger } from '../../utils/logger.js';
+import * as boxesRepo from '../../repositories/inventory/boxes.js';
+import { generateLotCandidates } from '../../utils/lotUtils.js';
 
 const syncBoxTransmissionStatus = async (boxId, location) => {
   try {
-    const { getSimflexStatusForISBNs } = await import('./scan_manager/api/index.js');
+    const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
 
     let boxLocation = location;
     if (!boxLocation) {
@@ -373,7 +373,7 @@ export const advanceBoxService = async (req) => {
   const nextStage = STAGE_ORDER[currentIdx + 1];
 
   if (box.current_stage === 'scan' && nextStage === 'storage') {
-    const { getSimflexStatusForISBNs } = await import('./scan_manager/api/index.js');
+    const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
     const { data: scans } = await boxesRepo.getProcessableBooksForBox(id);
     const isbns = [...new Set((scans || []).map(s => s.books?.isbn))];
 
@@ -520,7 +520,7 @@ export const getBoxTransmissionService = async (req) => {
   const allScans = scans || [];
   const processableScans = allScans.filter(s => s.scan_status === 'processable');
 
-  const { getSimflexStatusForISBNs } = await import('./scan_manager/api/index.js');
+  const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
   const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))];
   let simflexMap = {};
   
@@ -567,7 +567,7 @@ export const getBoxTransmissionService = async (req) => {
 
 export const checkSimflexService = async (req) => {
   const { id } = req.params;
-  const { syncBoxWithSimflex } = await import('./scan_manager/sync.js');
+  const { syncBoxWithSimflex } = await import('../scan_manager/sync.js');
 
   const { data: box, error: boxError } = await boxesRepo.getBoxById(id);
   if (boxError || !box) throw { status: 404, message: 'Box not found' };

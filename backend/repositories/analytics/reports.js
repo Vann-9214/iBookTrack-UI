@@ -5,7 +5,7 @@
  * Uses vanilla PostgreSQL queries.
  */
 
-import { db } from '../config/db.js';
+import { db } from '../../config/db.js';
 
 export const getLots = async (brandType) => {
   let query = 'SELECT id, lot_number, type, created_at, total_boxes FROM lots';

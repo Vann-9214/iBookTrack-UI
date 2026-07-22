@@ -16,7 +16,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import * as schemas from '../validators/books.js';
-import * as controller from '../controllers/books.js';
+import * as controller from '../controllers/inventory/books.js';
 
 const router = express.Router();
 

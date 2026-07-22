@@ -5,7 +5,7 @@
  * Uses vanilla PostgreSQL queries.
  */
 
-import { db } from '../config/db.js';
+import { db } from '../../config/db.js';
 
 export const getStorageLocationsWithAssignments = async () => {
   const query = `

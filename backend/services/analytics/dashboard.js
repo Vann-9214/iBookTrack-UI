@@ -1,14 +1,14 @@
 /**
- * services/dashboard.js
+ * services/analytics/dashboard.js
  *
  * Business logic for dashboard endpoints.
  */
 
-import { logger } from '../utils/logger.js';
-import * as dashboardRepo from '../repositories/dashboard.js';
-import scanManagerApi from './scan_manager/api/index.js';
-import { ilmsApi } from './ilms/api.js';
-import { generateLotCandidates } from '../utils/lotUtils.js';
+import { logger } from '../../utils/logger.js';
+import * as dashboardRepo from '../../repositories/analytics/dashboard.js';
+import scanManagerApi from '../scan_manager/api/index.js';
+import { ilmsApi } from '../ilms/api.js';
+import { generateLotCandidates } from '../../utils/lotUtils.js';
 
 export const getStatsService = async (req) => {
   const { lot_number, lot_range_start, lot_range_end, box_type } = req.query;
@@ -328,7 +328,7 @@ export const getLotDetailsService = async (req) => {
 export const getPipelineStatsService = async (req) => {
   const { lot_number, brand } = req.query;
   const selectedBrand = (brand === 'jaguar' || brand === 'mustang') ? brand : null;
-  const { getSimflexStatusForISBNs } = await import('./scan_manager/api/index.js');
+  const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
 
   let lotId = null;
   if (lot_number) {

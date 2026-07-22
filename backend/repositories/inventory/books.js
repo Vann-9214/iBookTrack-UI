@@ -5,7 +5,7 @@
  * Uses vanilla PostgreSQL queries.
  */
 
-import { db } from '../config/db.js';
+import { db } from '../../config/db.js';
 
 export const getBooks = async (box_id) => {
   let query = 'SELECT id, isbn, title, book_type, box_id FROM books';

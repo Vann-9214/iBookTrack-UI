@@ -1,6 +1,6 @@
 -- ============================================================
 -- Migration 001: Users Table
--- Replaces Supabase auth.users and public.profiles
+-- Replaces legacy user and profile tables
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

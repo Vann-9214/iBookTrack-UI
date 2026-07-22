@@ -9,7 +9,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import * as schemas from '../validators/lots.js';
-import * as controller from '../controllers/lots.js';
+import * as controller from '../controllers/inventory/lots.js';
 
 const router = express.Router();
 

@@ -4,8 +4,8 @@
  * Handles HTTP requests for report generation.
  */
 
-import { logger } from '../utils/logger.js';
-import * as reportsService from '../services/reports.js';
+import { logger } from '../../utils/logger.js';
+import * as reportsService from '../../services/analytics/reports.js';
 
 export const getLotStatus = async (req, res) => {
   try {

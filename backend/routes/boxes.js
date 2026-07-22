@@ -8,7 +8,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import * as schemas from '../validators/boxes.js';
-import * as controller from '../controllers/boxes.js';
+import * as controller from '../controllers/inventory/boxes.js';
 
 const router = express.Router();
 

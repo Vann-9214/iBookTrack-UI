@@ -8,7 +8,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/authMiddleware.js';
 import { validateRequest } from '../middleware/validateRequest.js';
 import * as schemas from '../validators/dashboard.js';
-import * as controller from '../controllers/dashboard.js';
+import * as controller from '../controllers/analytics/dashboard.js';
 
 const router = express.Router();
 

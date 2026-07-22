@@ -1,10 +1,10 @@
 /**
- * services/auth.js
+ * services/auth/auth.js
  *
  * Core business logic for authentication using standard PostgreSQL, bcrypt, and jsonwebtoken.
  */
 
-import * as authRepo from '../repositories/auth.js';
+import * as authRepo from '../../repositories/auth/auth.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 

@@ -4,8 +4,8 @@
  * Handles HTTP requests and responses for authentication.
  */
 
-import { logger } from '../utils/logger.js';
-import * as authService from '../services/auth.js';
+import { logger } from '../../utils/logger.js';
+import * as authService from '../../services/auth/auth.js';
 
 export const register = async (req, res) => {
   try {

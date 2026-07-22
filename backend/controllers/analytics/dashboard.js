@@ -4,8 +4,8 @@
  * Handles HTTP request/response flow for dashboard routes.
  */
 
-import { logger } from '../utils/logger.js';
-import * as dashboardService from '../services/dashboard.js';
+import { logger } from '../../utils/logger.js';
+import * as dashboardService from '../../services/analytics/dashboard.js';
 
 export const getStats = async (req, res) => {
   try {

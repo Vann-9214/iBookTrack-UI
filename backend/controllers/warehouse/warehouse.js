@@ -1,10 +1,10 @@
-import { logger } from '../utils/logger.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
-import * as sessionsService from '../services/warehouse/sessions.js';
-import * as scansService from '../services/warehouse/scans.js';
-import * as searchService from '../services/warehouse/search.js';
-import * as lotsService from '../services/warehouse/lots.js';
-import * as boxesService from '../services/warehouse/boxes.js';
+import { logger } from '../../utils/logger.js';
+import { requireAuth } from '../../middleware/authMiddleware.js';
+import * as sessionsService from '../../services/warehouse/sessions.js';
+import * as scansService from '../../services/warehouse/scans.js';
+import * as searchService from '../../services/warehouse/search.js';
+import * as lotsService from '../../services/warehouse/lots.js';
+import * as boxesService from '../../services/warehouse/boxes.js';
 
 /**
  * controllers/warehouse.js
