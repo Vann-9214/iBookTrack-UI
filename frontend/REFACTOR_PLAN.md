@@ -420,7 +420,7 @@ Steps:
 4. Move `protected-route.tsx` to `components/layout/` or keep under auth feature.
 5. Remove dead helpers from `lib/auth-api.ts`: `storeTokenData`, `getTokenData`, `isTokenExpired`, `getValidAccessToken`.
 
-### Phase 4.1 — Remaining Stations
+### Phase 4 — Remaining Stations
 
 Apply the same extraction pattern to:
 
@@ -444,53 +444,21 @@ For each:
 4. Split JSX into components (< 200 lines each).
 5. Leave `page.tsx` as pure composition.
 
-## Phase 4.2 — Remaining Stations: concrete extraction pattern
-
-Use the same baseline for every station:
-
-```text
-features/<station>/
-├── components/     # Presentational sections and modals; target <200 lines per file
-├── hooks/          # Page orchestration, remote-state lifecycle, UI-state handlers
-├── services/       # Typed `authFetch` API boundary; no React state
-├── utils/          # Pure formatters, filters, selectors, parsing helpers
-└── types/          # API/domain and component-prop types
-```
-
-Each route page should only own the application shell and composition:
-
-```tsx
-'use client'
-
-import { DashboardSidebar } from '@/components/dashboard-sidebar'
-import { DashboardNavbar } from '@/components/top-bar'
-import { StationContent } from '@/features/<station>/components/StationContent'
-
-export default function StationPage() {
-  return (
-    <div className="flex h-dvh overflow-hidden bg-background">
-      <DashboardSidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <DashboardNavbar />
-        <StationContent />
-      </main>
-    </div>
-  )
-}
-```
-
-`StationContent` may invoke the feature hook and compose its feature-specific UI. This prevents route files from becoming a different kind of monolith due to passing a large hook object through several levels.
+Use one self-contained phase per remaining station, with **Goal**, **Current**, **New structure**, and **Steps**.
 
 ---
 
-### 1. Warehouse
+### Phase 4.1 — Warehouse
 
-The current warehouse screen combines receiving-session setup, SSE ISBN lookup, book scanning, lot/box validation, flagging, completion, and several confirmation dialogs. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\warehouse\page.tsx" lines="125-190" /> Its API boundary includes warehouse sessions, iLMS lots, and the ISBN stream/query endpoints. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\warehouse\page.tsx" lines="204-220" />
+**Goal**: separate the receiving-session workflow, live ISBN lookup, scan log, and confirmation dialogs.
+
+Current: `app/warehouse/page.tsx` (1,647 lines)
+
+New structure:
 
 ```text
 features/warehouse/
 ├── components/
-│   ├── WarehouseContent.tsx
 │   ├── WarehouseHeader.tsx
 │   ├── WarehouseSessionSetup.tsx
 │   ├── WarehouseActiveSession.tsx
@@ -514,21 +482,32 @@ features/warehouse/
     └── warehouse.types.ts
 ```
 
-- **`useWarehouse`**: lot/box selection, session lifecycle, scan log, counter state, flagging, completion/reset workflow, and refresh state.
-- **`useWarehouseIsbnStream`**: owns `EventSource`, cleanup, ISBN lookup state, and stream events. This deserves a separate hook because it is a resource lifecycle rather than ordinary UI state.
-- **`warehouse.service.ts`**: `getIlmsLots`, `checkBoxExists`, `saveSession`, `updateSession`, `queryIsbn`, `startIsbnStream`, and related session operations.
-- **`warehouse.helpers.ts`**: move `isValidIsbn`, lot/box normalization, similar-lot matching, and iLMS mismatch calculation from the current route. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\warehouse\page.tsx" lines="82-123" />
+Steps:
+
+1. Create `features/warehouse/` skeleton.
+2. Move warehouse types (`ILMSBookData`, `ScannedBook`, `WarehouseSession`) to `types/warehouse.types.ts`.
+3. Move lot/box normalizers, ISBN validation, similar-lot matching, and iLMS mismatch checks to `warehouse.helpers.ts`.
+4. Create `warehouse.service.ts` for iLMS lots, box existence checks, warehouse session CRUD, bulk save, ISBN lookups, and flagging endpoints.
+5. Extract `useWarehouseIsbnStream` to manage `EventSource`, ISBN stream lifecycle, cleanup, and lookup state.
+6. Extract `useWarehouse` for lot/box selection, session state, scans, refresh behavior, and modal state.
+7. Extract session setup, active-session banner, stats, scanner, and scan log into components.
+8. Extract each modal into its own component.
+9. Compose `app/warehouse/page.tsx` from the warehouse feature components and hook.
+10. Move the old page implementation to `DEADCODES/pages/` after validation.
 
 ---
 
-### 2. Checkpoints
+### Phase 4.2 — Checkpoints
 
-This is effectively a pipeline-monitoring feature: it has pipeline stages/cards, transition logs, stage drill-down, box details, receive/send/advance/rollback operations, and Simflex checks. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\checkpoints\page.tsx" lines="216-254" />
+**Goal**: isolate pipeline monitoring, transition tracking, stage drill-down, and box workflow actions.
+
+Current: `app/checkpoints/page.tsx` (2,158 lines)
+
+New structure:
 
 ```text
 features/checkpoints/
 ├── components/
-│   ├── CheckpointsContent.tsx
 │   ├── CheckpointsHeader.tsx
 │   ├── PipelineStageFlow.tsx
 │   ├── PipelineStageCard.tsx
@@ -553,23 +532,32 @@ features/checkpoints/
     └── checkpoints.types.ts
 ```
 
-- **`useCheckpoints`**: top-level refresh, scan input/highlighting, action state, confirmation state, selected stage.
-- **`usePipelineTransitions`**: transition filters, pagination, timeline expansion, transition data loading.
-- **`useCheckpointBoxDetails`**: selected box, book details, per-ISBN Simflex status, and on-demand check operation.
-- **`checkpoints.service.ts`**: boxes/pipeline transitions, receive/send/advance/rollback, scan/transmit rows, live scanning data, Simflex status, and check-Simflex actions. These calls are currently scattered throughout the page. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\checkpoints\page.tsx" lines="335-354" />
+Steps:
 
-Keep `STAGE_ORDER`, stage metadata, status calculations, date filters, and timeline helpers in `utils/checkpoints.helpers.ts`; their current role is pure display/domain derivation. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\checkpoints\page.tsx" lines="32-76" />
+1. Create `features/checkpoints/` skeleton.
+2. Move stage types, box types, transition types, and Simflex result types to `types/checkpoints.types.ts`.
+3. Move `STAGE_ORDER`, stage metadata, status mapping, timestamp selection, and timeline helpers to `checkpoints.helpers.ts`.
+4. Create `checkpoints.service.ts` for pipeline transitions, box lists/details, receive/send/advance/rollback actions, scanning rows, transmission rows, and Simflex endpoints.
+5. Extract `usePipelineTransitions` for date/search/stage filtering, pagination, expanded timelines, and transition refresh.
+6. Extract `useCheckpointBoxDetails` for lazy box details, scanned books, and Simflex lookups.
+7. Extract `useCheckpoints` for pipeline refresh, scanner input, action state, confirmations, undo state, and selected stage.
+8. Extract the pipeline stage flow/cards and transition tracker table.
+9. Extract box details, stage details, action confirmation, validation, and undo UI into focused components.
+10. Compose `app/checkpoints/page.tsx` from feature components and hooks.
 
 ---
 
-### 3. Transmission
+### Phase 4.3 — Transmission
 
-Transmission has four distinct views: summary metrics/stage breakdown, live scan feed, machine view, and lot transmission visibility, plus ranking and flagging dialogs. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\transmission\page.tsx" lines="747-914" />
+**Goal**: separate live transmission monitoring, machine performance, lot visibility, exports, rankings, and flagging.
+
+Current: `app/transmission/page.tsx` (1,938 lines)
+
+New structure:
 
 ```text
 features/transmission/
 ├── components/
-│   ├── TransmissionContent.tsx
 │   ├── TransmissionHeader.tsx
 │   ├── TransmissionFilters.tsx
 │   ├── TransmissionMetrics.tsx
@@ -594,22 +582,32 @@ features/transmission/
     └── transmission.types.ts
 ```
 
-- **`useTransmission`**: live data, date filters, stage/table filters, ranking/export state, and refresh.
-- **`useTransmissionLot`**: lot search, selected lot/box, pagination, and summary retrieval.
-- **`useMachineBooks`**: machine selection and machine-book request lifecycle.
-- **`transmission.service.ts`**: `/api/scanning/live`, `machine-books`, `ranking`, `export`, lots/search/summary, tag updates, and iLMS enrichment. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\transmission\page.tsx" lines="300-352" />
-- **`transmission.helpers.ts`**: `formatPipelineStage`, `parseStatus`, and badge/status mapping. Keep badge components out of helpers; make helpers return status metadata and render it in components. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\transmission\page.tsx" lines="75-158" />
+Steps:
+
+1. Create `features/transmission/` skeleton.
+2. Move transmission summary, scan, machine, lot, ranking, and flag types to `types/transmission.types.ts`.
+3. Move pipeline-stage formatting, status parsing, and status metadata to `transmission.helpers.ts`.
+4. Create `transmission.service.ts` for live scan data, machine books, rankings, exports, lot search, lot transmission summaries, iLMS enrichment, and scan flagging.
+5. Extract `useTransmission` for date filters, live summary, stage breakdown, table view, refresh, export, and ranking state.
+6. Extract `useMachineBooks` for selected-machine state and lazy book retrieval.
+7. Extract `useTransmissionLot` for lot search, selected lot/box state, pagination, and lot summary data.
+8. Extract metrics, stage breakdown, live scan feed, machine table, and lot visibility sections.
+9. Extract ranking and scan-flagging dialogs.
+10. Compose `app/transmission/page.tsx` from the transmission feature.
 
 ---
 
-### 4. Locator
+### Phase 4.4 — Locator
 
-Locator is a storage-layout feature, with location grid management, storage assignment, pending-assignment confirmation, search, capacity management, and section/rack/level provisioning. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\locator\page.tsx" lines="88-159" />
+**Goal**: isolate storage-grid management, box assignment, search, and storage topology administration.
+
+Current: `app/locator/page.tsx` (1,743 lines)
+
+New structure:
 
 ```text
 features/locator/
 ├── components/
-│   ├── LocatorContent.tsx
 │   ├── LocatorHeader.tsx
 │   ├── LocatorSearch.tsx
 │   ├── LocatorSearchResults.tsx
@@ -635,24 +633,33 @@ features/locator/
     └── locator.types.ts
 ```
 
-- **`useLocator`**: locations/ready/pending data, active section, slot detail, assignment/removal state, shared refresh.
-- **`useStorageSearch`**: search value, classification, validation, results, and highlighted cells.
-- **`useStorageTopology`**: add/remove section/rack/level, capacity edits, and confirmation/warning state.
-- **`locator.service.ts`**: location retrieval/provision/update/delete, ready and pending boxes, search, assignment batch operations, and confirmation. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\locator\page.tsx" lines="161-201" />
-- **`locator.helpers.ts`**: slot lookup, capacity calculations, grid/rack/level derivation, labels, and search-result mapping.
+Steps:
 
-Remove the unrelated `DashboardMain` import while doing this refactor; it is currently present in the locator route but not part of locator behavior. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\locator\page.tsx" lines="14-18" />
+1. Create `features/locator/` skeleton.
+2. Move storage location, assignment, ready-box, pending-assignment, and search-result types to `types/locator.types.ts`.
+3. Move grid calculations, slot lookup, label formatting, capacity calculations, and search mapping to `locator.helpers.ts`.
+4. Create `locator.service.ts` for locations, ready boxes, pending assignments, storage search, provisioning, assignment, confirmation, and removal endpoints.
+5. Extract `useLocator` for locations, ready boxes, pending assignments, selected slot, assignment state, and shared refresh.
+6. Extract `useStorageSearch` for query state, result state, validation, search classification, and highlighted cells.
+7. Extract `useStorageTopology` for section/rack/level creation and deletion, capacity editing, and warning/confirmation state.
+8. Extract storage grid, section controls, ready boxes, pending assignments, and search UI.
+9. Extract slot detail, assignment, topology confirmation, and warning dialogs.
+10. Remove the unused `DashboardMain` dependency while refactoring.
+11. Compose `app/locator/page.tsx` from feature components and hooks.
 
 ---
 
-### 5. QA / Endorsement
+### Phase 4.5 — QA
 
-QA contains three feature sections—incoming, active inspection, and outgoing—with a nested inspection-session scanner workflow. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\qa\page.tsx" lines="695-793" />
+**Goal**: separate incoming receipt, inspection-session scanning, endorsement validation, and outgoing transfer to Scan.
+
+Current: `app/qa/page.tsx` (1,364 lines)
+
+New structure:
 
 ```text
 features/qa/
 ├── components/
-│   ├── QaContent.tsx
 │   ├── QaHeader.tsx
 │   ├── QaSearch.tsx
 │   ├── QaTabs.tsx
@@ -677,28 +684,32 @@ features/qa/
     └── qa.types.ts
 ```
 
-- **`useQa`**: tab/search state, incoming/endorsement lists, receive/send actions, expanded boxes, and refresh.
-- **`useInspectionSession`**: start/resume, warehouse-scan comparison data, scanning, flags, session totals, and completion.
-- **`qa.service.ts`**: stage-box listing, advance/send, box details, warehouse scans, resume session, iLMS ISBN search, scan, and complete. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\qa\page.tsx" lines="314-345" />
-- Move `FLAG_ISSUES` to a shared constant, not a QA-local helper. It is already duplicated in Warehouse and Transmission. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\qa\page.tsx" lines="22-44" />
+Steps:
 
-Recommended shared location:
-
-```text
-constants/
-└── book-flag-issues.ts
-```
+1. Create `features/qa/` skeleton.
+2. Move QA box, book, scanned-book, warehouse-book, and inspection-session types to `types/qa.types.ts`.
+3. Move inspection display helpers, issue-label mapping, and stage predicates to `qa.helpers.ts`.
+4. Reuse `constants/book-flag-issues.ts` instead of the local `FLAG_ISSUES` constant.
+5. Create `qa.service.ts` for incoming/endorsement boxes, receive/send actions, box details, warehouse scans, resumed sessions, iLMS lookup, inspection scans, and session completion.
+6. Extract `useQa` for tabs, search, incoming/inspection/outgoing lists, box expansion, receipt/send actions, and refresh.
+7. Extract `useInspectionSession` for starting/resuming sessions, scanning, flagging, totals, comparison data, and completion.
+8. Extract incoming, inspection, and outgoing tab content into separate components.
+9. Extract the inspection flag, completion, and action confirmation dialogs.
+10. Compose `app/qa/page.tsx` from feature components and hooks.
 
 ---
 
-### 6. Cut
+### Phase 4.6 — Cut
 
-Cut and Scan share the same station-transfer shape, but should start as separate features because their workflows and stage semantics differ.
+**Goal**: separate incoming receipt, Cut work queue, box details, and transfer to Endorsement.
+
+Current: `app/cut/page.tsx` (544 lines)
+
+New structure:
 
 ```text
 features/cut/
 ├── components/
-│   ├── CutContent.tsx
 │   ├── CutHeader.tsx
 │   ├── CutSearch.tsx
 │   ├── CutTabs.tsx
@@ -717,20 +728,31 @@ features/cut/
     └── cut.types.ts
 ```
 
-- **`useCut`**: query/type/tab state, incoming/outgoing data, expanded box/book cache, receive/send progress, and confirmation state.
-- **`cut.service.ts`**: `listBoxes`, `getBox`, `receiveBox`, and `sendBoxForward`.
-- **`cut.helpers.ts`**: stage-query construction and lot filtering.
+Steps:
 
-The present route already has clean domain seams: incoming Inventory boxes with `sent` sessions, active Cut boxes without a sent session, and a lazy-loaded book list. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\cut\page.tsx" lines="100-139" />
+1. Create `features/cut/` skeleton.
+2. Move box and book types to `types/cut.types.ts`.
+3. Move stage-query creation, incoming/outgoing predicates, and lot filtering to `cut.helpers.ts`.
+4. Create `cut.service.ts` for box listing, box detail retrieval, receive, and send-forward endpoints.
+5. Extract `useCut` for tab/search state, incoming/outgoing data, expanded boxes, lazy-loaded books, confirmation state, and refresh.
+6. Extract incoming and work-queue box lists.
+7. Extract reusable box row and expanded-book-list components.
+8. Extract the receive/send confirmation dialog.
+9. Compose `app/cut/page.tsx` from Cut feature components and hook.
 
 ---
 
-### 7. Scan
+### Phase 4.7 — Scan
+
+**Goal**: separate endorsed-box receipt, search/filtering, box inspection, and confirmation.
+
+Current: `app/scan/page.tsx` (372 lines)
+
+New structure:
 
 ```text
 features/scan/
 ├── components/
-│   ├── ScanContent.tsx
 │   ├── ScanHeader.tsx
 │   ├── ScanSearch.tsx
 │   ├── IncomingScanBoxList.tsx
@@ -747,22 +769,30 @@ features/scan/
     └── scan.types.ts
 ```
 
-- **`useScan`**: search/filter state, incoming boxes, expanded box/book cache, receipt action, and refresh.
-- **`scan.service.ts`**: `listIncomingBoxes`, `getBox`, `receiveBox`.
-- **`scan.helpers.ts`**: lot match and incoming box/session predicates.
+Steps:
 
-The current page is comparatively small, but it still combines data access, lazy detail loading, filtering, confirmation, and rendering. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\scan\page.tsx" lines="72-150" />
+1. Create `features/scan/` skeleton.
+2. Move Scan box and book types to `types/scan.types.ts`.
+3. Move incoming-stage predicates and lot filtering to `scan.helpers.ts`.
+4. Create `scan.service.ts` for incoming-box listing, box details, and receive endpoints.
+5. Extract `useScan` for search, filters, incoming boxes, expanded box state, book cache, confirmation state, and refresh.
+6. Extract search, box list, box row, and box-book detail components.
+7. Extract the receive confirmation dialog.
+8. Compose `app/scan/page.tsx` from Scan feature components and hook.
 
 ---
 
-### 8. Scan QR
+### Phase 4.8 — Scan QR
 
-This is independent from the Scan station transfer page: it parses QR labels, looks up barcode ISBNs, and renders two scan-result card types. Keep parsing and display isolated.
+**Goal**: separate camera scanning, QR parsing, ISBN lookup, and result rendering.
+
+Current: `app/scan-qr/page.tsx` (480 lines)
+
+New structure:
 
 ```text
 features/scan-qr/
 ├── components/
-│   ├── ScanQrContent.tsx
 │   ├── ScanQrHeader.tsx
 │   ├── ScanQrCamera.tsx
 │   ├── QrResultCard.tsx
@@ -779,21 +809,31 @@ features/scan-qr/
     └── scan-qr.types.ts
 ```
 
-- **`useQrScanner`**: scanner result state, barcode lookup lifecycle, result removal, navigation/back state.
-- **`scan-qr.service.ts`**: `lookupIsbn`.
-- **`scan-qr.helpers.ts`**: `parseQr`, rejection label lookup, scan-result guards, and QR/barcode mapping.
-- Move `HeaderCell`, `BodyCell`, and `StatusBadge` into their consuming table/card components rather than treating them as generic feature utilities. The parser and result types are currently in the route file. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\scan-qr\page.tsx" lines="22-88" />
+Steps:
+
+1. Create `features/scan-qr/` skeleton.
+2. Move QR result, barcode result, scan result, and book-entry types to `types/scan-qr.types.ts`.
+3. Move QR parsing, rejection-reason labels, type guards, and result mapping to `scan-qr.helpers.ts`.
+4. Create `scan-qr.service.ts` for ISBN lookup through `/api/warehouse/search/isbn/:isbn`.
+5. Extract `useQrScanner` for scanner-result state, barcode lookup state, result removal, and scan event handling.
+6. Extract camera integration into `ScanQrCamera`.
+7. Extract QR and barcode result cards into their own components.
+8. Move result-table cells and status badges into the result-table component.
+9. Compose `app/scan-qr/page.tsx` from Scan QR feature components and hook.
 
 ---
 
-### 9. Reports
+### Phase 4.9 — Reports
 
-Reports has one remote dataset, but distinct UI responsibilities: status summary, filter/search/sort controls, expandable lot rows, and paginated box detail. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\reports\page.tsx" lines="67-149" />
+**Goal**: separate lot-status fetching, report filtering/sorting, summary metrics, and expandable box details.
+
+Current: `app/reports/page.tsx` (570 lines)
+
+New structure:
 
 ```text
 features/reports/
 ├── components/
-│   ├── ReportsContent.tsx
 │   ├── ReportsHeader.tsx
 │   ├── ReportStatusSummary.tsx
 │   ├── ReportFilters.tsx
@@ -810,21 +850,30 @@ features/reports/
     └── reports.types.ts
 ```
 
-- **`useReports`**: fetch state, filter/search/sort, expanded lots, per-lot pagination.
-- **`reports.service.ts`**: `getLotStatus(brand)`.
-- **`reports.helpers.ts`**: `formatTime`, computed progress, filtering/sorting, status metadata.
-- Keep `STATUS_META` as serializable metadata in helpers/constants and render its icons only within components. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\reports\page.tsx" lines="48-65" />
+Steps:
+
+1. Create `features/reports/` skeleton.
+2. Move lot, box, filter, sort, and report status types to `types/reports.types.ts`.
+3. Move time formatting, status metadata, progress calculation, filtering, and sorting to `reports.helpers.ts`.
+4. Create `reports.service.ts` for `/api/reports/lot-status`.
+5. Extract `useReports` for report fetching, refresh state, filter/search/sort state, expanded lots, and per-lot box pagination.
+6. Extract the report header, status summary cards, and filters.
+7. Extract lot table, lot rows, and expandable box-detail UI.
+8. Compose `app/reports/page.tsx` from Reports feature components and hook.
 
 ---
 
-### 10. Settings
+### Phase 4.10 — Settings
 
-Settings has profile and password forms, profile picture local persistence, and user-display derivation.
+**Goal**: separate profile management, password changes, profile-picture persistence, and user display utilities.
+
+Current: `app/settings/page.tsx` (413 lines)
+
+New structure:
 
 ```text
 features/settings/
 ├── components/
-│   ├── SettingsContent.tsx
 │   ├── SettingsTabs.tsx
 │   ├── ProfileSettingsForm.tsx
 │   ├── PasswordSettingsForm.tsx
@@ -840,23 +889,31 @@ features/settings/
     └── settings.types.ts
 ```
 
-- **`useSettings`**: profile loading, active tab, profile/password form state, submission state/messages.
-- **`useProfilePicture`**: file reading and the browser-local profile-picture persistence behavior.
-- **`settings.service.ts`**: `getProfile`, `updateProfile`, `updatePassword`.
-- **`settings.helpers.ts`**: `getDisplayNameFromEmail`, `getInitials`, stored-user parsing, and token payload decoding. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\settings\page.tsx" lines="20-84" />
+Steps:
 
-**Important:** `USER_STORAGE_KEY`, `parseStoredUser`, and `decodeTokenUser` appear unused in this route excerpt. Verify references before moving them; delete rather than preserve dead code if they have no callers.
+1. Create `features/settings/` skeleton.
+2. Move profile, password, and settings message types to `types/settings.types.ts`.
+3. Move display-name generation, initials generation, stored-user parsing, and token decoding to `settings.helpers.ts`.
+4. Create `settings.service.ts` for current profile retrieval, profile updates, and password updates.
+5. Extract `useProfilePicture` for file reading and local-storage persistence.
+6. Extract `useSettings` for profile loading, active tab, profile/password form state, validation, messages, and submissions.
+7. Extract settings tabs, profile form, password form, and avatar editor.
+8. Verify whether `USER_STORAGE_KEY`, `parseStoredUser`, and `decodeTokenUser` have callers; remove them if unused.
+9. Compose `app/settings/page.tsx` from Settings feature components and hooks.
 
 ---
 
-### 11. Notifications
+### Phase 4.11 — Notifications
 
-Notifications should not gain a feature service until the underlying `useLiveNotifications` hook is also refactored. The page itself does not make API requests; it consumes that shared live-data hook. <ref_snippet file="C:\Users\MUSTANG-OJT\Documents\GitHub\iBookTrack\frontend\app\notifications\page.tsx" lines="65-93" />
+**Goal**: separate live-notification state, filtering, notification rendering, and empty states.
+
+Current: `app/notifications/page.tsx` (270 lines)
+
+New structure:
 
 ```text
 features/notifications/
 ├── components/
-│   ├── NotificationsContent.tsx
 │   ├── NotificationsHeader.tsx
 │   ├── NotificationFilters.tsx
 │   ├── NotificationList.tsx
@@ -872,31 +929,38 @@ features/notifications/
     └── notifications.types.ts
 ```
 
-- **`useNotifications`**: wraps `useLiveNotifications`, owns dismissed IDs, selected filter, visible/filtered lists, type counts, and dismiss behavior.
-- **`notifications.service.ts`**: only create it when extracting API/polling behavior out of `useLiveNotifications`; otherwise leave it intentionally empty/not created rather than adding a placeholder module.
-- **`notifications.helpers.ts`**: notification type display metadata and count/filter helpers.
-- **`NotificationCard`**: renders status style and handles mark-read/dismiss callbacks.
+Steps:
+
+1. Create `features/notifications/` skeleton.
+2. Move notification and notification-filter types to `types/notifications.types.ts`.
+3. Move notification-type display metadata, filter logic, and type-count helpers to `notifications.helpers.ts`.
+4. Extract `useNotifications` as a wrapper around `useLiveNotifications`, containing dismissal state, filters, visible notifications, counts, and read actions.
+5. Extract the header, filter buttons, notification list, card, and empty state.
+6. Move polling/API behavior from `useLiveNotifications` to `notifications.service.ts` only if that hook currently owns the transport implementation.
+7. Compose `app/notifications/page.tsx` from Notifications feature components and hook.
 
 ---
 
-## Shared extraction rules
+### Shared prerequisite — Book flag constants
 
-1. **Do not duplicate station-transfer logic indefinitely.**
-   Cut, QA, and Scan all call box listing/detail/advance/send-forward endpoints. Keep each station service initially for controlled migration, then introduce a shared `features/boxes/services/box-workflow.service.ts` only after their request/response contracts are typed and demonstrably identical.
+**Goal**: remove repeated flag definitions before extracting Warehouse, QA, and Transmission.
 
-2. **Move repeated flag definitions now.**
-   `FLAG_ISSUES` is duplicated in Warehouse, QA, and Transmission. Create a single `constants/book-flag-issues.ts` and reuse its `BookFlagIssue` type.
+Current: duplicated `FLAG_ISSUES` arrays in station pages.
 
-3. **Do not put JSX-returning helpers in `utils/`.**
-   Functions such as Transmission’s badge helpers should become data helpers plus small rendering components. Utilities should stay framework-independent and testable.
+New structure:
 
-4. **Keep feature types feature-local first.**
-   Promote only real cross-feature shapes—such as box/session/book records—to a shared domain type after confirming compatibility. The current station pages use subtly different box/session projections.
+```text
+constants/
+└── book-flag-issues.ts
+```
 
-5. **Migrate station-by-station, preserving API behavior.**
-   For each station: introduce types → service → hook → components → composition-only page → remove old extracted route code. Avoid moving to `DEADCODES` until TypeScript/build validation confirms no remaining imports.
+Steps:
 
-This decomposition aligns with the actual existing boundaries: warehouse sessions and stream scanning, checkpoint pipeline transitions, transmission telemetry, locator storage topology, QA inspection sessions, and the simpler transfer/report/settings/notification screens.
+1. Create `constants/book-flag-issues.ts`.
+2. Export `BOOK_FLAG_ISSUES`.
+3. Export a `BookFlagIssue` type derived from the constant.
+4. Replace local `FLAG_ISSUES` declarations in Warehouse, QA, Transmission, and Inventory.
+5. Move issue-label lookup into a shared helper only if the same behavior is used by multiple features.
 
 ### Phase 5 — Layout & Common Components
 
