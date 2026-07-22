@@ -17,7 +17,7 @@ export const getUserById = async (userId) => {
     return rows[0] || null;
 };
 
-export const createUser = async (name, email, passwordHash, role = 'user') => {
+export const createUser = async (name, email, passwordHash, role = null) => {
     const { rows } = await db.query(
         'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role, created_at',
         [name, email, passwordHash, role]

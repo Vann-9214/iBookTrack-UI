@@ -36,7 +36,7 @@ export const registerService = async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
 
   // Create user in database
-  const user = await authRepo.createUser(name, email, passwordHash, 'user');
+  const user = await authRepo.createUser(name, email, passwordHash, null);
 
   return {
     message: 'Registration successful. You can now log in.',
