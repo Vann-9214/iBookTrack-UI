@@ -5,10 +5,10 @@
  */
 
 import express from 'express';
-import { requireAuth } from '../middleware/authMiddleware.js';
-import { validateRequest } from '../middleware/validateRequest.js';
-import * as schemas from '../validators/storage.js';
-import * as controller from '../controllers/inventory/storage.js';
+import { requireAuth } from '../../middleware/authMiddleware.js';
+import { validateRequest } from '../../middleware/validateRequest.js';
+import * as schemas from '../../validators/inventory/storage.js';
+import * as controller from '../../controllers/inventory/storage.js';
 
 const router = express.Router();
 
