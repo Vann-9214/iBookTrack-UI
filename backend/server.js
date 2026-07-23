@@ -40,6 +40,10 @@ import { logger } from './utils/logger.js'
 
 const app  = express()
 
+// Trust the reverse proxy (e.g. Nginx, AWS, Cloudflare) so that req.ip contains the real user's IP.
+// Without this, the rate limiter would block all users sharing the proxy's IP, creating a DoS vulnerability.
+app.set('trust proxy', 1)
+
 // Apply Helmet security headers early in the middleware stack
 app.use(helmet())
 
