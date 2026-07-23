@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { Loader2, Printer, Send } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { Pagination } from '@/components/common/Pagination'
+import { usePagination } from '@/hooks/usePagination'
 import { InventoryBoxList } from './InventoryBoxList'
 import { InventoryOutgoingBookList } from './InventoryOutgoingBookList'
 import type { InventoryBox } from '../types/inventory.types'
@@ -8,6 +11,9 @@ import type { useInventoryActions } from '../hooks/useInventoryActions'
 
 export function InventoryOutgoingTab({ inventory, actions }: { inventory: ReturnType<typeof useInventory>; actions: ReturnType<typeof useInventoryActions> }) {
   const isMobile = useIsMobile()
+  const [pageSize, setPageSize] = useState(50)
+  const pagination = usePagination({ totalItems: actions.outgoingBoxes.length, defaultPageSize: pageSize })
+  const paginatedBoxes = actions.outgoingBoxes.slice(pagination.offset, pagination.offset + pagination.limit)
 
   if (inventory.loadingBoxes) {
     return (
@@ -31,7 +37,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
   return (
     <div className="flex-1 flex flex-col">
       <InventoryBoxList
-        boxes={actions.outgoingBoxes}
+        boxes={paginatedBoxes}
         expandedBoxId={actions.outgoingExpandedBoxId}
         booksByBox={inventory.boxBooks}
         loadingBoxId={actions.outgoingLoadingBooks}
@@ -86,6 +92,19 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
           <InventoryOutgoingBookList box={box} books={books} loading={actions.outgoingLoadingBooks === box.id} isMobile={isMobile} actions={actions} />
         )}
       />
+      {pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.goToPage}
+          onPageSizeChange={(size) => { setPageSize(size); pagination.setPageSize(size) }}
+          canPrevPage={pagination.canPrevPage}
+          canNextPage={pagination.canNextPage}
+          pageSizeOptions={[25, 50, 100]}
+          className="mt-3 bg-card border rounded-xl"
+        />
+      )}
     </div>
   )
 }
