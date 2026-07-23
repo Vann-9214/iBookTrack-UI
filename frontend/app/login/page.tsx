@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import '../landing-page/landing_page.css'
-import { HeaderSection } from '../landing-page/components'
+import '@/features/landing-page/styles/landing_page.css'
+import { HeaderSection } from '@/features/landing-page/components'
 import { LoginForm } from '@/features/authentication/components/LoginForm'
 
 export default function LoginPage() {
