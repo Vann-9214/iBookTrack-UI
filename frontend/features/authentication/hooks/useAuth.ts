@@ -28,9 +28,7 @@ export function useAuth() {
       const data = await login(credentials)
       if (data.error) throw new Error(data.error)
       toast.success('Login successful!')
-      sessionStorage.setItem('from_login', '1')
-      router.push('/Dashboard')
-      return { success: true as const }
+      return { success: true as const, user: data.user }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed.'
       toast.error(message)
