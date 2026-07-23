@@ -1,7 +1,7 @@
 'use client'
 
-import '../landing-page/landing_page.css'
-import { HeaderSection } from '../landing-page/components'
+import '@/features/landing-page/styles/landing_page.css'
+import { HeaderSection } from '@/features/landing-page/components'
 import { RegisterForm } from '@/features/authentication/components/RegisterForm'
 
 export default function RegisterPage() {
