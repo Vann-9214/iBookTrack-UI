@@ -3,6 +3,11 @@
 -- Replaces legacy user and profile tables
 -- ============================================================
 
+-- ============================================================
+-- Migration 001: Users Table
+-- Replaces legacy user and profile tables
+-- ============================================================
+
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS public.users (
@@ -10,7 +15,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT CHECK (role = 'supervisor'),
+  role TEXT CHECK (role IN ('supervisor', 'warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
