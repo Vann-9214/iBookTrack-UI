@@ -217,7 +217,6 @@ function formatSimflexStatus(raw: string | undefined | null) {
 
 export default function StationCheckpointsPage() {
   const { user } = useUser();
-  const canAction = user?.role === "supervisor";
   const { brand } = useBrand()
   const [boxes, setBoxes] = useState<BoxItem[]>([])
   const [transitions, setTransitions] = useState<Transition[]>([])
@@ -530,6 +529,13 @@ export default function StationCheckpointsPage() {
 
   const renderBoxAction = (box: BoxItem) => {
     const stage = box.current_stage
+    const isSupervisor = user?.role === "supervisor";
+    let canAction = isSupervisor;
+    if (stage === 'warehouse') canAction = isSupervisor || user?.role === "inventory";
+    else if (stage === 'inventory') canAction = isSupervisor || user?.role === "cut";
+    else if (stage === 'cut') canAction = isSupervisor || user?.role === "endorsement";
+    else if (stage === 'endorsement') canAction = isSupervisor || user?.role === "scan";
+    else if (stage === 'scan') canAction = isSupervisor || user?.role === "transmit";
     const isFirst = stage === 'warehouse'
     const isLast = stage === 'storage'
     if (isLast) {

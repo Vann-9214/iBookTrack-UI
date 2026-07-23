@@ -256,7 +256,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             </span>
           </LockedNavButton>
 
-          <RoleGuard allowedRoles={[]} action="hide">
+          <RoleGuard allowedRoles={['inventory']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
               onClick={() => navigate('/inventory')}
@@ -270,7 +270,9 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
                 Inventory
               </span>
             </LockedNavButton>
+          </RoleGuard>
 
+          <RoleGuard allowedRoles={['cut']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
               onClick={() => navigate('/cut')}
@@ -282,7 +284,9 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
               <IconCell><Scissors className="h-5 w-5" /></IconCell>
               <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
             </LockedNavButton>
+          </RoleGuard>
 
+          <RoleGuard allowedRoles={['endorsement']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
               onClick={() => navigate('/qa')}
@@ -294,7 +298,9 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
               <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
               <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
             </LockedNavButton>
+          </RoleGuard>
 
+          <RoleGuard allowedRoles={['scan']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
               onClick={() => navigate('/scan')}
@@ -448,22 +454,28 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             Warehouse
           </button>
 
-          <RoleGuard allowedRoles={[]} action="hide">
+          <RoleGuard allowedRoles={['inventory']} action="hide">
             <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
               <Archive className="h-5 w-5 shrink-0" />
               Inventory
             </button>
+          </RoleGuard>
 
+          <RoleGuard allowedRoles={['cut']} action="hide">
             <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
               <Scissors className="h-5 w-5 shrink-0" />
               Cut
             </button>
+          </RoleGuard>
 
+          <RoleGuard allowedRoles={['endorsement']} action="hide">
             <button onClick={() => navigate('/qa')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/qa'))}>
               <CheckCircle className="h-5 w-5 shrink-0" />
               Endorsement
             </button>
+          </RoleGuard>
 
+          <RoleGuard allowedRoles={['scan']} action="hide">
             <button onClick={() => navigate('/scan')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
               <ScanBarcode className="h-5 w-5 shrink-0" />
               Scan
