@@ -112,9 +112,32 @@ export function BoxActionButton({
 
   const canAction = () => {
     if (userRole === 'supervisor') return true
-    if (stage === 'warehouse' && userRole === 'inventory') return true
-    if (stage === 'transmit' && (userRole === 'scan' || userRole === 'warehouse' || userRole === 'inventory')) return true
-    return userRole === stage
+    
+    const status = box.box_sessions?.[0]?.status || 'sent'
+
+    if (stage === 'warehouse') {
+      if (userRole === 'inventory' && status === 'completed') return true
+      return false
+    }
+
+    if (stage === 'inventory') {
+      if (userRole === 'cut' && status === 'sent') return true
+      return false
+    }
+
+    if (stage === 'cut') {
+      if (userRole === 'cut' && status === 'received') return true
+      if (userRole === 'endorsement' && status === 'sent') return true
+      return false
+    }
+
+    if (stage === 'endorsement') {
+      if (userRole === 'endorsement' && status === 'completed') return true
+      if (userRole === 'scan' && status === 'sent') return true
+      return false
+    }
+
+    return false
   }
 
   const hasAccess = canAction()
@@ -158,8 +181,7 @@ export function BoxActionButton({
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
     if (status === 'sent') {
-      const canReceive = userRole === 'supervisor'
-      if (!canReceive) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
       return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isReceiving} onClick={confirm('receive')} />
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status === 'completed' ? 'Complete' : status}</ActionBadge>

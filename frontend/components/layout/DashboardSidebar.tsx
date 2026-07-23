@@ -282,33 +282,29 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             </LockedNavButton>
           </RoleGuard>
 
-          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
-            <LockedNavButton
-              navigationLocked={navigationLocked}
-              onClick={() => navigate('/checkpoints')}
-              className={navItemCls(isActive('/checkpoints'))}
-              aria-current={isActive('/checkpoints') ? 'page' : undefined}
-              title="Station Checkpoints"
-            >
-              {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-              <IconCell><MapPin className="h-5 w-5" /></IconCell>
-              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
-            </LockedNavButton>
-          </RoleGuard>
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => navigate('/checkpoints')}
+            className={navItemCls(isActive('/checkpoints'))}
+            aria-current={isActive('/checkpoints') ? 'page' : undefined}
+            title="Station Checkpoints"
+          >
+            {isActive('/checkpoints') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+            <IconCell><MapPin className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Station Checkpoints</span>
+          </LockedNavButton>
 
-          <RoleGuard allowedRoles={['warehouse', 'inventory', 'storage']} action="hide">
-            <LockedNavButton
-              navigationLocked={navigationLocked}
-              onClick={() => navigate('/locator')}
-              className={navItemCls(isActive('/locator'))}
-              aria-current={isActive('/locator') ? 'page' : undefined}
-              title="Storage Locator"
-            >
-              {isActive('/locator') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-              <IconCell><StorageLocatorIcon className="h-5 w-5" /></IconCell>
-              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
-            </LockedNavButton>
-          </RoleGuard>
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => navigate('/locator')}
+            className={navItemCls(isActive('/locator'))}
+            aria-current={isActive('/locator') ? 'page' : undefined}
+            title="Storage Locator"
+          >
+            {isActive('/locator') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+            <IconCell><StorageLocatorIcon className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
+          </LockedNavButton>
 
           <SectionLabel>Analytics</SectionLabel>
 
@@ -444,19 +440,15 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             </button>
           </RoleGuard>
 
-          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
-            <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
-              <MapPin className="h-5 w-5 shrink-0" />
-              Station Checkpoints
-            </button>
-          </RoleGuard>
+          <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
+            <MapPin className="h-5 w-5 shrink-0" />
+            Station Checkpoints
+          </button>
 
-          <RoleGuard allowedRoles={['warehouse', 'inventory', 'storage']} action="hide">
-            <button onClick={() => navigate('/locator')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>
-              <StorageLocatorIcon className="h-5 w-5 shrink-0" />
-              Storage Locator
-            </button>
-          </RoleGuard>
+          <button onClick={() => navigate('/locator')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>
+            <StorageLocatorIcon className="h-5 w-5 shrink-0" />
+            Storage Locator
+          </button>
 
           <MobileSectionLabel>Analytics</MobileSectionLabel>
 
