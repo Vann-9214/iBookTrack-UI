@@ -7,6 +7,7 @@ import { StorageLocation, ReadyBox } from "../types/locator.types"
 import { StorageSectionControls } from "./StorageSectionControls"
 import { StorageSlot } from "./StorageSlot"
 import { useUser } from "@/hooks/use-user"
+import { RoleGuard } from "@/components/role-guard"
 import { getSectionRacks, getSectionLevels, getSectionStats, RACK_LETTERS } from "../utils/locator.helpers"
 
 interface StorageGridProps {
@@ -148,8 +149,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
               {/* Level controls */}
               <div className="flex flex-col items-start gap-1">
                 <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
-                {canAction && (
-                  <>
+                  <RoleGuard allowedRoles={['storage']} action="disable">
                     <button
                       onClick={handleAddLevel}
                       disabled={addingLevel}
@@ -158,6 +158,8 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                     >
                       {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
+                  </RoleGuard>
+                  <RoleGuard allowedRoles={['storage']} action="disable">
                     <button
                       onClick={handleRemoveLevel}
                       disabled={removingLevel || sectionLevels.length <= 1}
@@ -166,8 +168,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                     >
                       {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </button>
-                  </>
-                )}
+                  </RoleGuard>
               </div>
 
               <div className="h-[5.5rem] bg-border" />
@@ -220,8 +221,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
               {/* Rack controls */}
               <div className="flex flex-col items-end gap-1">
                 <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
-                {canAction && (
-                  <>
+                  <RoleGuard allowedRoles={['storage']} action="disable">
                     <button
                       onClick={handleAddRack}
                       disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
@@ -231,6 +231,8 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                     >
                       {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
+                  </RoleGuard>
+                  <RoleGuard allowedRoles={['storage']} action="disable">
                     <button
                       onClick={handleRemoveRack}
                       disabled={removingRack || sectionRacks.length <= 1}
@@ -240,8 +242,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                     >
                       {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </button>
-                  </>
-                )}
+                  </RoleGuard>
               </div>
             </div>
           </div>

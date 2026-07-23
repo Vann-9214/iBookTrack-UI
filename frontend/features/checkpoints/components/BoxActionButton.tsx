@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/use-user'
+import { RoleGuard } from '@/components/role-guard'
 import type { BoxItem, Stage, ConfirmActionType } from '../types/checkpoints.types'
 
 interface BoxActionButtonProps {
@@ -109,12 +110,6 @@ export function BoxActionButton({
   const { user } = useUser()
   const userRole = user?.role
 
-  const canActionStage = (targetStage: Stage) => {
-    if (userRole === 'supervisor') return true
-    if (targetStage === 'transmit') return userRole === 'scan' || userRole === 'warehouse'
-    return userRole === targetStage
-  }
-
   if (stage === 'storage') {
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Done</ActionBadge>
   }
@@ -122,8 +117,11 @@ export function BoxActionButton({
   if (stage === 'warehouse') {
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'completed') {
-      if (!canActionStage('warehouse')) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
-      return <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isAdvancing} onClick={confirm('advance')} />
+      return (
+        <RoleGuard allowedRoles={[]} action="disable">
+          <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isAdvancing} onClick={confirm('advance')} />
+        </RoleGuard>
+      )
     }
     if (status === 'received') {
       return (
@@ -139,14 +137,15 @@ export function BoxActionButton({
       )
     }
     
-    if (!canActionStage('warehouse')) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
     return (
-      <PlainButton
-        label="Receive"
-        loading={isReceiving}
-        className="w-[76px] border-yellow-400 text-yellow-700 hover:bg-yellow-50"
-        onClick={confirm('receive')}
-      />
+      <RoleGuard allowedRoles={[]} action="disable">
+        <PlainButton
+          label="Receive"
+          loading={isReceiving}
+          className="w-[76px] border-yellow-400 text-yellow-700 hover:bg-yellow-50"
+          onClick={confirm('receive')}
+        />
+      </RoleGuard>
     )
   }
 
@@ -154,8 +153,11 @@ export function BoxActionButton({
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
     if (status === 'sent') {
-      if (!canActionStage('inventory')) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
-      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+      return (
+        <RoleGuard allowedRoles={[]} action="disable">
+          <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+        </RoleGuard>
+      )
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status === 'completed' ? 'Complete' : status}</ActionBadge>
   }
@@ -163,12 +165,18 @@ export function BoxActionButton({
   if (stage === 'cut') {
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') {
-      if (!canActionStage('cut')) return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
-      return <SlideAction badgeLabel="Received" buttonLabel="Send" badgeClass="border-blue-300 text-blue-700 bg-blue-50" loading={isSending} onClick={confirm('send_forward')} />
+      return (
+        <RoleGuard allowedRoles={[]} action="disable">
+          <SlideAction badgeLabel="Received" buttonLabel="Send" badgeClass="border-blue-300 text-blue-700 bg-blue-50" loading={isSending} onClick={confirm('send_forward')} />
+        </RoleGuard>
+      )
     }
     if (status === 'sent') {
-      if (!canActionStage('cut')) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
-      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+      return (
+        <RoleGuard allowedRoles={[]} action="disable">
+          <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+        </RoleGuard>
+      )
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status === 'completed' ? 'Complete' : status}</ActionBadge>
   }
@@ -177,12 +185,18 @@ export function BoxActionButton({
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
     if (status === 'completed') {
-      if (!canActionStage('endorsement')) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
-      return <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isSending} onClick={confirm('send_forward')} />
+      return (
+        <RoleGuard allowedRoles={[]} action="disable">
+          <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isSending} onClick={confirm('send_forward')} />
+        </RoleGuard>
+      )
     }
     if (status === 'sent') {
-      if (!canActionStage('endorsement')) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
-      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+      return (
+        <RoleGuard allowedRoles={[]} action="disable">
+          <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+        </RoleGuard>
+      )
     }
     return <ActionBadge className="border-gray-300 text-gray-700 bg-gray-50">{status}</ActionBadge>
   }
@@ -195,24 +209,26 @@ export function BoxActionButton({
   }
 
   if (stage === 'transmit') {
-    if (!canActionStage('transmit')) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Ready</ActionBadge>
     return (
-      <PlainButton
-        label="Send"
-        loading={isAdvancing}
-        className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-        onClick={confirm('advance')}
-      />
+      <RoleGuard allowedRoles={[]} action="disable">
+        <PlainButton
+          label="Send"
+          loading={isAdvancing}
+          className="border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+          onClick={confirm('advance')}
+        />
+      </RoleGuard>
     )
   }
 
-  if (!canActionStage(stage)) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
   return (
-    <PlainButton
-      label="Receive"
-      loading={isReceiving}
-      className="border-yellow-400 text-yellow-700 hover:bg-yellow-50"
-      onClick={confirm('receive')}
-    />
+    <RoleGuard allowedRoles={[]} action="disable">
+      <PlainButton
+        label="Receive"
+        loading={isReceiving}
+        className="border-yellow-400 text-yellow-700 hover:bg-yellow-50"
+        onClick={confirm('receive')}
+      />
+    </RoleGuard>
   )
 }
