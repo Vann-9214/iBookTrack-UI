@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/pagination'
+import { RoleGuard } from '@/components/role-guard'
 import type { LotIsbn, PaginationState } from '../types/transmission.types'
 import { getScanStatusBadge, getSimflexBadge } from '../utils/transmission.helpers'
 
@@ -132,14 +133,16 @@ export function TransmissionBookTable({
                     </td>
                     <td className="px-3 py-2 align-middle text-center">
                       {r.scan_status === 'processable' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 text-[10px] px-2 text-red-600 hover:bg-red-700 hover:text-white transition-colors"
-                          onClick={() => onFlag(r)}
-                        >
-                          Flag
-                        </Button>
+                        <RoleGuard allowedRoles={['scan']} action="hide">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] px-2 text-red-600 hover:bg-red-700 hover:text-white transition-colors"
+                            onClick={() => onFlag(r)}
+                          >
+                            Flag
+                          </Button>
+                        </RoleGuard>
                       )}
                     </td>
                   </tr>

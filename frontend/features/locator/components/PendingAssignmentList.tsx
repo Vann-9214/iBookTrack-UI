@@ -4,6 +4,7 @@ import { Clock, CheckCircle2, Loader2, MapPin, Trash2, Package, ChevronUp, Chevr
 import { cn } from "@/lib/utils"
 import { PendingAssignment } from "../types/locator.types"
 import { useUser } from "@/hooks/use-user"
+import { RoleGuard } from "@/components/role-guard"
 
 interface PendingAssignmentListProps {
   filteredPendingAssignments: PendingAssignment[]
@@ -36,7 +37,6 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
   }, {}))
 
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   return (
     <Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition-all duration-300 hover:shadow-amber-200/50">
@@ -91,8 +91,7 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                       <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
                       {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
                     </button>
-                    {canAction && (
-                      <>
+                      <RoleGuard allowedRoles={['storage']} action="hide">
                         <button
                           type="button"
                           title="Remove all boxes from this location"
@@ -103,6 +102,8 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                         >
                           {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
+                      </RoleGuard>
+                      <RoleGuard allowedRoles={['storage']} action="hide">
                         <button
                           type="button"
                           title="Confirm all boxes at this location"
@@ -113,10 +114,9 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                         >
                           {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                         </button>
-                      </>
-                    )}
+                      </RoleGuard>
                   </div>
-                  {isExpanded && (
+                    {isExpanded && (
                     <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
                       {assignments.map(assignment => (
                         <div key={assignment.assignment_id} className={cn("flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2", activeSearchQuery && "border-primary bg-primary/5 ring-2 ring-primary/30")}>
@@ -131,8 +131,8 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                               <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
                             </div>
                           </div>
-                          {canAction && (
-                            <div className="flex shrink-0 items-center gap-0.5">
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            <RoleGuard allowedRoles={['storage']} action="hide">
                               <button
                                 type="button"
                                 title={`Remove box ${assignment.box_number}`}
@@ -143,6 +143,8 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                               >
                                 {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                               </button>
+                            </RoleGuard>
+                            <RoleGuard allowedRoles={['storage']} action="hide">
                               <button
                                 type="button"
                                 title={`Confirm box ${assignment.box_number}`}
@@ -153,8 +155,8 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                               >
                                 {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                               </button>
-                            </div>
-                          )}
+                            </RoleGuard>
+                          </div>
                         </div>
                       ))}
                     </div>

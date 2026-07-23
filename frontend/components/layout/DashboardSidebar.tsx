@@ -208,70 +208,79 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <SectionLabel>Operations</SectionLabel>
 
-          <RoleGuard allowedRoles={['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage']} action="hide">
+          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
               onClick={() => navigate('/warehouse')}
-            className={navItemCls(isActive('/warehouse'))}
-            aria-current={isActive('/warehouse') ? 'page' : undefined}
-            title="Warehouse"
-          >
-            {isActive('/warehouse') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><Warehouse className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
-              Warehouse
-            </span>
-          </LockedNavButton>
+              className={navItemCls(isActive('/warehouse'))}
+              aria-current={isActive('/warehouse') ? 'page' : undefined}
+              title="Warehouse"
+            >
+              {isActive('/warehouse') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><Warehouse className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+                Warehouse
+              </span>
+            </LockedNavButton>
+          </RoleGuard>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/inventory')}
-            className={navItemCls(isActive('/inventory'))}
-            aria-current={isActive('/inventory') ? 'page' : undefined}
-            title="Inventory"
-          >
-            {isActive('/inventory') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><Archive className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
-              Inventory
-            </span>
-          </LockedNavButton>
+          <RoleGuard allowedRoles={['inventory']} action="hide">
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/inventory')}
+              className={navItemCls(isActive('/inventory'))}
+              aria-current={isActive('/inventory') ? 'page' : undefined}
+              title="Inventory"
+            >
+              {isActive('/inventory') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><Archive className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+                Inventory
+              </span>
+            </LockedNavButton>
+          </RoleGuard>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/cut')}
-            className={navItemCls(isActive('/cut'))}
-            aria-current={isActive('/cut') ? 'page' : undefined}
-            title="Cut"
-          >
-            {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><Scissors className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
-          </LockedNavButton>
+          <RoleGuard allowedRoles={['cut']} action="hide">
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/cut')}
+              className={navItemCls(isActive('/cut'))}
+              aria-current={isActive('/cut') ? 'page' : undefined}
+              title="Cut"
+            >
+              {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><Scissors className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
+            </LockedNavButton>
+          </RoleGuard>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/endorsement')}
-            className={navItemCls(isActive('/endorsement'))}
-            aria-current={isActive('/endorsement') ? 'page' : undefined}
-            title="Endorsement"
-          >
-            {isActive('/endorsement') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
-          </LockedNavButton>
+          <RoleGuard allowedRoles={['endorsement']} action="hide">
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/endorsement')}
+              className={navItemCls(isActive('/endorsement'))}
+              aria-current={isActive('/endorsement') ? 'page' : undefined}
+              title="Endorsement"
+            >
+              {isActive('/endorsement') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
+            </LockedNavButton>
+          </RoleGuard>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/scan')}
-            className={navItemCls(isActive('/scan'))}
-            aria-current={isActive('/scan') ? 'page' : undefined}
-            title="Scan"
-          >
-            {isActive('/scan') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><ScanBarcode className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Scan</span>
-          </LockedNavButton>
+          <RoleGuard allowedRoles={['scan']} action="hide">
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/scan')}
+              className={navItemCls(isActive('/scan'))}
+              aria-current={isActive('/scan') ? 'page' : undefined}
+              title="Scan"
+            >
+              {isActive('/scan') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><ScanBarcode className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Scan</span>
+            </LockedNavButton>
+          </RoleGuard>
 
           <LockedNavButton
             navigationLocked={navigationLocked}
@@ -296,7 +305,6 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             <IconCell><StorageLocatorIcon className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
           </LockedNavButton>
-          </RoleGuard>
 
           <SectionLabel>Analytics</SectionLabel>
 
@@ -397,31 +405,40 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <MobileSectionLabel>Operations</MobileSectionLabel>
 
-          <RoleGuard allowedRoles={['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage']} action="hide">
-          <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
-            <Warehouse className="h-5 w-5 shrink-0" />
-            Warehouse
-          </button>
+          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
+            <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
+              <Warehouse className="h-5 w-5 shrink-0" />
+              Warehouse
+            </button>
+          </RoleGuard>
 
-          <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
-            <Archive className="h-5 w-5 shrink-0" />
-            Inventory
-          </button>
+          <RoleGuard allowedRoles={['inventory']} action="hide">
+            <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
+              <Archive className="h-5 w-5 shrink-0" />
+              Inventory
+            </button>
+          </RoleGuard>
 
-          <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
-            <Scissors className="h-5 w-5 shrink-0" />
-            Cut
-          </button>
+          <RoleGuard allowedRoles={['cut']} action="hide">
+            <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
+              <Scissors className="h-5 w-5 shrink-0" />
+              Cut
+            </button>
+          </RoleGuard>
 
-          <button onClick={() => navigate('/endorsement')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/endorsement'))}>
-            <CheckCircle className="h-5 w-5 shrink-0" />
-            Endorsement
-          </button>
+          <RoleGuard allowedRoles={['endorsement']} action="hide">
+            <button onClick={() => navigate('/endorsement')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/endorsement'))}>
+              <CheckCircle className="h-5 w-5 shrink-0" />
+              Endorsement
+            </button>
+          </RoleGuard>
 
-          <button onClick={() => navigate('/scan')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
-            <ScanBarcode className="h-5 w-5 shrink-0" />
-            Scan
-          </button>
+          <RoleGuard allowedRoles={['scan']} action="hide">
+            <button onClick={() => navigate('/scan')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
+              <ScanBarcode className="h-5 w-5 shrink-0" />
+              Scan
+            </button>
+          </RoleGuard>
 
           <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
             <MapPin className="h-5 w-5 shrink-0" />
@@ -432,7 +449,6 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             <StorageLocatorIcon className="h-5 w-5 shrink-0" />
             Storage Locator
           </button>
-          </RoleGuard>
 
           <MobileSectionLabel>Analytics</MobileSectionLabel>
 
