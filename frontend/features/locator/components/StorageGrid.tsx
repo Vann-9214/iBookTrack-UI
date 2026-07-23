@@ -148,7 +148,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
               {/* Level controls */}
               <div className="flex flex-col items-start gap-1">
                 <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
-                  <RoleGuard allowedRoles={['storage']} action="disable">
+                  <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
                       onClick={handleAddLevel}
                       disabled={addingLevel}
@@ -158,7 +158,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
                   </RoleGuard>
-                  <RoleGuard allowedRoles={['storage']} action="disable">
+                  <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
                       onClick={handleRemoveLevel}
                       disabled={removingLevel || sectionLevels.length <= 1}
@@ -220,7 +220,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
               {/* Rack controls */}
               <div className="flex flex-col items-end gap-1">
                 <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
-                  <RoleGuard allowedRoles={['storage']} action="disable">
+                  <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
                       onClick={handleAddRack}
                       disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
@@ -231,7 +231,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
                   </RoleGuard>
-                  <RoleGuard allowedRoles={['storage']} action="disable">
+                  <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
                       onClick={handleRemoveRack}
                       disabled={removingRack || sectionRacks.length <= 1}

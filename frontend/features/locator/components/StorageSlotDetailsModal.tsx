@@ -116,7 +116,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
 
         {/* Assign button */}
         {getReservedCount(detailSlot) < detailSlot.capacity && (
-          <RoleGuard allowedRoles={['storage']} action="disable">
+          <RoleGuard allowedRoles={['storage']} action="hide">
             <button
               onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
               className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors w-full"
@@ -170,7 +170,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                   </label>
                 </div>
                 {selectedRemoveAssignments.size > 0 && (
-                  <RoleGuard allowedRoles={['storage']} action="disable">
+                  <RoleGuard allowedRoles={['storage']} action="hide">
                     <Button
                       variant="destructive"
                       size="sm"

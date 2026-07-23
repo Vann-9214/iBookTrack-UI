@@ -91,7 +91,7 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                       <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
                       {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
                     </button>
-                      <RoleGuard allowedRoles={['storage']} action="disable">
+                      <RoleGuard allowedRoles={['storage']} action="hide">
                         <button
                           type="button"
                           title="Remove all boxes from this location"
@@ -103,7 +103,7 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                           {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
                       </RoleGuard>
-                      <RoleGuard allowedRoles={['storage']} action="disable">
+                      <RoleGuard allowedRoles={['storage']} action="hide">
                         <button
                           type="button"
                           title="Confirm all boxes at this location"
@@ -132,7 +132,7 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                             </div>
                           </div>
                           <div className="flex shrink-0 items-center gap-0.5">
-                            <RoleGuard allowedRoles={['storage']} action="disable">
+                            <RoleGuard allowedRoles={['storage']} action="hide">
                               <button
                                 type="button"
                                 title={`Remove box ${assignment.box_number}`}
@@ -144,7 +144,7 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                                 {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                               </button>
                             </RoleGuard>
-                            <RoleGuard allowedRoles={['storage']} action="disable">
+                            <RoleGuard allowedRoles={['storage']} action="hide">
                               <button
                                 type="button"
                                 title={`Confirm box ${assignment.box_number}`}

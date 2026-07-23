@@ -144,7 +144,7 @@ export const AssignBoxesModal: React.FC<AssignBoxesModalProps> = ({
                 </>
               )
             })()}
-            <RoleGuard allowedRoles={['storage']} action="disable">
+            <RoleGuard allowedRoles={['storage']} action="hide">
               <div className="pt-2 border-t border-border mt-1">
                 <Button 
                   onClick={handleAssign} 

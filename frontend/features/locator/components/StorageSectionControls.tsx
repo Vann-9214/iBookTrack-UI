@@ -80,7 +80,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
           </div>
           <div className="flex items-center gap-1.5 justify-end">
             {totalSections > 1 && (
-              <RoleGuard allowedRoles={['storage']} action="disable">
+              <RoleGuard allowedRoles={['storage']} action="hide">
                 <button
                   onClick={() => handleRemoveSection(totalSections)}
                   disabled={removingSection}
@@ -92,7 +92,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
                 </button>
               </RoleGuard>
             )}
-            <RoleGuard allowedRoles={['storage']} action="disable">
+            <RoleGuard allowedRoles={['storage']} action="hide">
               <button
                 onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
