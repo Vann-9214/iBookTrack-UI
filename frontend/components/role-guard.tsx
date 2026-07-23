@@ -18,9 +18,10 @@ export function RoleGuard({ allowedRoles, children, action = "disable" }: RoleGu
     if (action === "hide") return null;
     
     if (isValidElement(children)) {
-      return cloneElement(children as React.ReactElement<any>, {
+      const childElem = children as React.ReactElement<any>;
+      return cloneElement(childElem, {
         disabled: true,
-        className: `${(children.props.className || "")} opacity-50 cursor-not-allowed`
+        className: `${(childElem.props.className || "")} opacity-50 cursor-not-allowed`
       });
     }
     return <>{children}</>;
@@ -39,14 +40,15 @@ export function RoleGuard({ allowedRoles, children, action = "disable" }: RoleGu
 
   // If action is disable, we clone the child element and force it to be disabled
   if (isValidElement(children)) {
-    const disabledChild = cloneElement(children as React.ReactElement<any>, {
+    const childElem = children as React.ReactElement<any>;
+    const disabledChild = cloneElement(childElem, {
       disabled: true,
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
       },
       "aria-disabled": true,
-      className: `${(children.props.className || "")} opacity-50 cursor-not-allowed pointer-events-none`
+      className: `${(childElem.props.className || "")} opacity-50 cursor-not-allowed pointer-events-none`
     });
 
     return (
