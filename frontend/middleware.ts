@@ -15,6 +15,7 @@ const protectedPaths = [
   '/intake',
   '/endorsement',
   '/scan',
+  '/qr-scanner',
   '/settings',
   '/notifications'
 ]

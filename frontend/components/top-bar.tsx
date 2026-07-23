@@ -245,7 +245,7 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: { disa
 
       {/* ── Scan QR button — mobile only ─────────────── */}
       <button
-        onClick={() => router.push('/scan-qr')}
+        onClick={() => router.push('/qr-scanner')}
         className="sm:hidden flex items-center justify-center w-8 h-8 rounded-xl border transition-all duration-200 hover:scale-105 active:scale-95 shrink-0"
         aria-label="Scan QR"
         style={{
