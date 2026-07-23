@@ -22,6 +22,7 @@ import {
   ScanBarcode,
 } from 'lucide-react'
 import { PageLoader } from '@/components/ui/page-loader'
+import { RoleGuard } from '@/components/role-guard'
 
 type DashboardSidebarProps = {
   navigationLocked?: boolean
@@ -255,55 +256,57 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             </span>
           </LockedNavButton>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/inventory')}
-            className={navItemCls(isActive('/inventory'))}
-            aria-current={isActive('/inventory') ? 'page' : undefined}
-            title="Inventory"
-          >
-            {isActive('/inventory') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><Archive className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
-              Inventory
-            </span>
-          </LockedNavButton>
+          <RoleGuard allowedRoles={[]} action="hide">
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/inventory')}
+              className={navItemCls(isActive('/inventory'))}
+              aria-current={isActive('/inventory') ? 'page' : undefined}
+              title="Inventory"
+            >
+              {isActive('/inventory') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><Archive className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+                Inventory
+              </span>
+            </LockedNavButton>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/cut')}
-            className={navItemCls(isActive('/cut'))}
-            aria-current={isActive('/cut') ? 'page' : undefined}
-            title="Cut"
-          >
-            {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><Scissors className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
-          </LockedNavButton>
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/cut')}
+              className={navItemCls(isActive('/cut'))}
+              aria-current={isActive('/cut') ? 'page' : undefined}
+              title="Cut"
+            >
+              {isActive('/cut') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><Scissors className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Cut</span>
+            </LockedNavButton>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/qa')}
-            className={navItemCls(isActive('/qa'))}
-            aria-current={isActive('/qa') ? 'page' : undefined}
-            title="Endorsement"
-          >
-            {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
-          </LockedNavButton>
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/qa')}
+              className={navItemCls(isActive('/qa'))}
+              aria-current={isActive('/qa') ? 'page' : undefined}
+              title="Endorsement"
+            >
+              {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
+            </LockedNavButton>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/scan')}
-            className={navItemCls(isActive('/scan'))}
-            aria-current={isActive('/scan') ? 'page' : undefined}
-            title="Scan"
-          >
-            {isActive('/scan') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><ScanBarcode className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Scan</span>
-          </LockedNavButton>
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/scan')}
+              className={navItemCls(isActive('/scan'))}
+              aria-current={isActive('/scan') ? 'page' : undefined}
+              title="Scan"
+            >
+              {isActive('/scan') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><ScanBarcode className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Scan</span>
+            </LockedNavButton>
+          </RoleGuard>
 
           <LockedNavButton
             navigationLocked={navigationLocked}
@@ -445,25 +448,27 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             Warehouse
           </button>
 
-          <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
-            <Archive className="h-5 w-5 shrink-0" />
-            Inventory
-          </button>
+          <RoleGuard allowedRoles={[]} action="hide">
+            <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
+              <Archive className="h-5 w-5 shrink-0" />
+              Inventory
+            </button>
 
-          <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
-            <Scissors className="h-5 w-5 shrink-0" />
-            Cut
-          </button>
+            <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
+              <Scissors className="h-5 w-5 shrink-0" />
+              Cut
+            </button>
 
-          <button onClick={() => navigate('/qa')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/qa'))}>
-            <CheckCircle className="h-5 w-5 shrink-0" />
-            Endorsement
-          </button>
+            <button onClick={() => navigate('/qa')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/qa'))}>
+              <CheckCircle className="h-5 w-5 shrink-0" />
+              Endorsement
+            </button>
 
-          <button onClick={() => navigate('/scan')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
-            <ScanBarcode className="h-5 w-5 shrink-0" />
-            Scan
-          </button>
+            <button onClick={() => navigate('/scan')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
+              <ScanBarcode className="h-5 w-5 shrink-0" />
+              Scan
+            </button>
+          </RoleGuard>
 
           <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
             <MapPin className="h-5 w-5 shrink-0" />

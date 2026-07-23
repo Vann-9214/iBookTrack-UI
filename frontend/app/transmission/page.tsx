@@ -1,4 +1,5 @@
 "use client"
+import { RoleGuard } from "@/components/role-guard"
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
@@ -1704,7 +1705,7 @@ export default function TransmissionMonitorPage() {
                                     </td>
                                     <td className="px-3 py-2 align-middle text-center">
                                       {r.scan_status === 'processable' && (
-                                        <RoleGuard allowedRoles={[]} action="disable">
+                                        <RoleGuard allowedRoles={[]} action="hide">
 <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-red-600 hover:bg-red-700 hover:text-white transition-colors"
                                           onClick={() => { setFlagModalScan(r); setFlagIssue(''); setFlagRemarks(''); setFlagError(null); setFlagOpen(false) }}>
                                           Flag
@@ -1927,10 +1928,10 @@ export default function TransmissionMonitorPage() {
 
             {/* Footer */}
             <div className="px-5 py-4 border-t border-border bg-muted/10 flex justify-end gap-2">
-              <RoleGuard allowedRoles={[]} action="disable">
+              <RoleGuard allowedRoles={[]} action="hide">
 <Button variant="outline" size="sm" onClick={() => setFlagModalScan(null)} disabled={flagging}>Cancel</Button>
 </RoleGuard>
-              <RoleGuard allowedRoles={[]} action="disable">
+              <RoleGuard allowedRoles={[]} action="hide">
 <Button size="sm" onClick={handleFlagSubmit} disabled={flagging || !flagIssue} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                 {flagging ? 'Saving...' : 'Confirm Flag'}
               </Button>

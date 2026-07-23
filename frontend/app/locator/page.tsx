@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
+import { useUser } from "@/hooks/use-user"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -86,6 +87,8 @@ type SearchResult = {
 }
 
 export default function WarehouseLocatorPage() {
+  const { user } = useUser();
+  const canAction = user?.role === "supervisor";
   const { brand } = useBrand()
   const [totalSections, setTotalSections] = useState(DEFAULT_SECTIONS)
   const [locations, setLocations] = useState<StorageLocation[]>([])
@@ -864,9 +867,10 @@ export default function WarehouseLocatorPage() {
             )}
 
             {/* Warehouse Grid */}  
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
+            <div className={cn("grid grid-cols-1 gap-4 items-start", canAction ? "xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)]" : "")}>
               {/* Unassigned storage boxes (left) */}
-              <Card className={cn("gap-0 h-fit max-h-[640px] rounded-2xl border shadow-sm ring-1 transition-all duration-300", brand === 'jaguar'
+              {canAction && (
+<Card className={cn("gap-0 h-fit max-h-[640px] rounded-2xl border shadow-sm ring-1 transition-all duration-300", brand === 'jaguar'
                 ? "border-emerald-200/60 ring-emerald-100/50 hover:shadow-emerald-200/50"
                 : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
               )}>
@@ -937,6 +941,7 @@ export default function WarehouseLocatorPage() {
                   )}
                 </CardContent>
               </Card>
+)}
 
               {/* Center warehouse layout */}
               <Card className={cn("gap-0 rounded-2xl border shadow-sm ring-1 transition-all duration-300", brand === 'jaguar'
@@ -1011,7 +1016,8 @@ export default function WarehouseLocatorPage() {
                               <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>
                             </div>
                           </div>
-                            <div className="flex items-center gap-1.5 justify-end">
+                            {canAction && (
+<div className="flex items-center gap-1.5 justify-end">
                               {totalSections > 1 && (
                                 <button
                                   onClick={() => handleRemoveSection(totalSections)}
@@ -1031,6 +1037,7 @@ export default function WarehouseLocatorPage() {
                                 Add
                               </button>
                             </div>
+)}
                         </div>
                       )}
                     </div>
@@ -1057,7 +1064,9 @@ export default function WarehouseLocatorPage() {
                       {/* Level controls */}
                       <div className="flex flex-col items-start gap-1">
                         <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
-                        <button
+                        {canAction && (
+<>
+<button
                           onClick={handleAddLevel}
                           disabled={addingLevel}
                           title="Add level"
@@ -1073,6 +1082,8 @@ export default function WarehouseLocatorPage() {
                         >
                           {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
+</>
+)}
                       </div>
 
                       <div className="h-[5.5rem] bg-border" />
@@ -1100,7 +1111,7 @@ export default function WarehouseLocatorPage() {
                                   key={`${rack}-${level}`}
                                   onClick={() => {
                                     if (!loc) return
-                                    if (selectedReadyBoxIds.size > 0 && canFitSelected) {
+                                    if (canAction && selectedReadyBoxIds.size > 0 && canFitSelected) {
                                       openAssign(loc)
                                       return
                                     }
@@ -1144,7 +1155,9 @@ export default function WarehouseLocatorPage() {
                       {/* Rack controls */}
                       <div className="flex flex-col items-end gap-1">
                         <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
-                        <button
+                        {canAction && (
+<>
+<button
                           onClick={handleAddRack}
                           disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
                           title="Add a new rack"
@@ -1162,6 +1175,8 @@ export default function WarehouseLocatorPage() {
                         >
                           {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                         </button>
+</>
+)}
                       </div>
                     </div>
 
@@ -1171,7 +1186,8 @@ export default function WarehouseLocatorPage() {
               </Card>
 
               {/* Pending assignment (right) */}
-              <Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition-all duration-300 hover:shadow-amber-200/50">
+              {canAction && (
+<Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition-all duration-300 hover:shadow-amber-200/50">
                 <CardHeader className="flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b border-b-amber-200/70 bg-gradient-to-br from-amber-50 to-orange-100/40">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25">
@@ -1300,6 +1316,7 @@ export default function WarehouseLocatorPage() {
                   )}
                 </CardContent>
               </Card>
+)}
             </div>
 
         </div>
@@ -1350,13 +1367,15 @@ export default function WarehouseLocatorPage() {
                       {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
                       {getPendingCount(detailSlot) > 0 ? ` · ${getPendingCount(detailSlot)} pending` : ''}
                     </p>
-                    <button
+                    {canAction && (
+<button
                       onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
                       className="p-0.5 text-primary bg-primary/10 border-primary/40 border hover:text-foreground hover:bg-foreground/20 hover:border-foreground/40 rounded transition-colors"
                       title="Edit capacity"
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
+)}
                   </div>
                 )}
               </div>
@@ -1369,7 +1388,7 @@ export default function WarehouseLocatorPage() {
             </div>
 
             {/* Assign button */}
-            {getReservedCount(detailSlot) < detailSlot.capacity && (
+            {canAction && getReservedCount(detailSlot) < detailSlot.capacity && (
               <button
                 onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
                 className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors"
