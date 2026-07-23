@@ -1705,7 +1705,7 @@ export default function TransmissionMonitorPage() {
                                     </td>
                                     <td className="px-3 py-2 align-middle text-center">
                                       {r.scan_status === 'processable' && (
-                                        <RoleGuard allowedRoles={[]} action="hide">
+                                        <RoleGuard allowedRoles={['scan']} action="hide">
 <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-red-600 hover:bg-red-700 hover:text-white transition-colors"
                                           onClick={() => { setFlagModalScan(r); setFlagIssue(''); setFlagRemarks(''); setFlagError(null); setFlagOpen(false) }}>
                                           Flag
