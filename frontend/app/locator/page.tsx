@@ -88,7 +88,7 @@ type SearchResult = {
 
 export default function WarehouseLocatorPage() {
   const { user } = useUser();
-  const canAction = user?.role === "supervisor";
+  const canAction = user?.role === "supervisor" || user?.role === "storage";
   const { brand } = useBrand()
   const [totalSections, setTotalSections] = useState(DEFAULT_SECTIONS)
   const [locations, setLocations] = useState<StorageLocation[]>([])
@@ -1239,7 +1239,7 @@ export default function WarehouseLocatorPage() {
                                 <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
                                 {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
                               </button>
-                              <RoleGuard allowedRoles={[]} action="disable">
+                              <RoleGuard allowedRoles={['storage']} action="disable">
                                 <button
                                   type="button"
                                   title="Remove all boxes from this location"
@@ -1251,7 +1251,7 @@ export default function WarehouseLocatorPage() {
                                   {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                 </button>
                               </RoleGuard>
-                              <RoleGuard allowedRoles={[]} action="disable">
+                              <RoleGuard allowedRoles={['storage']} action="disable">
                                 <button
                                   type="button"
                                   title="Confirm all boxes at this location"
@@ -1280,7 +1280,7 @@ export default function WarehouseLocatorPage() {
                                       </div>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-0.5">
-                                      <RoleGuard allowedRoles={[]} action="disable">
+                                      <RoleGuard allowedRoles={['storage']} action="disable">
                                         <button
                                           type="button"
                                           title={`Remove box ${assignment.box_number}`}
@@ -1292,7 +1292,7 @@ export default function WarehouseLocatorPage() {
                                           {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                         </button>
                                       </RoleGuard>
-                                      <RoleGuard allowedRoles={[]} action="disable">
+                                      <RoleGuard allowedRoles={['storage']} action="disable">
                                         <button
                                           type="button"
                                           title={`Confirm box ${assignment.box_number}`}
@@ -1638,7 +1638,7 @@ export default function WarehouseLocatorPage() {
                 })()}
                 <div className="flex gap-2 justify-end">
                   <Button variant="outline" onClick={() => setAssignSlot(null)} disabled={assignLoading}>Cancel</Button>
-                  <RoleGuard allowedRoles={[]} action="disable">
+                  <RoleGuard allowedRoles={['storage']} action="disable">
                     <Button onClick={handleAssign} disabled={assigningBoxIds.size === 0 || assignLoading}>
                       {assignLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Assign {assigningBoxIds.size} Box{assigningBoxIds.size !== 1 ? 'es' : ''}
