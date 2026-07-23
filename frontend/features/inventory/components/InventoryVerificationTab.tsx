@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ClipboardCheck, Loader2 } from 'lucide-react'
+import { Pagination } from '@/components/common/Pagination'
+import { usePagination } from '@/hooks/usePagination'
 import { InventoryScanModal } from './InventoryScanModal'
 import { InventoryVerificationActiveSession } from './InventoryVerificationActiveSession'
 import { InventoryVerificationBoxList } from './InventoryVerificationBoxList'
@@ -18,6 +21,8 @@ export function InventoryVerificationTab({
   verification: ReturnType<typeof useVerificationSession>
 }) {
   const isMobile = useIsMobile()
+  const [pageSize, setPageSize] = useState(50)
+  const pagination = usePagination({ totalItems: actions.inventoryBoxes.length, defaultPageSize: pageSize })
 
   if (inventory.loadingBoxes) {
     return (
@@ -38,10 +43,11 @@ export function InventoryVerificationTab({
         </div>
       )
     }
+    const paginatedBoxes = actions.inventoryBoxes.slice(pagination.offset, pagination.offset + pagination.limit)
     return (
       <div className="flex flex-col gap-3 min-h-0 flex-1">
         <InventoryVerificationBoxList
-          boxes={actions.inventoryBoxes}
+          boxes={paginatedBoxes}
           expandedBoxId={actions.verifExpandedBoxId}
           booksByBox={actions.verifRowBooks}
           loadingBoxId={actions.loadingVerifRowBooks}
@@ -49,6 +55,19 @@ export function InventoryVerificationTab({
           onStartSession={(box) => actions.openConfirm('start_session', box)}
           loadingStartSession={verification.loadingVerifBooks}
         />
+        {pagination.totalPages > 1 && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.goToPage}
+            onPageSizeChange={(size) => { setPageSize(size); pagination.setPageSize(size) }}
+            canPrevPage={pagination.canPrevPage}
+            canNextPage={pagination.canNextPage}
+            pageSizeOptions={[25, 50, 100]}
+            className="mt-1 bg-card border rounded-xl"
+          />
+        )}
         <InventoryVerificationCompleteModal verification={verification} />
         <InventoryScanModal
           book={verification.verifFlagModalBook}
