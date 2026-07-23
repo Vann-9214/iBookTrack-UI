@@ -61,9 +61,31 @@ export function buildPipelineStages(
         }).length
     const total = stage === 'transmit' ? transmitBooks : stageBoxes.length
 
+    const received = stage === 'warehouse'
+      ? total
+      : stageBoxes.filter((box) => {
+          const session = box.box_sessions?.[0]
+          return !session || session.status === 'in_progress' || session.status === 'received'
+        }).length
+
+    const completed = stage === 'warehouse'
+      ? total
+      : stageBoxes.filter((box) => {
+          const session = box.box_sessions?.[0]
+          return session?.status === 'completed'
+        }).length
+
+    const sent = stageBoxes.filter((box) => {
+      const session = box.box_sessions?.[0]
+      return session?.status === 'sent'
+    }).length
+
     stages[stage] = {
       total,
       active: stage === 'transmit' ? total : Math.max(0, total - delayed),
+      received,
+      completed,
+      sent,
       delayed,
       mustang: stageBoxes.filter((box) => box.box_type === 'Mustang').length,
       jaguar: stageBoxes.filter((box) => box.box_type === 'Jaguar').length,
@@ -71,6 +93,33 @@ export function buildPipelineStages(
   }
 
   return stages
+}
+
+export type PipelineCountInput = {
+  received?: number
+  completed?: number
+  sent?: number
+  type: string
+}
+
+export function formatPipelineCounts({ received, completed, sent, type }: PipelineCountInput): string {
+  const normalizedType = type.toLowerCase()
+
+  let rawValues: (number | undefined)[] = []
+  if (normalizedType === 'warehouse') {
+    rawValues = [received]
+  } else if (normalizedType === 'inventory' || normalizedType === 'endorsement') {
+    rawValues = [received, completed, sent]
+  } else if (normalizedType === 'cut') {
+    rawValues = [received, sent]
+  } else if (normalizedType === 'scan') {
+    rawValues = [received]
+  } else {
+    rawValues = [received, completed, sent]
+  }
+
+  const validValues = rawValues.filter((v): v is number => typeof v === 'number' && !isNaN(v) && v > 0)
+  return validValues.join(' ')
 }
 
 export function getDashboardDisplayText(currentLot: string, displayRange: string | null) {

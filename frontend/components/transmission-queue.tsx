@@ -84,7 +84,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const fetchLive = async () => {
     setLoading(true)
     try {
-      const res = await authFetch(`${API_URL}/api/scanning/live?location=${brand}`)
+      const res = await authFetch(`${API_URL}/api/scanning/live?location=${brand}&newProcessOnly=true`)
       const data = await res.json()
       if (data.success && data.recentScans) {
         setFetchedScans(data.recentScans)

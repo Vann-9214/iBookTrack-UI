@@ -5,8 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { Workflow } from "lucide-react"
 
-function getStepStatus(count: number) {
-  if (count === 0) return "idle"
+import { formatPipelineCounts } from "@/features/dashboard/utils/dashboard.helpers"
+
+function getStepStatus(count: number, active?: number) {
+  const effectiveCount = typeof active === 'number' ? active : count
+  if (effectiveCount === 0) return "idle"
   return "active"
 }
 
@@ -65,20 +68,59 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     ? `Today · ${new Date(stats.pipelineToday).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
     : 'Today'
 
-  const boxStages = ['warehouse', 'inventory', 'cut', 'endorsement', 'storage']
   const stageData = (stage: string) => {
     const raw = stats?.pipelineStages?.[stage]
-    if (raw && typeof raw === 'object' && 'total' in raw) {
+    if (raw && typeof raw === 'object') {
+      const fallbackReceived = stage === 'warehouse' ? (raw.received ?? raw.total ?? raw.active ?? 0) : (raw.received ?? raw.active ?? raw.total ?? 0)
+      const received = fallbackReceived
+      const completed = raw.completed
+      const sent = raw.sent
+      const formattedText = formatPipelineCounts({ received, completed, sent, type: stage }) || String(received || 0)
       return {
         count: raw.total || 0,
         active: raw.active || 0,
+        received,
+        completed,
+        sent,
+        displayText: formattedText,
         delayed: raw.delayed || 0,
         mustang: raw.mustang || 0,
         jaguar: raw.jaguar || 0,
         isBookStage: false,
       }
     }
-    return { count: typeof raw === 'number' ? raw : 0, active: typeof raw === 'number' ? raw : 0, delayed: 0, mustang: 0, jaguar: 0, isBookStage: false }
+    const val = typeof raw === 'number' ? raw : 0
+    const formattedText = formatPipelineCounts({ received: val, type: stage }) || String(val)
+    return { count: val, active: val, received: val, completed: undefined, sent: undefined, displayText: formattedText, delayed: 0, mustang: 0, jaguar: 0, isBookStage: false }
+  }
+
+  const renderFormattedCounts = (step: any, defaultColorClass: string) => {
+    const normType = step.stage.toLowerCase()
+    const parts: { label: string; value: number; colorClass: string }[] = []
+
+    if (step.received && step.received > 0) {
+      parts.push({ label: 'Received', value: step.received, colorClass: defaultColorClass })
+    }
+    if (normType !== 'warehouse' && normType !== 'cut' && normType !== 'scan' && step.completed && step.completed > 0) {
+      parts.push({ label: 'Completed', value: step.completed, colorClass: 'text-emerald-500' })
+    }
+    if (normType !== 'warehouse' && normType !== 'scan' && step.sent && step.sent > 0) {
+      parts.push({ label: 'Sent', value: step.sent, colorClass: 'text-purple-600' })
+    }
+
+    if (parts.length === 0) {
+      return <span className={cn("text-lg font-bold leading-tight tabular-nums", defaultColorClass)}>{step.displayText}</span>
+    }
+
+    return (
+      <span className="flex items-center gap-1.5 text-lg font-bold leading-tight tabular-nums">
+        {parts.map((p, idx) => (
+          <span key={idx} className={p.colorClass} title={`${p.label}: ${p.value}`}>
+            {p.value}
+          </span>
+        ))}
+      </span>
+    )
   }
 
   const pipelineSteps = [
@@ -132,18 +174,23 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           </div>
 
           {/* Legend */}
-          <div className="hidden lg:flex items-center gap-4 mt-4">
+          <div className="hidden lg:flex items-center gap-4 mt-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-400" : "bg-blue-400")} />
-              <span className="text-xs text-muted-foreground">Active</span>
+              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-600" : "bg-blue-600")} />
+              <span>Received</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-purple-500" />
+              <span>Sent</span>
+            </div>
+            <span className="text-border">|</span>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-orange-400" />
-              <span className="text-xs text-muted-foreground">Delayed</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-gray-400" />
-              <span className="text-xs text-muted-foreground">Idle</span>
+              <span>Delayed</span>
             </div>
           </div>
 
@@ -191,7 +238,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Desktop: card layout */}
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count)
+              const status = getStepStatus(step.count, step.active)
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
@@ -202,7 +249,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   {/* Card body */}
                   <div className={cn("w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 shadow-sm transition-all duration-200 group-hover/step:shadow-md group-hover/step:-translate-y-0.5", cfg.cardBg)}>
                     <span className="text-xs font-semibold text-gray-600">{step.label}</span>
-                    <span className={cn("text-2xl font-bold leading-tight tabular-nums", cfg.countColor)}>{step.active}</span>
+                    {renderFormattedCounts(step, cfg.countColor)}
                     {step.delayed > 0 && (
                       <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${step.delayed} ${step.isBookStage ? 'books' : 'boxes'} delayed > 1 day`}>
                         <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
@@ -231,25 +278,30 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           </div>
 
           {/* Legend */}
-          <div className="hidden lg:flex items-center gap-4 mt-4">
+          <div className="hidden lg:flex items-center gap-4 mt-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1.5">
-              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-400" : "bg-blue-400")} />
-              <span className="text-xs text-muted-foreground">Active</span>
+              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-600" : "bg-blue-600")} />
+              <span>Received</span>
             </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span>Completed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-purple-500" />
+              <span>Sent</span>
+            </div>
+            <span className="text-border">|</span>
             <div className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-orange-400" />
-              <span className="text-xs text-muted-foreground">Delayed</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-gray-400" />
-              <span className="text-xs text-muted-foreground">Idle</span>
+              <span>Delayed</span>
             </div>
           </div>
 
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count)
+              const status = getStepStatus(step.count, step.active)
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
@@ -258,7 +310,10 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   </div>
                   <div className="flex flex-col text-left">
                     <span className="text-sm font-medium text-card-foreground">{step.label}</span>
-                    <span className="text-xs text-muted-foreground">{step.active} {step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      {renderFormattedCounts(step, cfg.countColor)}
+                      <span>{step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
+                    </div>
                     {step.delayed > 0 && (
                       <span className="text-xs text-orange-600 font-medium">{step.delayed} delayed</span>
                     )}
