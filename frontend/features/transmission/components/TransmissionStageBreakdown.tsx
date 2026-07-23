@@ -18,19 +18,18 @@ export function TransmissionStageBreakdown({
 }: TransmissionStageBreakdownProps) {
   const STAGE_ORDER = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval', 'Transmission_Archive']
   const stageMap = Object.fromEntries(stages.map((s) => [s.Stage, s])) as Record<string, PipelineStageSummary>
-  const ordered = [
-    ...STAGE_ORDER.map(
-      (n) =>
-        stageMap[n] || {
-          Stage: n,
-          Total: 0,
-          Completed: 0,
-          Ongoing: 0,
-          Failed: 0,
-        }
-    ),
-    ...stages.filter((s) => !STAGE_ORDER.includes(s.Stage) && s.Stage !== 'QA' && s.Stage !== 'Validate'),
-  ]
+
+  // Map only the 5 explicit stages in STAGE_ORDER
+  const ordered = STAGE_ORDER.map(
+    (n) =>
+      stageMap[n] || {
+        Stage: n,
+        Total: 0,
+        Completed: 0,
+        Ongoing: 0,
+        Failed: 0,
+      }
+  )
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
