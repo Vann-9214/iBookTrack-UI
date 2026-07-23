@@ -20,8 +20,8 @@ import * as controller from '../../controllers/inventory/books.js';
 
 const router = express.Router();
 
-router.get('/', requireAuth, validateRequest(schemas.getBooksSchema), controller.getBooks);
-router.get('/ilms/search/:isbn', requireAuth, validateRequest(schemas.searchIlmsBookSchema), controller.searchIlmsBook);
+router.get('/', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.getBooksSchema), controller.getBooks);
+router.get('/ilms/search/:isbn', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.searchIlmsBookSchema), controller.searchIlmsBook);
 router.post('/:id/flag', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.flagBookSchema), controller.flagBook);
 router.delete('/:id/flag', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.removeFlagSchema), controller.removeFlag);
 

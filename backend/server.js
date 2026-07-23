@@ -21,6 +21,7 @@ import dotenv from 'dotenv'
 dotenv.config({ path: '.env' })
 
 import express from 'express'
+import helmet from 'helmet'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
@@ -38,6 +39,10 @@ import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.j
 import { logger } from './utils/logger.js'
 
 const app  = express()
+
+// Apply Helmet security headers early in the middleware stack
+app.use(helmet())
+
 const PORT = process.env.PORT || 5000
 
 // ── Global process error handlers ─────────────────────────────────────────────

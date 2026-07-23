@@ -12,13 +12,13 @@ import * as controller from '../../controllers/warehouse/scanning.js';
 
 const router = express.Router();
 
-router.get('/live', requireAuth, validateRequest(schemas.baseQuerySchema), controller.getLiveScanning);
-router.get('/scan-rows', requireAuth, validateRequest(schemas.baseQuerySchema), controller.getScanRows);
-router.get('/transmit-rows', requireAuth, controller.getTransmitRows);
-router.get('/machine-books', requireAuth, controller.getMachineBooks);
-router.get('/ranking', requireAuth, validateRequest(schemas.baseQuerySchema), controller.getRanking);
-router.get('/export', requireAuth, validateRequest(schemas.baseQuerySchema), controller.getExport);
-router.get('/simflex-status', requireAuth, validateRequest(schemas.simflexStatusSchema), controller.getSimflexStatus);
+router.get('/live', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getLiveScanning);
+router.get('/scan-rows', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getScanRows);
+router.get('/transmit-rows', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getTransmitRows);
+router.get('/machine-books', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getMachineBooks);
+router.get('/ranking', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getRanking);
+router.get('/export', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getExport);
+router.get('/simflex-status', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.simflexStatusSchema), controller.getSimflexStatus);
 router.post('/enrich-ilms', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.enrichIlmsSchema), controller.enrichIlms);
 
 export default router;

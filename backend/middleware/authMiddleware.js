@@ -14,12 +14,10 @@ export const OPERATIONAL_ROLES = ['supervisor', 'warehouse', 'inventory', 'cut',
 export const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  // Accept token from Authorization header OR ?token= query param OR access_token cookie
+  // Accept token from Authorization header OR access_token cookie
   let token = null;
   if (authHeader?.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
-  } else if (req.query.token) {
-    token = req.query.token;
   } else if (req.cookies && req.cookies.access_token) {
     token = req.cookies.access_token;
   }
@@ -32,8 +30,8 @@ export const requireAuth = async (req, res, next) => {
     const secret = process.env.JWT_SECRET;
     if (!secret) throw new Error('Missing JWT_SECRET in environment variables');
     
-    // Verify our custom JWT
-    const decoded = jwt.verify(token, secret);
+    // Verify our custom JWT and specify algorithm to prevent Algorithm Confusion attacks
+    const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
     
     // Attach the verified user to the request so downstream handlers can use it
     req.user = decoded;
