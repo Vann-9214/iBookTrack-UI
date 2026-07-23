@@ -630,14 +630,17 @@ export default function StationCheckpointsPage() {
       const latestSession = box.box_sessions?.[0]
       const status = latestSession?.status || 'sent'
       
+      const canActionCutSend = isSupervisor || user?.role === "cut";
+      const canActionCutReceive = isSupervisor || user?.role === "endorsement";
+      
       if (status === 'received') {
         return (
-          <div className={cn("relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden", canAction && "group/action")}>
+          <div className={cn("relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden", canActionCutSend && "group/action")}>
             <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Received
             </Badge>
             <>
-  {canAction && (
+  {canActionCutSend && (
     <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {sendingForward === box.id ? '...' : 'Send'}
               {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
@@ -648,12 +651,12 @@ export default function StationCheckpointsPage() {
         )
       } else if (status === 'sent') {
         return (
-          <div className={cn("relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden", canAction && "group/action")}>
+          <div className={cn("relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden", canActionCutReceive && "group/action")}>
             <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Sent
             </Badge>
             <>
-  {canAction && (
+  {canActionCutReceive && (
     <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Receive'}
             </Button>
