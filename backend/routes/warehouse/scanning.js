@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { requireAuth } from '../../middleware/authMiddleware.js';
+import { requireAuth, requireRole, OPERATIONAL_ROLES } from '../../middleware/authMiddleware.js';
 import { validateRequest } from '../../middleware/validateRequest.js';
 import * as schemas from '../../validators/warehouse/scanning.js';
 import * as controller from '../../controllers/warehouse/scanning.js';
@@ -19,6 +19,6 @@ router.get('/machine-books', requireAuth, controller.getMachineBooks);
 router.get('/ranking', requireAuth, validateRequest(schemas.baseQuerySchema), controller.getRanking);
 router.get('/export', requireAuth, validateRequest(schemas.baseQuerySchema), controller.getExport);
 router.get('/simflex-status', requireAuth, validateRequest(schemas.simflexStatusSchema), controller.getSimflexStatus);
-router.post('/enrich-ilms', requireAuth, validateRequest(schemas.enrichIlmsSchema), controller.enrichIlms);
+router.post('/enrich-ilms', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.enrichIlmsSchema), controller.enrichIlms);
 
 export default router;

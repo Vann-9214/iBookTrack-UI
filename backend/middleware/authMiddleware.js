@@ -7,8 +7,9 @@
  *   import { requireAuth } from '../middleware/authMiddleware.js'
  *   router.get('/protected', requireAuth, handler)
  */
-
 import jwt from 'jsonwebtoken';
+
+export const OPERATIONAL_ROLES = ['supervisor', 'warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage'];
 
 export const requireAuth = async (req, res, next) => {
   const authHeader = req.headers.authorization;

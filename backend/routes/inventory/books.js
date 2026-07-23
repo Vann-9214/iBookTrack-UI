@@ -13,7 +13,7 @@
  */
 
 import express from 'express';
-import { requireAuth } from '../../middleware/authMiddleware.js';
+import { requireAuth, requireRole, OPERATIONAL_ROLES } from '../../middleware/authMiddleware.js';
 import { validateRequest } from '../../middleware/validateRequest.js';
 import * as schemas from '../../validators/inventory/books.js';
 import * as controller from '../../controllers/inventory/books.js';
@@ -22,7 +22,7 @@ const router = express.Router();
 
 router.get('/', requireAuth, validateRequest(schemas.getBooksSchema), controller.getBooks);
 router.get('/ilms/search/:isbn', requireAuth, validateRequest(schemas.searchIlmsBookSchema), controller.searchIlmsBook);
-router.post('/:id/flag', requireAuth, validateRequest(schemas.flagBookSchema), controller.flagBook);
-router.delete('/:id/flag', requireAuth, validateRequest(schemas.removeFlagSchema), controller.removeFlag);
+router.post('/:id/flag', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.flagBookSchema), controller.flagBook);
+router.delete('/:id/flag', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.removeFlagSchema), controller.removeFlag);
 
 export default router;
