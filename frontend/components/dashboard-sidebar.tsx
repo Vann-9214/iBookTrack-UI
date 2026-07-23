@@ -283,12 +283,12 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => navigate('/qa')}
-            className={navItemCls(isActive('/qa'))}
-            aria-current={isActive('/qa') ? 'page' : undefined}
+            onClick={() => navigate('/endorsement')}
+            className={navItemCls(isActive('/endorsement'))}
+            aria-current={isActive('/endorsement') ? 'page' : undefined}
             title="Endorsement"
           >
-            {isActive('/qa') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+            {isActive('/endorsement') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><CheckCircle className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Endorsement</span>
           </LockedNavButton>
@@ -455,7 +455,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             Cut
           </button>
 
-          <button onClick={() => navigate('/qa')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/qa'))}>
+          <button onClick={() => navigate('/endorsement')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/endorsement'))}>
             <CheckCircle className="h-5 w-5 shrink-0" />
             Endorsement
           </button>

@@ -13,7 +13,7 @@ const protectedPaths = [
   '/checkpoints',
   '/cut',
   '/intake',
-  '/qa',
+  '/endorsement',
   '/scan',
   '/settings',
   '/notifications'
