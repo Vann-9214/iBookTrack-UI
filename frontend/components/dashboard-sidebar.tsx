@@ -242,19 +242,21 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <SectionLabel>Operations</SectionLabel>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/warehouse')}
-            className={navItemCls(isActive('/warehouse'))}
-            aria-current={isActive('/warehouse') ? 'page' : undefined}
-            title="Warehouse"
-          >
-            {isActive('/warehouse') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            <IconCell><Warehouse className="h-5 w-5" /></IconCell>
-            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
-              Warehouse
-            </span>
-          </LockedNavButton>
+          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/warehouse')}
+              className={navItemCls(isActive('/warehouse'))}
+              aria-current={isActive('/warehouse') ? 'page' : undefined}
+              title="Warehouse"
+            >
+              {isActive('/warehouse') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+              <IconCell><Warehouse className="h-5 w-5" /></IconCell>
+              <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">
+                Warehouse
+              </span>
+            </LockedNavButton>
+          </RoleGuard>
 
           <RoleGuard allowedRoles={['inventory']} action="hide">
             <LockedNavButton
@@ -449,10 +451,12 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <MobileSectionLabel>Operations</MobileSectionLabel>
 
-          <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
-            <Warehouse className="h-5 w-5 shrink-0" />
-            Warehouse
-          </button>
+          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
+            <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
+              <Warehouse className="h-5 w-5 shrink-0" />
+              Warehouse
+            </button>
+          </RoleGuard>
 
           <RoleGuard allowedRoles={['inventory']} action="hide">
             <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
