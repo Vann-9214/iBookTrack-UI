@@ -20,6 +20,7 @@ import { Scan, Package, Scissors, CheckCircle, Camera, FileCheck, Barcode, Clipb
   Loader2, Zap, MapPin } from "lucide-react"
 import { RefreshControl } from "@/components/refresh-control"
 import { PageLoader } from '@/components/ui/page-loader'
+import { RoleGuard } from '@/components/role-guard'
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -545,10 +546,10 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Complete
             </Badge>
-            <Button size="sm" variant="default" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <RoleGuard allowedRoles={[]} action="disable"><Button size="sm" variant="default" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Send'}
               {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
-            </Button>
+            </Button></RoleGuard>
           </div>
         )
       } else if (status === 'received') {
@@ -567,9 +568,9 @@ export default function StationCheckpointsPage() {
         )
       } else {
         return (
-          <Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('receive'); }} className="h-7 w-[76px] gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0">
+          <RoleGuard allowedRoles={[]} action="disable"><Button size="sm" variant="outline" disabled={receiving === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('receive'); }} className="h-7 w-[76px] gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0">
             {receiving === box.id ? '...' : 'Receive'}
-          </Button>
+          </Button></RoleGuard>
         )
       }
     }
@@ -590,9 +591,9 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Sent
             </Badge>
-            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <RoleGuard allowedRoles={[]} action="disable"><Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Receive'}
-            </Button>
+            </Button></RoleGuard>
           </div>
         )
       } else {
@@ -614,10 +615,10 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 bg-blue-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Received
             </Badge>
-            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <RoleGuard allowedRoles={[]} action="disable"><Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {sendingForward === box.id ? '...' : 'Send'}
               {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
-            </Button>
+            </Button></RoleGuard>
           </div>
         )
       } else if (status === 'sent') {
@@ -626,9 +627,9 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Sent
             </Badge>
-            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <RoleGuard allowedRoles={[]} action="disable"><Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Receive'}
-            </Button>
+            </Button></RoleGuard>
           </div>
         )
       } else {
@@ -656,10 +657,10 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Complete
             </Badge>
-            <Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <RoleGuard allowedRoles={[]} action="disable"><Button size="sm" variant="default" disabled={sendingForward === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('send_forward'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs bg-primary text-primary-foreground hover:bg-primary/90 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {sendingForward === box.id ? '...' : 'Send'}
               {sendingForward !== box.id && <ArrowRight className="h-3 w-3" />}
-            </Button>
+            </Button></RoleGuard>
           </div>
         )
       } else if (status === 'sent') {
@@ -668,9 +669,9 @@ export default function StationCheckpointsPage() {
             <Badge variant="outline" className="text-[10px] border-indigo-300 text-indigo-700 bg-indigo-50 transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center">
               Sent
             </Badge>
-            <Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
+            <RoleGuard allowedRoles={[]} action="disable"><Button size="sm" variant="outline" disabled={advancing === box.id} onClick={(e) => { e.stopPropagation(); setConfirmBox(box); setConfirmActionType('advance'); }} className="absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100 opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300">
               {advancing === box.id ? '...' : 'Receive'}
-            </Button>
+            </Button></RoleGuard>
           </div>
         )
       } else {
@@ -697,7 +698,7 @@ export default function StationCheckpointsPage() {
     }
     if (stage === 'transmit') {
       return (
-        <Button
+        <RoleGuard allowedRoles={[]} action="disable"><Button
           size="sm"
           variant="outline"
           disabled={advancing === box.id}
@@ -706,11 +707,11 @@ export default function StationCheckpointsPage() {
         >
           {advancing === box.id ? '...' : 'Send'}
           {advancing !== box.id && <ArrowRight className="h-3 w-3" />}
-        </Button>
+        </Button></RoleGuard>
       )
     }
     return (
-      <Button
+      <RoleGuard allowedRoles={[]} action="disable"><Button
         size="sm"
         variant="outline"
         disabled={receiving === box.id}
@@ -718,7 +719,7 @@ export default function StationCheckpointsPage() {
         className="h-7 gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50 shrink-0"
       >
         {receiving === box.id ? '...' : 'Receive'}
-      </Button>
+      </Button></RoleGuard>
     )
   }
 

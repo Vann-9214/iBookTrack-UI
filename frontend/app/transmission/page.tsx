@@ -1704,10 +1704,12 @@ export default function TransmissionMonitorPage() {
                                     </td>
                                     <td className="px-3 py-2 align-middle text-center">
                                       {r.scan_status === 'processable' && (
-                                        <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-red-600 hover:bg-red-700 hover:text-white transition-colors"
+                                        <RoleGuard allowedRoles={[]} action="disable">
+<Button variant="ghost" size="sm" className="h-6 text-[10px] px-2 text-red-600 hover:bg-red-700 hover:text-white transition-colors"
                                           onClick={() => { setFlagModalScan(r); setFlagIssue(''); setFlagRemarks(''); setFlagError(null); setFlagOpen(false) }}>
                                           Flag
                                         </Button>
+</RoleGuard>
                                       )}
                                     </td>
                                   </tr>
@@ -1925,10 +1927,14 @@ export default function TransmissionMonitorPage() {
 
             {/* Footer */}
             <div className="px-5 py-4 border-t border-border bg-muted/10 flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setFlagModalScan(null)} disabled={flagging}>Cancel</Button>
-              <Button size="sm" onClick={handleFlagSubmit} disabled={flagging || !flagIssue} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+              <RoleGuard allowedRoles={[]} action="disable">
+<Button variant="outline" size="sm" onClick={() => setFlagModalScan(null)} disabled={flagging}>Cancel</Button>
+</RoleGuard>
+              <RoleGuard allowedRoles={[]} action="disable">
+<Button size="sm" onClick={handleFlagSubmit} disabled={flagging || !flagIssue} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                 {flagging ? 'Saving...' : 'Confirm Flag'}
               </Button>
+</RoleGuard>
             </div>
           </div>
         </div>
