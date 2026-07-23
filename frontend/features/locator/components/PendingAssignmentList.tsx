@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Clock, CheckCircle2, Loader2, MapPin, Trash2, Package, ChevronUp, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PendingAssignment } from "../types/locator.types"
+import { useUser } from "@/hooks/use-user"
 
 interface PendingAssignmentListProps {
   filteredPendingAssignments: PendingAssignment[]
@@ -33,6 +34,9 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
     groups[assignment.location_id] = group
     return groups
   }, {}))
+
+  const { user } = useUser()
+  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   return (
     <Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition-all duration-300 hover:shadow-amber-200/50">
@@ -87,26 +91,30 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                       <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-200/70 px-1 text-[10px] font-semibold text-amber-700 dark:bg-amber-900/60 dark:text-amber-200">{assignments.length}</span>
                       {isExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
                     </button>
-                    <button
-                      type="button"
-                      title="Remove all boxes from this location"
-                      aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack}, Level ${location.level}`}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
-                      disabled={isRemoving || isConfirming}
-                      onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
-                    >
-                      {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      title="Confirm all boxes at this location"
-                      aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack}, Level ${location.level}`}
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
-                      disabled={isConfirming || isRemoving}
-                      onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
-                    >
-                      {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                    </button>
+                    {canAction && (
+                      <>
+                        <button
+                          type="button"
+                          title="Remove all boxes from this location"
+                          aria-label={`Remove ${assignments.length} pending boxes from Rack ${location.rack}, Level ${location.level}`}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 disabled:opacity-40"
+                          disabled={isRemoving || isConfirming}
+                          onClick={() => handleRemovePendingAssignments(assignmentIds, groupId)}
+                        >
+                          {isRemoving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                        <button
+                          type="button"
+                          title="Confirm all boxes at this location"
+                          aria-label={`Confirm ${assignments.length} pending boxes at Rack ${location.rack}, Level ${location.level}`}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-40"
+                          disabled={isConfirming || isRemoving}
+                          onClick={() => handleConfirmAssignments(groupId, assignmentIds)}
+                        >
+                          {isConfirming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                        </button>
+                      </>
+                    )}
                   </div>
                   {isExpanded && (
                     <div className="space-y-1 border-t border-amber-200 px-3 py-2 dark:border-amber-800">
@@ -123,28 +131,30 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
                               <span className="whitespace-nowrap">BOOKS: {assignment.total_books}</span>
                             </div>
                           </div>
-                          <div className="flex shrink-0 items-center gap-0.5">
-                            <button
-                              type="button"
-                              title={`Remove box ${assignment.box_number}`}
-                              aria-label={`Remove pending box ${assignment.box_number}`}
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
-                              disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
-                              onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
-                            >
-                              {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                            </button>
-                            <button
-                              type="button"
-                              title={`Confirm box ${assignment.box_number}`}
-                              aria-label={`Confirm pending box ${assignment.box_number}`}
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40"
-                              disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
-                              onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
-                            >
-                              {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                            </button>
-                          </div>
+                          {canAction && (
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              <button
+                                type="button"
+                                title={`Remove box ${assignment.box_number}`}
+                                aria-label={`Remove pending box ${assignment.box_number}`}
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+                                disabled={removingIds.has(assignment.assignment_id) || confirmingId === assignment.assignment_id}
+                                onClick={() => handleRemovePendingAssignments([assignment.assignment_id])}
+                              >
+                                {removingIds.has(assignment.assignment_id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              </button>
+                              <button
+                                type="button"
+                                title={`Confirm box ${assignment.box_number}`}
+                                aria-label={`Confirm pending box ${assignment.box_number}`}
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                                disabled={confirmingId === assignment.assignment_id || removingIds.has(assignment.assignment_id)}
+                                onClick={() => handleConfirmAssignments(assignment.assignment_id, [assignment.assignment_id])}
+                              >
+                                {confirmingId === assignment.assignment_id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

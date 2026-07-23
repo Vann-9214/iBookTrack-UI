@@ -3,6 +3,7 @@ import { Loader2, Package, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { StorageLocation, ReadyBox } from "../types/locator.types"
+import { useUser } from "@/hooks/use-user"
 import { getPendingCount, getReservedCount } from "../utils/locator.helpers"
 
 interface AssignBoxesModalProps {
@@ -26,6 +27,9 @@ export const AssignBoxesModal: React.FC<AssignBoxesModalProps> = ({
   setAssigningBoxIds,
   handleAssign
 }) => {
+  const { user } = useUser()
+  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
+
   if (!assignSlot) return null
 
   return (
@@ -140,13 +144,24 @@ export const AssignBoxesModal: React.FC<AssignBoxesModalProps> = ({
                 </>
               )
             })()}
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setAssignSlot(null)} disabled={assignLoading}>Cancel</Button>
-              <Button onClick={handleAssign} disabled={assigningBoxIds.size === 0 || assignLoading}>
-                {assignLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Assign {assigningBoxIds.size} Box{assigningBoxIds.size !== 1 ? 'es' : ''}
-              </Button>
-            </div>
+            {canAction ? (
+              <div className="pt-2 border-t border-border mt-1">
+                <Button 
+                  onClick={handleAssign} 
+                  disabled={assigningBoxIds.size === 0 || assignLoading} 
+                  className="w-full gap-2 text-sm shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {assignLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  Assign {assigningBoxIds.size} Box{assigningBoxIds.size !== 1 ? 'es' : ''} to Slot
+                </Button>
+              </div>
+            ) : (
+              <div className="pt-2 border-t border-border mt-1">
+                <p className="text-xs text-center text-muted-foreground italic py-2">
+                  You do not have permission to assign boxes to slots.
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>

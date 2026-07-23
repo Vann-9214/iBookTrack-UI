@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '../../config/supabase.js';
+import { db } from '../../config/db.js';
 import { logger } from '../../utils/logger.js';
 
 
@@ -7,264 +7,86 @@ export const scanBookService = async (req, res) => {
     const { session_id } = req.params
     let { isbn, title: scannedTitle, scan_status, rejection_reason, notes, book_type } = req.body
 
-    if (book_type) {
-      book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
-    }
+    if (book_type) book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
+    if (!isbn) return res.status(400).json({ error: 'ISBN is required' })
+    if (!scan_status) return res.status(400).json({ error: 'scan_status is required' })
 
-    if (!isbn) {
-      return res.status(400).json({ error: 'ISBN is required' })
-    }
+    const { rows: sessionRows } = await db.query('SELECT * FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
+    const session = sessionRows[0] || null;
 
-    if (!scan_status) {
-      return res.status(400).json({ error: 'scan_status is required' })
-    }
-
-    // Get session details (use admin to bypass RLS)
-    const { data: session, error: sessionError } = await supabaseAdmin
-      .from('box_sessions')
-      .select('*')
-      .eq('id', session_id)
-      .single()
-
-    if (sessionError) throw sessionError
     if (!session) return res.status(404).json({ error: 'Session not found' })
+    if (!session.box_id) return res.status(400).json({ error: 'Session does not have a box assigned' })
 
-    // Removed the 'in_progress' check here because sessions are now auto-completed upon start.
-
-    // Get lot_id and lot_number from the box
-    if (!session.box_id) {
-      return res.status(400).json({ error: 'Session does not have a box assigned' })
-    }
-
-    const { data: boxDetails } = await supabaseAdmin
-      .from('boxes')
-      .select('lot_id')
-      .eq('id', session.box_id)
-      .single()
-
-    const lotId = boxDetails?.lot_id
+    const { rows: boxDetailsRows } = await db.query('SELECT lot_id, current_stage FROM boxes WHERE id = $1 LIMIT 1', [session.box_id]);
+    const lotId = boxDetailsRows[0]?.lot_id;
+    if (!lotId) return res.status(400).json({ error: 'Box does not have a lot assigned' })
     
-    if (!lotId) {
-      return res.status(400).json({ error: 'Box does not have a lot assigned' })
-    }
-    
-    // Get lot details
-    const { data: lot } = await supabaseAdmin
-      .from('lots')
-      .select('lot_number')
-      .eq('id', lotId)
-      .single()
-    
-    const lotNumber = lot?.lot_number || 'UNKNOWN'
+    const { rows: lotRows } = await db.query('SELECT lot_number FROM lots WHERE id = $1 LIMIT 1', [lotId]);
+    const lotNumber = lotRows[0]?.lot_number || 'UNKNOWN';
 
-    // Helper function to get next box number for lot
-    const getNextBoxNumber = async (lotId, boxType, lotNumber) => {
-      const { data: existingBoxes } = await supabaseAdmin
-        .from('boxes')
-        .select('box_number')
-        .eq('lot_id', lotId)
-        .eq('box_type', boxType)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      let nextNum = 1
-      if (existingBoxes && existingBoxes.length > 0) {
+    const getNextBoxNumber = async (lId, bType, lNum) => {
+      let q = 'SELECT box_number FROM boxes WHERE lot_id = $1';
+      const p = [lId];
+      if (bType) { q += ' AND box_type = $2'; p.push(bType); }
+      else { q += ' AND box_type IS NULL'; }
+      q += ' ORDER BY created_at DESC LIMIT 1';
+      
+      const { rows: existingBoxes } = await db.query(q, p);
+      let nextNum = 1;
+      if (existingBoxes[0]) {
         const match = existingBoxes[0].box_number.match(/(\d+)$/)
         if (match) nextNum = parseInt(match[1]) + 1
       }
-      let boxTypeStr = boxType ? `${boxType.toUpperCase()}-` : ''
-      return `${lotNumber}-${boxTypeStr}${String(nextNum).padStart(4, '0')}`
+      return `${lNum}-${bType ? bType.toUpperCase() + '-' : ''}${String(nextNum).padStart(4, '0')}`;
     }
 
-    // Helper function to create box on-demand
-    const createBoxIfNeeded = async (boxType, lotNumber) => {
-      const boxNumber = await getNextBoxNumber(lotId, boxType, lotNumber)
-      const { data: newBox, error: boxInsertError } = await supabaseAdmin
-        .from('boxes')
-        .insert({
-          box_number: boxNumber,
-          lot_id: lotId,
-          box_type: boxType,
-          current_stage: 'warehouse',
-          total_expected_books: 0
-        })
-        .select()
-        .single()
-
-      if (boxInsertError) {
-        logger.error('Box insert error:', boxInsertError)
-        throw new Error(`Failed to create box: ${boxInsertError.message}`)
-      }
-      if (!newBox) throw new Error('Box insert returned null — check RLS or box_type constraint on boxes table')
-
-      // Increment total_boxes in lots table
-      const { data: currentLot } = await supabaseAdmin
-        .from('lots')
-        .select('total_boxes')
-        .eq('id', lotId)
-        .single()
-      
-      await supabaseAdmin
-        .from('lots')
-        .update({ total_boxes: (currentLot?.total_boxes || 0) + 1 })
-        .eq('id', lotId)
-      
-      return newBox
-    }
-
-    // All books go into one box per session regardless of status
-    let assignedBoxId = null
-    let currentBox = null
-
-    if (!session.box_id) {
-      // Create the single session box on first scan
-      currentBox = await createBoxIfNeeded(book_type || null, lotNumber)
-      assignedBoxId = currentBox.id
-      await supabaseAdmin
-        .from('box_sessions')
-        .update({ box_id: currentBox.id })
-        .eq('id', session_id)
+    let assignedBoxId = session.box_id;
+    let currentBox = boxDetailsRows[0];
+    
+    // Find existing book
+    let bookId = null;
+    let { rows: existingBookRows } = await db.query('SELECT id FROM books WHERE isbn = $1 AND box_id = $2 LIMIT 1', [isbn, assignedBoxId]);
+    if (existingBookRows[0]) {
+      bookId = existingBookRows[0].id;
     } else {
-      // Check if current box is sealed (manually marked as full)
-      const { data: boxData } = await supabaseAdmin
-        .from('boxes')
-        .select('*')
-        .eq('id', session.box_id)
-        .single()
-
-      assignedBoxId = session.box_id
-      currentBox = boxData
-    }
-
-    // Find existing book in the box or insert a new one to get book_id
-    let bookId = null
-    if (assignedBoxId) {
-      let { data: existingBook } = await supabaseAdmin
-        .from('books')
-        .select('id')
-        .eq('isbn', isbn)
-        .eq('box_id', assignedBoxId)
-        .maybeSingle()
-        
-      if (existingBook) {
-        bookId = existingBook.id
-      } else {
-        const { data: bookData, error: bookInsertError } = await supabaseAdmin
-          .from('books')
-          .insert({
-            isbn,
-            box_id: assignedBoxId,
-            title: scannedTitle || null,
-            book_type: book_type || null
-          })
-          .select('id')
-          .single()
-        
-        if (bookInsertError) {
-          logger.error('Books insert error:', bookInsertError)
-          throw bookInsertError
-        }
-        if (bookData) {
-          bookId = bookData.id
-        }
-      }
+      const { rows: newBookRows } = await db.query(
+        'INSERT INTO books (isbn, box_id, title, book_type) VALUES ($1, $2, $3, $4) RETURNING id',
+        [isbn, assignedBoxId, scannedTitle || null, book_type || null]
+      );
+      bookId = newBookRows[0].id;
     }
 
     const stage = currentBox?.current_stage || 'warehouse';
     
-    // Set the appropriate scan_by field based on the current stage
-    const activityInsert = {
-      session_id,
-      book_id: bookId,
-      scan_status
-    };
+    const actCols = ['session_id', 'book_id', 'scan_status'];
+    const actVals = [session_id, bookId, scan_status];
     
-    if (stage === 'inventory') {
-      activityInsert.inventory_scan_by = req.user.id;
-      activityInsert.inventory_scan_at = new Date().toISOString();
-    }
-    else if (stage === 'qa' || stage === 'endorsement') {
-      activityInsert.endorsement_scan_by = req.user.id;
-      activityInsert.endorsement_scan_at = new Date().toISOString();
-    }
-    else {
-      activityInsert.warehouse_scan_by = req.user.id;
-      // warehouse_scan_at defaults to NOW() in DB usually, but we can set it
-      // actually the DB handles warehouse_scan_at via default value, but just in case:
-      // activityInsert.warehouse_scan_at is handled by DB
-    }
+    if (stage === 'inventory') { actCols.push('inventory_scan_by', 'inventory_scan_at'); actVals.push(req.user.id, new Date().toISOString()); }
+    else if (stage === 'qa' || stage === 'endorsement') { actCols.push('endorsement_scan_by', 'endorsement_scan_at'); actVals.push(req.user.id, new Date().toISOString()); }
+    else { actCols.push('warehouse_scan_by', 'warehouse_scan_at'); actVals.push(req.user.id, new Date().toISOString()); }
 
-    // Check if book_activity already exists for this book in this session
-    let existingActivity = null;
-    if (bookId) {
-      const { data } = await supabaseAdmin
-        .from('book_activity')
-        .select('id')
-        .eq('book_id', bookId)
-        .eq('session_id', session_id)
-        .maybeSingle();
-      if (data) existingActivity = data;
-    }
+    const { rows: actRows } = await db.query(
+      `INSERT INTO book_activity (${actCols.join(',')}) VALUES (${actCols.map((_, i) => `$${i + 1}`).join(',')}) RETURNING id, scan_status, warehouse_scan_by`,
+      actVals
+    );
+    const scanLog = actRows[0];
 
-    let scanLog;
-    if (existingActivity) {
-      const { data, error: scanError } = await supabaseAdmin
-        .from('book_activity')
-        .update(activityInsert)
-        .eq('id', existingActivity.id)
-        .select('id, scan_status, warehouse_scan_by')
-        .single();
-      if (scanError) throw scanError;
-      scanLog = data;
-    } else {
-      const { data, error: scanError } = await supabaseAdmin
-        .from('book_activity')
-        .insert(activityInsert)
-        .select('id, scan_status, warehouse_scan_by')
-        .single();
-      if (scanError) throw scanError;
-      scanLog = data;
-    }
-
-    // Now insert user_flags if needed, linking back to the book_activity
     if (rejection_reason || notes) {
-      const flagInsert = {
-        book_activity_id: scanLog.id,
-        rejection_reason: rejection_reason || null,
-        notes: notes || null
-      };
-      
+      const flagInsert = { book_activity_id: scanLog.id, rejection_reason: rejection_reason || null, notes: notes || null };
       if (stage === 'inventory') flagInsert.inventory_flag_by = req.user.id;
       else if (stage === 'qa' || stage === 'endorsement') flagInsert.endorsement_flag_by = req.user.id;
       else flagInsert.warehouse_flag_by = req.user.id;
 
-      const { error: flagError } = await supabaseAdmin
-        .from('user_flags')
-        .insert(flagInsert);
-      if (flagError) throw flagError;
+      await db.query(
+        `INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`,
+        Object.values(flagInsert)
+      );
 
-      if (rejection_reason === 'extra-book') {
-        const { error: bookUpdError } = await supabaseAdmin
-          .from('books')
-          .update({ is_extra: true })
-          .eq('id', scanLog.book_id || bookId);
-        if (bookUpdError) throw bookUpdError;
-      }
-      if (rejection_reason === 'mismatched-book') {
-        const { error: bookUpdError } = await supabaseAdmin
-          .from('books')
-          .update({ is_mismatch: true })
-          .eq('id', scanLog.book_id || bookId);
-        if (bookUpdError) throw bookUpdError;
-      }
+      if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [bookId]);
+      if (rejection_reason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
     }
 
-    res.status(201).json({ 
-      scanLog,
-      currentBox: currentBox ? {
-        box_number: currentBox.box_number
-      } : null
-    })
+    res.status(201).json({ scanLog, currentBox: { box_number: currentBox.box_number || null } })
   } catch (error) {
     logger.error('Scan book error:', error)
     res.status(500).json({ error: error.message })
@@ -276,92 +98,40 @@ export const flagScanService = async (req, res) => {
     const { scan_id } = req.params
     const { rejection_reason, notes } = req.body
 
-    if (!rejection_reason) {
-      return res.status(400).json({ error: 'rejection_reason is required' })
-    }
+    if (!rejection_reason) return res.status(400).json({ error: 'rejection_reason is required' })
 
-    // We need to fetch the existing scan to see its old status and session_id
-    const { data: existingScan, error: fetchError } = await supabaseAdmin
-      .from('book_activity')
-      .select('id, scan_status, session_id, book_id')
-      .eq('id', scan_id)
-      .single()
+    const { rows: scanRows } = await db.query('SELECT id, scan_status, session_id, book_id FROM book_activity WHERE id = $1 LIMIT 1', [scan_id]);
+    const existingScan = scanRows[0];
+    if (!existingScan) return res.status(404).json({ error: 'Scan not found' })
 
-    if (fetchError || !existingScan) return res.status(404).json({ error: 'Scan not found' })
-
-    // Get the box stage to assign the correct flag column
-    const { data: session } = await supabaseAdmin
-      .from('box_sessions')
-      .select('box_id')
-      .eq('id', existingScan.session_id)
-      .single();
-    
+    const { rows: sessRows } = await db.query('SELECT box_id FROM box_sessions WHERE id = $1 LIMIT 1', [existingScan.session_id]);
     let stage = 'warehouse';
-    if (session?.box_id) {
-      const { data: box } = await supabaseAdmin.from('boxes').select('current_stage').eq('id', session.box_id).single();
-      if (box?.current_stage) stage = box.current_stage;
+    if (sessRows[0]?.box_id) {
+      const { rows: boxRows } = await db.query('SELECT current_stage FROM boxes WHERE id = $1 LIMIT 1', [sessRows[0].box_id]);
+      if (boxRows[0]?.current_stage) stage = boxRows[0].current_stage;
     }
 
-    const flagInsert = { 
-      book_activity_id: existingScan.id,
-      rejection_reason, 
-      notes: notes || null
-    };
+    const flagInsert = { book_activity_id: existingScan.id, rejection_reason, notes: notes || null };
     if (stage === 'inventory') flagInsert.inventory_flag_by = req.user.id;
     else if (stage === 'qa' || stage === 'endorsement') flagInsert.endorsement_flag_by = req.user.id;
     else flagInsert.warehouse_flag_by = req.user.id;
 
-    const { data: flagData, error: flagError } = await supabaseAdmin
-      .from('user_flags')
-      .insert(flagInsert)
-      .select('id')
-      .single()
-    if (flagError) throw flagError;
+    await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
 
-    if (rejection_reason === 'extra-book') {
-      const { error: bookUpdError } = await supabaseAdmin
-        .from('books')
-        .update({ is_extra: true })
-        .eq('id', existingScan.book_id);
-      if (bookUpdError) throw bookUpdError;
-    }
-    if (rejection_reason === 'mismatched-book') {
-      const { error: bookUpdError } = await supabaseAdmin
-        .from('books')
-        .update({ is_mismatch: true })
-        .eq('id', existingScan.book_id);
-      if (bookUpdError) throw bookUpdError;
-    }
+    if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existingScan.book_id]);
+    if (rejection_reason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existingScan.book_id]);
 
-    const { data, error } = await supabaseAdmin
-      .from('book_activity')
-      .update({ scan_status: 'non_processable' })
-      .eq('id', scan_id)
-      .select()
-      .single()
+    const { rows: updRows } = await db.query("UPDATE book_activity SET scan_status = 'non_processable' WHERE id = $1 RETURNING *", [scan_id]);
 
-    if (error) throw error
-
-    // Adjust session counts if it changed from processable to non_processable
     if (existingScan.scan_status === 'processable') {
-      const { data: session } = await supabaseAdmin
-        .from('box_sessions')
-        .select('total_processable_books, total_nonprocessable_books')
-        .eq('id', existingScan.session_id)
-        .single()
-        
-      if (session) {
-        await supabaseAdmin
-          .from('box_sessions')
-          .update({
-            total_processable_books: Math.max(0, session.total_processable_books - 1),
-            total_nonprocessable_books: session.total_nonprocessable_books + 1
-          })
-          .eq('id', existingScan.session_id)
+      const { rows: bsRows } = await db.query('SELECT total_processable_books, total_nonprocessable_books FROM box_sessions WHERE id = $1', [existingScan.session_id]);
+      if (bsRows[0]) {
+        await db.query('UPDATE box_sessions SET total_processable_books = GREATEST(0, $1), total_nonprocessable_books = $2 WHERE id = $3', 
+        [bsRows[0].total_processable_books - 1, bsRows[0].total_nonprocessable_books + 1, existingScan.session_id]);
       }
     }
 
-    res.json({ success: true, scan: data })
+    res.json({ success: true, scan: updRows[0] })
   } catch (error) {
     logger.error('Flag scan error:', error)
     res.status(500).json({ error: error.message })
@@ -373,30 +143,20 @@ export const tagScanService = async (req, res) => {
     const { scan_id } = req.params
     const { status, remarks } = req.body
 
-    // Fetch the scan to verify it exists and get its session_id
-    const { data: existing, error: fetchError } = await supabaseAdmin
-      .from('book_activity')
-      .select('id, scan_status, session_id, book_id, books(isbn)')
-      .eq('id', scan_id)
-      .single()
-
-    if (fetchError || !existing) {
-      return res.status(404).json({ error: 'Scan not found' })
-    }
+    const { rows: existingRows } = await db.query(`
+      SELECT ba.id, ba.scan_status, ba.session_id, ba.book_id, b.isbn 
+      FROM book_activity ba JOIN books b ON ba.book_id = b.id WHERE ba.id = $1 LIMIT 1
+    `, [scan_id]);
+    const existing = existingRows[0];
+    if (!existing) return res.status(404).json({ error: 'Scan not found' })
 
     const taggedBy = req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email
 
-    // Get the box stage
-    const { data: session } = await supabaseAdmin
-      .from('box_sessions')
-      .select('box_id')
-      .eq('id', existing.session_id)
-      .single();
-    
+    const { rows: sessRows } = await db.query('SELECT box_id FROM box_sessions WHERE id = $1 LIMIT 1', [existing.session_id]);
     let stage = 'warehouse';
-    if (session?.box_id) {
-      const { data: box } = await supabaseAdmin.from('boxes').select('current_stage').eq('id', session.box_id).single();
-      if (box?.current_stage) stage = box.current_stage;
+    if (sessRows[0]?.box_id) {
+      const { rows: boxRows } = await db.query('SELECT current_stage FROM boxes WHERE id = $1 LIMIT 1', [sessRows[0].box_id]);
+      if (boxRows[0]?.current_stage) stage = boxRows[0].current_stage;
     }
 
     const flagInsert = {
@@ -409,59 +169,23 @@ export const tagScanService = async (req, res) => {
     else if (stage === 'scan') flagInsert.scan_flag_by = req.user.id;
     else flagInsert.warehouse_flag_by = req.user.id;
 
-    const { data: flagData, error: flagError } = await supabaseAdmin
-      .from('user_flags')
-      .insert(flagInsert)
-      .select('id')
-      .single();
-    if (flagError) throw flagError;
+    await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
 
-    if (remarks.trim() === 'extra-book') {
-      const { error: bookUpdError } = await supabaseAdmin
-        .from('books')
-        .update({ is_extra: true })
-        .eq('id', existing.book_id);
-      if (bookUpdError) throw bookUpdError;
-    }
-    if (remarks.trim() === 'mismatched-book') {
-      const { error: bookUpdError } = await supabaseAdmin
-        .from('books')
-        .update({ is_mismatch: true })
-        .eq('id', existing.book_id);
-      if (bookUpdError) throw bookUpdError;
-    }
+    if (remarks.trim() === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existing.book_id]);
+    if (remarks.trim() === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existing.book_id]);
 
-    const { data: updated, error: updateError } = await supabaseAdmin
-      .from('book_activity')
-      .update({
-        scan_status: status
-      })
-      .eq('id', scan_id)
-      .select()
-      .single()
+    const { rows: updatedRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING *', [status, scan_id]);
+    const updated = updatedRows[0];
 
-    if (updateError) throw updateError
-
-    // Adjust session counts if it changed from processable to non_processable (or reject)
     if (existing.scan_status === 'processable' && (status === 'non_processable' || status === 'reject')) {
-      const { data: session } = await supabaseAdmin
-        .from('box_sessions')
-        .select('total_processable_books, total_nonprocessable_books')
-        .eq('id', existing.session_id)
-        .single()
-        
-      if (session) {
-        await supabaseAdmin
-          .from('box_sessions')
-          .update({
-            total_processable_books: Math.max(0, session.total_processable_books - 1),
-            total_nonprocessable_books: session.total_nonprocessable_books + 1
-          })
-          .eq('id', existing.session_id)
+      const { rows: bsRows } = await db.query('SELECT total_processable_books, total_nonprocessable_books FROM box_sessions WHERE id = $1', [existing.session_id]);
+      if (bsRows[0]) {
+        await db.query('UPDATE box_sessions SET total_processable_books = GREATEST(0, $1), total_nonprocessable_books = $2 WHERE id = $3', 
+        [bsRows[0].total_processable_books - 1, bsRows[0].total_nonprocessable_books + 1, existing.session_id]);
       }
     }
 
-    res.json({ success: true, scan: updated, message: `ISBN ${existing.books?.isbn} tagged as ${status}` })
+    res.json({ success: true, scan: updated, message: `ISBN ${existing.isbn} tagged as ${status}` })
   } catch (error) {
     logger.error('Tag scan error:', error)
     res.status(500).json({ error: error.message })
@@ -472,33 +196,25 @@ export const getBoxScansService = async (req, res) => {
   try {
     const { box_id } = req.params
 
-    // Get all warehouse scans for books in this box
-    const { data: scans, error } = await supabaseAdmin
-      .from('book_activity')
-      .select(`
-        *,
-        user_flags(rejection_reason),
-        books!inner(
-          isbn,
-          title,
-          box:boxes(
-            box_number,
-            lot:lots(lot_number)
-          )
-        )
-      `)
-      .eq('books.box_id', box_id)
-      .order('warehouse_scan_at', { ascending: false })
+    const { rows: scans } = await db.query(`
+      SELECT ba.id, ba.scan_status, ba.warehouse_scan_at,
+             uf.rejection_reason,
+             b.isbn, b.title, bx.box_number, l.lot_number
+      FROM book_activity ba
+      LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
+      JOIN books b ON ba.book_id = b.id
+      JOIN boxes bx ON b.box_id = bx.id
+      LEFT JOIN lots l ON bx.lot_id = l.id
+      WHERE b.box_id = $1
+      ORDER BY ba.warehouse_scan_at DESC
+    `, [box_id]);
 
-    if (error) throw error
-
-    // Map to simpler format for comparison
     const warehouseBooks = scans.map(scan => ({
       id: scan.id,
-      isbn: scan.books?.isbn,
-      title: scan.books?.title,
+      isbn: scan.isbn,
+      title: scan.title,
       scan_status: scan.scan_status,
-      rejection_reason: (Array.isArray(scan.user_flags) ? scan.user_flags[0] : scan.user_flags)?.rejection_reason || null,
+      rejection_reason: scan.rejection_reason || null,
       warehouse_scan_at: scan.warehouse_scan_at
     }))
 
@@ -515,4 +231,3 @@ export const getBoxScansService = async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 }
-

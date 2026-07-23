@@ -3,6 +3,7 @@ import { BookOpen, ChevronDown, ChevronRight, Inbox, Loader2, Package, Send } fr
 import { BookInBox, BoxEntry } from '../types/cut.types'
 import { getBoxBookCount } from '../utils/cut.helpers'
 import { CutBoxBooks } from './CutBoxBooks'
+import { useUser } from '@/hooks/use-user'
 
 interface CutBoxRowProps {
   box: BoxEntry
@@ -30,6 +31,9 @@ export const CutBoxRow: React.FC<CutBoxRowProps> = ({
   const timeStamp = isIncoming
     ? box.box_sessions?.[0]?.inventory_time_send
     : box.box_sessions?.[0]?.cut_time_received
+
+  const { user } = useUser()
+  const canAction = user?.role === 'supervisor' || user?.role === 'cut'
 
   return (
     <div className="border border-border rounded-xl bg-card overflow-hidden transition-shadow hover:shadow-sm">
@@ -67,30 +71,32 @@ export const CutBoxRow: React.FC<CutBoxRowProps> = ({
         </div>
 
         {/* Action Button */}
-        {isIncoming ? (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onActionClick('receive', box)
-            }}
-            disabled={isProcessing}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
-          >
-            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
-            {isProcessing ? 'Receiving...' : 'Receive Box'}
-          </button>
-        ) : (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onActionClick('send', box)
-            }}
-            disabled={isProcessing}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
-          >
-            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {isProcessing ? 'Sending...' : 'Send to Endorsement'}
-          </button>
+        {canAction && (
+          isIncoming ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onActionClick('receive', box)
+              }}
+              disabled={isProcessing}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Inbox className="h-4 w-4" />}
+              {isProcessing ? 'Receiving...' : 'Receive Box'}
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onActionClick('send', box)
+              }}
+              disabled={isProcessing}
+              className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 transition-colors shrink-0"
+            >
+              {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isProcessing ? 'Sending...' : 'Send to Endorsement'}
+            </button>
+          )
         )}
       </div>
 

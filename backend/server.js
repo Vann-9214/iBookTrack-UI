@@ -21,23 +21,32 @@ import dotenv from 'dotenv'
 dotenv.config({ path: '.env' })
 
 import express from 'express'
+import helmet from 'helmet'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import { testConnection } from './utils/testConnection.js'
-import authRoutes      from './routes/auth.js'
-import boxesRoutes     from './routes/boxes.js'
-import booksRoutes     from './routes/books.js'
-import lotsRoutes      from './routes/lots.js'
-import dashboardRoutes from './routes/dashboard.js'
-import warehouseRoutes from './routes/warehouse.js'
-import reportsRoutes   from './routes/reports.js'
-import scanningRoutes  from './routes/scanning.js'
-import storageRoutes   from './routes/storage.js'
+import authRoutes      from './routes/auth/auth.js'
+import boxesRoutes     from './routes/inventory/boxes.js'
+import booksRoutes     from './routes/inventory/books.js'
+import lotsRoutes      from './routes/inventory/lots.js'
+import dashboardRoutes from './routes/analytics/dashboard.js'
+import warehouseRoutes from './routes/warehouse/warehouse.js'
+import reportsRoutes   from './routes/analytics/reports.js'
+import scanningRoutes  from './routes/warehouse/scanning.js'
+import storageRoutes   from './routes/inventory/storage.js'
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js'
 import { logger } from './utils/logger.js'
 
 const app  = express()
+
+// Trust the reverse proxy (e.g. Nginx, AWS, Cloudflare) so that req.ip contains the real user's IP.
+// Without this, the rate limiter would block all users sharing the proxy's IP, creating a DoS vulnerability.
+app.set('trust proxy', 1)
+
+// Apply Helmet security headers early in the middleware stack
+app.use(helmet())
+
 const PORT = process.env.PORT || 5000
 
 // ── Global process error handlers ─────────────────────────────────────────────
@@ -155,7 +164,7 @@ app.use(globalErrorHandler)
 // ── Start server ──────────────────────────────────────────────────────────────
 const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`🚀 Backend running at http://localhost:${PORT}`)
-  // Verify Supabase connection on startup
+  // Verify DB connection on startup
   await testConnection()
 })
 

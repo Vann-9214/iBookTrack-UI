@@ -9,7 +9,7 @@ This backend follows a modular, layered architecture. The goal of this structure
 ### 📁 `config/`
 
 Configuration files and initializations for external services, environment variables, and databases.
-For example, this is where you will find the Supabase client initialization. Keeping these separate ensures that if you ever swap out a database or service provider, you only have to update the configuration in one predictable place.
+For example, this is where you will find the database client initialization. Keeping these separate ensures that if you ever swap out a database or service provider, you only have to update the configuration in one predictable place.
 
 ### 📁 `controllers/`
 
@@ -44,7 +44,7 @@ This folder serves as a timeline of how your database structure has evolved. It 
 ### 📁 `repositories/`
 
 The "Stockroom" or Data Access Layer of the application.
-This folder isolates absolutely all Supabase and raw SQL database interaction logic (like `.select()`, `.insert()`). By containing all queries here, you guarantee that if your database schema ever changes, you only ever have to update these files rather than hunting down queries scattered throughout your business logic.
+This folder isolates absolutely all raw SQL database interaction logic (like `SELECT`, `INSERT`). By containing all queries here, you guarantee that if your database schema ever changes, you only ever have to update these files rather than hunting down queries scattered throughout your business logic.
 
 ### 📁 `routes/`
 

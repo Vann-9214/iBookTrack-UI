@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { StorageLocation } from "../types/locator.types"
+import { useUser } from "@/hooks/use-user"
 import { getCapacityColorName, getCapacityPercentage, getPendingCount, getReservedCount } from "../utils/locator.helpers"
 
 interface StorageSlotDetailsModalProps {
@@ -41,6 +42,9 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
   removingIds,
   handleRemoveBatch
 }) => {
+  const { user } = useUser()
+  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
+
   if (!detailSlot) return null
 
   const confirmedDetailAssignments = detailSlot.assignments.filter(assignment => assignment.status !== 'pending') || []
@@ -90,13 +94,15 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                   {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
                   {getPendingCount(detailSlot) > 0 ? ` · ${getPendingCount(detailSlot)} pending` : ''}
                 </p>
-                <button
-                  onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
-                  className="p-0.5 text-primary bg-primary/10 border-primary/40 border hover:text-foreground hover:bg-foreground/20 hover:border-foreground/40 rounded transition-colors"
-                  title="Edit capacity"
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
+                {canAction && (
+                  <button
+                    onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
+                    className="p-0.5 text-primary bg-primary/10 border-primary/40 border hover:text-foreground hover:bg-foreground/20 hover:border-foreground/40 rounded transition-colors"
+                    title="Edit capacity"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -109,7 +115,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
         </div>
 
         {/* Assign button */}
-        {getReservedCount(detailSlot) < detailSlot.capacity && (
+        {getReservedCount(detailSlot) < detailSlot.capacity && canAction && (
           <button
             onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
             className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors"
@@ -161,7 +167,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                     Select all
                   </label>
                 </div>
-                {selectedRemoveAssignments.size > 0 && (
+                {selectedRemoveAssignments.size > 0 && canAction && (
                   <Button
                     variant="destructive"
                     size="sm"
