@@ -20,3 +20,8 @@ CREATE TABLE IF NOT EXISTS public.lots (
 
 CREATE INDEX IF NOT EXISTS idx_lots_type ON public.lots (type);
 CREATE UNIQUE INDEX IF NOT EXISTS lots_lot_number_type_key ON public.lots (lot_number, type);
+
+
+
+DROP TRIGGER IF EXISTS trg_lots_updated_at ON public.lots;
+CREATE TRIGGER trg_lots_updated_at BEFORE UPDATE ON public.lots FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
