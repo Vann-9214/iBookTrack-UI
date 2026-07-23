@@ -30,31 +30,33 @@ export default function TransmissionMonitorPage() {
         <DashboardNavbar />
         <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
-            <TransmissionHeader brand={brand} />
+            <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+              <TransmissionHeader brand={brand} />
 
-            <TransmissionFilters
-              brand={brand}
-              fromDate={t.fromDate}
-              setFromDate={t.setFromDate}
-              toDate={t.toDate}
-              setToDate={t.setToDate}
-              fromDateOpenMobile={t.fromDateOpenMobile}
-              setFromDateOpenMobile={t.setFromDateOpenMobile}
-              toDateOpenMobile={t.toDateOpenMobile}
-              setToDateOpenMobile={t.setToDateOpenMobile}
-              fromDateOpenDesktop={t.fromDateOpenDesktop}
-              setFromDateOpenDesktop={t.setFromDateOpenDesktop}
-              toDateOpenDesktop={t.toDateOpenDesktop}
-              setToDateOpenDesktop={t.setToDateOpenDesktop}
-              newProcessOnly={t.newProcessOnly}
-              setNewProcessOnly={t.setNewProcessOnly}
-              exporting={t.exporting}
-              handleExport={t.handleExport}
-              handleOpenRanking={t.handleOpenRanking}
-              loading={t.loading}
-              lastUpdated={t.lastUpdated}
-              fetchLiveData={t.fetchLiveData}
-            />
+              <TransmissionFilters
+                brand={brand}
+                fromDate={t.fromDate}
+                setFromDate={t.setFromDate}
+                toDate={t.toDate}
+                setToDate={t.setToDate}
+                fromDateOpenMobile={t.fromDateOpenMobile}
+                setFromDateOpenMobile={t.setFromDateOpenMobile}
+                toDateOpenMobile={t.toDateOpenMobile}
+                setToDateOpenMobile={t.setToDateOpenMobile}
+                fromDateOpenDesktop={t.fromDateOpenDesktop}
+                setFromDateOpenDesktop={t.setFromDateOpenDesktop}
+                toDateOpenDesktop={t.toDateOpenDesktop}
+                setToDateOpenDesktop={t.setToDateOpenDesktop}
+                newProcessOnly={t.newProcessOnly}
+                setNewProcessOnly={t.setNewProcessOnly}
+                exporting={t.exporting}
+                handleExport={t.handleExport}
+                handleOpenRanking={t.handleOpenRanking}
+                loading={t.loading}
+                lastUpdated={t.lastUpdated}
+                fetchLiveData={t.fetchLiveData}
+              />
+            </header>
 
             {t.limitReached && (
               <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm flex items-center gap-3 mb-2 shadow-sm animate-in fade-in zoom-in duration-300">
