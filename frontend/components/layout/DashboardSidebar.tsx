@@ -20,6 +20,7 @@ import {
   ScanBarcode,
 } from 'lucide-react'
 import { PageLoader } from '@/components/ui/page-loader'
+import { RoleGuard } from '@/components/role-guard'
 
 export type DashboardSidebarProps = {
   navigationLocked?: boolean
@@ -207,9 +208,10 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <SectionLabel>Operations</SectionLabel>
 
-          <LockedNavButton
-            navigationLocked={navigationLocked}
-            onClick={() => navigate('/warehouse')}
+          <RoleGuard allowedRoles={['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage']} action="hide">
+            <LockedNavButton
+              navigationLocked={navigationLocked}
+              onClick={() => navigate('/warehouse')}
             className={navItemCls(isActive('/warehouse'))}
             aria-current={isActive('/warehouse') ? 'page' : undefined}
             title="Warehouse"
@@ -294,6 +296,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             <IconCell><StorageLocatorIcon className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Storage Locator</span>
           </LockedNavButton>
+          </RoleGuard>
 
           <SectionLabel>Analytics</SectionLabel>
 
@@ -394,6 +397,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <MobileSectionLabel>Operations</MobileSectionLabel>
 
+          <RoleGuard allowedRoles={['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage']} action="hide">
           <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
             <Warehouse className="h-5 w-5 shrink-0" />
             Warehouse
@@ -428,6 +432,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             <StorageLocatorIcon className="h-5 w-5 shrink-0" />
             Storage Locator
           </button>
+          </RoleGuard>
 
           <MobileSectionLabel>Analytics</MobileSectionLabel>
 

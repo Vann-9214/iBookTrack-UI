@@ -2,6 +2,7 @@ import React from "react"
 import { LayoutGrid, ChevronUp, ChevronDown, Trash2, Plus, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useUser } from "@/hooks/use-user"
 
 interface StorageSectionControlsProps {
   activeSection: number
@@ -28,6 +29,9 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
   removingSection,
   setPendingAddSection
 }) => {
+  const { user } = useUser()
+  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
+
   return (
     <div className="relative" ref={sectionDropdownRef}>
       <Button
@@ -75,7 +79,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-1.5 justify-end">
-            {totalSections > 1 && (
+            {canAction && totalSections > 1 && (
               <button
                 onClick={() => handleRemoveSection(totalSections)}
                 disabled={removingSection}
@@ -86,13 +90,15 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
                 Remove
               </button>
             )}
-            <button
-              onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
-            >
-              <Plus className="h-3 w-3" />
-              Add
-            </button>
+            {canAction && (
+              <button
+                onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                Add
+              </button>
+            )}
           </div>
         </div>
       )}

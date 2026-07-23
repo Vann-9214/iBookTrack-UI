@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { StorageLocation, ReadyBox } from "../types/locator.types"
 import { StorageSectionControls } from "./StorageSectionControls"
 import { StorageSlot } from "./StorageSlot"
+import { useUser } from "@/hooks/use-user"
 import { getSectionRacks, getSectionLevels, getSectionStats, RACK_LETTERS } from "../utils/locator.helpers"
 
 interface StorageGridProps {
@@ -61,6 +62,9 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
   openAssign,
   setDetailSlot
 }) => {
+  const { user } = useUser()
+  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
+
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
   const sectionDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -144,22 +148,26 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
               {/* Level controls */}
               <div className="flex flex-col items-start gap-1">
                 <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
-                <button
-                  onClick={handleAddLevel}
-                  disabled={addingLevel}
-                  title="Add level"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
-                >
-                  {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                </button>
-                <button
-                  onClick={handleRemoveLevel}
-                  disabled={removingLevel || sectionLevels.length <= 1}
-                  title={`Remove level ${Math.max(...sectionLevels)}`}
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
-                >
-                  {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                </button>
+                {canAction && (
+                  <>
+                    <button
+                      onClick={handleAddLevel}
+                      disabled={addingLevel}
+                      title="Add level"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                    >
+                      {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      onClick={handleRemoveLevel}
+                      disabled={removingLevel || sectionLevels.length <= 1}
+                      title={`Remove level ${Math.max(...sectionLevels)}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                    >
+                      {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="h-[5.5rem] bg-border" />
@@ -212,24 +220,28 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
               {/* Rack controls */}
               <div className="flex flex-col items-end gap-1">
                 <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
-                <button
-                  onClick={handleAddRack}
-                  disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
-                  title="Add a new rack"
-                  aria-label="Add a new rack"
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
-                >
-                  {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                </button>
-                <button
-                  onClick={handleRemoveRack}
-                  disabled={removingRack || sectionRacks.length <= 1}
-                  title={`Remove last rack (${sectionRacks.at(-1)})`}
-                  aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
-                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
-                >
-                  {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                </button>
+                {canAction && (
+                  <>
+                    <button
+                      onClick={handleAddRack}
+                      disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
+                      title="Add a new rack"
+                      aria-label="Add a new rack"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                    >
+                      {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      onClick={handleRemoveRack}
+                      disabled={removingRack || sectionRacks.length <= 1}
+                      title={`Remove last rack (${sectionRacks.at(-1)})`}
+                      aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                    >
+                      {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
