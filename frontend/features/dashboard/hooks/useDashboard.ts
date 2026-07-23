@@ -103,7 +103,7 @@ export function useDashboard() {
         setSearchResult({ type: 'lot', data: data.lotDetails, books: [] })
         toast({ title: 'Lot Found', description: `${data.lotDetails.total_books} books across ${data.lotDetails.total_boxes} boxes` })
       }
-      setSearchOpen(false)
+      setSearchOpen(true)
     } catch (error) {
       console.error('Search error:', error)
       toast({ title: 'Error', description: 'Failed to search', variant: 'destructive' })
