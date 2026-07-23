@@ -60,7 +60,14 @@ export function useInventoryActions(brand: string, inventory: InventoryState, ve
 
   useEffect(() => { void verification.loadUserProfile() }, [])
 
-  const handleManualRefresh = async () => { setIsManualRefreshing(true); try { await inventory.fetchBoxes({ silent: true }) } finally { setIsManualRefreshing(false) } }
+  const handleManualRefresh = async () => {
+    setIsManualRefreshing(true)
+    try {
+      await inventory.fetchBoxes()
+    } finally {
+      setIsManualRefreshing(false)
+    }
+  }
 
   const handleDeleteBox = async () => {
     if (!deleteConfirm) return

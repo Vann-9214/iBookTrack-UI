@@ -75,7 +75,7 @@ export default function InventoryPage() {
                 tab={actions.inventoryTab}
                 onTabChange={actions.setInventoryTab}
                 counts={{ incoming: actions.incomingBoxes.length, verification: actions.inventoryBoxes.length, outgoing: actions.outgoingBoxes.length }}
-                refreshing={inventory.loadingBoxes}
+                refreshing={inventory.loadingBoxes || actions.isManualRefreshing}
                 onRefresh={actions.handleManualRefresh}
                 lastUpdated={inventory.lastInventoryUpdate}
                 disabled={verification.verifSessionActive}
