@@ -37,7 +37,6 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
   }, {}))
 
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   return (
     <Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition-all duration-300 hover:shadow-amber-200/50">

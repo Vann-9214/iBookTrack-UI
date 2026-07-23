@@ -64,7 +64,6 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
   setDetailSlot
 }) => {
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   const [sectionDropdownOpen, setSectionDropdownOpen] = useState(false)
   const sectionDropdownRef = useRef<HTMLDivElement>(null)

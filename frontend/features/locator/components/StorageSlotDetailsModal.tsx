@@ -44,7 +44,6 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
   handleRemoveBatch
 }) => {
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   if (!detailSlot) return null
 
@@ -95,7 +94,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                   {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
                   {getPendingCount(detailSlot) > 0 ? ` · ${getPendingCount(detailSlot)} pending` : ''}
                 </p>
-                {canAction && (
+                <RoleGuard allowedRoles={['storage']} action="hide">
                   <button
                     onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
                     className="p-0.5 text-primary bg-primary/10 border-primary/40 border hover:text-foreground hover:bg-foreground/20 hover:border-foreground/40 rounded transition-colors"
@@ -103,7 +102,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                   >
                     <Pencil className="h-3 w-3" />
                   </button>
-                )}
+                </RoleGuard>
               </div>
             )}
           </div>

@@ -31,7 +31,6 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
   setPendingAddSection
 }) => {
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   return (
     <div className="relative" ref={sectionDropdownRef}>

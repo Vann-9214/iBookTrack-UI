@@ -29,7 +29,6 @@ export const AssignBoxesModal: React.FC<AssignBoxesModalProps> = ({
   handleAssign
 }) => {
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   if (!assignSlot) return null
 
