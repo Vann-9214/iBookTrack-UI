@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { getSsoLoginUrl } from '../services/auth.service'
 import { useAuth } from '../hooks/useAuth'
+import { useUser } from '@/hooks/use-user'
 
 export function LoginForm() {
   const router = useRouter()
   const { login, loading } = useAuth()
+  const { refreshUser } = useUser()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -22,9 +24,18 @@ export function LoginForm() {
     const ssoSuccess = params.get('sso_success')
     if (ssoSuccess) {
       toast.success('Innodata SSO Login successful!')
-      setLeaving(true)
-      sessionStorage.setItem('from_login', '1')
-      setTimeout(() => router.push('/Dashboard'), 300)
+      
+      const checkSsoUser = async () => {
+        await refreshUser()
+        // Determine role post-refresh. The safest way is to fetch user again or just redirect to dashboard
+        // where ProtectedRoute will catch them, but we'll try to redirect here if possible.
+        // Actually, just redirect to Dashboard. ProtectedRoute will catch it if they have no role.
+        // Wait, ProtectedRoute only catches if the user context is updated! We just updated it.
+        setLeaving(true)
+        sessionStorage.setItem('from_login', '1')
+        setTimeout(() => router.push('/Dashboard'), 300)
+      }
+      checkSsoUser()
     }
   }, [router])
 
@@ -38,9 +49,14 @@ export function LoginForm() {
 
     const result = await login({ email, password })
     if (result.success) {
+      await refreshUser()
       setLeaving(true)
       sessionStorage.setItem('from_login', '1')
-      setTimeout(() => router.push('/Dashboard'), 300)
+      if (result.user && !result.user.role) {
+        setTimeout(() => router.push('/pending-approval'), 300)
+      } else {
+        setTimeout(() => router.push('/Dashboard'), 300)
+      }
     } else {
       setError(result.error)
     }

@@ -1,9 +1,10 @@
 import React from "react"
-import { Loader2, Package, BookOpen } from "lucide-react"
+import { Loader2, Package, BookOpen, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { StorageLocation, ReadyBox } from "../types/locator.types"
 import { useUser } from "@/hooks/use-user"
+import { RoleGuard } from "@/components/role-guard"
 import { getPendingCount, getReservedCount } from "../utils/locator.helpers"
 
 interface AssignBoxesModalProps {
@@ -28,7 +29,6 @@ export const AssignBoxesModal: React.FC<AssignBoxesModalProps> = ({
   handleAssign
 }) => {
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   if (!assignSlot) return null
 
@@ -144,7 +144,7 @@ export const AssignBoxesModal: React.FC<AssignBoxesModalProps> = ({
                 </>
               )
             })()}
-            {canAction ? (
+            <RoleGuard allowedRoles={['storage']} action="hide">
               <div className="pt-2 border-t border-border mt-1">
                 <Button 
                   onClick={handleAssign} 
@@ -155,13 +155,7 @@ export const AssignBoxesModal: React.FC<AssignBoxesModalProps> = ({
                   Assign {assigningBoxIds.size} Box{assigningBoxIds.size !== 1 ? 'es' : ''} to Slot
                 </Button>
               </div>
-            ) : (
-              <div className="pt-2 border-t border-border mt-1">
-                <p className="text-xs text-center text-muted-foreground italic py-2">
-                  You do not have permission to assign boxes to slots.
-                </p>
-              </div>
-            )}
+            </RoleGuard>
           </>
         )}
       </div>

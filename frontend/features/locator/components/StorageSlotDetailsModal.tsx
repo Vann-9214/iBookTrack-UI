@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { StorageLocation } from "../types/locator.types"
 import { useUser } from "@/hooks/use-user"
+import { RoleGuard } from "@/components/role-guard"
 import { getCapacityColorName, getCapacityPercentage, getPendingCount, getReservedCount } from "../utils/locator.helpers"
 
 interface StorageSlotDetailsModalProps {
@@ -43,7 +44,6 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
   handleRemoveBatch
 }) => {
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   if (!detailSlot) return null
 
@@ -94,7 +94,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                   {detailSlot.used} of {detailSlot.capacity} boxes used ({getCapacityPercentage(detailSlot.used, detailSlot.capacity)}%)
                   {getPendingCount(detailSlot) > 0 ? ` · ${getPendingCount(detailSlot)} pending` : ''}
                 </p>
-                {canAction && (
+                <RoleGuard allowedRoles={['storage']} action="hide">
                   <button
                     onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
                     className="p-0.5 text-primary bg-primary/10 border-primary/40 border hover:text-foreground hover:bg-foreground/20 hover:border-foreground/40 rounded transition-colors"
@@ -102,7 +102,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                   >
                     <Pencil className="h-3 w-3" />
                   </button>
-                )}
+                </RoleGuard>
               </div>
             )}
           </div>
@@ -115,14 +115,16 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
         </div>
 
         {/* Assign button */}
-        {getReservedCount(detailSlot) < detailSlot.capacity && canAction && (
-          <button
-            onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
-            className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Assign a box to this slot
-          </button>
+        {getReservedCount(detailSlot) < detailSlot.capacity && (
+          <RoleGuard allowedRoles={['storage']} action="hide">
+            <button
+              onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
+              className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors w-full"
+            >
+              <Plus className="h-4 w-4" />
+              Assign a box to this slot
+            </button>
+          </RoleGuard>
         )}
 
         {pendingDetailAssignments.length > 0 && (
@@ -167,17 +169,19 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                     Select all
                   </label>
                 </div>
-                {selectedRemoveAssignments.size > 0 && canAction && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRemoveBatch}
-                    disabled={removingIds.size > 0}
-                    className="h-8 gap-1.5"
-                  >
-                    {removingIds.size > 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    Remove {selectedRemoveAssignments.size} box{selectedRemoveAssignments.size !== 1 ? 'es' : ''}
-                  </Button>
+                {selectedRemoveAssignments.size > 0 && (
+                  <RoleGuard allowedRoles={['storage']} action="hide">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemoveBatch}
+                      disabled={removingIds.size > 0}
+                      className="h-8 gap-1.5"
+                    >
+                      {removingIds.size > 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                      Remove {selectedRemoveAssignments.size} box{selectedRemoveAssignments.size !== 1 ? 'es' : ''}
+                    </Button>
+                  </RoleGuard>
                 )}
               </div>
               {confirmedDetailAssignments.map(a => (

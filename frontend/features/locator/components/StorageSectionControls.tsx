@@ -3,6 +3,7 @@ import { LayoutGrid, ChevronUp, ChevronDown, Trash2, Plus, Loader2 } from "lucid
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useUser } from "@/hooks/use-user"
+import { RoleGuard } from "@/components/role-guard"
 
 interface StorageSectionControlsProps {
   activeSection: number
@@ -30,7 +31,6 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
   setPendingAddSection
 }) => {
   const { user } = useUser()
-  const canAction = user?.role === 'supervisor' || user?.role === 'storage'
 
   return (
     <div className="relative" ref={sectionDropdownRef}>
@@ -79,18 +79,20 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-1.5 justify-end">
-            {canAction && totalSections > 1 && (
-              <button
-                onClick={() => handleRemoveSection(totalSections)}
-                disabled={removingSection}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-destructive/50 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
-                title={`Remove Section ${totalSections}`}
-              >
-                {removingSection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
-                Remove
-              </button>
+            {totalSections > 1 && (
+              <RoleGuard allowedRoles={['storage']} action="hide">
+                <button
+                  onClick={() => handleRemoveSection(totalSections)}
+                  disabled={removingSection}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-destructive/50 text-[11px] font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+                  title={`Remove Section ${totalSections}`}
+                >
+                  {removingSection ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                  Remove
+                </button>
+              </RoleGuard>
             )}
-            {canAction && (
+            <RoleGuard allowedRoles={['storage']} action="hide">
               <button
                 onClick={() => { setPendingAddSection(true); setSectionDropdownOpen(false) }}
                 className="flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-primary/50 text-[11px] font-medium text-primary hover:bg-primary/5 transition-colors"
@@ -98,7 +100,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
                 <Plus className="h-3 w-3" />
                 Add
               </button>
-            )}
+            </RoleGuard>
           </div>
         </div>
       )}

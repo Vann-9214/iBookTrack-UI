@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/hooks/use-user'
+import { RoleGuard } from '@/components/role-guard'
 import type { BoxItem, Stage, ConfirmActionType } from '../types/checkpoints.types'
 
 interface BoxActionButtonProps {
@@ -109,11 +110,37 @@ export function BoxActionButton({
   const { user } = useUser()
   const userRole = user?.role
 
-  const canActionStage = (targetStage: Stage) => {
+  const canAction = () => {
     if (userRole === 'supervisor') return true
-    if (targetStage === 'transmit') return userRole === 'scan' || userRole === 'warehouse'
-    return userRole === targetStage
+    
+    const status = box.box_sessions?.[0]?.status || 'sent'
+
+    if (stage === 'warehouse') {
+      if (userRole === 'inventory' && status === 'completed') return true
+      return false
+    }
+
+    if (stage === 'inventory') {
+      if (userRole === 'cut' && status === 'sent') return true
+      return false
+    }
+
+    if (stage === 'cut') {
+      if (userRole === 'cut' && status === 'received') return true
+      if (userRole === 'endorsement' && status === 'sent') return true
+      return false
+    }
+
+    if (stage === 'endorsement') {
+      if (userRole === 'endorsement' && status === 'completed') return true
+      if (userRole === 'scan' && status === 'sent') return true
+      return false
+    }
+
+    return false
   }
+
+  const hasAccess = canAction()
 
   if (stage === 'storage') {
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Done</ActionBadge>
@@ -122,7 +149,7 @@ export function BoxActionButton({
   if (stage === 'warehouse') {
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'completed') {
-      if (!canActionStage('warehouse')) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
       return <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isAdvancing} onClick={confirm('advance')} />
     }
     if (status === 'received') {
@@ -139,7 +166,7 @@ export function BoxActionButton({
       )
     }
     
-    if (!canActionStage('warehouse')) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
+    if (!hasAccess) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
     return (
       <PlainButton
         label="Receive"
@@ -154,8 +181,8 @@ export function BoxActionButton({
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
     if (status === 'sent') {
-      if (!canActionStage('inventory')) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
-      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+      if (!hasAccess) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
+      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isReceiving} onClick={confirm('receive')} />
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status === 'completed' ? 'Complete' : status}</ActionBadge>
   }
@@ -163,12 +190,12 @@ export function BoxActionButton({
   if (stage === 'cut') {
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') {
-      if (!canActionStage('cut')) return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
       return <SlideAction badgeLabel="Received" buttonLabel="Send" badgeClass="border-blue-300 text-blue-700 bg-blue-50" loading={isSending} onClick={confirm('send_forward')} />
     }
     if (status === 'sent') {
-      if (!canActionStage('cut')) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
-      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+      if (!hasAccess) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
+      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isReceiving} onClick={confirm('receive')} />
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status === 'completed' ? 'Complete' : status}</ActionBadge>
   }
@@ -177,12 +204,12 @@ export function BoxActionButton({
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
     if (status === 'completed') {
-      if (!canActionStage('endorsement')) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
       return <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isSending} onClick={confirm('send_forward')} />
     }
     if (status === 'sent') {
-      if (!canActionStage('endorsement')) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
-      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
+      if (!hasAccess) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
+      return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isReceiving} onClick={confirm('receive')} />
     }
     return <ActionBadge className="border-gray-300 text-gray-700 bg-gray-50">{status}</ActionBadge>
   }
@@ -195,7 +222,7 @@ export function BoxActionButton({
   }
 
   if (stage === 'transmit') {
-    if (!canActionStage('transmit')) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Ready</ActionBadge>
+    if (!hasAccess) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Ready</ActionBadge>
     return (
       <PlainButton
         label="Send"
@@ -206,7 +233,7 @@ export function BoxActionButton({
     )
   }
 
-  if (!canActionStage(stage)) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
+  if (!hasAccess) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
   return (
     <PlainButton
       label="Receive"

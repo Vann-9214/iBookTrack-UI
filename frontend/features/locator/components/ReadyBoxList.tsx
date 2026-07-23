@@ -1,4 +1,5 @@
 import React from "react"
+import { useUser } from "@/hooks/use-user"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Inbox, Loader2, Package } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -21,6 +22,9 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
   selectedReadyBoxIds,
   selectReadyBox
 }) => {
+  const { user } = useUser()
+  const isAuthorized = user?.role === 'supervisor' || user?.role === 'storage'
+
   return (
     <Card className={cn("gap-0 h-fit max-h-[640px] rounded-2xl border shadow-sm ring-1 transition-all duration-300", brand === 'jaguar'
       ? "border-emerald-200/60 ring-emerald-100/50 hover:shadow-emerald-200/50"
@@ -64,12 +68,13 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
               <button
                 key={b.id}
                 type="button"
-                onClick={() => selectReadyBox(b)}
+                onClick={() => isAuthorized && selectReadyBox(b)}
                 className={cn(
                   "w-full rounded-lg border px-3 py-2 text-left transition-colors",
                   selectedReadyBoxIds.has(b.id) || activeSearchQuery
                     ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                    : "border-border bg-muted/40 hover:border-primary/50 hover:bg-primary/5"
+                    : "border-border bg-muted/40",
+                  isAuthorized ? "hover:border-primary/50 hover:bg-primary/5 cursor-pointer" : "cursor-default"
                 )}
               >
                 <div className="flex items-center gap-3 min-w-0">
