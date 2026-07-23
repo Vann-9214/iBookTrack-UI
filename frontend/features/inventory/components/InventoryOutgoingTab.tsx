@@ -1,5 +1,5 @@
 import { Loader2, Printer, Send } from 'lucide-react'
-import { useIsMobile } from '@/components/ui/use-mobile'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { InventoryBoxList } from './InventoryBoxList'
 import { InventoryOutgoingBookList } from './InventoryOutgoingBookList'
 import type { InventoryBox } from '../types/inventory.types'

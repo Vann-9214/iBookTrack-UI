@@ -1,6 +1,6 @@
 import { BookOpen, ChevronDown, ChevronRight, ClipboardList, Loader2, Package } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useIsMobile } from '@/components/ui/use-mobile'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { InventoryBookList } from './InventoryBookList'
 import type { BookInBox, InventoryBox } from '../types/inventory.types'
 

@@ -1,4 +1,4 @@
-import { useIsMobile } from '@/components/ui/use-mobile'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { ClipboardCheck, Loader2 } from 'lucide-react'
 import { InventoryScanModal } from './InventoryScanModal'
 import { InventoryVerificationActiveSession } from './InventoryVerificationActiveSession'

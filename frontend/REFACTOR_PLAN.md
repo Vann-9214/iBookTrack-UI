@@ -970,12 +970,11 @@ Steps:
 4. Move `page-header.tsx`, `refresh-control.tsx`, `pagination.tsx`, `scanner-input.tsx`, `QrScanner.tsx` to `components/common/` (or `features/scanning/` for scanner-specific).
 5. Keep `components/ui/` for shadcn/ui primitives. Review unused primitives and remove if desired.
 
-### Phase 6 — Dead Code Removal
+### Phase 6 — Dead Codes
 
 1. Create `DEADCODES/` at project root.
 2. Move confirmed dead components/pages into `DEADCODES/` subfolders.
 3. Update `notes.md` with reason and date.
-4. After one sprint, delete `DEADCODES/`.
 
 Confirmed safe to move now:
 
