@@ -11,11 +11,17 @@ import jwt from 'jsonwebtoken';
 const isProd = process.env.NODE_ENV === 'production';
 const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'strict' };
 
-const generateToken = (user) => {
+const getMillisecondsUntilMidnight = () => {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+};
+
+const generateToken = (user, expiresInSeconds) => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role, name: user.name },
     process.env.JWT_SECRET,
-    { expiresIn: '7d' } // 7 day login session
+    { expiresIn: expiresInSeconds } 
   );
 };
 
@@ -69,10 +75,11 @@ export const loginService = async (req, res) => {
   }
 
   // Generate JWT token
-  const token = generateToken(user);
+  const msUntilMidnight = getMillisecondsUntilMidnight();
+  const token = generateToken(user, Math.floor(msUntilMidnight / 1000));
 
   // Send token securely in HTTP-only cookie
-  res.cookie('access_token', token, { ...cookieOpts, maxAge: 7 * 24 * 3600 * 1000 });
+  res.cookie('access_token', token, { ...cookieOpts, maxAge: msUntilMidnight });
 
   return {
     message: 'Login successful.',
@@ -103,8 +110,9 @@ export const refreshService = async (req, res) => {
     const user = await authRepo.getUserById(decoded.id);
     if (!user) throw new Error();
 
-    const newToken = generateToken(user);
-    res.cookie('access_token', newToken, { ...cookieOpts, maxAge: 7 * 24 * 3600 * 1000 });
+    const msUntilMidnight = getMillisecondsUntilMidnight();
+    const newToken = generateToken(user, Math.floor(msUntilMidnight / 1000));
+    res.cookie('access_token', newToken, { ...cookieOpts, maxAge: msUntilMidnight });
 
     return { message: 'Session refreshed.' };
   } catch (err) {

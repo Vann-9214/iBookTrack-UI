@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { BrandProvider } from '@/hooks/use-brand'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from '@/components/ui/sonner'
+import { IdleTimeout } from '@/components/idle-timeout'
 import './globals.css'
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -39,6 +40,7 @@ export default function RootLayout({
           </BrandProvider>
           <Toaster />
           <SonnerToaster position="bottom-right" richColors />
+          <IdleTimeout />
         </ThemeProvider>
         <Analytics />
       </body>
