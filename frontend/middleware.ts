@@ -16,8 +16,7 @@ const protectedPaths = [
   '/endorsement',
   '/scan',
   '/qr-scanner',
-  '/settings',
-  '/notifications'
+  '/settings'
 ]
 
 export function middleware(request: NextRequest) {
