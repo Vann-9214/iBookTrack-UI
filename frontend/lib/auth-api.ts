@@ -193,7 +193,7 @@ export async function authRequest({ endpoint, payload }: AuthRequestOptions): Pr
 }
 
 // Fetch user profile
-export async function fetchUserProfile(): Promise<{ id: string; name: string; email: string } | null> {
+export async function fetchUserProfile(): Promise<{ id: string; name: string; email: string; role?: string | null } | null> {
   try {
     const response = await fetch(`${getApiBaseUrl()}/api/auth/profile`, {
       credentials: 'include'
@@ -206,7 +206,7 @@ export async function fetchUserProfile(): Promise<{ id: string; name: string; em
     if (!response.ok) {
       if (response.status === 429) {
         handleRateLimitToast(response)
-        return { id: 'rate-limited', name: 'Rate Limited', email: 'rate-limited' }
+        return { id: 'rate-limited', name: 'Rate Limited', email: 'rate-limited', role: null }
       }
       return null
     }

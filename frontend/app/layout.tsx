@@ -6,6 +6,7 @@ import { BrandProvider } from '@/hooks/use-brand'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from '@/components/ui/sonner'
 import { IdleTimeout } from '@/components/idle-timeout'
+import { UserProvider } from '@/hooks/use-user'
 import './globals.css'
 
 const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -35,9 +36,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${_inter.variable} ${_playfair.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
-          <BrandProvider>
-            {children}
-          </BrandProvider>
+          <UserProvider>
+            <BrandProvider>
+              {children}
+            </BrandProvider>
+          </UserProvider>
           <Toaster />
           <SonnerToaster position="bottom-right" richColors />
           <IdleTimeout />

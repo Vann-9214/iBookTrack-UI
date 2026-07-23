@@ -41,3 +41,19 @@ export const requireAuth = async (req, res, next) => {
     return res.status(401).json({ error: 'Invalid or expired token.' });
   }
 };
+
+/**
+ * Middleware to restrict access to specific roles.
+ * Must be used AFTER requireAuth so req.user exists.
+ */
+export const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      return res.status(403).json({ error: 'Access denied: No role assigned.' });
+    }
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Access denied: Insufficient permissions.' });
+    }
+    next();
+  };
+};
