@@ -13,10 +13,10 @@ const protectedPaths = [
   '/checkpoints',
   '/cut',
   '/intake',
-  '/qa',
+  '/endorsement',
   '/scan',
-  '/settings',
-  '/notifications'
+  '/qr-scanner',
+  '/settings'
 ]
 
 export function middleware(request: NextRequest) {
