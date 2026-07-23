@@ -1,5 +1,5 @@
 import React from "react"
-import { Loader2, Package, BookOpen } from "lucide-react"
+import { Loader2, Package, BookOpen, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { StorageLocation, ReadyBox } from "../types/locator.types"
