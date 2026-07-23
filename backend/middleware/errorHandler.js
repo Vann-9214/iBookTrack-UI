@@ -21,8 +21,8 @@ export const globalErrorHandler = (err, req, res, next) => {
     error: err.message || 'An unexpected error occurred.',
   }
 
-  // In development, include stack trace for easier debugging
-  if (process.env.NODE_ENV !== 'production') {
+  // Only include stack trace in explicit development mode
+  if (process.env.NODE_ENV === 'development') {
     response.stack = err.stack
   }
 
@@ -32,6 +32,6 @@ export const globalErrorHandler = (err, req, res, next) => {
 export const notFoundHandler = (req, res, next) => {
   res.status(404).json({
     success: false,
-    error: `API Route not found: ${req.method} ${req.originalUrl}`,
+    error: 'API route not found.',
   })
 }

@@ -35,7 +35,7 @@ export const registerService = async (req, res) => {
   // Check if user already exists
   const existingUser = await authRepo.getUserByEmail(email);
   if (existingUser) {
-    throw { status: 400, payload: { error: 'User with this email already exists.' } };
+    throw { status: 400, payload: { error: 'Registration failed. Please try a different email or contact support.' } };
   }
 
   // Hash password with bcrypt (salt rounds = 10)

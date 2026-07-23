@@ -94,6 +94,8 @@ const isPrivateHost = (hostname) => {
 const isDevBrowserOriginAllowed = (origin) => {
   try {
     const url = new URL(origin)
+    // In production, only allow explicitly listed origins (no LAN bypass)
+    if (process.env.NODE_ENV === 'production') return false;
     // Allow all private LAN http:// origins (dev machines on the same Wi-Fi)
     if (url.protocol === 'http:' && isPrivateHost(url.hostname)) return true
     // Allow Cloudflare dev tunnels (trycloudflare.com) in non-production environments
@@ -120,11 +122,11 @@ app.use(cors({
 }))
 
 // ── Global rate limiter ───────────────────────────────────────────────────────
-// Applies to every route. Limits each IP to 200 requests per 15 minutes.
+// Applies to every route. Limits each IP to 500 requests per 15 minutes.
 // Individual sensitive routes (login, register) have tighter limits in auth.js.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minute window
-  max: 2000,                  // max requests per IP per window
+  max: 500,                  // max requests per IP per window
   standardHeaders: true,     // Return limit info in RateLimit-* headers
   legacyHeaders: false,      // Do not send X-RateLimit-* headers
   message: { error: 'Too many requests. Please slow down and try again shortly.' },
@@ -132,7 +134,7 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter)
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
-app.use(express.json())
+app.use(express.json({ limit: '16kb' }))
 app.use(cookieParser())
 
 // ── Root health-check ─────────────────────────────────────────────────────────

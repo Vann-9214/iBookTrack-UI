@@ -7,7 +7,7 @@
 import { db } from '../../config/db.js';
 
 export const getUserByEmail = async (email) => {
-    const { rows } = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    const { rows } = await db.query('SELECT id, name, email, role, password_hash, created_at, updated_at FROM users WHERE email = $1', [email]);
     return rows[0] || null;
 };
 

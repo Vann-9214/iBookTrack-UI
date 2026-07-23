@@ -44,18 +44,36 @@ export const requireAuth = async (req, res, next) => {
 /**
  * Middleware to restrict access to specific roles.
  * Must be used AFTER requireAuth so req.user exists.
+ * Re-validates role from the database to prevent stale JWT claims.
  */
 export const requireRole = (allowedRoles) => {
-  return (req, res, next) => {
-    if (!req.user || !req.user.role) {
+  return async (req, res, next) => {
+    if (!req.user || !req.user.id) {
       return res.status(403).json({ error: 'Access denied: No role assigned.' });
     }
-    if (req.user.role === 'supervisor') {
-      return next();
+
+    try {
+      // Re-fetch the user's current role from the DB to prevent stale JWT claims
+      const { db } = await import('../config/db.js');
+      const { rows } = await db.query('SELECT role FROM users WHERE id = $1', [req.user.id]);
+      const currentRole = rows[0]?.role;
+
+      if (!currentRole) {
+        return res.status(403).json({ error: 'Access denied: No role assigned.' });
+      }
+
+      // Update req.user.role with the live value so downstream handlers use the correct role
+      req.user.role = currentRole;
+
+      if (currentRole === 'supervisor') {
+        return next();
+      }
+      if (!allowedRoles.includes(currentRole)) {
+        return res.status(403).json({ error: 'Access denied: Insufficient permissions.' });
+      }
+      next();
+    } catch (error) {
+      return res.status(500).json({ error: 'Authorization check failed.' });
     }
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Access denied: Insufficient permissions.' });
-    }
-    next();
   };
 };
