@@ -208,7 +208,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <SectionLabel>Operations</SectionLabel>
 
-          <RoleGuard allowedRoles={['warehouse']} action="hide">
+          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
               onClick={() => navigate('/warehouse')}
@@ -409,7 +409,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <MobileSectionLabel>Operations</MobileSectionLabel>
 
-          <RoleGuard allowedRoles={['warehouse']} action="hide">
+          <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
             <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
               <Warehouse className="h-5 w-5 shrink-0" />
               Warehouse

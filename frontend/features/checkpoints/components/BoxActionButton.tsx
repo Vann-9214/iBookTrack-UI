@@ -108,7 +108,16 @@ export function BoxActionButton({
   }
 
   const { user } = useUser()
-  const isSupervisor = user?.role === 'supervisor'
+  const userRole = user?.role
+
+  const canAction = () => {
+    if (userRole === 'supervisor') return true
+    if (stage === 'warehouse' && userRole === 'inventory') return true
+    if (stage === 'transmit' && (userRole === 'scan' || userRole === 'warehouse' || userRole === 'inventory')) return true
+    return userRole === stage
+  }
+
+  const hasAccess = canAction()
 
   if (stage === 'storage') {
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Done</ActionBadge>
@@ -117,7 +126,7 @@ export function BoxActionButton({
   if (stage === 'warehouse') {
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'completed') {
-      if (!isSupervisor) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
       return <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isAdvancing} onClick={confirm('advance')} />
     }
     if (status === 'received') {
@@ -134,7 +143,7 @@ export function BoxActionButton({
       )
     }
     
-    if (!isSupervisor) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
+    if (!hasAccess) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
     return (
       <PlainButton
         label="Receive"
@@ -149,7 +158,7 @@ export function BoxActionButton({
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
     if (status === 'sent') {
-      if (!isSupervisor) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
       return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status === 'completed' ? 'Complete' : status}</ActionBadge>
@@ -158,11 +167,11 @@ export function BoxActionButton({
   if (stage === 'cut') {
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') {
-      if (!isSupervisor) return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
       return <SlideAction badgeLabel="Received" buttonLabel="Send" badgeClass="border-blue-300 text-blue-700 bg-blue-50" loading={isSending} onClick={confirm('send_forward')} />
     }
     if (status === 'sent') {
-      if (!isSupervisor) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
       return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status === 'completed' ? 'Complete' : status}</ActionBadge>
@@ -172,11 +181,11 @@ export function BoxActionButton({
     const status = box.box_sessions?.[0]?.status || 'sent'
     if (status === 'received') return <ActionBadge className="border-blue-300 text-blue-700 bg-blue-50">Received</ActionBadge>
     if (status === 'completed') {
-      if (!isSupervisor) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
       return <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isSending} onClick={confirm('send_forward')} />
     }
     if (status === 'sent') {
-      if (!isSupervisor) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
+      if (!hasAccess) return <ActionBadge className="border-indigo-300 text-indigo-700 bg-indigo-50">Sent</ActionBadge>
       return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isAdvancing} onClick={confirm('advance')} />
     }
     return <ActionBadge className="border-gray-300 text-gray-700 bg-gray-50">{status}</ActionBadge>
@@ -190,7 +199,7 @@ export function BoxActionButton({
   }
 
   if (stage === 'transmit') {
-    if (!isSupervisor) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Ready</ActionBadge>
+    if (!hasAccess) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Ready</ActionBadge>
     return (
       <PlainButton
         label="Send"
@@ -201,7 +210,7 @@ export function BoxActionButton({
     )
   }
 
-  if (!isSupervisor) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
+  if (!hasAccess) return <ActionBadge className="border-yellow-400 text-yellow-700 bg-yellow-50">Pending</ActionBadge>
   return (
     <PlainButton
       label="Receive"
