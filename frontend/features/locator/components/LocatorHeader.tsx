@@ -1,0 +1,53 @@
+import React from "react"
+import { StorageLocatorIcon } from "@/components/dashboard-sidebar"
+import { RefreshControl } from "@/components/refresh-control"
+import { PageHeader } from "@/components/page-header"
+import { RefreshCw } from "lucide-react"
+import { cn } from "@/lib/utils"
+
+interface LocatorHeaderProps {
+  brand: string
+  refreshLocator: () => Promise<void>
+  isRefreshing: boolean
+  lastUpdated: Date | null
+}
+
+export const LocatorHeader: React.FC<LocatorHeaderProps> = ({
+  brand,
+  refreshLocator,
+  isRefreshing,
+  lastUpdated
+}) => {
+  return (
+    <PageHeader
+      title="Storage Locator"
+      subtitle={
+        <>
+          Find the physical location of any box for{' '}
+          <span className={cn(
+            "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
+            brand === 'jaguar'
+              ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+              : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+          )}>
+            {brand}
+          </span>
+        </>
+      }
+      icon={StorageLocatorIcon}
+      rightContent={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={refreshLocator}
+            disabled={isRefreshing}
+            className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+            aria-label="Refresh Locator"
+          >
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+          </button>
+          <RefreshControl onRefresh={refreshLocator} refreshing={isRefreshing} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
+        </div>
+      }
+    />
+  )
+}
