@@ -363,7 +363,7 @@ export const listSessionsService = async (req, res) => {
       params.push(status);
     }
     query += ` ORDER BY bs.warehouse_time_received DESC LIMIT $${params.length + 1}`;
-    params.push(parseInt(limit));
+    params.push(Math.min(Math.max(parseInt(limit) || 20, 1), 100));
 
     const { rows } = await db.query(query, params);
     const data = rows.map(r => ({

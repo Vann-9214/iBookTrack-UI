@@ -106,7 +106,7 @@ export const refreshService = async (req, res) => {
   if (!token) throw { status: 401, payload: { error: 'Not authenticated.' } };
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
     const user = await authRepo.getUserById(decoded.id);
     if (!user) throw new Error();
 

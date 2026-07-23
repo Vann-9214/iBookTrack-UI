@@ -184,7 +184,7 @@ export const getBoxesService = async (req) => {
 
 export const getPipelineTransitionsService = async (req) => {
   const { limit = 50, offset = 0, stage, box_type, search, date_from, date_to } = req.query;
-  const limitNum = parseInt(limit);
+  const limitNum = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
   const offsetNum = parseInt(offset);
 
   let lotIds = null;
