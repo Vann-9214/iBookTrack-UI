@@ -444,6 +444,524 @@ For each:
 4. Split JSX into components (< 200 lines each).
 5. Leave `page.tsx` as pure composition.
 
+Use one self-contained phase per remaining station, with **Goal**, **Current**, **New structure**, and **Steps**.
+
+---
+
+### Phase 4.1 — Warehouse
+
+**Goal**: separate the receiving-session workflow, live ISBN lookup, scan log, and confirmation dialogs.
+
+Current: `app/warehouse/page.tsx` (1,647 lines)
+
+New structure:
+
+```text
+features/warehouse/
+├── components/
+│   ├── WarehouseHeader.tsx
+│   ├── WarehouseSessionSetup.tsx
+│   ├── WarehouseActiveSession.tsx
+│   ├── WarehouseSessionStats.tsx
+│   ├── WarehouseScanner.tsx
+│   ├── WarehouseScanLog.tsx
+│   ├── WarehouseFlagModal.tsx
+│   ├── WarehouseCompleteSessionModal.tsx
+│   ├── WarehouseResetSessionModal.tsx
+│   ├── WarehouseConflictModal.tsx
+│   ├── WarehouseSimilarLotModal.tsx
+│   └── WarehouseIlmsMismatchModal.tsx
+├── hooks/
+│   ├── useWarehouse.ts
+│   └── useWarehouseIsbnStream.ts
+├── services/
+│   └── warehouse.service.ts
+├── utils/
+│   └── warehouse.helpers.ts
+└── types/
+    └── warehouse.types.ts
+```
+
+Steps:
+
+1. Create `features/warehouse/` skeleton.
+2. Move warehouse types (`ILMSBookData`, `ScannedBook`, `WarehouseSession`) to `types/warehouse.types.ts`.
+3. Move lot/box normalizers, ISBN validation, similar-lot matching, and iLMS mismatch checks to `warehouse.helpers.ts`.
+4. Create `warehouse.service.ts` for iLMS lots, box existence checks, warehouse session CRUD, bulk save, ISBN lookups, and flagging endpoints.
+5. Extract `useWarehouseIsbnStream` to manage `EventSource`, ISBN stream lifecycle, cleanup, and lookup state.
+6. Extract `useWarehouse` for lot/box selection, session state, scans, refresh behavior, and modal state.
+7. Extract session setup, active-session banner, stats, scanner, and scan log into components.
+8. Extract each modal into its own component.
+9. Compose `app/warehouse/page.tsx` from the warehouse feature components and hook.
+10. Move the old page implementation to `DEADCODES/pages/` after validation.
+
+---
+
+### Phase 4.2 — Checkpoints
+
+**Goal**: isolate pipeline monitoring, transition tracking, stage drill-down, and box workflow actions.
+
+Current: `app/checkpoints/page.tsx` (2,158 lines)
+
+New structure:
+
+```text
+features/checkpoints/
+├── components/
+│   ├── CheckpointsHeader.tsx
+│   ├── PipelineStageFlow.tsx
+│   ├── PipelineStageCard.tsx
+│   ├── PipelineLegend.tsx
+│   ├── TransitionLogFilters.tsx
+│   ├── TransitionLogTable.tsx
+│   ├── TransitionTimeline.tsx
+│   ├── BoxDetailsModal.tsx
+│   ├── StageDetailsModal.tsx
+│   ├── StationActionConfirmModal.tsx
+│   ├── AdvanceValidationModal.tsx
+│   └── UndoTransitionToast.tsx
+├── hooks/
+│   ├── useCheckpoints.ts
+│   ├── usePipelineTransitions.ts
+│   └── useCheckpointBoxDetails.ts
+├── services/
+│   └── checkpoints.service.ts
+├── utils/
+│   └── checkpoints.helpers.ts
+└── types/
+    └── checkpoints.types.ts
+```
+
+Steps:
+
+1. Create `features/checkpoints/` skeleton.
+2. Move stage types, box types, transition types, and Simflex result types to `types/checkpoints.types.ts`.
+3. Move `STAGE_ORDER`, stage metadata, status mapping, timestamp selection, and timeline helpers to `checkpoints.helpers.ts`.
+4. Create `checkpoints.service.ts` for pipeline transitions, box lists/details, receive/send/advance/rollback actions, scanning rows, transmission rows, and Simflex endpoints.
+5. Extract `usePipelineTransitions` for date/search/stage filtering, pagination, expanded timelines, and transition refresh.
+6. Extract `useCheckpointBoxDetails` for lazy box details, scanned books, and Simflex lookups.
+7. Extract `useCheckpoints` for pipeline refresh, scanner input, action state, confirmations, undo state, and selected stage.
+8. Extract the pipeline stage flow/cards and transition tracker table.
+9. Extract box details, stage details, action confirmation, validation, and undo UI into focused components.
+10. Compose `app/checkpoints/page.tsx` from feature components and hooks.
+
+---
+
+### Phase 4.3 — Transmission
+
+**Goal**: separate live transmission monitoring, machine performance, lot visibility, exports, rankings, and flagging.
+
+Current: `app/transmission/page.tsx` (1,938 lines)
+
+New structure:
+
+```text
+features/transmission/
+├── components/
+│   ├── TransmissionHeader.tsx
+│   ├── TransmissionFilters.tsx
+│   ├── TransmissionMetrics.tsx
+│   ├── TransmissionStageBreakdown.tsx
+│   ├── TransmissionTabs.tsx
+│   ├── LiveScanFeed.tsx
+│   ├── MachinePerformanceTable.tsx
+│   ├── LotSelector.tsx
+│   ├── LotTransmissionSummary.tsx
+│   ├── TransmissionBookTable.tsx
+│   ├── RankingModal.tsx
+│   └── TransmissionFlagModal.tsx
+├── hooks/
+│   ├── useTransmission.ts
+│   ├── useTransmissionLot.ts
+│   └── useMachineBooks.ts
+├── services/
+│   └── transmission.service.ts
+├── utils/
+│   └── transmission.helpers.ts
+└── types/
+    └── transmission.types.ts
+```
+
+Steps:
+
+1. Create `features/transmission/` skeleton.
+2. Move transmission summary, scan, machine, lot, ranking, and flag types to `types/transmission.types.ts`.
+3. Move pipeline-stage formatting, status parsing, and status metadata to `transmission.helpers.ts`.
+4. Create `transmission.service.ts` for live scan data, machine books, rankings, exports, lot search, lot transmission summaries, iLMS enrichment, and scan flagging.
+5. Extract `useTransmission` for date filters, live summary, stage breakdown, table view, refresh, export, and ranking state.
+6. Extract `useMachineBooks` for selected-machine state and lazy book retrieval.
+7. Extract `useTransmissionLot` for lot search, selected lot/box state, pagination, and lot summary data.
+8. Extract metrics, stage breakdown, live scan feed, machine table, and lot visibility sections.
+9. Extract ranking and scan-flagging dialogs.
+10. Compose `app/transmission/page.tsx` from the transmission feature.
+
+---
+
+### Phase 4.4 — Locator
+
+**Goal**: isolate storage-grid management, box assignment, search, and storage topology administration.
+
+Current: `app/locator/page.tsx` (1,743 lines)
+
+New structure:
+
+```text
+features/locator/
+├── components/
+│   ├── LocatorHeader.tsx
+│   ├── LocatorSearch.tsx
+│   ├── LocatorSearchResults.tsx
+│   ├── StorageLegend.tsx
+│   ├── StorageGrid.tsx
+│   ├── StorageSectionControls.tsx
+│   ├── StorageSlot.tsx
+│   ├── ReadyBoxList.tsx
+│   ├── PendingAssignmentList.tsx
+│   ├── StorageSlotDetailsModal.tsx
+│   ├── AssignBoxesModal.tsx
+│   ├── StorageTopologyConfirmModal.tsx
+│   └── LocatorWarningModal.tsx
+├── hooks/
+│   ├── useLocator.ts
+│   ├── useStorageSearch.ts
+│   └── useStorageTopology.ts
+├── services/
+│   └── locator.service.ts
+├── utils/
+│   └── locator.helpers.ts
+└── types/
+    └── locator.types.ts
+```
+
+Steps:
+
+1. Create `features/locator/` skeleton.
+2. Move storage location, assignment, ready-box, pending-assignment, and search-result types to `types/locator.types.ts`.
+3. Move grid calculations, slot lookup, label formatting, capacity calculations, and search mapping to `locator.helpers.ts`.
+4. Create `locator.service.ts` for locations, ready boxes, pending assignments, storage search, provisioning, assignment, confirmation, and removal endpoints.
+5. Extract `useLocator` for locations, ready boxes, pending assignments, selected slot, assignment state, and shared refresh.
+6. Extract `useStorageSearch` for query state, result state, validation, search classification, and highlighted cells.
+7. Extract `useStorageTopology` for section/rack/level creation and deletion, capacity editing, and warning/confirmation state.
+8. Extract storage grid, section controls, ready boxes, pending assignments, and search UI.
+9. Extract slot detail, assignment, topology confirmation, and warning dialogs.
+10. Remove the unused `DashboardMain` dependency while refactoring.
+11. Compose `app/locator/page.tsx` from feature components and hooks.
+
+---
+
+### Phase 4.5 — QA
+
+**Goal**: separate incoming receipt, inspection-session scanning, endorsement validation, and outgoing transfer to Scan.
+
+Current: `app/qa/page.tsx` (1,364 lines)
+
+New structure:
+
+```text
+features/qa/
+├── components/
+│   ├── QaHeader.tsx
+│   ├── QaSearch.tsx
+│   ├── QaTabs.tsx
+│   ├── IncomingBoxes.tsx
+│   ├── InspectionBoxList.tsx
+│   ├── InspectionSession.tsx
+│   ├── InspectionStats.tsx
+│   ├── InspectionScanner.tsx
+│   ├── InspectionComparisonTables.tsx
+│   ├── OutgoingBoxes.tsx
+│   ├── InspectionFlagModal.tsx
+│   ├── CompleteInspectionModal.tsx
+│   └── QaActionConfirmModal.tsx
+├── hooks/
+│   ├── useQa.ts
+│   └── useInspectionSession.ts
+├── services/
+│   └── qa.service.ts
+├── utils/
+│   └── qa.helpers.ts
+└── types/
+    └── qa.types.ts
+```
+
+Steps:
+
+1. Create `features/qa/` skeleton.
+2. Move QA box, book, scanned-book, warehouse-book, and inspection-session types to `types/qa.types.ts`.
+3. Move inspection display helpers, issue-label mapping, and stage predicates to `qa.helpers.ts`.
+4. Reuse `constants/book-flag-issues.ts` instead of the local `FLAG_ISSUES` constant.
+5. Create `qa.service.ts` for incoming/endorsement boxes, receive/send actions, box details, warehouse scans, resumed sessions, iLMS lookup, inspection scans, and session completion.
+6. Extract `useQa` for tabs, search, incoming/inspection/outgoing lists, box expansion, receipt/send actions, and refresh.
+7. Extract `useInspectionSession` for starting/resuming sessions, scanning, flagging, totals, comparison data, and completion.
+8. Extract incoming, inspection, and outgoing tab content into separate components.
+9. Extract the inspection flag, completion, and action confirmation dialogs.
+10. Compose `app/qa/page.tsx` from feature components and hooks.
+
+---
+
+### Phase 4.6 — Cut
+
+**Goal**: separate incoming receipt, Cut work queue, box details, and transfer to Endorsement.
+
+Current: `app/cut/page.tsx` (544 lines)
+
+New structure:
+
+```text
+features/cut/
+├── components/
+│   ├── CutHeader.tsx
+│   ├── CutSearch.tsx
+│   ├── CutTabs.tsx
+│   ├── IncomingCutBoxList.tsx
+│   ├── CutWorkQueue.tsx
+│   ├── CutBoxRow.tsx
+│   ├── CutBoxBooks.tsx
+│   └── CutActionConfirmModal.tsx
+├── hooks/
+│   └── useCut.ts
+├── services/
+│   └── cut.service.ts
+├── utils/
+│   └── cut.helpers.ts
+└── types/
+    └── cut.types.ts
+```
+
+Steps:
+
+1. Create `features/cut/` skeleton.
+2. Move box and book types to `types/cut.types.ts`.
+3. Move stage-query creation, incoming/outgoing predicates, and lot filtering to `cut.helpers.ts`.
+4. Create `cut.service.ts` for box listing, box detail retrieval, receive, and send-forward endpoints.
+5. Extract `useCut` for tab/search state, incoming/outgoing data, expanded boxes, lazy-loaded books, confirmation state, and refresh.
+6. Extract incoming and work-queue box lists.
+7. Extract reusable box row and expanded-book-list components.
+8. Extract the receive/send confirmation dialog.
+9. Compose `app/cut/page.tsx` from Cut feature components and hook.
+
+---
+
+### Phase 4.7 — Scan
+
+**Goal**: separate endorsed-box receipt, search/filtering, box inspection, and confirmation.
+
+Current: `app/scan/page.tsx` (372 lines)
+
+New structure:
+
+```text
+features/scan/
+├── components/
+│   ├── ScanHeader.tsx
+│   ├── ScanSearch.tsx
+│   ├── IncomingScanBoxList.tsx
+│   ├── ScanBoxRow.tsx
+│   ├── ScanBoxBooks.tsx
+│   └── ScanReceiveConfirmModal.tsx
+├── hooks/
+│   └── useScan.ts
+├── services/
+│   └── scan.service.ts
+├── utils/
+│   └── scan.helpers.ts
+└── types/
+    └── scan.types.ts
+```
+
+Steps:
+
+1. Create `features/scan/` skeleton.
+2. Move Scan box and book types to `types/scan.types.ts`.
+3. Move incoming-stage predicates and lot filtering to `scan.helpers.ts`.
+4. Create `scan.service.ts` for incoming-box listing, box details, and receive endpoints.
+5. Extract `useScan` for search, filters, incoming boxes, expanded box state, book cache, confirmation state, and refresh.
+6. Extract search, box list, box row, and box-book detail components.
+7. Extract the receive confirmation dialog.
+8. Compose `app/scan/page.tsx` from Scan feature components and hook.
+
+---
+
+### Phase 4.8 — Scan QR
+
+**Goal**: separate camera scanning, QR parsing, ISBN lookup, and result rendering.
+
+Current: `app/scan-qr/page.tsx` (480 lines)
+
+New structure:
+
+```text
+features/scan-qr/
+├── components/
+│   ├── ScanQrHeader.tsx
+│   ├── ScanQrCamera.tsx
+│   ├── QrResultCard.tsx
+│   ├── BarcodeResultCard.tsx
+│   ├── ScanResultList.tsx
+│   └── ScanResultTable.tsx
+├── hooks/
+│   └── useQrScanner.ts
+├── services/
+│   └── scan-qr.service.ts
+├── utils/
+│   └── scan-qr.helpers.ts
+└── types/
+    └── scan-qr.types.ts
+```
+
+Steps:
+
+1. Create `features/scan-qr/` skeleton.
+2. Move QR result, barcode result, scan result, and book-entry types to `types/scan-qr.types.ts`.
+3. Move QR parsing, rejection-reason labels, type guards, and result mapping to `scan-qr.helpers.ts`.
+4. Create `scan-qr.service.ts` for ISBN lookup through `/api/warehouse/search/isbn/:isbn`.
+5. Extract `useQrScanner` for scanner-result state, barcode lookup state, result removal, and scan event handling.
+6. Extract camera integration into `ScanQrCamera`.
+7. Extract QR and barcode result cards into their own components.
+8. Move result-table cells and status badges into the result-table component.
+9. Compose `app/scan-qr/page.tsx` from Scan QR feature components and hook.
+
+---
+
+### Phase 4.9 — Reports
+
+**Goal**: separate lot-status fetching, report filtering/sorting, summary metrics, and expandable box details.
+
+Current: `app/reports/page.tsx` (570 lines)
+
+New structure:
+
+```text
+features/reports/
+├── components/
+│   ├── ReportsHeader.tsx
+│   ├── ReportStatusSummary.tsx
+│   ├── ReportFilters.tsx
+│   ├── LotStatusTable.tsx
+│   ├── LotStatusRow.tsx
+│   └── LotBoxDetails.tsx
+├── hooks/
+│   └── useReports.ts
+├── services/
+│   └── reports.service.ts
+├── utils/
+│   └── reports.helpers.ts
+└── types/
+    └── reports.types.ts
+```
+
+Steps:
+
+1. Create `features/reports/` skeleton.
+2. Move lot, box, filter, sort, and report status types to `types/reports.types.ts`.
+3. Move time formatting, status metadata, progress calculation, filtering, and sorting to `reports.helpers.ts`.
+4. Create `reports.service.ts` for `/api/reports/lot-status`.
+5. Extract `useReports` for report fetching, refresh state, filter/search/sort state, expanded lots, and per-lot box pagination.
+6. Extract the report header, status summary cards, and filters.
+7. Extract lot table, lot rows, and expandable box-detail UI.
+8. Compose `app/reports/page.tsx` from Reports feature components and hook.
+
+---
+
+### Phase 4.10 — Settings
+
+**Goal**: separate profile management, password changes, profile-picture persistence, and user display utilities.
+
+Current: `app/settings/page.tsx` (413 lines)
+
+New structure:
+
+```text
+features/settings/
+├── components/
+│   ├── SettingsTabs.tsx
+│   ├── ProfileSettingsForm.tsx
+│   ├── PasswordSettingsForm.tsx
+│   └── ProfileAvatarEditor.tsx
+├── hooks/
+│   ├── useSettings.ts
+│   └── useProfilePicture.ts
+├── services/
+│   └── settings.service.ts
+├── utils/
+│   └── settings.helpers.ts
+└── types/
+    └── settings.types.ts
+```
+
+Steps:
+
+1. Create `features/settings/` skeleton.
+2. Move profile, password, and settings message types to `types/settings.types.ts`.
+3. Move display-name generation, initials generation, stored-user parsing, and token decoding to `settings.helpers.ts`.
+4. Create `settings.service.ts` for current profile retrieval, profile updates, and password updates.
+5. Extract `useProfilePicture` for file reading and local-storage persistence.
+6. Extract `useSettings` for profile loading, active tab, profile/password form state, validation, messages, and submissions.
+7. Extract settings tabs, profile form, password form, and avatar editor.
+8. Verify whether `USER_STORAGE_KEY`, `parseStoredUser`, and `decodeTokenUser` have callers; remove them if unused.
+9. Compose `app/settings/page.tsx` from Settings feature components and hooks.
+
+---
+
+### Phase 4.11 — Notifications (Remove)
+
+**Goal**: separate live-notification state, filtering, notification rendering, and empty states.
+
+Current: `app/notifications/page.tsx` (270 lines)
+
+New structure:
+
+```text
+features/notifications/
+├── components/
+│   ├── NotificationsHeader.tsx
+│   ├── NotificationFilters.tsx
+│   ├── NotificationList.tsx
+│   ├── NotificationCard.tsx
+│   └── NotificationsEmptyState.tsx
+├── hooks/
+│   └── useNotifications.ts
+├── services/
+│   └── notifications.service.ts
+├── utils/
+│   └── notifications.helpers.ts
+└── types/
+    └── notifications.types.ts
+```
+
+Steps:
+
+1. Create `features/notifications/` skeleton.
+2. Move notification and notification-filter types to `types/notifications.types.ts`.
+3. Move notification-type display metadata, filter logic, and type-count helpers to `notifications.helpers.ts`.
+4. Extract `useNotifications` as a wrapper around `useLiveNotifications`, containing dismissal state, filters, visible notifications, counts, and read actions.
+5. Extract the header, filter buttons, notification list, card, and empty state.
+6. Move polling/API behavior from `useLiveNotifications` to `notifications.service.ts` only if that hook currently owns the transport implementation.
+7. Compose `app/notifications/page.tsx` from Notifications feature components and hook.
+
+---
+
+### Shared prerequisite — Book flag constants
+
+**Goal**: remove repeated flag definitions before extracting Warehouse, QA, and Transmission.
+
+Current: duplicated `FLAG_ISSUES` arrays in station pages.
+
+New structure:
+
+```text
+constants/
+└── book-flag-issues.ts
+```
+
+Steps:
+
+1. Create `constants/book-flag-issues.ts`.
+2. Export `BOOK_FLAG_ISSUES`.
+3. Export a `BookFlagIssue` type derived from the constant.
+4. Replace local `FLAG_ISSUES` declarations in Warehouse, QA, Transmission, and Inventory.
+5. Move issue-label lookup into a shared helper only if the same behavior is used by multiple features.
+
 ### Phase 5 — Layout & Common Components
 
 1. Move `dashboard-sidebar.tsx` and `top-bar.tsx` to `components/layout/`.
@@ -452,12 +970,11 @@ For each:
 4. Move `page-header.tsx`, `refresh-control.tsx`, `pagination.tsx`, `scanner-input.tsx`, `QrScanner.tsx` to `components/common/` (or `features/scanning/` for scanner-specific).
 5. Keep `components/ui/` for shadcn/ui primitives. Review unused primitives and remove if desired.
 
-### Phase 6 — Dead Code Removal
+### Phase 6 — Dead Codes
 
 1. Create `DEADCODES/` at project root.
 2. Move confirmed dead components/pages into `DEADCODES/` subfolders.
 3. Update `notes.md` with reason and date.
-4. After one sprint, delete `DEADCODES/`.
 
 Confirmed safe to move now:
 

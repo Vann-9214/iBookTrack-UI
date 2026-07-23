@@ -18,12 +18,6 @@ type AuthSuccess = {
   }
 }
 
-type TokenData = {
-  access_token: string
-  refresh_token: string
-  expires_at: number
-}
-
 export function getApiBaseUrl() {
   const configuredUrl = process.env.NEXT_PUBLIC_API_URL?.trim()
 
@@ -38,16 +32,6 @@ export function getApiBaseUrl() {
   return 'http://localhost:5000'
 }
 
-// Store token data (Tokens are now handled by HttpOnly cookies, no need to store manually)
-export function storeTokenData() {
-  // No-op
-}
-
-// Retrieve token data (Not available to JS, handled via cookies)
-export function getTokenData(): TokenData | null {
-  return null
-}
-
 // Clear token data
 export async function clearTokenData() {
   try {
@@ -58,11 +42,6 @@ export async function clearTokenData() {
   } catch (err) {
     console.error('Logout failed:', err)
   }
-}
-
-// Check if token is expired
-export function isTokenExpired(): boolean {
-  return false // Can't check client-side, let API return 401
 }
 
 // Refresh the access token
@@ -90,13 +69,6 @@ export async function refreshAccessToken(): Promise<boolean> {
     }
     return false
   }
-}
-
-// Get a valid access token
-export async function getValidAccessToken(): Promise<string | null> {
-  // We can't access the token directly anymore. 
-  // We just assume we have one in cookies.
-  return "cookie-handled"
 }
 
 // Helper to show a unified rate-limit toast with wait time

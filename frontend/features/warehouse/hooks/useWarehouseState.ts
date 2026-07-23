@@ -1,0 +1,72 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
+import type {
+  ConflictModalState,
+  IlmsMismatchModalState,
+  Lot,
+  MissingIssue,
+  ScannedBook,
+  SimilarLotModalState,
+  WarehouseSession,
+} from '../types/warehouse.types'
+
+export function useWarehouseState() {
+  const [activeLot, setActiveLot] = useState('')
+  const [lots, setLots] = useState<Lot[]>([])
+  const [lotsLoading, setLotsLoading] = useState(false)
+  const [lotsError, setLotsError] = useState<string | null>(null)
+  const [sessionError, setSessionError] = useState<string | null>(null)
+  const [selectedBox, setSelectedBox] = useState('')
+  const [sessionActive, setSessionActive] = useState(false)
+  const [scannedBooks, setScannedBooks] = useState<ScannedBook[]>([])
+  const [currentSession, setCurrentSession] = useState<WarehouseSession | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [isbnLoading, setIsbnLoading] = useState(false)
+  const [currentBoxNumber, setCurrentBoxNumber] = useState('')
+  const [currentBoxBooks, setCurrentBoxBooks] = useState(0)
+  const [bookCounter, setBookCounter] = useState(0)
+  const [userName, setUserName] = useState('')
+  const [flagModalBook, setFlagModalBook] = useState<ScannedBook | null>(null)
+  const [flagIssue, setFlagIssue] = useState('')
+  const [flagRemarks, setFlagRemarks] = useState('')
+  const [flagSaving, setFlagSaving] = useState(false)
+  const [flagOpen, setFlagOpen] = useState(false)
+  const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false)
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false)
+  const [totalBooksExpected, setTotalBooksExpected] = useState('')
+  const [issueIsbn, setIssueIsbn] = useState('')
+  const [issueType, setIssueType] = useState<'missing'>('missing')
+  const [issues, setIssues] = useState<MissingIssue[]>([])
+  const [fetchingIssueBook, setFetchingIssueBook] = useState(false)
+  const [conflictModalState, setConflictModalState] = useState<ConflictModalState>({ open: false, type: null, message: '' })
+  const [similarLotModal, setSimilarLotModal] = useState<SimilarLotModalState>({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} })
+  const [ilmsMismatchModal, setIlmsMismatchModal] = useState<IlmsMismatchModalState>({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
+  const [lotOpen, setLotOpen] = useState(false)
+  const [refreshingStats, setRefreshingStats] = useState(false)
+  const [lastStatsUpdate, setLastStatsUpdate] = useState<Date | null>(null)
+
+  const currentSessionRef = useRef<WarehouseSession | null>(null)
+  const sessionActiveRef = useRef(false)
+  const boxInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    currentSessionRef.current = currentSession
+    sessionActiveRef.current = sessionActive
+  }, [currentSession, sessionActive])
+
+  return {
+    activeLot, setActiveLot, lots, setLots, lotsLoading, setLotsLoading, lotsError, setLotsError,
+    sessionError, setSessionError, selectedBox, setSelectedBox, sessionActive, setSessionActive,
+    scannedBooks, setScannedBooks, currentSession, setCurrentSession, loading, setLoading,
+    isbnLoading, setIsbnLoading, currentBoxNumber, setCurrentBoxNumber, currentBoxBooks, setCurrentBoxBooks,
+    bookCounter, setBookCounter, userName, setUserName, flagModalBook, setFlagModalBook, flagIssue, setFlagIssue,
+    flagRemarks, setFlagRemarks, flagSaving, setFlagSaving, flagOpen, setFlagOpen, confirmCompleteOpen, setConfirmCompleteOpen,
+    confirmResetOpen, setConfirmResetOpen, totalBooksExpected, setTotalBooksExpected, issueIsbn, setIssueIsbn,
+    issueType, setIssueType, issues, setIssues, fetchingIssueBook, setFetchingIssueBook,
+    conflictModalState, setConflictModalState, similarLotModal, setSimilarLotModal,
+    ilmsMismatchModal, setIlmsMismatchModal, lotOpen, setLotOpen,
+    refreshingStats, setRefreshingStats, lastStatsUpdate, setLastStatsUpdate,
+    currentSessionRef, sessionActiveRef, boxInputRef,
+  }
+}
