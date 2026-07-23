@@ -903,7 +903,7 @@ Steps:
 
 ---
 
-### Phase 4.11 — Notifications
+### Phase 4.11 — Notifications (Remove)
 
 **Goal**: separate live-notification state, filtering, notification rendering, and empty states.
 
