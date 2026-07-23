@@ -130,11 +130,7 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
             }}
           >
             <div className="relative">
-              <div
-                className="topbar-avatar-ring absolute -inset-[2px] rounded-full"
-                style={{ ['--topbar-accent' as string]: colors.accent, opacity: 0.5 }}
-              />
-              <Avatar className="h-7 w-7 shrink-0 relative ring-2 ring-white">
+              <Avatar className="h-7 w-7 shrink-0 relative ring-1 ring-border">
                 <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
                 <AvatarFallback
                   className="text-[10px] font-bold text-white"
@@ -171,11 +167,7 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
           }}
         >
           <div className="relative">
-            <div
-              className="topbar-avatar-ring absolute -inset-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-              style={{ ['--topbar-accent' as string]: colors.accent }}
-            />
-            <Avatar className="h-7 w-7 shrink-0 relative ring-2 ring-white">
+            <Avatar className="h-7 w-7 shrink-0 relative ring-1 ring-border">
               <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
               <AvatarFallback
                 className="text-[10px] font-bold text-white"
@@ -220,11 +212,7 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
 
           <div className="relative flex items-center gap-3">
             <div className="relative">
-              <div
-                className="topbar-avatar-ring absolute -inset-[2.5px] rounded-full"
-                style={{ ['--topbar-accent' as string]: colors.accent }}
-              />
-              <Avatar className="h-11 w-11 shrink-0 relative ring-[2.5px] ring-white">
+              <Avatar className="h-11 w-11 shrink-0 relative ring-1 ring-border">
                 <AvatarImage src={user.profilePicture || undefined} alt={user.name} />
                 <AvatarFallback
                   className="text-sm font-bold text-white"

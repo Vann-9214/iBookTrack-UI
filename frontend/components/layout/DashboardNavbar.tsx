@@ -17,7 +17,7 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: Dashbo
 
   return (
     <header
-      className="relative flex h-14 shrink-0 items-center gap-2 sm:gap-4 px-3 sm:px-6 pl-14 sm:pl-16 md:pl-6"
+      className="relative flex h-14 shrink-0 items-center gap-2 sm:gap-4 px-3 sm:px-6 pl-14 sm:pl-16 md:pl-6 border-b border-border z-10 transition-all duration-200"
       style={{
         background: 'rgba(255, 255, 255, 0.72)',
         backdropFilter: 'blur(20px) saturate(180%)',
@@ -25,14 +25,6 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: Dashbo
         ['--topbar-accent' as string]: colors.accent,
       }}
     >
-      {/* ── Animated gradient bottom border ──────────── */}
-      <div
-        className="topbar-gradient-border absolute bottom-0 left-0 right-0 h-[1.5px]"
-        style={{
-          ['--topbar-accent' as string]: colors.accent,
-          opacity: 0.65,
-        }}
-      />
 
       {/* ── Brand Switcher ───────────────────────────── */}
       <BrandSwitcher disableBrandToggle={disableBrandToggle} />
