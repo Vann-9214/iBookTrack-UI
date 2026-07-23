@@ -151,8 +151,9 @@ export function useDashboard() {
   }, [boxScanInput, toast])
 
   useEffect(() => {
-    void fetchStats()
-  }, [fetchStats])
+    setIsRefreshing(true)
+    void fetchStats().finally(() => setIsRefreshing(false))
+  }, [brand])
 
   return {
     brand, searchOpen, setSearchOpen, searchType, setSearchType, searchValue, setSearchValue, rangeStart, setRangeStart, rangeEnd, setRangeEnd, isRange, setIsRange, searchResult, loading, dashboardStats, isRefreshing, lastStatsUpdate, refreshKey, liveScans, boxScanInput, setBoxScanInput, boxScanModal, setBoxScanModal, loadingBoxScan, handleSearch, handleBoxScan, refreshAll, clearSearch,
