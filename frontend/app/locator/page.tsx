@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { cn } from "@/lib/utils"
 import { authFetch } from "@/lib/auth-api"
@@ -25,6 +26,7 @@ import {
 
 export default function WarehouseLocatorPage() {
   const { brand } = useBrand()
+  const [mobileTab, setMobileTab] = useState<'ready' | 'pending'>('ready')
 
   const {
     locations,
@@ -174,8 +176,8 @@ export default function WarehouseLocatorPage() {
             </div>
           )}
 
-          {/* Warehouse Grid & Lists */}
-          <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
+          {/* Desktop 3-column layout (xl screens) */}
+          <div className="hidden xl:grid xl:grid-cols-[minmax(280px,1fr)_2fr_minmax(280px,1fr)] gap-4 items-start">
             {/* Unassigned storage boxes (left) */}
             <ReadyBoxList
               brand={brand}
@@ -226,6 +228,108 @@ export default function WarehouseLocatorPage() {
               handleRemovePendingAssignments={handleRemovePendingAssignments}
               handleConfirmAssignments={handleConfirmAssignments}
             />
+          </div>
+
+          {/* Mobile layout (< xl screens): StorageGrid on top, Tabbed lists below */}
+          <div className="flex flex-col gap-4 xl:hidden">
+            {/* Storage Grid Layout on Top */}
+            <StorageGrid
+              brand={brand}
+              activeSection={activeSection}
+              setActiveSection={setActiveSection}
+              totalSections={totalSections}
+              locations={locations}
+              selectedReadyBoxes={selectedReadyBoxes}
+              suggestedLocation={suggestedLocation}
+              loadingLocations={loadingLocations}
+              provisioningSection={provisioningSection}
+              highlightedCells={highlightedCells}
+              selectedReadyBoxIds={selectedReadyBoxIds}
+              handleAddLevel={handleAddLevel}
+              handleRemoveLevel={handleRemoveLevel}
+              handleAddRack={handleAddRack}
+              handleRemoveRack={handleRemoveRack}
+              handleRemoveSection={handleRemoveSection}
+              addingLevel={addingLevel}
+              removingLevel={removingLevel}
+              addingRack={addingRack}
+              removingRack={removingRack}
+              removingSection={removingSection}
+              setPendingAddSection={setPendingAddSection}
+              openAssign={openAssign}
+              setDetailSlot={setDetailSlot}
+            />
+
+            {/* Mobile Tab-based Container */}
+            <div className="w-full space-y-3">
+              <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border">
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('ready')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all",
+                    mobileTab === 'ready'
+                      ? "bg-card text-foreground shadow-xs border border-border/80"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  )}
+                >
+                  <span>Unassigned Boxes</span>
+                  <span className={cn(
+                    "px-1.5 py-0.5 rounded-full text-[10px] font-extrabold",
+                    mobileTab === 'ready' ? "bg-primary/10 text-primary" : "bg-muted-foreground/15 text-muted-foreground"
+                  )}>
+                    {filteredReadyBoxes.length}
+                  </span>
+                  {selectedReadyBoxIds.size > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white animate-pulse">
+                      {selectedReadyBoxIds.size} sel
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMobileTab('pending')}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all",
+                    mobileTab === 'pending'
+                      ? "bg-card text-foreground shadow-xs border border-border/80"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  )}
+                >
+                  <span>Pending Placement</span>
+                  <span className={cn(
+                    "px-1.5 py-0.5 rounded-full text-[10px] font-extrabold",
+                    mobileTab === 'pending' ? "bg-amber-500/15 text-amber-600 dark:text-amber-400" : "bg-muted-foreground/15 text-muted-foreground"
+                  )}>
+                    {filteredPendingAssignments.length}
+                  </span>
+                </button>
+              </div>
+
+              {mobileTab === 'ready' ? (
+                <ReadyBoxList
+                  brand={brand}
+                  filteredReadyBoxes={filteredReadyBoxes}
+                  loadingReady={loadingReady}
+                  activeSearchQuery={activeSearchQuery}
+                  selectedReadyBoxIds={selectedReadyBoxIds}
+                  selectReadyBox={(box) => selectReadyBox(box, setActiveSection)}
+                />
+              ) : (
+                <PendingAssignmentList
+                  filteredPendingAssignments={filteredPendingAssignments}
+                  loadingPending={loadingPending}
+                  activeSearchQuery={activeSearchQuery}
+                  expandedPendingLocations={expandedPendingLocations}
+                  setExpandedPendingLocations={setExpandedPendingLocations}
+                  removingIds={removingIds}
+                  confirmingId={confirmingId}
+                  handleRemovePendingAssignments={handleRemovePendingAssignments}
+                  handleConfirmAssignments={handleConfirmAssignments}
+                />
+              )}
+            </div>
           </div>
 
         </div>
