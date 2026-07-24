@@ -70,7 +70,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [flags, setFlags] = useState<QCFlag[]>([])
   const [totalFlags, setTotalFlags] = useState(0)
   const [loadingFlags, setLoadingFlags] = useState(false)
-  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 10 })
+  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 50 })
 
   const [liveLotsOpen, setLiveLotsOpen] = useState(false)
   const [liveLots, setLiveLots] = useState<LiveLot[]>([])
@@ -458,7 +458,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-xs text-gray-400">Everything looks clean for today</span>
               </div>
             ) : (
-              <div className="overflow-y-auto flex-1 px-3 py-2">
+              <div className="overflow-y-auto flex-1 px-3 pb-2">
                 <table className="w-full text-sm table-fixed border-separate border-spacing-y-1">
                   <colgroup>
                     <col className="w-10" />
@@ -468,7 +468,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     <col className="w-52" />
                     <col className="w-36" />
                   </colgroup>
-                  <thead className="sticky top-0 bg-white z-10">
+                  <thead className="sticky top-0 bg-white z-10 shadow-[0_-12px_0_0_white]">
                     <tr>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">#</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">ISBN</th>
@@ -738,7 +738,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-xs text-gray-400">Completed transmissions will appear here</span>
               </div>
             ) : (
-              <div className="overflow-auto flex-1 px-3 py-2">
+              <div className="overflow-auto flex-1 px-3 pb-2">
                 <table className="min-w-[640px] w-full text-sm border-separate border-spacing-y-1">
                   <colgroup>
                     <col className="w-10" />
@@ -748,7 +748,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     <col className="w-28" />
                     <col className="w-36" />
                   </colgroup>
-                  <thead className="sticky top-0 bg-white z-10">
+                  <thead className="sticky top-0 bg-white z-10 shadow-[0_-12px_0_0_white]">
                     <tr>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">#</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">ISBN</th>

@@ -102,6 +102,24 @@ export function safeDate(value) {
   return iso
 }
 
+// ── ISBN allowlist sanitizer ──────────────────────────────────────────────────
+/**
+ * Defence-in-depth for values interpolated into the legacy WMS SQL scripts.
+ * ISBNs only ever contain digits, 'X'/'x' (checksum) and hyphens, so we strip
+ * everything else and drop empties. This guarantees no quote/keyword can reach
+ * the query builder even if the sql`` escaper were bypassed via sql.raw().
+ *
+ * @param {string[]} isbns
+ * @returns {string[]} cleaned, de-duplicated list
+ */
+export function safeIsbnList(isbns) {
+  if (!Array.isArray(isbns)) return []
+  const cleaned = isbns
+    .map((isbn) => String(isbn).replace(/[^0-9Xx-]/g, ''))
+    .filter((isbn) => isbn.length > 0)
+  return [...new Set(cleaned)]
+}
+
 // ── Status normalization ─────────────────────────────────────────────────────
 /**
  * Normalize Scan Manager status strings so the Transmission Monitor matches the
@@ -183,4 +201,4 @@ export function reworkFilter(newProcessOnly = false) {
  *
  * @param {string} [date] - ISO date string; defaults to today
  * @param {'mustang'|'jaguar'} [location='mustang']
- */
+ */

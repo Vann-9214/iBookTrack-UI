@@ -64,7 +64,6 @@ export function InventoryVerificationTab({
             onPageSizeChange={(size) => { setPageSize(size); pagination.setPageSize(size) }}
             canPrevPage={pagination.canPrevPage}
             canNextPage={pagination.canNextPage}
-            pageSizeOptions={[25, 50, 100]}
             className="mt-1 bg-card border rounded-xl"
           />
         )}

@@ -77,7 +77,7 @@ export function MachinePerformanceTable({
   const filteredByMachine = groupedByMachine.filter((m) =>
     !machineSearch || machineDisplayName(m.MachineName).toLowerCase().includes(machineSearch.toLowerCase())
   )
-  const machinesPagination = usePagination({ totalItems: filteredByMachine.length, defaultPageSize: 10 })
+  const machinesPagination = usePagination({ totalItems: filteredByMachine.length, defaultPageSize: 50 })
   const paginatedByMachine = filteredByMachine.slice(
     machinesPagination.offset,
     machinesPagination.offset + machinesPagination.limit

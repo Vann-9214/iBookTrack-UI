@@ -8,24 +8,24 @@ import { z } from 'zod';
 
 export const getBoxesSchema = {
   query: z.object({
-    lot_id: z.string().optional(),
-    current_stage: z.string().optional(),
-    box_number: z.string().optional(),
+    lot_id: z.string().trim().max(50).optional(),
+    current_stage: z.string().trim().max(50).optional(),
+    box_number: z.string().trim().max(50).optional(),
     exclude_assigned_storage: z.enum(['true', 'false']).optional(),
-    box_type: z.string().optional(),
-    isbn: z.string().optional()
+    box_type: z.string().trim().max(50).optional(),
+    isbn: z.string().trim().max(20).optional()
   })
 };
 
 export const getPipelineTransitionsSchema = {
   query: z.object({
-    limit: z.string().regex(/^\d+$/).optional(),
-    offset: z.string().regex(/^\d+$/).optional(),
-    stage: z.string().optional(),
-    box_type: z.string().optional(),
-    search: z.string().optional(),
-    date_from: z.string().optional(),
-    date_to: z.string().optional()
+    limit: z.string().regex(/^\d+$/).max(6).optional(),
+    offset: z.string().regex(/^\d+$/).max(9).optional(),
+    stage: z.string().trim().max(50).optional(),
+    box_type: z.string().trim().max(50).optional(),
+    search: z.string().trim().max(100).optional(),
+    date_from: z.string().trim().max(30).optional(),
+    date_to: z.string().trim().max(30).optional()
   })
 };
 
@@ -58,7 +58,7 @@ export const advanceBoxSchema = {
     id: z.string().uuid('Invalid box ID format')
   }),
   body: z.object({
-    notes: z.string().optional()
+    notes: z.string().trim().max(2000).optional()
   }).optional()
 };
 
@@ -67,7 +67,7 @@ export const sendForwardBoxSchema = {
     id: z.string().uuid('Invalid box ID format')
   }),
   body: z.object({
-    notes: z.string().optional()
+    notes: z.string().trim().max(2000).optional()
   }).optional()
 };
 
@@ -76,7 +76,7 @@ export const rollbackBoxSchema = {
     id: z.string().uuid('Invalid box ID format')
   }),
   body: z.object({
-    to_stage: z.string().min(1)
+    to_stage: z.string().trim().min(1).max(50)
   })
 };
 

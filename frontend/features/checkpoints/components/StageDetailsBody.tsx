@@ -45,8 +45,7 @@ export function StageDetailsBody({
   onToggleBox,
   onConfirm,
 }: StageDetailsBodyProps) {
-  const isSimflexView =
-    selectedStage === 'transmit' || (selectedStage === 'scan' && simflexRows.length > 0)
+  const isSimflexView = selectedStage === 'transmit'
 
   const filteredSimflex = simflexRows.filter((row) => {
     const q = simflexRowsSearch.toLowerCase().trim()

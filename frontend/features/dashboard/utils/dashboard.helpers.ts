@@ -61,10 +61,13 @@ export function buildPipelineStages(
         }).length
     const total = stage === 'transmit' ? transmitBooks : stageBoxes.length
 
-    const received = stage === 'warehouse'
+    const received = stage === 'warehouse' || stage === 'transmit'
       ? total
       : stageBoxes.filter((box) => {
           const session = box.box_sessions?.[0]
+          if (stage === 'scan' || stage === 'storage') {
+            return session?.status === 'received'
+          }
           return !session || session.status === 'in_progress' || session.status === 'received'
         }).length
 
@@ -106,14 +109,12 @@ export function formatPipelineCounts({ received, completed, sent, type }: Pipeli
   const normalizedType = type.toLowerCase()
 
   let rawValues: (number | undefined)[] = []
-  if (normalizedType === 'warehouse') {
+  if (normalizedType === 'warehouse' || normalizedType === 'scan' || normalizedType === 'transmit' || normalizedType === 'storage') {
     rawValues = [received]
   } else if (normalizedType === 'inventory' || normalizedType === 'endorsement') {
     rawValues = [received, completed, sent]
   } else if (normalizedType === 'cut') {
     rawValues = [received, sent]
-  } else if (normalizedType === 'scan') {
-    rawValues = [received]
   } else {
     rawValues = [received, completed, sent]
   }

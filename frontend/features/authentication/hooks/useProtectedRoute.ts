@@ -16,7 +16,10 @@ export function useProtectedRoute() {
       if (!mounted) return
       if (!user) {
         setIsAuthenticated(false)
-        router.replace(`/login?redirect=${encodeURIComponent(pathname)}`)
+        // Sanitize redirect to prevent open redirect attacks
+        const rawRedirect = encodeURIComponent(pathname)
+        const safeRedirect = pathname.startsWith('/') && !pathname.startsWith('//') && !pathname.includes(':') ? rawRedirect : encodeURIComponent('/Dashboard')
+        router.replace(`/login?redirect=${safeRedirect}`)
       } else {
         setIsAuthenticated(true)
       }

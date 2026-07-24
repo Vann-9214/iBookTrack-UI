@@ -46,7 +46,7 @@ export function useCheckpointBoxes(brand: string) {
       }
 
       if (transmitRowsData?.success) {
-        setTransmitBooks(transmitRowsData.count ?? 0)
+        setTransmitBooks(Number(transmitRowsData.count) || 0)
         const eligible = new Set<string>(
           (transmitRowsData.rows || [])
             .map((r) => String((r as { BoxNumber?: unknown }).BoxNumber || ''))

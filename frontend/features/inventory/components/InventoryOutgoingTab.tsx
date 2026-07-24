@@ -101,7 +101,6 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
           onPageSizeChange={(size) => { setPageSize(size); pagination.setPageSize(size) }}
           canPrevPage={pagination.canPrevPage}
           canNextPage={pagination.canNextPage}
-          pageSizeOptions={[25, 50, 100]}
           className="mt-3 bg-card border rounded-xl"
         />
       )}
