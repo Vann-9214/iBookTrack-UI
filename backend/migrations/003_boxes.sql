@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.boxes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  box_number TEXT NOT NULL UNIQUE,
+  box_number TEXT NOT NULL,
   lot_id UUID NOT NULL REFERENCES public.lots(id) ON DELETE CASCADE,
   total_expected_books INTEGER NOT NULL DEFAULT 0,
   total_transmitted_books INTEGER NOT NULL DEFAULT 0,

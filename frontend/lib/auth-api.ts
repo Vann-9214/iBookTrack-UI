@@ -76,19 +76,26 @@ function handleRateLimitToast(res: Response) {
   const retryAfter = res.headers.get('Retry-After')
   const rateLimitReset = res.headers.get('RateLimit-Reset')
   
+  const formatTime = (totalSeconds: number) => {
+    if (totalSeconds <= 0) return 'a moment'
+    const m = Math.floor(totalSeconds / 60)
+    const s = Math.floor(totalSeconds % 60)
+    if (m > 0 && s > 0) return `${m}m ${s}s`
+    if (m > 0) return `${m} minute${m > 1 ? 's' : ''}`
+    return `${s} second${s !== 1 ? 's' : ''}`
+  }
+
   let waitMessage = 'Please wait a moment.'
   if (retryAfter) {
     const seconds = parseInt(retryAfter, 10)
     if (!isNaN(seconds)) {
-      const mins = Math.ceil(seconds / 60)
-      waitMessage = `Please wait ${mins} minute${mins !== 1 ? 's' : ''}.`
+      waitMessage = `Please wait ${formatTime(seconds)}.`
     }
   } else if (rateLimitReset) {
     const resetTime = parseInt(rateLimitReset, 10) * 1000
     if (!isNaN(resetTime)) {
-      const diff = Math.max(0, resetTime - Date.now())
-      const mins = Math.ceil(diff / 60000)
-      waitMessage = `Please wait ${mins} minute${mins !== 1 ? 's' : ''}.`
+      const diffSeconds = Math.max(0, (resetTime - Date.now()) / 1000)
+      waitMessage = `Please wait ${formatTime(diffSeconds)}.`
     }
   }
   
