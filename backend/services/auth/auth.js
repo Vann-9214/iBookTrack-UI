@@ -19,7 +19,7 @@ const getMillisecondsUntilMidnight = () => {
 
 const generateToken = (user, expiresInSeconds) => {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role, name: user.name },
+    { id: user.id, email: user.email, role: user.role, name: user.name, tv: user.token_version ?? 0 },
     process.env.JWT_SECRET,
     { expiresIn: expiresInSeconds } 
   );
@@ -110,6 +110,10 @@ export const refreshService = async (req, res) => {
     const user = await authRepo.getUserById(decoded.id);
     if (!user) throw new Error();
 
+    // Reject a refresh attempt from a token that has since been revoked
+    // (token_version bumped by a password change or forced logout).
+    if ((decoded.tv ?? 0) !== (user.token_version ?? 0)) throw new Error('token revoked');
+
     const msUntilMidnight = getMillisecondsUntilMidnight();
     const newToken = generateToken(user, Math.floor(msUntilMidnight / 1000));
     res.cookie('access_token', newToken, { ...cookieOpts, maxAge: msUntilMidnight });
@@ -135,7 +139,45 @@ export const passwordService = async (req, res) => {
   const newPasswordHash = await bcrypt.hash(newPassword, 10);
   await authRepo.updatePassword(req.user.id, newPasswordHash);
 
+  // Invalidate all tokens issued before this change, then reissue a fresh
+  // cookie so the current device stays logged in while other sessions die.
+  const newVersion = await authRepo.incrementTokenVersion(req.user.id);
+  const msUntilMidnight = getMillisecondsUntilMidnight();
+  const refreshedToken = generateToken(
+    { ...user, role: user.role, token_version: newVersion },
+    Math.floor(msUntilMidnight / 1000)
+  );
+  res.cookie('access_token', refreshedToken, { ...cookieOpts, maxAge: msUntilMidnight });
+
   return { message: 'Password updated successfully.' };
+};
+
+/**
+ * DEV-ONLY password reset.
+ *
+ * ⚠️ SECURITY: This resets a password given ONLY an email + new password, with
+ * NO proof that the requester owns the account. That is an account-takeover
+ * risk, so it is HARD-DISABLED when NODE_ENV=production. Before going live,
+ * replace this with a proper token-based reset (emailed single-use link).
+ */
+export const resetPasswordService = async (req, res) => {
+  if (isProd) {
+    throw { status: 403, payload: { error: 'Password reset is disabled in production.' } };
+  }
+
+  const { email, newPassword } = req.body;
+
+  const user = await authRepo.getUserByEmail(email);
+  if (!user) {
+    throw { status: 404, payload: { error: 'No account found with that email.' } };
+  }
+
+  const newPasswordHash = await bcrypt.hash(newPassword, 10);
+  await authRepo.updatePassword(user.id, newPasswordHash);
+  // Invalidate any existing sessions for this account.
+  await authRepo.incrementTokenVersion(user.id);
+
+  return { message: 'Password reset successfully. You can now log in.' };
 };
 
 export const getProfileService = async (req, res) => {
@@ -152,6 +194,14 @@ export const getProfileService = async (req, res) => {
 
 export const updateProfileService = async (req, res) => {
   const { name, email } = req.body;
+
+  // Reject email changes that collide with another account, returning a clean
+  // 409 instead of surfacing a raw DB unique-constraint error as a 500.
+  const existing = await authRepo.getUserByEmail(email);
+  if (existing && existing.id !== req.user.id) {
+    throw { status: 409, payload: { error: 'That email address is already in use.' } };
+  }
+
   const { data, error } = await authRepo.updateProfile(req.user.id, name, email);
 
   if (error || !data) throw { status: 500, payload: { error: 'Failed to update profile.' } };

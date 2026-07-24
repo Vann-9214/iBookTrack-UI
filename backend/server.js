@@ -73,12 +73,20 @@ const explicitAllowedOrigins = [
   ...(process.env.FRONTEND_URLS || '').split(',').map((url) => url.trim())
 ].filter(Boolean)
 
+const isProduction = process.env.NODE_ENV === 'production'
+
 /**
- * Returns true if the hostname is a private/LAN address.
- * Used to allow developer machines without requiring every IP to be listed in .env.
+ * Returns true for same-machine origins (localhost / 127.0.0.1). These are the
+ * developer's own computer, not a real cross-origin risk, so they are always
+ * allowed in non-production without needing any flag.
  */
-const isPrivateHost = (hostname) => {
-  if (hostname === 'localhost' || hostname === '127.0.0.1') return true
+const isLocalhost = (hostname) => hostname === 'localhost' || hostname === '127.0.0.1'
+
+/**
+ * Returns true if the hostname is a broader private/LAN address (other devices
+ * on the same network, e.g. a phone at 192.168.x.x).
+ */
+const isPrivateLanHost = (hostname) => {
   if (/^10\./.test(hostname)) return true
   if (/^192\.168\./.test(hostname)) return true
   const match172 = hostname.match(/^172\.(\d{1,3})\./)
@@ -87,23 +95,28 @@ const isPrivateHost = (hostname) => {
   return secondOctet >= 16 && secondOctet <= 31
 }
 
+// The BROADER LAN / dev-tunnel CORS bypass (other devices on the Wi-Fi,
+// *.trycloudflare.com) is disabled by default and must be opted into with
+// ALLOW_DEV_ORIGINS=true. localhost is not affected — it always works in dev.
+// Nothing bypasses in production.
+const devOriginsEnabled = process.env.ALLOW_DEV_ORIGINS === 'true' && !isProduction
+
 /**
- * Returns true if the origin is an http:// request from a private/LAN host.
- * This covers dev machines accessing the backend without needing an .env entry.
+ * Returns true if the origin should be allowed via the development bypass.
+ * - localhost/127.0.0.1: always allowed in non-production.
+ * - LAN IPs + trycloudflare tunnels: only when ALLOW_DEV_ORIGINS=true.
  */
 const isDevBrowserOriginAllowed = (origin) => {
+  if (isProduction) return false
   try {
     const url = new URL(origin)
-    // In production, only allow explicitly listed origins (no LAN bypass)
-    if (process.env.NODE_ENV === 'production') return false;
-    // Allow all private LAN http:// origins (dev machines on the same Wi-Fi)
-    if (url.protocol === 'http:' && isPrivateHost(url.hostname)) return true
-    // Allow Cloudflare dev tunnels (trycloudflare.com) in non-production environments
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      url.protocol === 'https:' &&
-      url.hostname.endsWith('.trycloudflare.com')
-    ) return true
+    // Same-machine dev is always fine (no flag required).
+    if (url.protocol === 'http:' && isLocalhost(url.hostname)) return true
+    if (!devOriginsEnabled) return false
+    // Other LAN devices (opt-in).
+    if (url.protocol === 'http:' && isPrivateLanHost(url.hostname)) return true
+    // Cloudflare dev tunnels (opt-in).
+    if (url.protocol === 'https:' && url.hostname.endsWith('.trycloudflare.com')) return true
     return false
   } catch {
     return false
@@ -120,6 +133,13 @@ app.use(cors({
   },
   credentials: true, // Allow cookies / Authorization headers
 }))
+
+// Make the effective CORS posture visible so misconfiguration is easy to spot.
+logger.info(
+  `CORS: explicit origins=[${explicitAllowedOrigins.join(', ') || 'none'}]; ` +
+  `localhost=${isProduction ? 'blocked (prod)' : 'always allowed (dev)'}; ` +
+  `LAN/tunnel bypass=${devOriginsEnabled ? 'ENABLED' : 'disabled'}`
+)
 
 // ── Global rate limiter ───────────────────────────────────────────────────────
 // Applies to every route. Limits each IP to 500 requests per 15 minutes.

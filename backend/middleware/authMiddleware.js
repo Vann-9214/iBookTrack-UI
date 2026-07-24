@@ -32,7 +32,29 @@ export const requireAuth = async (req, res, next) => {
     
     // Verify our custom JWT and specify algorithm to prevent Algorithm Confusion attacks
     const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] });
-    
+
+    // Enforce token revocation: the token's version (tv) must match the user's
+    // current token_version in the DB. A password change / forced logout bumps
+    // the DB value, immediately invalidating older tokens.
+    const { db } = await import('../config/db.js');
+    try {
+      const { rows } = await db.query('SELECT token_version FROM users WHERE id = $1', [decoded.id]);
+      if (rows.length === 0) {
+        return res.status(401).json({ error: 'Invalid or expired token.' });
+      }
+      const currentVersion = rows[0].token_version ?? 0;
+      if ((decoded.tv ?? 0) !== currentVersion) {
+        return res.status(401).json({ error: 'Session expired. Please log in again.' });
+      }
+    } catch (dbErr) {
+      // If migration 010 has not been applied yet the column won't exist
+      // (Postgres code 42703). Fail open for this specific config gap so the
+      // app is not bricked; all other DB errors are treated as auth failures.
+      if (dbErr?.code !== '42703') {
+        return res.status(401).json({ error: 'Invalid or expired token.' });
+      }
+    }
+
     // Attach the verified user to the request so downstream handlers can use it
     req.user = decoded;
     next();

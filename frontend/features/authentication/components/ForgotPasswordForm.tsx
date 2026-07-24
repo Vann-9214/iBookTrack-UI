@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { resetPassword } from '@/lib/auth-api'
 import type { AuthStep } from '../types/auth.types'
 
 export function ForgotPasswordForm() {
@@ -11,6 +13,7 @@ export function ForgotPasswordForm() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const handleEmailSubmit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -22,22 +25,33 @@ export function ForgotPasswordForm() {
     setStep('reset')
   }
 
-  const handleResetSubmit = (event: React.FormEvent) => {
+  const handleResetSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError('')
     if (!newPassword || !confirmPassword) {
       setError('Please complete both password fields.')
       return
     }
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters.')
+    // Mirror the backend rules so users get instant feedback.
+    if (newPassword.length < 8 || !/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      setError('Password must be 8+ characters with an uppercase, lowercase, and a number.')
       return
     }
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match.')
       return
     }
-    router.push('/login')
+
+    setSubmitting(true)
+    try {
+      await resetPassword(email.trim(), newPassword)
+      toast.success('Password reset successfully. Please log in.')
+      router.push('/login')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset password.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -115,9 +129,10 @@ export function ForgotPasswordForm() {
 
           <button
             type="submit"
-            className="h-10 w-full rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98]"
+            disabled={submitting}
+            className="h-10 w-full rounded-lg bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Set password
+            {submitting ? 'Setting password…' : 'Set password'}
           </button>
         </form>
       )}

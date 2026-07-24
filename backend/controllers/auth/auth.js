@@ -14,7 +14,7 @@ export const register = async (req, res) => {
   } catch (error) {
     if (error.status) return res.status(error.status).json(error.payload);
     logger.error('Registration error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Registration failed. Please try again later.' });
   }
 };
 
@@ -25,7 +25,7 @@ export const login = async (req, res) => {
   } catch (error) {
     if (error.status) return res.status(error.status).json(error.payload);
     logger.error('Login error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Login failed. Please try again later.' });
   }
 };
 
@@ -34,7 +34,8 @@ export const logout = async (req, res) => {
     const result = await authService.logoutService(req, res);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    logger.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed. Please try again.' });
   }
 };
 
@@ -56,7 +57,18 @@ export const password = async (req, res) => {
   } catch (error) {
     if (error.status) return res.status(error.status).json(error.payload);
     logger.error('Password update error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to update password. Please try again later.' });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const result = await authService.resetPasswordService(req, res);
+    res.json(result);
+  } catch (error) {
+    if (error.status) return res.status(error.status).json(error.payload);
+    logger.error('Password reset error:', error);
+    res.status(500).json({ error: 'Failed to reset password. Please try again later.' });
   }
 };
 
@@ -78,7 +90,7 @@ export const updateProfile = async (req, res) => {
   } catch (error) {
     if (error.status) return res.status(error.status).json(error.payload);
     logger.error('Profile update error:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to update profile. Please try again later.' });
   }
 };
 

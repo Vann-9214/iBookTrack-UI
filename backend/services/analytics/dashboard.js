@@ -141,7 +141,7 @@ export const getQcFlagsService = async (req) => {
   const todayOnly = req.query.today === 'true';
   const boxType = req.query.box_type ? req.query.box_type.charAt(0).toUpperCase() + req.query.box_type.slice(1).toLowerCase() : null;
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50;
+  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 50;
 
   let startIso = null;
   let endIso = null;
@@ -194,7 +194,7 @@ export const getDailyOutputService = async (req) => {
   const requestedPage = parseInt(req.query.page || '1', 10);
   const requestedLimit = parseInt(req.query.limit || '50', 10);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 100) : 50;
+  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 50;
 
   const userBrand = req.query.brand === 'jaguar' ? 'jaguar' : req.user?.user_metadata?.brand === 'jaguar' ? 'jaguar' : 'mustang';
   const location = userBrand;

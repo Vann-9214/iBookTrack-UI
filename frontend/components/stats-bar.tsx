@@ -70,7 +70,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [flags, setFlags] = useState<QCFlag[]>([])
   const [totalFlags, setTotalFlags] = useState(0)
   const [loadingFlags, setLoadingFlags] = useState(false)
-  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 10 })
+  const flagsPagination = usePagination({ totalItems: totalFlags, defaultPageSize: 50 })
 
   const [liveLotsOpen, setLiveLotsOpen] = useState(false)
   const [liveLots, setLiveLots] = useState<LiveLot[]>([])

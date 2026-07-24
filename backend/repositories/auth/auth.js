@@ -7,14 +7,36 @@
 import { db } from '../../config/db.js';
 
 export const getUserByEmail = async (email) => {
-    const { rows } = await db.query('SELECT id, name, email, role, password_hash, created_at, updated_at FROM users WHERE email = $1', [email]);
+    const { rows } = await db.query('SELECT id, name, email, role, password_hash, token_version, created_at, updated_at FROM users WHERE email = $1', [email]);
     return rows[0] || null;
 };
 
 export const getUserById = async (userId) => {
     if (!userId) return null;
-    const { rows } = await db.query('SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1', [userId]);
+    const { rows } = await db.query('SELECT id, name, email, role, token_version, created_at, updated_at FROM users WHERE id = $1', [userId]);
     return rows[0] || null;
+};
+
+/**
+ * Returns the current token_version for a user, or null if the user is gone.
+ * Kept separate so the hot auth path only fetches the columns it needs.
+ */
+export const getTokenVersion = async (userId) => {
+    if (!userId) return null;
+    const { rows } = await db.query('SELECT token_version FROM users WHERE id = $1', [userId]);
+    return rows[0] ? rows[0].token_version : null;
+};
+
+/**
+ * Bumps token_version, invalidating every JWT previously issued to the user.
+ * Returns the new version.
+ */
+export const incrementTokenVersion = async (userId) => {
+    const { rows } = await db.query(
+        'UPDATE users SET token_version = token_version + 1, updated_at = NOW() WHERE id = $1 RETURNING token_version',
+        [userId]
+    );
+    return rows[0] ? rows[0].token_version : null;
 };
 
 export const createUser = async (name, email, passwordHash, role = null) => {

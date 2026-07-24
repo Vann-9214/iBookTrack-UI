@@ -26,8 +26,11 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err) => {
-    logger.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    // A transient error on an idle client (e.g. network blip, server-side idle
+    // timeout) should NOT take down the whole backend. The pool discards the
+    // broken client and creates a new one on the next query, so we log and
+    // recover instead of exiting — exiting here was an availability/DoS risk.
+    logger.error('Unexpected error on idle PostgreSQL client (recovering):', err);
 });
 
 /**
