@@ -146,10 +146,16 @@ logger.info(
 // Individual sensitive routes (login, register) have tighter limits in auth.js.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minute window
-  max: 500,                  // max requests per IP per window
+  max: 1000,                 // max requests per IP per window
   standardHeaders: true,     // Return limit info in RateLimit-* headers
   legacyHeaders: false,      // Do not send X-RateLimit-* headers
-  message: { error: 'Too many requests. Please slow down and try again shortly.' },
+  handler: (req, res, next, options) => {
+    const timeRemainingMs = req.rateLimit.resetTime.getTime() - Date.now();
+    const minutesLeft = Math.ceil(timeRemainingMs / 60000);
+    res.status(options.statusCode).json({ 
+      error: `Too many requests. Please slow down and try again in ${minutesLeft} minute(s).` 
+    });
+  }
 })
 app.use(globalLimiter)
 
