@@ -47,7 +47,7 @@ export function useDashboard() {
         ].filter(Boolean).some((time) => new Date(time).getTime() >= startOfDay)),
       )
       const simflex = live?.success ? live : null
-      const transmitBooks = simflex?.transmitBooks || 0
+      const transmitBooks = Number(simflex?.transmitBooks) || 0
 
       if (simflex) setLiveScans(simflex.recentScans || [])
       if (stats.success) {
@@ -55,9 +55,9 @@ export function useDashboard() {
           ...stats.stats,
           pipelineStages: buildPipelineStages(boxes, transmitBooks),
           pipelineToday: pipeline.today,
-          dailyTransmitted: simflex?.summary?.completedTransmissions || 0,
-          totalBooks: simflex?.allTimeTotal || stats.stats.totalBooks,
-          scanWipCount: simflex?.scanWipCount || 0,
+          dailyTransmitted: Number(simflex?.summary?.completedTransmissions) || 0,
+          totalBooks: Number(simflex?.allTimeTotal) || stats.stats.totalBooks,
+          scanWipCount: Number(simflex?.scanWipCount) || 0,
           scanEligibleBoxNums: scanRows?.success ? scanRows.rows?.map((row: any) => String(row.BoxNumber || '')).filter(Boolean) : [],
           transmitEligibleBoxNums: transmitRows?.success ? transmitRows.rows?.map((row: any) => String(row.BoxNumber || '')).filter(Boolean) : [],
         })

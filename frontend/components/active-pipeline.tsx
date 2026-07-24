@@ -7,9 +7,9 @@ import { Workflow } from "lucide-react"
 
 import { formatPipelineCounts } from "@/features/dashboard/utils/dashboard.helpers"
 
-function getStepStatus(count: number, active?: number) {
-  const effectiveCount = typeof active === 'number' ? active : count
-  if (effectiveCount === 0) return "idle"
+function getStepStatus(count: number | string, active?: number | string) {
+  const effectiveCount = active !== undefined ? Number(active) : Number(count)
+  if (effectiveCount === 0 || isNaN(effectiveCount)) return "idle"
   return "active"
 }
 
