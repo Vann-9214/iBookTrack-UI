@@ -2,7 +2,7 @@
 
 import { useToast } from '@/hooks/use-toast'
 import { useBrand } from '@/hooks/use-brand'
-import { bulkSaveSession, checkBoxExists, deleteSession } from '../services/warehouse.service'
+import { bulkSaveSession, deleteSession, startWarehouseSession, type StartSessionError } from '../services/warehouse.service'
 import { findSimilarLot } from '../utils/warehouse.helpers'
 import type { useWarehouseState } from './useWarehouseState'
 
@@ -50,17 +50,39 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
     const totalNum = parseInt(totalBoxes, 10)
     if (isNaN(currentNum) || isNaN(totalNum) || currentNum > totalNum) { setSessionError('The total boxes (right side) must be greater than or equal to the current box (left side). Example: 12/400.'); setLoading(false); return }
     try {
-      const exists = await checkBoxExists(formattedLot, selectedBox, brand)
-      if (exists) { setSessionError(`Box ${selectedBox} already exists in ${formattedLot.toLowerCase().startsWith('lot') ? formattedLot : `Lot ${formattedLot}`}. Please use a different box number.`); setLoading(false); return }
-    } catch (err: any) { setSessionError(err.message || 'Failed to verify box number.'); setLoading(false); return }
-    setCurrentSession({ id: `pending-${Date.now()}`, status: 'completed', type: brand, total_scanned_books: 0, total_processable: 0, total_non_processable: 0 })
+      // Creates a real 'in_progress' session in the database, which locks this
+      // lot/box combination for every other user until completed or cancelled.
+      const result = await startWarehouseSession(formattedLot, selectedBox, brand, force)
+      setCurrentSession({
+        id: result.session.id,
+        status: result.session.status,
+        type: brand,
+        total_scanned_books: 0,
+        total_processable: 0,
+        total_non_processable: 0,
+        box_id: result.session.box_id ?? null,
+      })
+    } catch (err: any) {
+      const e = err as StartSessionError
+      if (e.status === 403) {
+        setSessionError(e.message || '🔒 This box is currently being processed by another user.')
+      } else if (e.status === 409 && e.code === 'BoxExistsWithZeroBooks') {
+        setConflictModalState({ open: true, type: 'zero_books', message: e.message })
+      } else if (e.status === 409) {
+        setSessionError(e.message || `Box ${selectedBox} already exists. Please use a different box number.`)
+      } else {
+        setSessionError(e.message || 'Failed to start session.')
+      }
+      setLoading(false)
+      return
+    }
     setSessionActive(true)
     setScannedBooks([])
     setBookCounter(0)
     setCurrentBoxNumber(selectedBox)
     setCurrentBoxBooks(0)
     setLoading(false)
-    toast({ title: 'Session Started', description: 'Local session created. Lot will be saved to database upon completion.' })
+    toast({ title: 'Session Started', description: 'Session locked to you. Books will be saved to the database upon completion.' })
   }
 
   const handleCloseSession = async () => {
@@ -101,6 +123,7 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
       await bulkSaveSession({
         lot_number: activeLot,
         box_number: currentBoxNumber,
+        session_id: currentSession.id.startsWith('pending') ? undefined : currentSession.id,
         type: currentSession.type,
         force: true,
         total_expected_books: expected,

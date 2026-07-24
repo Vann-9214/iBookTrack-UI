@@ -68,6 +68,7 @@ export const bulkSaveSchema = {
   body: z.object({
     lot_number: lotNumber,
     box_number: boxNumber.min(1, 'box_number is required'),
+    session_id: z.string().uuid().optional().nullable(),
     type: shortText,
     force: z.boolean().optional(),
     total_expected_books: z.union([z.string().max(20), z.number()]).optional().nullable(),
