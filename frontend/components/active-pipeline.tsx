@@ -7,8 +7,9 @@ import { Workflow } from "lucide-react"
 
 import { formatPipelineCounts } from "@/features/dashboard/utils/dashboard.helpers"
 
-function getStepStatus(count: number | string, active?: number | string) {
-  const effectiveCount = active !== undefined ? Number(active) : Number(count)
+function getStepStatus(step: any) {
+  if (step.displayText === "0") return "idle"
+  const effectiveCount = step.active !== undefined ? Number(step.active) : Number(step.count)
   if (effectiveCount === 0 || isNaN(effectiveCount)) return "idle"
   return "active"
 }
@@ -238,7 +239,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Desktop: card layout */}
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.active)
+              const status = getStepStatus(step)
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
@@ -301,7 +302,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.active)
+              const status = getStepStatus(step)
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
