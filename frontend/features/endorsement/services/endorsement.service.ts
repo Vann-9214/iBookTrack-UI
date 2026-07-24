@@ -105,7 +105,7 @@ export const endorsementService = {
     const res = await authFetch(`${API_URL}/api/warehouse/sessions/${sessionId}/complete`, {
       method: 'POST',
       body: JSON.stringify({
-        expected: expectedCount,
+        total_expected_books: expectedCount,
         stage: 'endorsement',
         issues: [],
       }),

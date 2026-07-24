@@ -7,12 +7,13 @@ import { useBrand } from '@/hooks/use-brand'
 import { cn } from '@/lib/utils'
 import { getApiBaseUrl } from '@/lib/auth-api'
 import { authFetch } from '@/lib/auth-api'
-import { AlertTriangle, AlertOctagon, ScanBarcode, Scissors, X, Loader2, CheckCircle2, TrendingUp } from 'lucide-react'
+import { AlertTriangle, AlertOctagon, ScanBarcode, Scissors, X, Loader2, CheckCircle2, TrendingUp, RefreshCw } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Package, Inbox, FileText, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { format } from 'date-fns'
+import { RefreshControl } from '@/components/refresh-control'
 
 const ISSUE_LABELS: Record<string, string> = {
   'scanning': 'Scanning/Barcode Error',
@@ -43,6 +44,7 @@ export default function NonProcessablePage() {
   
   // Modal state
   const [selectedCategory, setSelectedCategory] = useState<'Total' | 'Scanning' | 'Cut' | 'Other' | null>(null)
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const fetchCounts = async () => {
     setLoading(true)
@@ -86,6 +88,7 @@ export default function NonProcessablePage() {
         
         const sortedLots = Object.values(lotData).sort((a: any, b: any) => b.totalFlags - a.totalFlags)
         setStructuredLots(sortedLots)
+        setLastUpdated(new Date())
       }
     } catch (err) {
       console.error('Failed to fetch counts:', err)
@@ -154,28 +157,47 @@ export default function NonProcessablePage() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <DashboardNavbar />
         <main className="ambient-bg flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-y-auto">
-          <div className="flex flex-col min-h-0 gap-6">
+          <div className="flex flex-col min-h-0 gap-6 pb-8">
             
             {/* Page Header */}
-            <header className="flex flex-col gap-3">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className={cn('p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0', brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
-                  <AlertOctagon className="h-6 w-6 sm:h-7 sm:w-7" />
+            <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div
+                  className={cn(
+                    'p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5',
+                    brand === 'jaguar'
+                      ? 'bg-gradient-to-br from-emerald-400 to-green-600'
+                      : 'bg-gradient-to-br from-indigo-400 to-blue-600'
+                  )}
+                >
+                  <AlertOctagon className="h-7 w-7" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0">
-                      <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">Non-Processable</h1>
-                      <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-                        Overview of issues for
-                        <span className={cn('inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none', brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>
-                          {brand}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
+                    Non-Processable
+                  </h1>
+                  <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
+                    Overview of issues for{' '}
+                    <span
+                      className={cn(
+                        'inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
+                        brand === 'jaguar'
+                          ? 'bg-gradient-to-r from-emerald-500 to-green-600'
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                      )}
+                    >
+                      {brand}
+                    </span>
+                  </p>
                 </div>
               </div>
+              <RefreshControl
+                onRefresh={fetchCounts}
+                refreshing={loading}
+                lastUpdated={lastUpdated}
+                storageKey={`non-processable-${brand}`}
+                className="hidden sm:flex"
+              />
             </header>
 
             {/* KPI Cards */}
@@ -309,7 +331,7 @@ export default function NonProcessablePage() {
             </div>
 
             {/* Hierarchical Lots & Boxes Accordion Container */}
-            <div className={cn("rounded-xl border border-gray-200 border-t-2 bg-white mt-6 mb-20 flex flex-col overflow-hidden shadow-sm shrink-0", brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600')}>
+            <div className={cn("rounded-xl border border-gray-200 border-t-2 bg-white mt-5 flex flex-col overflow-hidden shadow-sm shrink-0", brand === 'jaguar' ? 'border-t-green-500' : 'border-t-blue-600')}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 bg-slate-50/80 border-b border-gray-100 gap-4">
                 <div className="flex items-center gap-4">
                   <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm", dynamicTone.icon)}>
@@ -335,7 +357,7 @@ export default function NonProcessablePage() {
                 </div>
               </div>
 
-              <div className="p-5">
+              <div className={cn("p-5", structuredLots.length > 4 && "max-h-[28rem] overflow-y-auto")}>
                 <Accordion type="multiple" className="w-full space-y-3">
                 {structuredLots.map(lot => (
                   <AccordionItem key={lot.lot_number} value={lot.lot_number} className={cn("border rounded-2xl bg-white overflow-hidden shadow-sm transition-all data-[state=open]:shadow-md", dynamicTone.card)}>
@@ -399,7 +421,8 @@ export default function NonProcessablePage() {
                 )}
               </Accordion>
             </div>
-          </div>
+            </div>
+            <div className="h-12 shrink-0"></div>
           </div>
         </main>
       </div>
@@ -444,14 +467,14 @@ export default function NonProcessablePage() {
               </div>
             ) : displayFlags.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl ring-1", activeTone.modalBg, activeTone.value, activeTone.modalIcon)}>
-                  <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl shadow-md", activeTone.modalIcon)}>
+                  <CheckCircle2 className="h-7 w-7 text-white" />
                 </div>
                 <span className="text-sm font-semibold text-gray-600">No flagged books</span>
                 <span className="text-xs text-gray-400">Everything looks clean for this category</span>
               </div>
             ) : (
-              <div className="overflow-y-auto flex-1 px-3 pb-2">
+              <div className={cn("overflow-y-auto px-3 pb-2", displayFlags.length > 11 ? "max-h-[34rem]" : "")}>
                 <table className="w-full text-sm table-fixed border-separate border-spacing-y-1">
                   <colgroup>
                     <col className="w-10" />

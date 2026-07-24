@@ -186,6 +186,7 @@ export default function BookInspectionPage() {
                         handleInspScan={handleInspScan}
                         openInspFlagModal={openInspFlagModal}
                         handleRemoveInspBook={handleRemoveInspBook}
+                        brand={brand}
                       />
                     )
                   )}
