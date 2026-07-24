@@ -29,13 +29,14 @@ export function useStorageTopology(
     try {
       const newLocs = await locatorService.provisionSection(section, 38)
       setLocations(prev => {
-        const incomingKeys = new Set(newLocs.map(l => `${l.shelf}-${l.rack}-${l.level}`))
-        const others = prev.filter(l => !incomingKeys.has(`${l.rack}-${l.level}`))
-        const merged = newLocs.map(loc => {
-          const existing = prev.find(l => l.rack === loc.rack && l.level === loc.level)
-          return existing ?? loc
+        const incomingMap = new Map(newLocs.map(l => [`${l.shelf}-${l.rack}-${l.level}`, l]))
+        const updated = prev.map(l => incomingMap.get(`${l.shelf}-${l.rack}-${l.level}`) ?? l)
+        newLocs.forEach(l => {
+          if (!prev.some(p => p.shelf === l.shelf && p.rack === l.rack && p.level === l.level)) {
+            updated.push(l)
+          }
         })
-        return [...others, ...merged]
+        return updated
       })
     } catch (e) {
       console.error('Failed to provision section', e)
