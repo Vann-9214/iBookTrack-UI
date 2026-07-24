@@ -45,12 +45,17 @@ export function DashboardSearch(props: DashboardSearchProps) {
 
   const data = result?.data ?? {}
 
-  if (!open && !result) return null
+  const handleClose = () => {
+    onOpenChange(false)
+    if (result) onClear()
+  }
+
+  if (!open) return null
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in"
-      onClick={() => onOpenChange(false)}
+      onClick={handleClose}
     >
       <div
         className="bg-card border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-lg max-h-[88vh] flex flex-col overflow-hidden animate-modal-in"
@@ -72,7 +77,7 @@ export function DashboardSearch(props: DashboardSearchProps) {
             </div>
           </div>
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={handleClose}
             className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors"
           >
             <X className="h-5 w-5" />
@@ -211,9 +216,7 @@ export function DashboardSearch(props: DashboardSearchProps) {
                   New Search
                 </Button>
                 <Button
-                  onClick={() => {
-                    onOpenChange(false)
-                  }}
+                  onClick={handleClose}
                   className="flex-1"
                 >
                   Close
