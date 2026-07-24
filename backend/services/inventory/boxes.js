@@ -395,9 +395,7 @@ export const advanceBoxService = async (req) => {
     }
   }
 
-  if (box.current_stage === 'warehouse' && nextStage === 'inventory') {
-    await boxesRepo.updateSessionToReceived(id, req.user.id, nextStage);
-  }
+
 
   if (box.current_stage === 'inventory' && (nextStage === 'cut' || nextStage === 'endorsement' || nextStage === 'qa')) {
     const { data: session } = await boxesRepo.getSessionForAdvance(id);
@@ -443,6 +441,10 @@ export const advanceBoxService = async (req) => {
 
   const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxStage(id, nextStage);
   if (updateError) throw updateError;
+
+  if (box.current_stage === 'warehouse' && nextStage === 'inventory') {
+    await boxesRepo.updateSessionToReceived(id, req.user.id, nextStage);
+  }
 
   return { success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage };
 };
