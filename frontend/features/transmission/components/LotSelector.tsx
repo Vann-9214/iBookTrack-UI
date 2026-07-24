@@ -107,7 +107,7 @@ export function LotSelector({
             </thead>
             <tbody>
               {lotSearchResults.map((lot) => {
-                const isActive = lotSummary?.lot_number?.toLowerCase() === lot.lot_number?.toLowerCase()
+                const isActive = lotSummary?.lot_number === lot.lot_number
                 const boxCount = lot.boxes?.[0]?.count ?? lot.total_boxes ?? 0
                 return (
                   <tr

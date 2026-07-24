@@ -38,9 +38,17 @@ export const scanBookSchema = {
     isbn,
     title,
     scan_status: shortText,
-    rejection_reason: longText,
-    notes: longText,
+    rejection_reason: longText.optional(),
+    notes: longText.optional(),
     book_type: shortText
+  }).refine((data) => {
+    if (data.scan_status === 'non_processable') {
+      return !!data.notes && data.notes.trim().length > 0;
+    }
+    return true;
+  }, {
+    message: "notes are required when book is non_processable",
+    path: ["notes"]
   })
 };
 
@@ -95,6 +103,15 @@ export const tagScanSchema = {
   }),
   body: z.object({
     status: z.enum(['reject', 'non_processable']),
-    remarks: z.string().trim().min(1, 'remarks are required').max(2000, 'remarks are too long')
+    rejection_reason: longText.optional(),
+    notes: longText.optional(),
+    remarks: z.string().trim().optional(),
+    stage: shortText.optional()
+  }).refine((data) => {
+    const text = data.notes || data.remarks || '';
+    return text.trim().length > 0;
+  }, {
+    message: "notes or remarks are required",
+    path: ["notes"]
   })
 };

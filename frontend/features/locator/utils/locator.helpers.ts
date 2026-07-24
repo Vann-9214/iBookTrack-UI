@@ -17,13 +17,21 @@ export function getSuggestedLocation(locations: StorageLocation[], requiredCapac
   return locations
     .filter(location => location.capacity - getReservedCount(location) >= requiredCapacity)
     .sort((a, b) => {
+      // Prioritize lower section numbers (e.g. Section 1 before Section 2)
+      const shelfDiff = (a.shelf || 1) - (b.shelf || 1)
+      if (shelfDiff !== 0) return shelfDiff
+
+      // Within the same section, prioritize partially occupied slots to fill them up first
       const aReserved = getReservedCount(a)
       const bReserved = getReservedCount(b)
       const occupancyDifference = Number(bReserved > 0) - Number(aReserved > 0)
       if (occupancyDifference !== 0) return occupancyDifference
-      const capacityDifference = bReserved / b.capacity - aReserved / a.capacity
+
+      // If both are partially occupied, pick the one with higher occupancy percentage
+      const capacityDifference = (bReserved / b.capacity) - (aReserved / a.capacity)
       if (capacityDifference !== 0) return capacityDifference
-      if (aReserved !== bReserved) return bReserved - aReserved
+
+      // Fallback to Rack order (A, B, C...) then Level order (1, 2, 3...)
       return a.rack.localeCompare(b.rack) || a.level - b.level
     })[0]
 }

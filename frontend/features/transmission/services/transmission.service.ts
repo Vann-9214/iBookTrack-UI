@@ -118,7 +118,9 @@ export async function flagScan({
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       status: 'non_processable',
-      remarks: `${issue}: ${remarks}`,
+      rejection_reason: issue,
+      notes: remarks,
+      stage: 'scan',
     }),
   })
 
