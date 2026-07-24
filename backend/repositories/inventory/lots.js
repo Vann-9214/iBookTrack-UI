@@ -81,7 +81,7 @@ export const getLotByNumberOrLatest = async (lot_number, lotType) => {
   if (lot_number.toLowerCase() === 'latest') {
     query += ' ORDER BY created_at DESC LIMIT 1';
   } else {
-    query += ` AND lot_number ILIKE $${paramIndex}`;
+    query += ` AND lot_number = $${paramIndex}`;
     params.push(lot_number);
   }
 
@@ -120,22 +120,31 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
 
   const { rows } = await db.query(query, boxIds);
   
-  // Map flattened rows back to nested structure expected by the frontend
-  return rows.map(row => ({
-    id: row.id,
-    scan_status: row.scan_status,
-    warehouse_scan_at: row.warehouse_scan_at,
-    user_flags: row['user_flags.rejection_reason'] ? [{ rejection_reason: row['user_flags.rejection_reason'] }] : [],
-    books: {
-      isbn: row['books.isbn'],
-      title: row['books.title'],
-      box_id: row['books.box_id'],
-      boxes: {
-        box_number: row['boxes.box_number'],
-        current_stage: row['boxes.current_stage']
-      }
+  const grouped = new Map();
+  for (const row of rows) {
+    if (!grouped.has(row.id)) {
+      grouped.set(row.id, {
+        id: row.id,
+        scan_status: row.scan_status,
+        warehouse_scan_at: row.warehouse_scan_at,
+        user_flags: [],
+        books: {
+          isbn: row['books.isbn'],
+          title: row['books.title'],
+          box_id: row['books.box_id'],
+          boxes: {
+            box_number: row['boxes.box_number'],
+            current_stage: row['boxes.current_stage']
+          }
+        }
+      });
     }
-  }));
+    if (row['user_flags.rejection_reason']) {
+      grouped.get(row.id).user_flags.push({ rejection_reason: row['user_flags.rejection_reason'] });
+    }
+  }
+  
+  return Array.from(grouped.values());
 };
 
 export const getLotWithBoxesByNumber = async (lot_number) => {

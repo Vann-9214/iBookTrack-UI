@@ -146,9 +146,10 @@ export const completeSessionService = async (req, res) => {
           
           if (actRows[0]) {
             const flagInsert = { book_activity_id: actRows[0].id, rejection_reason: issue.type, notes: `Marked as missing during session completion` };
-            if (stage === 'inventory') flagInsert.inventory_flag_by = scannedBy;
-            else if (stage === 'qa' || stage === 'endorsement') flagInsert.endorsement_flag_by = scannedBy;
-            else flagInsert.warehouse_flag_by = scannedBy;
+            if (stage === 'inventory') { flagInsert.inventory_flag_by = scannedBy; flagInsert.inventory_flag_at = new Date().toISOString(); }
+            else if (stage === 'qa' || stage === 'endorsement') { flagInsert.endorsement_flag_by = scannedBy; flagInsert.endorsement_flag_at = new Date().toISOString(); }
+            else if (stage === 'scan') { flagInsert.scan_flag_by = scannedBy; flagInsert.scan_flag_at = new Date().toISOString(); }
+            else { flagInsert.warehouse_flag_by = scannedBy; flagInsert.warehouse_flag_at = new Date().toISOString(); }
 
             const cols = Object.keys(flagInsert).join(', ');
             const ph = Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(', ');
@@ -245,7 +246,7 @@ export const bulkSaveSessionService = async (req, res) => {
 
       if (b.flag_issue || b.flag_remarks) {
         await db.query(
-          'INSERT INTO user_flags (book_activity_id, rejection_reason, notes, warehouse_flag_by) VALUES ($1, $2, $3, $4)',
+          'INSERT INTO user_flags (book_activity_id, rejection_reason, notes, warehouse_flag_by, warehouse_flag_at) VALUES ($1, $2, $3, $4, NOW())',
           [actRows[0].id, b.flag_issue || null, b.flag_remarks || null, req.user.id]
         );
         if (b.flag_issue === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [bookId]);
@@ -279,7 +280,7 @@ export const bulkSaveSessionService = async (req, res) => {
           [bookId, session.id, req.user.id]
         );
         await db.query(
-          'INSERT INTO user_flags (book_activity_id, rejection_reason, notes, warehouse_flag_by) VALUES ($1, $2, $3, $4)',
+          'INSERT INTO user_flags (book_activity_id, rejection_reason, notes, warehouse_flag_by, warehouse_flag_at) VALUES ($1, $2, $3, $4, NOW())',
           [actRows[0].id, issue.type, 'Marked as missing during session bulk-complete', req.user.id]
         );
       }

@@ -42,7 +42,8 @@ export const flagBookService = async (req, res) => {
     book_activity_id: activityId,
     rejection_reason: issue,
     notes: remarks || null,
-    warehouse_flag_by: req.user.id
+    inventory_flag_by: req.user.id,
+    inventory_flag_at: new Date().toISOString()
   });
   if (flagError) throw flagError;
   return { success: true, scan_id: id, issue, remarks };

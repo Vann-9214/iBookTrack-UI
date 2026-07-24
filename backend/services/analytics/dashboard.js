@@ -169,6 +169,7 @@ export const getQcFlagsService = async (req) => {
       { at: f.warehouse_flag_at, by: firstRel(f.warehouse_user)?.name },
       { at: f.inventory_flag_at, by: firstRel(f.inventory_user)?.name },
       { at: f.endorsement_flag_at, by: firstRel(f.endorsement_user)?.name },
+      { at: f.scan_flag_at, by: firstRel(f.scan_user)?.name },
     ].filter(c => c.at);
 
     const latestFlag = flagCandidates.sort((a, b) => new Date(b.at) - new Date(a.at))[0];
@@ -380,7 +381,7 @@ export const getPipelineStatsService = async (req) => {
         if (simStatus) {
           if (simStatus.transmissionCompleted) {
             boxGroups[boxId].completed++;
-          } else {
+          } else if (simStatus.latestStatus?.toLowerCase().includes('transmit')) {
             boxGroups[boxId].transmitting++;
           }
         }

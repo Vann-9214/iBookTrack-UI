@@ -151,7 +151,7 @@ export const searchIsbnService = async (req, res) => {
     }
 
     // Search in warehouse scan logs
-    const { rows: scans } = await db.query(`
+    const { rows: rawScans } = await db.query(`
       SELECT ba.*, uf.rejection_reason, b.isbn, b.title, b.book_type, bx.box_number, bx.current_stage, l.lot_number
       FROM book_activity ba
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
@@ -161,6 +161,14 @@ export const searchIsbnService = async (req, res) => {
       WHERE b.isbn = $1
       ORDER BY ba.warehouse_scan_at DESC
     `, [isbn]);
+    
+    const groupedScans = new Map();
+    for (const scan of rawScans) {
+      if (!groupedScans.has(scan.id)) {
+        groupedScans.set(scan.id, { ...scan });
+      }
+    }
+    const scans = Array.from(groupedScans.values());
 
     // Search current book location in books table
     const { rows: bookRows } = await db.query(`
