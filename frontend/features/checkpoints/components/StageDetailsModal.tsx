@@ -60,7 +60,7 @@ export function StageDetailsModal(props: StageDetailsModalProps) {
     onConfirm,
   } = props
 
-  const isSimflexView = selectedStage === 'scan' || selectedStage === 'transmit'
+  const isSimflexView = selectedStage === 'transmit'
 
   const filteredBoxes = stageBoxes.filter((box) => {
     const q = stageModalSearch.toLowerCase().trim()
@@ -83,7 +83,7 @@ export function StageDetailsModal(props: StageDetailsModalProps) {
   })
 
   const totalItems =
-    selectedStage === 'transmit' || (selectedStage === 'scan' && simflexRows.length > 0)
+    selectedStage === 'transmit'
       ? filteredSimflex.length
       : filteredBoxes.length
   const totalPages = Math.max(1, Math.ceil(totalItems / 50))
