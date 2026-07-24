@@ -77,9 +77,9 @@ export function useDashboard() {
     try {
       if (searchType === 'isbn') {
         const data = await searchIsbn(searchValue.trim())
-        if (!data.success || !data.book) {
+        if (!data || !data.success || !data.book) {
           setSearchResult(null)
-          toast({ title: 'Not Found', description: data.message || 'ISBN not found in iLMS or database', variant: 'destructive' })
+          toast({ title: 'Not Found', description: data?.message || 'ISBN not found in iLMS or database', variant: 'destructive' })
           return
         }
         setSearchResult({ type: 'isbn', data: data.book, books: [data.book] })
@@ -88,16 +88,16 @@ export function useDashboard() {
         const data = await searchLotRange(rangeStart, rangeEnd)
         setDisplayRange(`${rangeStart} – ${rangeEnd}`)
         setCurrentLot('')
-        if (data.success) setSearchResult({ type: 'lot', data: data.stats, books: [] })
+        if (data && data.success) setSearchResult({ type: 'lot', data: data.stats, books: [] })
       } else {
         const lotNumber = searchValue.trim()
         setCurrentLot(lotNumber)
         setDisplayRange(null)
         await fetchStats(lotNumber)
         const data = await searchLotDetails(lotNumber)
-        if (!data.success || !data.lotDetails) {
+        if (!data || !data.success || !data.lotDetails) {
           setSearchResult(null)
-          toast({ title: 'Not Found', description: `Lot "${lotNumber}" not found. Check the exact lot number as it appears in the system.`, variant: 'destructive' })
+          toast({ title: 'Not Found', description: data?.message || `Lot "${lotNumber}" not found. Check the exact lot number as it appears in the system.`, variant: 'destructive' })
           return
         }
         setSearchResult({ type: 'lot', data: data.lotDetails, books: [] })
