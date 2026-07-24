@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 import type { PipelineStageSummary, StageFilter } from '../types/transmission.types'
 import { formatPipelineStage } from '../utils/transmission.helpers'
 
+import { useBrand } from '@/hooks/use-brand'
+
 interface TransmissionStageBreakdownProps {
   stages: PipelineStageSummary[]
   stageFilter: StageFilter | null
@@ -16,6 +18,7 @@ export function TransmissionStageBreakdown({
   stageFilter,
   setStageFilter,
 }: TransmissionStageBreakdownProps) {
+  const { brand } = useBrand()
   const STAGE_ORDER = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval', 'Transmission_Archive']
   const stageMap = Object.fromEntries(stages.map((s) => [s.Stage, s])) as Record<string, PipelineStageSummary>
 
@@ -48,13 +51,13 @@ export function TransmissionStageBreakdown({
             className={cn(
               'cursor-pointer rounded-2xl border bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-1.5 sm:gap-3 relative overflow-hidden text-left',
               stageFilter?.stage === s.Stage && stageFilter?.category === 'ALL'
-                ? 'border-indigo-400 ring-2 ring-indigo-400/20'
+                ? brand === 'jaguar'
+                  ? 'border-green-600 ring-2 ring-green-600/20'
+                  : 'border-indigo-400 ring-2 ring-indigo-400/20'
                 : 'border-gray-200'
             )}
           >
-            {s.Total > 0 && (
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/50 to-transparent" />
-            )}
+
             <div className="flex items-start justify-between gap-1">
               <p className="text-[9px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wide leading-tight break-words">
                 {formatPipelineStage(s.Stage)}
