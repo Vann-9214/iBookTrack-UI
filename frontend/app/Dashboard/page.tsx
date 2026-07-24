@@ -30,19 +30,11 @@ export default function DashboardPage() {
             />
             <DashboardSearch
               open={dashboard.searchOpen}
-              type={dashboard.searchType}
               value={dashboard.searchValue}
-              rangeStart={dashboard.rangeStart}
-              rangeEnd={dashboard.rangeEnd}
-              isRange={dashboard.isRange}
               result={dashboard.searchResult}
               loading={dashboard.loading}
               onOpenChange={dashboard.setSearchOpen}
-              onTypeChange={dashboard.setSearchType}
               onValueChange={dashboard.setSearchValue}
-              onRangeStartChange={dashboard.setRangeStart}
-              onRangeEndChange={dashboard.setRangeEnd}
-              onRangeChange={dashboard.setIsRange}
               onSearch={dashboard.handleSearch}
               onClear={dashboard.clearSearch}
             />
