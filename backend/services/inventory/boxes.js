@@ -453,7 +453,7 @@ export const sendForwardBoxService = async (req) => {
 
   if (boxError || !box) throw { status: 404, message: 'Box not found', detail: boxError?.message };
 
-  if (!['inventory', 'cut', 'endorsement', 'qa'].includes(box.current_stage)) {
+  if (!['inventory', 'cut', 'endorsement', 'qa', 'scan'].includes(box.current_stage)) {
     throw { status: 400, message: 'Box cannot be sent forward from this stage' };
   }
 
