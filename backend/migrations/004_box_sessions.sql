@@ -83,8 +83,8 @@ BEGIN
                 RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, sent', v_status, v_stage;
             ELSIF v_stage = 'endorsement' AND v_status NOT IN ('received', 'completed', 'sent') THEN
                 RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, completed, sent', v_status, v_stage;
-            ELSIF v_stage = 'scan' AND v_status NOT IN ('received', 'completed', 'sent') THEN
-                RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, completed, sent', v_status, v_stage;
+            ELSIF v_stage = 'scan' AND v_status NOT IN ('received') THEN
+                RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received', v_status, v_stage;
             ELSIF v_stage = 'storage' AND v_status NOT IN ('received') THEN
                 RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received', v_status, v_stage;
             END IF;
@@ -104,8 +104,8 @@ BEGIN
             RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, sent', v_status, v_stage;
         ELSIF v_stage = 'endorsement' AND v_status NOT IN ('received', 'completed', 'sent') THEN
             RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, completed, sent', v_status, v_stage;
-        ELSIF v_stage = 'scan' AND v_status NOT IN ('received', 'completed', 'sent') THEN
-            RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, completed, sent', v_status, v_stage;
+        ELSIF v_stage = 'scan' AND v_status NOT IN ('received') THEN
+            RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received', v_status, v_stage;
         ELSIF v_stage = 'storage' AND v_status NOT IN ('received') THEN
             RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received', v_status, v_stage;
         END IF;

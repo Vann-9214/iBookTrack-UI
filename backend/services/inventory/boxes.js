@@ -395,9 +395,6 @@ export const advanceBoxService = async (req) => {
     }
   }
 
-  const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxStage(id, nextStage);
-  if (updateError) throw updateError;
-
   if (box.current_stage === 'warehouse' && nextStage === 'inventory') {
     await boxesRepo.updateSessionToReceived(id, req.user.id, nextStage);
   }
@@ -444,6 +441,9 @@ export const advanceBoxService = async (req) => {
     }
   }
 
+  const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxStage(id, nextStage);
+  if (updateError) throw updateError;
+
   return { success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage };
 };
 
@@ -453,7 +453,7 @@ export const sendForwardBoxService = async (req) => {
 
   if (boxError || !box) throw { status: 404, message: 'Box not found', detail: boxError?.message };
 
-  if (!['inventory', 'cut', 'endorsement', 'qa', 'scan'].includes(box.current_stage)) {
+  if (!['inventory', 'cut', 'endorsement', 'qa'].includes(box.current_stage)) {
     throw { status: 400, message: 'Box cannot be sent forward from this stage' };
   }
 
