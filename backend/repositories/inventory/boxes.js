@@ -407,11 +407,20 @@ export const getBookActivityWithFlags = async (boxId) => {
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
       WHERE b.box_id = $1 ORDER BY ba.warehouse_scan_at ASC
     `, [boxId]);
-    const data = rows.map(r => ({
-      id: r.id, scan_status: r.scan_status, warehouse_scan_at: r.warehouse_scan_at, transmission_status: r.transmission_status,
-      user_flags: r['user_flags.rejection_reason'] ? [{ rejection_reason: r['user_flags.rejection_reason'], notes: r['user_flags.notes'] }] : [],
-      books: { isbn: r['books.isbn'], title: r['books.title'], box_id: r['books.box_id'] }
-    }));
+    const grouped = new Map();
+    for (const r of rows) {
+      if (!grouped.has(r.id)) {
+        grouped.set(r.id, {
+          id: r.id, scan_status: r.scan_status, warehouse_scan_at: r.warehouse_scan_at, transmission_status: r.transmission_status,
+          user_flags: [],
+          books: { isbn: r['books.isbn'], title: r['books.title'], box_id: r['books.box_id'] }
+        });
+      }
+      if (r['user_flags.rejection_reason']) {
+        grouped.get(r.id).user_flags.push({ rejection_reason: r['user_flags.rejection_reason'], notes: r['user_flags.notes'] });
+      }
+    }
+    const data = Array.from(grouped.values());
     return { data, error: null };
   } catch (error) {
     return { data: null, error };

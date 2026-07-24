@@ -196,7 +196,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
         const warehouseBook = warehouseBooks.find((wb) => wb.isbn === book.isbn)
         try {
           if (warehouseBook && warehouseBook.scan_status === 'processable' && book.scan_status === 'non_processable') {
-            if (warehouseBook.id) await tagInventoryScan(warehouseBook.id, book.flag_issue + (book.flag_remarks ? ` - ${book.flag_remarks}` : ''))
+            if (warehouseBook.id) await tagInventoryScan(warehouseBook.id, book.flag_issue || '', book.flag_remarks || undefined)
             else await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
           } else if (!warehouseBook) await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
         } catch (error) { toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' }); throw error }

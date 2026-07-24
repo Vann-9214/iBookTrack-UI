@@ -77,6 +77,8 @@ export const scanBookService = async (req, res) => {
       else if (stage === 'qa' || stage === 'endorsement') { updateCols.push(`endorsement_scan_by = $${paramIdx++}`, `endorsement_scan_at = $${paramIdx++}`); updateVals.push(req.user.id, new Date().toISOString()); }
       else { updateCols.push(`warehouse_scan_by = $${paramIdx++}`, `warehouse_scan_at = $${paramIdx++}`); updateVals.push(req.user.id, new Date().toISOString()); }
       
+      updateCols.push(`scan_status = $${paramIdx++}`); updateVals.push(scan_status);
+      
       updateVals.push(existing.id);
       
       const { rows: actRows } = await db.query(
@@ -84,6 +86,12 @@ export const scanBookService = async (req, res) => {
         updateVals
       );
       scanLog = actRows[0];
+      
+      if (existing.scan_status === 'processable' && scan_status === 'non_processable') {
+        await db.query('UPDATE box_sessions SET total_processable_books = GREATEST(0, total_processable_books - 1), total_nonprocessable_books = total_nonprocessable_books + 1 WHERE id = $1', [session_id]);
+      } else if (existing.scan_status === 'non_processable' && scan_status === 'processable') {
+        await db.query('UPDATE box_sessions SET total_processable_books = total_processable_books + 1, total_nonprocessable_books = GREATEST(0, total_nonprocessable_books - 1) WHERE id = $1', [session_id]);
+      }
     } else {
       const { rows: actRows } = await db.query(
         `INSERT INTO book_activity (${actCols.join(',')}) VALUES (${actCols.map((_, i) => `$${i + 1}`).join(',')}) RETURNING id, scan_status, warehouse_scan_by`,
@@ -94,9 +102,10 @@ export const scanBookService = async (req, res) => {
 
     if (rejection_reason || notes) {
       const flagInsert = { book_activity_id: scanLog.id, rejection_reason: rejection_reason || null, notes: notes || null };
-      if (stage === 'inventory') flagInsert.inventory_flag_by = req.user.id;
-      else if (stage === 'qa' || stage === 'endorsement') flagInsert.endorsement_flag_by = req.user.id;
-      else flagInsert.warehouse_flag_by = req.user.id;
+      if (stage === 'inventory') { flagInsert.inventory_flag_by = req.user.id; flagInsert.inventory_flag_at = new Date().toISOString(); }
+      else if (stage === 'qa' || stage === 'endorsement') { flagInsert.endorsement_flag_by = req.user.id; flagInsert.endorsement_flag_at = new Date().toISOString(); }
+      else if (stage === 'scan') { flagInsert.scan_flag_by = req.user.id; flagInsert.scan_flag_at = new Date().toISOString(); }
+      else { flagInsert.warehouse_flag_by = req.user.id; flagInsert.warehouse_flag_at = new Date().toISOString(); }
 
       await db.query(
         `INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`,
@@ -133,9 +142,10 @@ export const flagScanService = async (req, res) => {
     }
 
     const flagInsert = { book_activity_id: existingScan.id, rejection_reason, notes: notes || null };
-    if (stage === 'inventory') flagInsert.inventory_flag_by = req.user.id;
-    else if (stage === 'qa' || stage === 'endorsement') flagInsert.endorsement_flag_by = req.user.id;
-    else flagInsert.warehouse_flag_by = req.user.id;
+    if (stage === 'inventory') { flagInsert.inventory_flag_by = req.user.id; flagInsert.inventory_flag_at = new Date().toISOString(); }
+    else if (stage === 'qa' || stage === 'endorsement') { flagInsert.endorsement_flag_by = req.user.id; flagInsert.endorsement_flag_at = new Date().toISOString(); }
+    else if (stage === 'scan') { flagInsert.scan_flag_by = req.user.id; flagInsert.scan_flag_at = new Date().toISOString(); }
+    else { flagInsert.warehouse_flag_by = req.user.id; flagInsert.warehouse_flag_at = new Date().toISOString(); }
 
     await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
 
@@ -162,7 +172,7 @@ export const flagScanService = async (req, res) => {
 export const tagScanService = async (req, res) => {
   try {
     const { scan_id } = req.params
-    const { status, remarks } = req.body
+    const { status, remarks, rejection_reason, notes: reqNotes, stage: reqStage } = req.body
 
     const { rows: existingRows } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.session_id, ba.book_id, b.isbn 
@@ -174,26 +184,27 @@ export const tagScanService = async (req, res) => {
     const taggedBy = req.user.user_metadata?.full_name || req.user.user_metadata?.name || req.user.email
 
     const { rows: sessRows } = await db.query('SELECT box_id FROM box_sessions WHERE id = $1 LIMIT 1', [existing.session_id]);
-    let stage = 'warehouse';
-    if (sessRows[0]?.box_id) {
+    let stage = reqStage || 'warehouse';
+    if (!reqStage && sessRows[0]?.box_id) {
       const { rows: boxRows } = await db.query('SELECT current_stage FROM boxes WHERE id = $1 LIMIT 1', [sessRows[0].box_id]);
       if (boxRows[0]?.current_stage) stage = boxRows[0].current_stage;
     }
 
     const flagInsert = {
       book_activity_id: existing.id,
-      rejection_reason: remarks.trim(),
-      notes: `Tagged as ${status} by ${taggedBy}`
+      rejection_reason: rejection_reason || (remarks ? remarks.trim() : null),
+      notes: reqNotes || `Tagged as ${status} by ${taggedBy}`
     };
-    if (stage === 'inventory') flagInsert.inventory_flag_by = req.user.id;
-    else if (stage === 'qa' || stage === 'endorsement') flagInsert.endorsement_flag_by = req.user.id;
-    else if (stage === 'scan') flagInsert.scan_flag_by = req.user.id;
-    else flagInsert.warehouse_flag_by = req.user.id;
+    if (stage === 'inventory') { flagInsert.inventory_flag_by = req.user.id; flagInsert.inventory_flag_at = new Date().toISOString(); }
+    else if (stage === 'qa' || stage === 'endorsement') { flagInsert.endorsement_flag_by = req.user.id; flagInsert.endorsement_flag_at = new Date().toISOString(); }
+    else if (stage === 'scan') { flagInsert.scan_flag_by = req.user.id; flagInsert.scan_flag_at = new Date().toISOString(); }
+    else { flagInsert.warehouse_flag_by = req.user.id; flagInsert.warehouse_flag_at = new Date().toISOString(); }
 
     await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
 
-    if (remarks.trim() === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existing.book_id]);
-    if (remarks.trim() === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existing.book_id]);
+    const actualReason = rejection_reason || (remarks ? remarks.trim() : '');
+    if (actualReason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existing.book_id]);
+    if (actualReason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existing.book_id]);
 
     const { rows: updatedRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING *', [status, scan_id]);
     const updated = updatedRows[0];
@@ -230,14 +241,20 @@ export const getBoxScansService = async (req, res) => {
       ORDER BY ba.warehouse_scan_at DESC
     `, [box_id]);
 
-    const warehouseBooks = scans.map(scan => ({
-      id: scan.id,
-      isbn: scan.isbn,
-      title: scan.title,
-      scan_status: scan.scan_status,
-      rejection_reason: scan.rejection_reason || null,
-      warehouse_scan_at: scan.warehouse_scan_at
-    }))
+    const grouped = new Map();
+    for (const scan of scans) {
+      if (!grouped.has(scan.id)) {
+        grouped.set(scan.id, {
+          id: scan.id,
+          isbn: scan.isbn,
+          title: scan.title,
+          scan_status: scan.scan_status,
+          rejection_reason: scan.rejection_reason || null,
+          warehouse_scan_at: scan.warehouse_scan_at
+        });
+      }
+    }
+    const warehouseBooks = Array.from(grouped.values());
 
     res.json({ 
       success: true, 

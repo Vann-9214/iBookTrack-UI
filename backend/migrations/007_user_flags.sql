@@ -11,10 +11,10 @@ CREATE TABLE IF NOT EXISTS public.user_flags (
   inventory_flag_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   endorsement_flag_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   scan_flag_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  warehouse_flag_at TIMESTAMPTZ DEFAULT now(),
+  warehouse_flag_at TIMESTAMPTZ,
   inventory_flag_at TIMESTAMPTZ,
   endorsement_flag_at TIMESTAMPTZ,
-  scan_flag_at TIMESTAMPTZ DEFAULT now()
+  scan_flag_at TIMESTAMPTZ
 );
 
 
