@@ -132,6 +132,7 @@ app.use(cors({
     }
   },
   credentials: true, // Allow cookies / Authorization headers
+  exposedHeaders: ['Retry-After', 'RateLimit-Reset'], // Expose rate limit headers to frontend
 }))
 
 // Make the effective CORS posture visible so misconfiguration is easy to spot.
@@ -146,7 +147,7 @@ logger.info(
 // Individual sensitive routes (login, register) have tighter limits in auth.js.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minute window
-  max: 1000,                 // max requests per IP per window
+  max: 2000,                 // max requests per IP per window
   standardHeaders: true,     // Return limit info in RateLimit-* headers
   legacyHeaders: false,      // Do not send X-RateLimit-* headers
   handler: (req, res, next, options) => {
