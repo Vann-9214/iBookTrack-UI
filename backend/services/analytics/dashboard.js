@@ -380,7 +380,7 @@ export const getPipelineStatsService = async (req) => {
         if (simStatus) {
           if (simStatus.transmissionCompleted) {
             boxGroups[boxId].completed++;
-          } else if (simStatus.latestStatus?.toLowerCase().includes('transmit')) {
+          } else {
             boxGroups[boxId].transmitting++;
           }
         }
