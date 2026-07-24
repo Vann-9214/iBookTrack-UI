@@ -355,11 +355,7 @@ export const getPipelineStatsService = async (req) => {
     stageCountsByType[stage] = { mustang: 0, jaguar: 0, total: 0 };
   });
 
-  const { data: scanBoxes } = await dashboardRepo.getBoxesInScanStage(lotId, selectedBrand ? selectedBrand.charAt(0).toUpperCase() + selectedBrand.slice(1).toLowerCase() : null);
-  const activeBoxIds = [...new Set([
-    ...boxes.filter(b => b.current_stage === 'scan' || b.current_stage === 'transmit').map(b => b.id),
-    ...(scanBoxes || []).map(b => b.id)
-  ])];
+  const activeBoxIds = boxes.filter(b => b.current_stage === 'scan' || b.current_stage === 'transmit').map(b => b.id);
   const boxStateOverrides = {};
 
   let activeTransmitBooks = 0;
@@ -405,9 +401,9 @@ export const getPipelineStatsService = async (req) => {
           boxStateOverrides[boxId] = 'scan';
         }
 
-        const box = boxes.find(b => b.id === boxId) || scanBoxes.find(b => b.id === boxId);
+        const box = boxes.find(b => b.id === boxId);
         const session = box?.box_sessions?.[0];
-        if (box && box.current_stage === 'scan' && session) {
+        if (box && box.current_stage === 'scan' && session?.status === 'received') {
           activeTransmitBooks += group.transmitting;
         }
       }
