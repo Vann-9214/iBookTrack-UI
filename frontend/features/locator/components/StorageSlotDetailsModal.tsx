@@ -97,7 +97,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                 <RoleGuard allowedRoles={['storage']} action="hide">
                   <button
                     onClick={() => { setCapacityInput(String(detailSlot.capacity)); setEditingCapacity(true) }}
-                    className="p-0.5 text-primary bg-primary/10 border-primary/40 border hover:text-foreground hover:bg-foreground/20 hover:border-foreground/40 rounded transition-colors"
+                    className="hidden sm:inline-flex p-0.5 text-primary bg-primary/10 border-primary/40 border hover:text-foreground hover:bg-foreground/20 hover:border-foreground/40 rounded transition-colors"
                     title="Edit capacity"
                   >
                     <Pencil className="h-3 w-3" />
@@ -119,7 +119,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
           <RoleGuard allowedRoles={['storage']} action="hide">
             <button
               onClick={() => { setDetailSlot(null); openAssign(detailSlot) }}
-              className="mb-3 flex items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors w-full"
+              className="hidden sm:flex mb-3 items-center justify-center gap-2 rounded-lg border border-dashed border-primary/50 bg-primary/5 hover:bg-primary/10 py-2.5 text-sm text-primary font-medium transition-colors w-full"
             >
               <Plus className="h-4 w-4" />
               Assign a box to this slot

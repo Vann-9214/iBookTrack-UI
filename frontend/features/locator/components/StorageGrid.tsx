@@ -144,16 +144,102 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-1 sm:grid-cols-[2rem_1px_minmax(0,1fr)_1px_2rem] items-start gap-3">
-              {/* Level controls (hidden on mobile to expand layout) */}
-              <div className="hidden sm:flex flex-col items-start gap-1">
+            {/* Mobile list view (sm:hidden) */}
+            <div className="sm:hidden flex flex-col gap-2 max-h-[460px] overflow-y-auto pr-1">
+              {locations.filter(l => l.shelf === activeSection).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                  <p className="text-xs">No storage slots found in Section {activeSection}</p>
+                </div>
+              ) : (
+                locations
+                  .filter(l => l.shelf === activeSection)
+                  .sort((a, b) => a.rack.localeCompare(b.rack) || a.level - b.level)
+                  .map(loc => {
+                    const used = loc.used ?? 0
+                    const capacity = loc.capacity ?? 20
+                    const pendingCount = loc.assignments.filter(a => a.status === 'pending').length ?? 0
+                    const pct = capacity > 0 ? Math.round((used / capacity) * 100) : 0
+                    const isSuggested = suggestedLocation?.id === loc.id
+                    const isHighlighted = highlightedCells.has(`${loc.rack}-${loc.level}`)
+                    const canFitSelected = capacity - used - pendingCount >= selectedReadyBoxIds.size
+
+                    let badgeBg = "bg-muted text-muted-foreground border-border"
+                    let badgeLabel = "Empty"
+                    if (used > 0) {
+                      if (pct >= 90) {
+                        badgeBg = "bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50"
+                        badgeLabel = `${pct}% full`
+                      } else if (pct >= 70) {
+                        badgeBg = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50"
+                        badgeLabel = `${pct}% full`
+                      } else {
+                        badgeBg = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50"
+                        badgeLabel = `${pct}% full`
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={loc.id || `${loc.rack}-${loc.level}`}
+                        type="button"
+                        onClick={() => {
+                          setDetailSlot(loc)
+                        }}
+                        className={cn(
+                          "w-full rounded-xl border p-3 text-left transition-all flex items-center justify-between gap-3",
+                          isSuggested
+                            ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/40"
+                            : isHighlighted
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                              : "border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/60"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-bold shadow-xs",
+                            brand === 'jaguar'
+                              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                          )}>
+                            {loc.rack}{loc.level}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="truncate text-sm font-semibold text-foreground">
+                                Rack {loc.rack} — Level {loc.level}
+                              </p>
+                              {isSuggested && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500 text-white uppercase tracking-wider animate-pulse">
+                                  Suggested
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {used}/{capacity} boxes stored {pendingCount > 0 ? `(${pendingCount} pending)` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className={cn("px-2 py-1 rounded-md text-[10px] font-bold border shrink-0", badgeBg)}>
+                          {badgeLabel}
+                        </span>
+                      </button>
+                    )
+                  })
+              )}
+            </div>
+
+            {/* Desktop / Tablet 2D spatial grid (hidden sm:grid) */}
+            <div className="hidden sm:grid grid-cols-[2rem_1px_minmax(0,1fr)_1px_2rem] items-start gap-3">
+              {/* Level controls */}
+              <div className="flex flex-col items-start gap-1">
                 <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
                   <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
                       onClick={handleAddLevel}
                       disabled={addingLevel}
                       title="Add level"
-                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
                     >
                       {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
@@ -163,14 +249,14 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       onClick={handleRemoveLevel}
                       disabled={removingLevel || sectionLevels.length <= 1}
                       title={`Remove level ${Math.max(...sectionLevels)}`}
-                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
                     >
                       {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </button>
                   </RoleGuard>
               </div>
 
-              <div className="hidden sm:block h-[5.5rem] bg-border" />
+              <div className="h-[5.5rem] bg-border" />
 
               {/* Rack headers and storage slots */}
               <div className="grid min-w-0 items-center gap-2" style={{ gridTemplateColumns: `1em repeat(${sectionRacks.length}, minmax(0, 1fr))` }}>
@@ -215,10 +301,10 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                 ))}
               </div>
 
-              <div className="hidden sm:block h-[5.5rem] bg-border" />
+              <div className="h-[5.5rem] bg-border" />
 
-              {/* Rack controls (hidden on mobile to expand layout) */}
-              <div className="hidden sm:flex flex-col items-end gap-1">
+              {/* Rack controls */}
+              <div className="flex flex-col items-end gap-1">
                 <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
                   <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
@@ -226,7 +312,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
                       title="Add a new rack"
                       aria-label="Add a new rack"
-                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
                     >
                       {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
@@ -237,7 +323,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       disabled={removingRack || sectionRacks.length <= 1}
                       title={`Remove last rack (${sectionRacks.at(-1)})`}
                       aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
-                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
                     >
                       {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </button>
