@@ -10,29 +10,29 @@ import { z } from 'zod';
 
 export const getBooksSchema = {
   query: z.object({
-    box_id: z.string().optional()
+    box_id: z.string().trim().max(50).optional()
   })
 };
 
 export const searchIlmsBookSchema = {
   params: z.object({
-    isbn: z.string().min(1)
+    isbn: z.string().trim().min(1).max(20)
   })
 };
 
 export const flagBookSchema = {
   params: z.object({
-    id: z.string().min(1)
+    id: z.string().trim().min(1).max(50)
   }),
   body: z.object({
-    issue: z.string().min(1),
-    remarks: z.string().optional(),
-    box_id: z.string().optional()
+    issue: z.string().trim().min(1).max(200),
+    remarks: z.string().trim().max(2000).optional(),
+    box_id: z.string().trim().max(50).optional()
   })
 };
 
 export const removeFlagSchema = {
   params: z.object({
-    id: z.string().min(1)
+    id: z.string().trim().min(1).max(50)
   })
 };

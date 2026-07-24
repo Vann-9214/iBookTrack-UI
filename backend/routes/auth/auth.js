@@ -16,7 +16,7 @@ const router = express.Router();
 // ── Rate limiters ──────────────────────────────────────────
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 50,
+  max: 15,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
@@ -33,6 +33,8 @@ const registerLimiter = rateLimit({
 // ── Routes ──────────────────────────────────────────────────
 router.post('/register', registerLimiter, validateRequest(schemas.registerSchema), controller.register);
 router.post('/login', loginLimiter, validateRequest(schemas.loginSchema), controller.login);
+// DEV-ONLY reset (blocked in production by the service). Rate-limited like login.
+router.post('/reset-password', loginLimiter, validateRequest(schemas.resetPasswordSchema), controller.resetPassword);
 router.post('/logout', controller.logout);
 router.post('/refresh', validateRequest(schemas.refreshSchema), controller.refresh);
 router.post('/password', requireAuth, validateRequest(schemas.passwordSchema), controller.password);

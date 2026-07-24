@@ -77,7 +77,12 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const [mobilePage, setMobilePage] = useState(0)
 
   const scans = useMemo(
-    () => (propScans || fetchedScans).slice(0, 10),
+    () => {
+      const source = propScans || fetchedScans
+      return [...source]
+        .sort((a, b) => new Date(b.Updated || b.ScanDate || 0).getTime() - new Date(a.Updated || a.ScanDate || 0).getTime())
+        .slice(0, 20)
+    },
     [propScans, fetchedScans]
   )
 
@@ -181,7 +186,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[1, 2, 3, 4, 5, 6].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <TableRow key={i} className="border-border/50 hover:bg-transparent">
                     <TableCell><Skeleton className="h-3.5 w-24 sm:w-28 rounded-sm bg-muted-foreground/10" /></TableCell>
                     <TableCell><Skeleton className="h-3.5 w-12 sm:w-16 rounded-sm bg-muted-foreground/10" /></TableCell>
@@ -235,7 +240,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           return (
             <>
               {/* Mobile: 5 rows + prev/next */}
-              <div className="sm:hidden flex flex-col">
+              <div className="sm:hidden flex flex-col max-h-[300px]">
                 <div className="overflow-auto">
                   <Table>
                     {tableHead}
@@ -264,8 +269,8 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
                   </div>
                 )}
               </div>
-              {/* Desktop: full scroll */}
-              <div className="hidden sm:block h-full overflow-auto">
+              {/* Desktop: max-h for scroll */}
+              <div className="hidden sm:block max-h-[300px] overflow-auto">
                 <Table>
                   {tableHead}
                   <TableBody>{renderRows(scans)}</TableBody>

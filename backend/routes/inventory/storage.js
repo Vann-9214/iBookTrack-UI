@@ -12,7 +12,7 @@ import * as controller from '../../controllers/inventory/storage.js';
 
 const router = express.Router();
 
-const requireSupervisor = requireRole([]); // requireRole inherently allows supervisor
+const requireSupervisor = requireRole(['supervisor']);
 const requireStorageAction = requireRole(['storage']);
 
 router.get('/locations', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getLocations);

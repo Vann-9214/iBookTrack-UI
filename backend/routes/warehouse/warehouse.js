@@ -13,15 +13,18 @@ router.post('/sessions/bulk-save', requireAuth, requireRole(OPERATIONAL_ROLES), 
 router.post('/boxes/:box_id/resume-session', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.resumeSessionSchema), controller.resumeSession);
 router.post('/boxes/:box_id/cancel-session', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.cancelSessionSchema), controller.cancelSession);
 router.delete('/sessions/:session_id', requireAuth, requireRole(['supervisor']), controller.deleteSession);
-router.get('/sessions', requireAuth, controller.listSessions);
-router.get('/ilms-lots', requireAuth, controller.getIlmsLots);
-router.get('/box-exists', requireAuth, controller.checkBoxExists);
-router.get('/isbn-stream', requireAuth, controller.isbnStream);
+// Data-returning routes: require an assigned operational role (or supervisor).
+// requireRole(OPERATIONAL_ROLES) blocks role-less/pending-approval accounts,
+// which would otherwise pass requireAuth alone and read warehouse data.
+router.get('/sessions', requireAuth, requireRole(OPERATIONAL_ROLES), controller.listSessions);
+router.get('/ilms-lots', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getIlmsLots);
+router.get('/box-exists', requireAuth, requireRole(OPERATIONAL_ROLES), controller.checkBoxExists);
+router.get('/isbn-stream', requireAuth, requireRole(OPERATIONAL_ROLES), controller.isbnStream);
 router.post('/isbn-stream/query', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.isbnStreamQuerySchema), controller.queryIsbnStream);
-router.get('/search/isbn/:isbn', requireAuth, controller.searchIsbn);
-router.get('/rejected-books', requireAuth, controller.getRejectedBooks);
+router.get('/search/isbn/:isbn', requireAuth, requireRole(OPERATIONAL_ROLES), controller.searchIsbn);
+router.get('/rejected-books', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getRejectedBooks);
 router.patch('/scans/:scan_id/flag', requireAuth, requireRole(OPERATIONAL_ROLES), controller.flagScan);
 router.post('/scans/:scan_id/tag', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.tagScanSchema), controller.tagScan);
-router.get('/boxes/:box_id/scans', requireAuth, controller.getBoxScans);
+router.get('/boxes/:box_id/scans', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getBoxScans);
 
 export default router;

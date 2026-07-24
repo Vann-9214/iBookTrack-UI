@@ -184,7 +184,7 @@ export const getBoxesService = async (req) => {
 
 export const getPipelineTransitionsService = async (req) => {
   const { limit = 50, offset = 0, stage, box_type, search, date_from, date_to } = req.query;
-  const limitNum = Math.min(Math.max(parseInt(limit) || 50, 1), 100);
+  const limitNum = Math.min(Math.max(parseInt(limit) || 50, 1), 50);
   const offsetNum = parseInt(offset);
 
   let lotIds = null;
@@ -395,9 +395,6 @@ export const advanceBoxService = async (req) => {
     }
   }
 
-  const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxStage(id, nextStage);
-  if (updateError) throw updateError;
-
   if (box.current_stage === 'warehouse' && nextStage === 'inventory') {
     await boxesRepo.updateSessionToReceived(id, req.user.id, nextStage);
   }
@@ -443,6 +440,9 @@ export const advanceBoxService = async (req) => {
       await boxesRepo.updateSession(session.id, updates);
     }
   }
+
+  const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxStage(id, nextStage);
+  if (updateError) throw updateError;
 
   return { success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage };
 };

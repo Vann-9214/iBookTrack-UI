@@ -7,9 +7,10 @@ import { Workflow } from "lucide-react"
 
 import { formatPipelineCounts } from "@/features/dashboard/utils/dashboard.helpers"
 
-function getStepStatus(count: number, active?: number) {
-  const effectiveCount = typeof active === 'number' ? active : count
-  if (effectiveCount === 0) return "idle"
+function getStepStatus(step: any) {
+  if (step.displayText === "0") return "idle"
+  const effectiveCount = step.active !== undefined ? Number(step.active) : Number(step.count)
+  if (effectiveCount === 0 || isNaN(effectiveCount)) return "idle"
   return "active"
 }
 
@@ -101,10 +102,10 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     if (step.received && step.received > 0) {
       parts.push({ label: 'Received', value: step.received, colorClass: defaultColorClass })
     }
-    if (normType !== 'warehouse' && normType !== 'cut' && normType !== 'scan' && step.completed && step.completed > 0) {
+    if ((normType === 'inventory' || normType === 'endorsement') && step.completed && step.completed > 0) {
       parts.push({ label: 'Completed', value: step.completed, colorClass: 'text-emerald-500' })
     }
-    if (normType !== 'warehouse' && normType !== 'scan' && step.sent && step.sent > 0) {
+    if ((normType === 'inventory' || normType === 'endorsement' || normType === 'cut') && step.sent && step.sent > 0) {
       parts.push({ label: 'Sent', value: step.sent, colorClass: 'text-purple-600' })
     }
 
@@ -238,7 +239,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Desktop: card layout */}
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.active)
+              const status = getStepStatus(step)
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
@@ -301,7 +302,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
             {pipelineSteps.map((step, i) => {
-              const status = getStepStatus(step.count, step.active)
+              const status = getStepStatus(step)
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>

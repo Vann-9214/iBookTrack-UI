@@ -164,6 +164,26 @@ export async function authRequest({ endpoint, payload }: AuthRequestOptions): Pr
   return responseBody as AuthSuccess
 }
 
+// DEV-ONLY simple password reset (email + new password). The backend rejects
+// this in production, where a proper token-based flow must be used instead.
+export async function resetPassword(email: string, newPassword: string): Promise<{ message?: string; error?: string }> {
+  const response = await fetch(`${getApiBaseUrl()}/api/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, newPassword }),
+    credentials: 'include',
+  })
+
+  if (response.status === 429) handleRateLimitToast(response)
+
+  const isJson = (response.headers.get('content-type') || '').includes('application/json')
+  const body = isJson ? await response.json() : {}
+  if (!response.ok) {
+    throw new Error(body?.error || `Request failed with ${response.status}.`)
+  }
+  return body
+}
+
 // Fetch user profile
 export async function fetchUserProfile(): Promise<{ id: string; name: string; email: string; role?: string | null } | null> {
   try {

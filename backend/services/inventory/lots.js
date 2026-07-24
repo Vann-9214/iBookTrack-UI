@@ -12,7 +12,7 @@ const VALID_LOT_TYPES = ['Mustang', 'Jaguar'];
 
 export const getLotsService = async (req, res) => {
   const { search, limit: rawLimit, offset: rawOffset, type } = req.query;
-  const limit = Math.min(parseInt(rawLimit) || 50, 100);
+  const limit = Math.min(parseInt(rawLimit) || 50, 50);
   const offset = parseInt(rawOffset) || 0;
   const lotType = VALID_LOT_TYPES.includes(type) ? type : null;
 

@@ -1,15 +1,17 @@
-import { query, sql, normalizeStatus, isMonitoredStatus } from './client.js'
+import { query, sql, normalizeStatus, isMonitoredStatus, safeIsbnList } from './client.js'
 import { logger } from '../../../utils/logger.js'
 
 export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
   try {
-    if (!isbns || isbns.length === 0) return { success: true, data: [] }
+    // Allowlist-sanitize before the values reach the query builder.
+    const safeIsbns = safeIsbnList(isbns)
+    if (safeIsbns.length === 0) return { success: true, data: [] }
 
     // Fetch all status rows for these ISBNs across all time (not just today)
     const rows = await query(
       sql`SELECT ISBN, Status, ScanDate, Updated, PageCount, ScanUser, BoxNumber
        FROM zeusz_IsbnStatus
-       WHERE ISBN IN (${isbns})
+       WHERE ISBN IN (${safeIsbns})
        ORDER BY Updated DESC`,
       location
     )
@@ -53,7 +55,7 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
     })
 
     // Ensure every requested ISBN appears in the result (even if not in Scan Manager yet)
-    isbns.forEach(isbn => {
+    safeIsbns.forEach(isbn => {
       if (!byIsbn[isbn]) {
         byIsbn[isbn] = {
           isbn,

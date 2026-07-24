@@ -15,14 +15,20 @@ export const globalErrorHandler = (err, req, res, next) => {
     logger.error(err)
   }
 
-  // Construct standard JSON response
+  // Never leak internal error details to the client on 5xx responses — the raw
+  // message may contain DB/driver internals. Return a generic message and keep
+  // the specifics in the server logs only. Client (4xx) errors keep their
+  // intentional, user-facing message.
+  const isServerError = statusCode >= 500
   const response = {
     success: false,
-    error: err.message || 'An unexpected error occurred.',
+    error: isServerError
+      ? 'An unexpected error occurred.'
+      : (err.message || 'Request could not be processed.'),
   }
 
-  // In development, include stack trace for easier debugging
-  if (process.env.NODE_ENV !== 'production') {
+  // Only include stack trace in explicit development mode
+  if (process.env.NODE_ENV === 'development') {
     response.stack = err.stack
   }
 
@@ -32,6 +38,6 @@ export const globalErrorHandler = (err, req, res, next) => {
 export const notFoundHandler = (req, res, next) => {
   res.status(404).json({
     success: false,
-    error: `API Route not found: ${req.method} ${req.originalUrl}`,
+    error: 'API route not found.',
   })
 }

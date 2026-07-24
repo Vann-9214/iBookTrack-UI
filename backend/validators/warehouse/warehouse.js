@@ -7,12 +7,25 @@
 
 import { z } from 'zod';
 
+// ── Reusable field limits ─────────────────────────────────────────────────────
+// Cap free-text so oversized values can't be stored/processed, and cap arrays so
+// batch operations can't be abused. Elements of book arrays must be objects, but
+// their inner shape stays flexible (passthrough) to avoid breaking existing data.
+const isbn        = z.string().trim().min(1, 'ISBN is required').max(20, 'ISBN is too long');
+const lotNumber   = z.string().trim().min(1, 'lot_number is required').max(50, 'lot_number is too long');
+const boxNumber   = z.string().trim().max(50, 'box_number is too long');
+const shortText   = z.string().trim().max(50).optional().nullable();
+const title       = z.string().trim().max(500).optional().nullable();
+const longText    = z.string().trim().max(2000).optional().nullable();
+const bookRecord  = z.object({}).passthrough();
+const bookArray   = z.array(bookRecord).max(5000, 'Too many books in one request').optional().nullable();
+
 export const startSessionSchema = {
   body: z.object({
-    lot_number: z.string().min(1, 'lot_number is required'),
+    lot_number: lotNumber,
     box_id: z.string().uuid().optional().nullable(),
-    box_number: z.string().optional().nullable(),
-    type: z.string().optional().nullable(),
+    box_number: boxNumber.optional().nullable(),
+    type: shortText,
     force: z.boolean().optional()
   })
 };
@@ -22,12 +35,12 @@ export const scanBookSchema = {
     session_id: z.string().uuid()
   }),
   body: z.object({
-    isbn: z.string().min(1, 'ISBN is required'),
-    title: z.string().optional().nullable(),
-    scan_status: z.string().optional().nullable(),
-    rejection_reason: z.string().optional().nullable(),
-    notes: z.string().optional().nullable(),
-    book_type: z.string().optional().nullable()
+    isbn,
+    title,
+    scan_status: shortText,
+    rejection_reason: longText,
+    notes: longText,
+    book_type: shortText
   })
 };
 
@@ -36,23 +49,23 @@ export const completeSessionSchema = {
     session_id: z.string().uuid()
   }),
   body: z.object({
-    total_expected_books: z.union([z.string(), z.number()]).optional().nullable(),
-    issues: z.array(z.any()).optional().nullable(),
-    stage: z.string().optional().nullable(),
-    book_type: z.string().optional().nullable()
+    total_expected_books: z.union([z.string().max(20), z.number()]).optional().nullable(),
+    issues: bookArray,
+    stage: shortText,
+    book_type: shortText
   })
 };
 
 export const bulkSaveSchema = {
   body: z.object({
-    lot_number: z.string().min(1, 'lot_number is required'),
-    box_number: z.string().min(1, 'box_number is required'),
-    type: z.string().optional().nullable(),
+    lot_number: lotNumber,
+    box_number: boxNumber.min(1, 'box_number is required'),
+    type: shortText,
     force: z.boolean().optional(),
-    total_expected_books: z.union([z.string(), z.number()]).optional().nullable(),
-    issues: z.array(z.any()).optional().nullable(),
-    scanned_books: z.array(z.any()).optional().nullable(),
-    book_type: z.string().optional().nullable()
+    total_expected_books: z.union([z.string().max(20), z.number()]).optional().nullable(),
+    issues: bookArray,
+    scanned_books: bookArray,
+    book_type: shortText
   })
 };
 
@@ -70,8 +83,8 @@ export const cancelSessionSchema = {
 
 export const isbnStreamQuerySchema = {
   body: z.object({
-    isbn: z.string().min(1, 'isbn is required'),
-    type: z.string().optional().nullable(),
+    isbn,
+    type: shortText,
     allowExisting: z.boolean().optional()
   })
 };
@@ -82,6 +95,6 @@ export const tagScanSchema = {
   }),
   body: z.object({
     status: z.enum(['reject', 'non_processable']),
-    remarks: z.string().min(1, 'remarks are required')
+    remarks: z.string().trim().min(1, 'remarks are required').max(2000, 'remarks are too long')
   })
 };

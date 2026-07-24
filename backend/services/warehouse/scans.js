@@ -65,11 +65,32 @@ export const scanBookService = async (req, res) => {
     else if (stage === 'qa' || stage === 'endorsement') { actCols.push('endorsement_scan_by', 'endorsement_scan_at'); actVals.push(req.user.id, new Date().toISOString()); }
     else { actCols.push('warehouse_scan_by', 'warehouse_scan_at'); actVals.push(req.user.id, new Date().toISOString()); }
 
-    const { rows: actRows } = await db.query(
-      `INSERT INTO book_activity (${actCols.join(',')}) VALUES (${actCols.map((_, i) => `$${i + 1}`).join(',')}) RETURNING id, scan_status, warehouse_scan_by`,
-      actVals
-    );
-    const scanLog = actRows[0];
+    let scanLog = null;
+    const { rows: existingActRows } = await db.query('SELECT id, scan_status FROM book_activity WHERE session_id = $1 AND book_id = $2 LIMIT 1', [session_id, bookId]);
+    if (existingActRows.length > 0) {
+      const existing = existingActRows[0];
+      const updateCols = [];
+      const updateVals = [];
+      let paramIdx = 1;
+      
+      if (stage === 'inventory') { updateCols.push(`inventory_scan_by = $${paramIdx++}`, `inventory_scan_at = $${paramIdx++}`); updateVals.push(req.user.id, new Date().toISOString()); }
+      else if (stage === 'qa' || stage === 'endorsement') { updateCols.push(`endorsement_scan_by = $${paramIdx++}`, `endorsement_scan_at = $${paramIdx++}`); updateVals.push(req.user.id, new Date().toISOString()); }
+      else { updateCols.push(`warehouse_scan_by = $${paramIdx++}`, `warehouse_scan_at = $${paramIdx++}`); updateVals.push(req.user.id, new Date().toISOString()); }
+      
+      updateVals.push(existing.id);
+      
+      const { rows: actRows } = await db.query(
+        `UPDATE book_activity SET ${updateCols.join(', ')} WHERE id = $${paramIdx} RETURNING id, scan_status, warehouse_scan_by`,
+        updateVals
+      );
+      scanLog = actRows[0];
+    } else {
+      const { rows: actRows } = await db.query(
+        `INSERT INTO book_activity (${actCols.join(',')}) VALUES (${actCols.map((_, i) => `$${i + 1}`).join(',')}) RETURNING id, scan_status, warehouse_scan_by`,
+        actVals
+      );
+      scanLog = actRows[0];
+    }
 
     if (rejection_reason || notes) {
       const flagInsert = { book_activity_id: scanLog.id, rejection_reason: rejection_reason || null, notes: notes || null };
