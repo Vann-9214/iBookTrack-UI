@@ -1,7 +1,7 @@
 export type DashboardBrand = 'mustang' | 'jaguar'
 
 export type SearchResult = {
-  type: 'isbn' | 'lot'
+  type: 'isbn'
   data: Record<string, any>
   books?: Record<string, any>[]
 }
