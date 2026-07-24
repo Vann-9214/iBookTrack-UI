@@ -32,7 +32,7 @@ export const LocatorSearch: React.FC<LocatorSearchProps> = ({
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Full ISBN, Box [number], or Lot [number]…"
+            placeholder="ISBN, Box #, or Lot #…"
             value={searchValue}
             onChange={e => { setSearchValue(e.target.value); setSearchValidationError(null) }}
             onKeyDown={e => e.key === "Enter" && handleSearch()}
