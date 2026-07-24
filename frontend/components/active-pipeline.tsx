@@ -95,32 +95,70 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     return { count: val, active: val, received: val, completed: undefined, sent: undefined, displayText: formattedText, delayed: 0, mustang: 0, jaguar: 0, isBookStage: false }
   }
 
-  const renderFormattedCounts = (step: any, defaultColorClass: string) => {
+  const getBadgeStyles = (type: 'received' | 'completed' | 'sent' | 'default', brandName: string, isZero: boolean) => {
+    if (isZero) {
+      return 'bg-slate-100/80 text-slate-500 border-slate-200/80 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700/80'
+    }
+    if (type === 'received' || type === 'default') {
+      return brandName === 'jaguar'
+        ? 'bg-emerald-100/80 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/80 shadow-xs'
+        : 'bg-blue-100/80 text-blue-700 border-blue-200/80 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/80 shadow-xs'
+    }
+    if (type === 'completed') {
+      return 'bg-emerald-100/80 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/80 shadow-xs'
+    }
+    if (type === 'sent') {
+      return 'bg-purple-100/80 text-purple-700 border-purple-200/80 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/80 shadow-xs'
+    }
+    return 'bg-slate-100/80 text-slate-500 border-slate-200/80'
+  }
+
+  const renderFormattedCounts = (step: any, defaultColorClass: string, brandName: string) => {
     const normType = step.stage.toLowerCase()
-    const parts: { label: string; value: number; colorClass: string }[] = []
+    const parts: { label: string; value: number; type: 'received' | 'completed' | 'sent' }[] = []
 
     if (step.received && step.received > 0) {
-      parts.push({ label: 'Received', value: step.received, colorClass: defaultColorClass })
+      parts.push({ label: 'Received', value: step.received, type: 'received' })
     }
     if ((normType === 'inventory' || normType === 'endorsement') && step.completed && step.completed > 0) {
-      parts.push({ label: 'Completed', value: step.completed, colorClass: 'text-emerald-500' })
+      parts.push({ label: 'Completed', value: step.completed, type: 'completed' })
     }
     if ((normType === 'inventory' || normType === 'endorsement' || normType === 'cut') && step.sent && step.sent > 0) {
-      parts.push({ label: 'Sent', value: step.sent, colorClass: 'text-purple-600' })
+      parts.push({ label: 'Sent', value: step.sent, type: 'sent' })
     }
 
     if (parts.length === 0) {
-      return <span className={cn("text-lg font-bold leading-tight tabular-nums", defaultColorClass)}>{step.displayText}</span>
+      const val = Number(step.displayText)
+      const isZero = isNaN(val) || val === 0
+      const style = getBadgeStyles('default', brandName, isZero)
+      return (
+        <span className={cn(
+          "inline-flex items-center justify-center min-w-[2rem] px-2.5 py-0.5 rounded-lg border text-sm font-extrabold leading-tight tabular-nums transition-all my-0.5",
+          style
+        )}>
+          {step.displayText}
+        </span>
+      )
     }
 
     return (
-      <span className="flex items-center gap-1.5 text-lg font-bold leading-tight tabular-nums">
-        {parts.map((p, idx) => (
-          <span key={idx} className={p.colorClass} title={`${p.label}: ${p.value}`}>
-            {p.value}
-          </span>
-        ))}
-      </span>
+      <div className="flex flex-wrap items-center justify-center gap-2 my-0.5">
+        {parts.map((p, idx) => {
+          const style = getBadgeStyles(p.type, brandName, false)
+          return (
+            <span
+              key={idx}
+              className={cn(
+                "inline-flex items-center justify-center min-w-[1.75rem] px-2 py-0.5 rounded-md border text-xs sm:text-sm font-extrabold leading-tight tabular-nums transition-all",
+                style
+              )}
+              title={`${p.label}: ${p.value}`}
+            >
+              {p.value}
+            </span>
+          )
+        })}
+      </div>
     )
   }
 
@@ -250,7 +288,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   {/* Card body */}
                   <div className={cn("w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 shadow-sm transition-all duration-200 group-hover/step:shadow-md group-hover/step:-translate-y-0.5", cfg.cardBg)}>
                     <span className="text-xs font-semibold text-gray-600">{step.label}</span>
-                    {renderFormattedCounts(step, cfg.countColor)}
+                    {renderFormattedCounts(step, cfg.countColor, brand)}
                     {step.delayed > 0 && (
                       <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${step.delayed} ${step.isBookStage ? 'books' : 'boxes'} delayed > 1 day`}>
                         <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
@@ -312,7 +350,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   <div className="flex flex-col text-left">
                     <span className="text-sm font-medium text-card-foreground">{step.label}</span>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      {renderFormattedCounts(step, cfg.countColor)}
+                      {renderFormattedCounts(step, cfg.countColor, brand)}
                       <span>{step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
                     </div>
                     {step.delayed > 0 && (

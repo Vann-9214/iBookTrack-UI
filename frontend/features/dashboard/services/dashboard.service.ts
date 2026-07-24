@@ -12,15 +12,22 @@ function withParams(path: string, params: Record<string, string | undefined>) {
 }
 
 async function json(response: Response) {
-  if (!response.ok) throw new Error(`Dashboard request failed with ${response.status}.`)
-  return response.json()
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    return {
+      success: false,
+      status: response.status,
+      message: data?.message || data?.error || `Dashboard request failed with status ${response.status}.`
+    }
+  }
+  return data
 }
 
 export async function fetchDashboardData(brand: DashboardBrand, lotNumber?: string) {
   const [stats, pipeline, boxes, live, scanRows, transmitRows] = await Promise.all([
-    authFetch(withParams('/api/dashboard/stats', { box_type: brand, lot_number: lotNumber })).then(json),
-    authFetch(withParams('/api/dashboard/pipeline-stats', { brand, lot_number: lotNumber })).then(json),
-    authFetch(withParams('/api/boxes', { exclude_assigned_storage: 'true', box_type: brand, lot_number: lotNumber })).then(json),
+    authFetch(withParams('/api/dashboard/stats', { box_type: brand, lot_number: lotNumber })).then(json).catch(() => ({ success: false })),
+    authFetch(withParams('/api/dashboard/pipeline-stats', { brand, lot_number: lotNumber })).then(json).catch(() => ({ success: false })),
+    authFetch(withParams('/api/boxes', { exclude_assigned_storage: 'true', box_type: brand, lot_number: lotNumber })).then(json).catch(() => ({ success: false, boxes: [] })),
     authFetch(withParams('/api/scanning/live', { newProcessOnly: 'true', location: brand })).then(json).catch(() => null),
     authFetch(withParams('/api/scanning/scan-rows', { location: brand })).then(json).catch(() => null),
     authFetch(withParams('/api/scanning/transmit-rows', { location: brand })).then(json).catch(() => null),
