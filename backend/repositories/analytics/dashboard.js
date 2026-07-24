@@ -42,9 +42,9 @@ export const countBoxes = async (lotIds, boxType) => {
 
   try {
     const { rows } = await db.query(query, params);
-    return { data: [{ count: parseInt(rows[0].count, 10) }], error: null };
+    return { count: parseInt(rows[0].count, 10), error: null };
   } catch (error) {
-    return { data: null, error };
+    return { count: 0, error };
   }
 };
 
@@ -65,9 +65,9 @@ export const countBooks = async (lotIds, boxType) => {
 
   try {
     const { rows } = await db.query(query, params);
-    return { data: [{ count: parseInt(rows[0].count, 10) }], error: null };
+    return { count: parseInt(rows[0].count, 10), error: null };
   } catch (error) {
-    return { data: null, error };
+    return { count: 0, error };
   }
 };
 
@@ -81,7 +81,8 @@ export const countUnaccountedBooks = async (startIso, endIso, boxType) => {
     WHERE (
       (uf.warehouse_flag_at >= $1 AND uf.warehouse_flag_at < $2) OR
       (uf.inventory_flag_at >= $1 AND uf.inventory_flag_at < $2) OR
-      (uf.endorsement_flag_at >= $1 AND uf.endorsement_flag_at < $2)
+      (uf.endorsement_flag_at >= $1 AND uf.endorsement_flag_at < $2) OR
+      (uf.scan_flag_at >= $1 AND uf.scan_flag_at < $2)
     )
   `;
   const params = [startIso, endIso];
@@ -92,9 +93,9 @@ export const countUnaccountedBooks = async (startIso, endIso, boxType) => {
 
   try {
     const { rows } = await db.query(query, params);
-    return { data: [{ count: parseInt(rows[0].count, 10) }], error: null };
+    return { count: parseInt(rows[0].count, 10), error: null };
   } catch (error) {
-    return { data: null, error };
+    return { count: 0, error };
   }
 };
 
@@ -146,9 +147,11 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
       uf.warehouse_flag_by, uf.warehouse_flag_at,
       uf.inventory_flag_by, uf.inventory_flag_at,
       uf.endorsement_flag_by, uf.endorsement_flag_at,
+      uf.scan_flag_by, uf.scan_flag_at,
       wu.name as "warehouse_user.name",
       iu.name as "inventory_user.name",
       eu.name as "endorsement_user.name",
+      su.name as "scan_user.name",
       ba.id as "book_activity.id",
       b.isbn as "books.isbn", b.title as "books.title",
       bx.box_number as "boxes.box_number", bx.box_type as "boxes.box_type",
@@ -157,6 +160,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
     LEFT JOIN users wu ON uf.warehouse_flag_by = wu.id
     LEFT JOIN users iu ON uf.inventory_flag_by = iu.id
     LEFT JOIN users eu ON uf.endorsement_flag_by = eu.id
+    LEFT JOIN users su ON uf.scan_flag_by = su.id
     JOIN book_activity ba ON uf.book_activity_id = ba.id
     JOIN books b ON ba.book_id = b.id
     JOIN boxes bx ON b.box_id = bx.id
@@ -178,7 +182,8 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
     query += ` AND (
       (uf.warehouse_flag_at >= $${pIdx} AND uf.warehouse_flag_at < $${pIdx + 1}) OR
       (uf.inventory_flag_at >= $${pIdx} AND uf.inventory_flag_at < $${pIdx + 1}) OR
-      (uf.endorsement_flag_at >= $${pIdx} AND uf.endorsement_flag_at < $${pIdx + 1})
+      (uf.endorsement_flag_at >= $${pIdx} AND uf.endorsement_flag_at < $${pIdx + 1}) OR
+      (uf.scan_flag_at >= $${pIdx} AND uf.scan_flag_at < $${pIdx + 1})
     )`;
     params.push(startIso, endIso);
     pIdx += 2;
@@ -194,7 +199,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
     JOIN books b ON ba.book_id = b.id
     JOIN boxes bx ON b.box_id = bx.id
     WHERE bx.box_type ${boxType ? `= '${boxType}'` : `IN ('Mustang', 'Jaguar')`}
-    ${(startIso && endIso) ? `AND ((uf.warehouse_flag_at >= '${startIso}' AND uf.warehouse_flag_at < '${endIso}') OR (uf.inventory_flag_at >= '${startIso}' AND uf.inventory_flag_at < '${endIso}') OR (uf.endorsement_flag_at >= '${startIso}' AND uf.endorsement_flag_at < '${endIso}'))` : ''}
+    ${(startIso && endIso) ? `AND ((uf.warehouse_flag_at >= '${startIso}' AND uf.warehouse_flag_at < '${endIso}') OR (uf.inventory_flag_at >= '${startIso}' AND uf.inventory_flag_at < '${endIso}') OR (uf.endorsement_flag_at >= '${startIso}' AND uf.endorsement_flag_at < '${endIso}') OR (uf.scan_flag_at >= '${startIso}' AND uf.scan_flag_at < '${endIso}'))` : ''}
   `;
 
   try {
@@ -208,9 +213,11 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
       warehouse_flag_by: r.warehouse_flag_by, warehouse_flag_at: r.warehouse_flag_at,
       inventory_flag_by: r.inventory_flag_by, inventory_flag_at: r.inventory_flag_at,
       endorsement_flag_by: r.endorsement_flag_by, endorsement_flag_at: r.endorsement_flag_at,
+      scan_flag_by: r.scan_flag_by, scan_flag_at: r.scan_flag_at,
       warehouse_user: r['warehouse_user.name'] ? { name: r['warehouse_user.name'] } : null,
       inventory_user: r['inventory_user.name'] ? { name: r['inventory_user.name'] } : null,
       endorsement_user: r['endorsement_user.name'] ? { name: r['endorsement_user.name'] } : null,
+      scan_user: r['scan_user.name'] ? { name: r['scan_user.name'] } : null,
       book_activity: {
         id: r['book_activity.id'],
         books: {

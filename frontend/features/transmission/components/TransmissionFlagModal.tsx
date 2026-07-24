@@ -138,7 +138,7 @@ export function TransmissionFlagModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No.</label>
+            <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No. <span className="text-destructive">*</span></label>
             <textarea
               value={flagRemarks}
               onChange={(e) => setFlagRemarks(e.target.value)}
@@ -163,7 +163,7 @@ export function TransmissionFlagModal({
           <Button
             size="sm"
             onClick={handleFlagSubmit}
-            disabled={flagging || !flagIssue}
+            disabled={flagging || !flagIssue || !flagRemarks.trim()}
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
             {flagging ? 'Saving...' : 'Confirm Flag'}

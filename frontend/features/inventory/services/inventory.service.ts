@@ -89,10 +89,10 @@ export async function saveInventoryScan(
   }).then(json)
 }
 
-export async function tagInventoryScan(scanId: string, remarks: string) {
+export async function tagInventoryScan(scanId: string, rejection_reason: string, notes?: string) {
   return authFetch(`${apiUrl}/api/warehouse/scans/${scanId}/tag`, {
     method: 'POST',
-    body: JSON.stringify({ status: 'non_processable', remarks }),
+    body: JSON.stringify({ status: 'non_processable', rejection_reason, notes, stage: 'inventory' }),
   }).then(json)
 }
 
