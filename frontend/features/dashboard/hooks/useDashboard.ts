@@ -53,7 +53,7 @@ export function useDashboard() {
       if (stats.success) {
         setDashboardStats({
           ...stats.stats,
-          pipelineStages: buildPipelineStages(boxes, transmitBooks),
+          pipelineStages: buildPipelineStages(boxes, pipeline.activeTransmitBooks || 0),
           pipelineToday: pipeline.today,
           dailyTransmitted: Number(simflex?.summary?.completedTransmissions) || 0,
           totalBooks: Number(simflex?.allTimeTotal) || stats.stats.totalBooks,

@@ -102,10 +102,10 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
     if (step.received && step.received > 0) {
       parts.push({ label: 'Received', value: step.received, colorClass: defaultColorClass })
     }
-    if (normType !== 'warehouse' && normType !== 'cut' && normType !== 'scan' && step.completed && step.completed > 0) {
+    if ((normType === 'inventory' || normType === 'endorsement') && step.completed && step.completed > 0) {
       parts.push({ label: 'Completed', value: step.completed, colorClass: 'text-emerald-500' })
     }
-    if (normType !== 'warehouse' && normType !== 'scan' && step.sent && step.sent > 0) {
+    if ((normType === 'inventory' || normType === 'endorsement' || normType === 'cut') && step.sent && step.sent > 0) {
       parts.push({ label: 'Sent', value: step.sent, colorClass: 'text-purple-600' })
     }
 

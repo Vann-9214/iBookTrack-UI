@@ -358,6 +358,7 @@ export const getPipelineStatsService = async (req) => {
   const activeBoxIds = boxes.filter(b => b.current_stage === 'scan' || b.current_stage === 'transmit').map(b => b.id);
   const boxStateOverrides = {};
 
+  let activeTransmitBooks = 0;
   if (activeBoxIds.length > 0) {
     const { data: activities } = await dashboardRepo.getProcessableBookActivitiesForBoxes(activeBoxIds);
 
@@ -399,6 +400,12 @@ export const getPipelineStatsService = async (req) => {
         } else {
           boxStateOverrides[boxId] = 'scan';
         }
+
+        const box = boxes.find(b => b.id === boxId);
+        const session = box?.box_sessions?.[0];
+        if (box && box.current_stage === 'scan' && session?.status === 'received') {
+          activeTransmitBooks += group.transmitting;
+        }
       }
     }
   }
@@ -418,5 +425,5 @@ export const getPipelineStatsService = async (req) => {
     stageCounts[stage] = selectedBrand ? stageCountsByType[stage][selectedBrand] : stageCountsByType[stage].total;
   });
 
-  return { stageCounts, stageCountsByType, today: startIso.split('T')[0] };
+  return { stageCounts, stageCountsByType, activeTransmitBooks, today: startIso.split('T')[0] };
 };
