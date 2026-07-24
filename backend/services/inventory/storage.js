@@ -7,34 +7,34 @@
 import { logger } from '../../utils/logger.js';
 import * as storageRepo from '../../repositories/inventory/storage.js';
 
+const normalizeLocation = (loc) => ({
+  id: loc.id,
+  shelf: loc.shelf,
+  rack: loc.rack,
+  level: loc.level,
+  capacity: loc.capacity,
+  used: (loc.assignments || []).filter(a => (a.status || 'confirmed') === 'confirmed').length,
+  assignments: (loc.assignments || []).map(a => ({
+    assignment_id: a.id,
+    status: a.status || 'confirmed',
+    assigned_at: a.assigned_at,
+    box_id: a.box?.id,
+    box_number: a.box?.box_number,
+    lot_number: a.box?.lot?.lot_number || null,
+    total_books: a.box?.total_expected_books || 0,
+    books: (a.box?.books || [])
+      .flatMap(b => {
+        const processable = (b.scans || []).some(s => s.scan_status === 'processable');
+        return processable ? [{ isbn: b.isbn, title: b.title || `ISBN: ${b.isbn}` }] : [];
+      }),
+  })),
+});
+
 export const getLocationsService = async () => {
   const { data: locations, error } = await storageRepo.getStorageLocationsWithAssignments();
   if (error) throw error;
 
-  const normalized = locations.map(loc => ({
-    id: loc.id,
-    shelf: loc.shelf,
-    rack: loc.rack,
-    level: loc.level,
-    capacity: loc.capacity,
-    used: (loc.assignments || []).filter(a => (a.status || 'confirmed') === 'confirmed').length,
-    assignments: (loc.assignments || []).map(a => ({
-      assignment_id: a.id,
-      status: a.status || 'confirmed',
-      assigned_at: a.assigned_at,
-      box_id: a.box?.id,
-      box_number: a.box?.box_number,
-      lot_number: a.box?.lot?.lot_number || null,
-      total_books: a.box?.total_expected_books || 0,
-      books: (a.box?.books || [])
-        .flatMap(b => {
-          const processable = (b.scans || []).some(s => s.scan_status === 'processable');
-          return processable ? [{ isbn: b.isbn, title: b.title || `ISBN: ${b.isbn}` }] : [];
-        }),
-    })),
-  }));
-
-  return { success: true, locations: normalized };
+  return { success: true, locations: (locations || []).map(normalizeLocation) };
 };
 
 export const provisionLocationsService = async (req) => {
@@ -58,17 +58,7 @@ export const provisionLocationsService = async (req) => {
   const { data, error: fetchError } = await storageRepo.getStorageLocationsWithAssignments();
   if (fetchError) throw fetchError;
 
-  const normalized = (data || []).map(loc => ({
-    id: loc.id,
-    shelf: loc.shelf,
-    rack: loc.rack,
-    level: loc.level,
-    capacity: loc.capacity,
-    used: 0,
-    assignments: [],
-  }));
-
-  return { success: true, locations: normalized };
+  return { success: true, locations: (data || []).map(normalizeLocation) };
 };
 
 export const updateLocationCapacityService = async (req) => {
