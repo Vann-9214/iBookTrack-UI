@@ -78,7 +78,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
               <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 justify-end">
+          <div className="hidden sm:flex items-center gap-1.5 justify-end">
             {totalSections > 1 && (
               <RoleGuard allowedRoles={['storage']} action="hide">
                 <button

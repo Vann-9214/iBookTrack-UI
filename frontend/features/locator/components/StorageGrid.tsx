@@ -107,7 +107,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
               const { totalUsed, totalCap } = getSectionStats(locations, activeSection)
               const pct = totalCap > 0 ? Math.round((totalUsed / totalCap) * 100) : 0
               return totalCap > 0 ? (
-                <p className="text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">{totalUsed}/{totalCap} boxes ({pct}% used)</p>
               ) : null
             })()}
           </div>
@@ -144,16 +144,16 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-[2rem_1px_minmax(0,1fr)_1px_2rem] items-start gap-3">
-              {/* Level controls */}
-              <div className="flex flex-col items-start gap-1">
+            <div className="grid grid-cols-1 sm:grid-cols-[2rem_1px_minmax(0,1fr)_1px_2rem] items-start gap-3">
+              {/* Level controls (hidden on mobile to expand layout) */}
+              <div className="hidden sm:flex flex-col items-start gap-1">
                 <span className="mb-1 text-left text-xs font-medium text-muted-foreground">Level</span>
                   <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
                       onClick={handleAddLevel}
                       disabled={addingLevel}
                       title="Add level"
-                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
                     >
                       {addingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
@@ -163,14 +163,14 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       onClick={handleRemoveLevel}
                       disabled={removingLevel || sectionLevels.length <= 1}
                       title={`Remove level ${Math.max(...sectionLevels)}`}
-                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
                     >
                       {removingLevel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </button>
                   </RoleGuard>
               </div>
 
-              <div className="h-[5.5rem] bg-border" />
+              <div className="hidden sm:block h-[5.5rem] bg-border" />
 
               {/* Rack headers and storage slots */}
               <div className="grid min-w-0 items-center gap-2" style={{ gridTemplateColumns: `1em repeat(${sectionRacks.length}, minmax(0, 1fr))` }}>
@@ -215,10 +215,10 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                 ))}
               </div>
 
-              <div className="h-[5.5rem] bg-border" />
+              <div className="hidden sm:block h-[5.5rem] bg-border" />
 
-              {/* Rack controls */}
-              <div className="flex flex-col items-end gap-1">
+              {/* Rack controls (hidden on mobile to expand layout) */}
+              <div className="hidden sm:flex flex-col items-end gap-1">
                 <span className="mb-1 text-right text-xs font-medium text-muted-foreground">Racks</span>
                   <RoleGuard allowedRoles={['storage']} action="hide">
                     <button
@@ -226,7 +226,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       disabled={addingRack || sectionRacks.length >= RACK_LETTERS.length}
                       title="Add a new rack"
                       aria-label="Add a new rack"
-                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
+                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-primary shadow-sm hover:bg-primary/10 transition-colors disabled:opacity-40"
                     >
                       {addingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     </button>
@@ -237,7 +237,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                       disabled={removingRack || sectionRacks.length <= 1}
                       title={`Remove last rack (${sectionRacks.at(-1)})`}
                       aria-label={`Remove last rack ${sectionRacks.at(-1)}`}
-                      className="flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                      className="hidden sm:flex h-7 w-7 items-center justify-center rounded-md border border-border bg-card text-destructive shadow-sm hover:bg-destructive/10 transition-colors disabled:opacity-40"
                     >
                       {removingRack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                     </button>
