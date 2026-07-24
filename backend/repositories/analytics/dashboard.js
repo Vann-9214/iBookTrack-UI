@@ -311,6 +311,30 @@ export const getProcessedBoxesToday = async (startIso, endIso, lotId, brand) => 
   }
 };
 
+export const getBoxesInScanStage = async (lotId, brand) => {
+  let query = `
+    SELECT b.id, b.current_stage, b.box_type, b.total_expected_books, bs.id as "box_sessions.id"
+    FROM boxes b
+    JOIN box_sessions bs ON bs.box_id = b.id
+    WHERE b.current_stage = 'scan'
+  `;
+  const params = [];
+  let pIdx = 1;
+  if (lotId) { query += ` AND b.lot_id = $${pIdx++}`; params.push(lotId); }
+  if (brand) { query += ` AND b.box_type = $${pIdx++}`; params.push(brand); }
+
+  try {
+    const { rows } = await db.query(query, params);
+    const data = rows.map(r => ({
+      id: r.id, current_stage: r.current_stage, box_type: r.box_type, total_expected_books: r.total_expected_books,
+      box_sessions: [{ id: r['box_sessions.id'] }]
+    }));
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
+
 export const getProcessableBookActivitiesForBoxes = async (boxIds) => {
   if (!boxIds || !boxIds.length) return { data: [], error: null };
   const ph = boxIds.map((_, i) => `$${i + 1}`).join(',');
