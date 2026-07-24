@@ -2,7 +2,6 @@ import React from "react"
 import { StorageLocatorIcon } from "@/components/dashboard-sidebar"
 import { RefreshControl } from "@/components/refresh-control"
 import { PageHeader } from "@/components/page-header"
-import { RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface LocatorHeaderProps {
@@ -36,17 +35,7 @@ export const LocatorHeader: React.FC<LocatorHeaderProps> = ({
       }
       icon={StorageLocatorIcon}
       rightContent={
-        <div className="flex items-center gap-2">
-          <button
-            onClick={refreshLocator}
-            disabled={isRefreshing}
-            className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
-            aria-label="Refresh Locator"
-          >
-            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-          </button>
-          <RefreshControl onRefresh={refreshLocator} refreshing={isRefreshing} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
-        </div>
+        <RefreshControl onRefresh={refreshLocator} refreshing={isRefreshing} lastUpdated={lastUpdated} storageKey="locator" className="hidden sm:flex" />
       }
     />
   )
