@@ -41,14 +41,6 @@ export const scanBookSchema = {
     rejection_reason: longText.optional(),
     notes: longText.optional(),
     book_type: shortText
-  }).refine((data) => {
-    if (data.scan_status === 'non_processable') {
-      return !!data.notes && data.notes.trim().length > 0;
-    }
-    return true;
-  }, {
-    message: "notes are required when book is non_processable",
-    path: ["notes"]
   })
 };
 
