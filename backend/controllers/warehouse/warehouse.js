@@ -15,16 +15,7 @@ import * as boxesService from '../../services/warehouse/boxes.js';
 
 // Start a new warehouse receiving session
 export const startSession = async (req, res) => {
-  try {
-    const result = await sessionsService.startSessionService(req.body, req.user);
-    res.status(201).json(result);
-  } catch (error) {
-    if (error.status) {
-      return res.status(error.status).json(error.payload);
-    }
-    logger.error('Start warehouse session error:', error);
-    res.status(500).json({ error: error.message });
-  }
+  return await sessionsService.startSessionService(req, res);
 }
 
 // Scan a book in the warehouse
@@ -66,6 +57,11 @@ export const listSessions = async (req, res) => {
 // Used to populate the Lot dropdown on the session start screen
 export const getIlmsLots = async (req, res) => {
   return await lotsService.getIlmsLotsService(req, res);
+}
+
+// Paginated warehouse overview: Lots -> Boxes -> latest warehouse session status
+export const getWarehouseOverview = async (req, res) => {
+  return await lotsService.getWarehouseOverviewService(req, res);
 }
 
 // Check whether a box_number already exists within a given lot (and brand/type).

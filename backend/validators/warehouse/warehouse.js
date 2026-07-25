@@ -41,14 +41,6 @@ export const scanBookSchema = {
     rejection_reason: longText.optional(),
     notes: longText.optional(),
     book_type: shortText
-  }).refine((data) => {
-    if (data.scan_status === 'non_processable') {
-      return !!data.notes && data.notes.trim().length > 0;
-    }
-    return true;
-  }, {
-    message: "notes are required when book is non_processable",
-    path: ["notes"]
   })
 };
 
@@ -68,6 +60,7 @@ export const bulkSaveSchema = {
   body: z.object({
     lot_number: lotNumber,
     box_number: boxNumber.min(1, 'box_number is required'),
+    session_id: z.string().uuid().optional().nullable(),
     type: shortText,
     force: z.boolean().optional(),
     total_expected_books: z.union([z.string().max(20), z.number()]).optional().nullable(),

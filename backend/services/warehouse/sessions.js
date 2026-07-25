@@ -1,6 +1,35 @@
 import { db } from '../../config/db.js';
 import { logger } from '../../utils/logger.js';
+import { broadcastEvent } from '../../utils/sse.js';
 
+// ── Warehouse session locking helpers ────────────────────────────────────────
+// A box is "locked" while it has an active warehouse session ('in_progress' or
+// 'delayed'). Only the user who owns the lock may resume/complete it; everyone
+// else is blocked until the session completes or is deleted.
+
+const getActiveWarehouseSession = async (boxId) => {
+  const { rows } = await db.query(`
+    SELECT bs.*, u.name AS user_name
+    FROM box_sessions bs
+    LEFT JOIN users u ON u.id = bs.warehouse_user_received
+    WHERE bs.box_id = $1
+      AND bs.warehouse_user_received IS NOT NULL
+      AND bs.status IN ('in_progress', 'delayed')
+    ORDER BY bs.warehouse_time_received DESC NULLS LAST
+    LIMIT 1
+  `, [boxId]);
+  return rows[0] || null;
+};
+
+const getBoxLockPayload = async (boxId) => {
+  const { rows } = await db.query(`
+    SELECT bx.id AS box_id, bx.box_number, bx.box_type, l.lot_number
+    FROM boxes bx
+    LEFT JOIN lots l ON l.id = bx.lot_id
+    WHERE bx.id = $1 LIMIT 1
+  `, [boxId]);
+  return rows[0] || { box_id: boxId, box_number: null, box_type: null, lot_number: null };
+};
 
 export const startSessionService = async (req, res) => {
   try {
@@ -10,15 +39,20 @@ export const startSessionService = async (req, res) => {
       return res.status(400).json({ error: 'lot_number is required' })
     }
 
-    // Get or create the lot
-    let { rows: lotRows } = await db.query('SELECT * FROM lots WHERE lot_number = $1 LIMIT 1', [lot_number]);
+    const bookType = req.body.type ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase() : null;
+
+    // Get or create the lot (type-aware, matching bulk-save/box-exists resolution)
+    let lotQuery = 'SELECT * FROM lots WHERE lot_number = $1';
+    const lotParams = [lot_number];
+    if (bookType) { lotQuery += ' AND type = $2'; lotParams.push(bookType); }
+    else { lotQuery += ' AND type IS NULL'; }
+    let { rows: lotRows } = await db.query(lotQuery + ' LIMIT 1', lotParams);
     let lot = lotRows[0] || null;
 
     if (!lot) {
-      const type = req.body.type ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase() : 'Mustang';
       const { rows: newLotRows } = await db.query(
         'INSERT INTO lots (lot_number, total_boxes, type) VALUES ($1, 0, $2) RETURNING *',
-        [lot_number, type]
+        [lot_number, bookType]
       );
       lot = newLotRows[0];
     }
@@ -34,11 +68,19 @@ export const startSessionService = async (req, res) => {
 
     if (!assignedBoxId && requestedBoxNumber) {
       const boxName = requestedBoxNumber
-      const { rows: existingBoxRows } = await db.query('SELECT id, total_expected_books, current_stage FROM boxes WHERE lot_id = $1 AND box_number = $2 LIMIT 1', [lot.id, boxName]);
+      let boxQuery = 'SELECT id, total_expected_books, current_stage FROM boxes WHERE lot_id = $1 AND box_number = $2';
+      const boxParams = [lot.id, boxName];
+      if (bookType) { boxQuery += ' AND box_type = $3'; boxParams.push(bookType); }
+      else { boxQuery += ' AND box_type IS NULL'; }
+      const { rows: existingBoxRows } = await db.query(boxQuery + ' LIMIT 1', boxParams);
       const existingBox = existingBoxRows[0] || null;
 
       if (existingBox) {
-        if (!req.body.force) {
+        // Pessimistic lock check happens below (after assignedBoxId is set) so
+        // the owner of an active session can always resume it, even if the
+        // box would normally trigger a duplicate-box conflict.
+        const activeSession = await getActiveWarehouseSession(existingBox.id);
+        if (!activeSession && !req.body.force) {
           if (existingBox.total_expected_books === 0) {
             return res.status(409).json({ 
               error: 'BoxExistsWithZeroBooks', 
@@ -57,7 +99,7 @@ export const startSessionService = async (req, res) => {
       } else {
         const { rows: newBoxRows } = await db.query(
           'INSERT INTO boxes (box_number, lot_id, box_type, current_stage, total_expected_books) VALUES ($1, $2, $3, $4, 0) RETURNING *',
-          [boxName, lot.id, 'processable', 'warehouse']
+          [boxName, lot.id, bookType, 'warehouse']
         );
         assignedBoxId = newBoxRows[0].id;
       }
@@ -67,17 +109,47 @@ export const startSessionService = async (req, res) => {
       return res.status(400).json({ error: 'A valid box is required to start a session.' })
     }
 
-    const { rows: sessionRows } = await db.query(
-      'INSERT INTO box_sessions (box_id, warehouse_user_received, status) VALUES ($1, $2, $3) RETURNING *',
-      [assignedBoxId, req.user.id, 'completed']
-    );
-    const session = sessionRows[0];
+    // ── The Lock: block if another user is actively processing this box ──────
+    const activeSession = await getActiveWarehouseSession(assignedBoxId);
+    if (activeSession && activeSession.warehouse_user_received !== req.user.id) {
+      return res.status(403).json({
+        error: 'BoxInProcess',
+        message: `Box is currently in process by ${activeSession.user_name || 'another user'}.`,
+        locked_by: { user_id: activeSession.warehouse_user_received, user_name: activeSession.user_name || null }
+      })
+    }
+
+    let session;
+    if (activeSession) {
+      // Same user: resume their existing session (refreshes updated_at so the
+      // 20-minute timeout counter restarts and clears any 'delayed' state).
+      const { rows: resumedRows } = await db.query(
+        "UPDATE box_sessions SET status = 'in_progress' WHERE id = $1 RETURNING *",
+        [activeSession.id]
+      );
+      session = resumedRows[0];
+    } else {
+      const { rows: sessionRows } = await db.query(
+        "INSERT INTO box_sessions (box_id, warehouse_user_received, warehouse_time_received, status) VALUES ($1, $2, NOW(), 'in_progress') RETURNING *",
+        [assignedBoxId, req.user.id]
+      );
+      session = sessionRows[0];
+    }
+
+    const lockPayload = await getBoxLockPayload(assignedBoxId);
+    const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1 LIMIT 1', [req.user.id]);
+    broadcastEvent('WAREHOUSE_LOCKED', {
+      ...lockPayload,
+      user_id: req.user.id,
+      user_name: userRows[0]?.name || null,
+      status: 'in_progress'
+    });
 
     res.status(201).json({ 
       session,
       lot_id: lot.id,
       lot_number: lot.lot_number,
-      message: 'Session started with selected box.'
+      message: activeSession ? 'Existing session resumed.' : 'Session started with selected box.'
     })
   } catch (error) {
     logger.error('Start warehouse session error:', error)
@@ -160,6 +232,12 @@ export const completeSessionService = async (req, res) => {
     }
 
     const { rows: updRows } = await db.query("UPDATE box_sessions SET status = 'completed' WHERE id = $1 RETURNING *", [session_id]);
+
+    if (session.box_id) {
+      const lockPayload = await getBoxLockPayload(session.box_id);
+      broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+    }
+
     res.json({ session: updRows[0] })
   } catch (error) {
     logger.error('Complete session error:', error)
@@ -169,7 +247,7 @@ export const completeSessionService = async (req, res) => {
 
 export const bulkSaveSessionService = async (req, res) => {
   try {
-    let { lot_number, box_number, type, force, total_expected_books, issues, scanned_books, book_type } = req.body;
+    let { lot_number, box_number, type, force, total_expected_books, issues, scanned_books, book_type, session_id } = req.body;
     if (book_type) book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
 
     // 1. Resolve Lot
@@ -201,7 +279,16 @@ export const bulkSaveSessionService = async (req, res) => {
 
     const { rows: boxRows } = await db.query(boxQ + ' LIMIT 1', boxP);
     if (boxRows[0]) {
-      if (boxRows[0].total_expected_books > 0) {
+      // The Lock: block completion if another user holds an active session on this box
+      const activeSession = await getActiveWarehouseSession(boxRows[0].id);
+      if (activeSession && activeSession.warehouse_user_received !== req.user.id) {
+        return res.status(403).json({
+          error: 'BoxInProcess',
+          message: `Box is currently in process by ${activeSession.user_name || 'another user'}.`,
+          locked_by: { user_id: activeSession.warehouse_user_received, user_name: activeSession.user_name || null }
+        });
+      }
+      if (!activeSession && boxRows[0].total_expected_books > 0) {
         return res.status(409).json({ error: `Box ${box_number} already exists in ${lot_number}. Please use a different box number.` });
       }
       assignedBoxId = boxRows[0].id;
@@ -215,12 +302,24 @@ export const bulkSaveSessionService = async (req, res) => {
       existingBox = newBoxRows[0];
     }
 
-    // 3. Create Session
-    const { rows: sessRows } = await db.query(`
-      INSERT INTO box_sessions (box_id, warehouse_user_received, warehouse_time_received, status, total_scanned_books, total_processable_books, total_nonprocessable_books)
-      VALUES ($1, $2, NOW(), 'completed', 0, 0, 0) RETURNING *
-    `, [assignedBoxId, req.user.id]);
-    const session = sessRows[0];
+    // 3. Create (or complete) the Session
+    // If the frontend passes the session_id created at session start, transition
+    // that locking session to 'completed' instead of inserting a duplicate.
+    let session = null;
+    if (session_id) {
+      const { rows: lockSessRows } = await db.query(
+        "UPDATE box_sessions SET status = 'completed' WHERE id = $1 AND box_id = $2 RETURNING *",
+        [session_id, assignedBoxId]
+      );
+      session = lockSessRows[0] || null;
+    }
+    if (!session) {
+      const { rows: sessRows } = await db.query(`
+        INSERT INTO box_sessions (box_id, warehouse_user_received, warehouse_time_received, status, total_scanned_books, total_processable_books, total_nonprocessable_books)
+        VALUES ($1, $2, NOW(), 'completed', 0, 0, 0) RETURNING *
+      `, [assignedBoxId, req.user.id]);
+      session = sessRows[0];
+    }
 
     // 4. Save scanned books
     for (const b of (scanned_books || [])) {
@@ -290,6 +389,9 @@ export const bulkSaveSessionService = async (req, res) => {
       await db.query('UPDATE boxes SET total_expected_books = $1 WHERE id = $2', [parseInt(total_expected_books), assignedBoxId]);
     }
 
+    const lockPayload = await getBoxLockPayload(assignedBoxId);
+    broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+
     res.status(201).json({ success: true, session });
   } catch (error) {
     logger.error('Bulk save error:', error);
@@ -335,12 +437,29 @@ export const cancelSessionService = async (req, res) => {
 export const deleteSessionService = async (req, res) => {
   try {
     const { session_id } = req.params
-    const { rows: sessionRows } = await db.query('SELECT box_id FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
+    const { rows: sessionRows } = await db.query('SELECT box_id, warehouse_user_received FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
     
     if (sessionRows[0]) {
+      // Non-supervisors may only delete/reset their own warehouse sessions
+      if (req.user.role !== 'supervisor' && sessionRows[0].warehouse_user_received !== req.user.id) {
+        return res.status(403).json({ error: 'You can only cancel your own sessions.' })
+      }
+
+      const boxId = sessionRows[0].box_id;
+      let lockPayload = null;
+      if (boxId) lockPayload = await getBoxLockPayload(boxId);
+
       await db.query('DELETE FROM box_sessions WHERE id = $1', [session_id]);
-      if (sessionRows[0].box_id) {
-        await db.query('DELETE FROM boxes WHERE id = $1', [sessionRows[0].box_id]);
+      if (boxId) {
+        // Safety rollback: only remove the box if it's still empty — no expected
+        // count set and no books attached — so real boxes are never deleted.
+        await db.query(`
+          DELETE FROM boxes b
+          WHERE b.id = $1
+            AND b.total_expected_books = 0
+            AND NOT EXISTS (SELECT 1 FROM books WHERE box_id = b.id)
+        `, [boxId]);
+        broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
       }
     }
     res.json({ success: true, message: 'Session cancelled' })

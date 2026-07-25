@@ -27,6 +27,7 @@ export function useWarehouseState() {
   const [currentBoxBooks, setCurrentBoxBooks] = useState(0)
   const [bookCounter, setBookCounter] = useState(0)
   const [userName, setUserName] = useState('')
+  const [userId, setUserId] = useState('')
   const [flagModalBook, setFlagModalBook] = useState<ScannedBook | null>(null)
   const [flagIssue, setFlagIssue] = useState('')
   const [flagRemarks, setFlagRemarks] = useState('')
@@ -60,7 +61,7 @@ export function useWarehouseState() {
     sessionError, setSessionError, selectedBox, setSelectedBox, sessionActive, setSessionActive,
     scannedBooks, setScannedBooks, currentSession, setCurrentSession, loading, setLoading,
     isbnLoading, setIsbnLoading, currentBoxNumber, setCurrentBoxNumber, currentBoxBooks, setCurrentBoxBooks,
-    bookCounter, setBookCounter, userName, setUserName, flagModalBook, setFlagModalBook, flagIssue, setFlagIssue,
+    bookCounter, setBookCounter, userName, setUserName, userId, setUserId, flagModalBook, setFlagModalBook, flagIssue, setFlagIssue,
     flagRemarks, setFlagRemarks, flagSaving, setFlagSaving, flagOpen, setFlagOpen, confirmCompleteOpen, setConfirmCompleteOpen,
     confirmResetOpen, setConfirmResetOpen, totalBooksExpected, setTotalBooksExpected, issueIsbn, setIssueIsbn,
     issueType, setIssueType, issues, setIssues, fetchingIssueBook, setFetchingIssueBook,

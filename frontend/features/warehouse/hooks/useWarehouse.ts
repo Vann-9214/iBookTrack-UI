@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { fetchUserProfile, getApiBaseUrl } from '@/lib/auth-api'
 import { useBrand } from '@/hooks/use-brand'
@@ -8,6 +8,7 @@ import { useWarehouseState } from './useWarehouseState'
 import { useWarehouseIsbnStream } from './useWarehouseIsbnStream'
 import { useWarehouseSession } from './useWarehouseSession'
 import { useWarehouseScans } from './useWarehouseScans'
+import { useWarehouseSSE } from './useWarehouseSSE'
 import { fetchLots } from '../services/warehouse.service'
 
 export function useWarehouse() {
@@ -16,12 +17,29 @@ export function useWarehouse() {
   const session = useWarehouseSession(core)
   const scans = useWarehouseScans(core)
   useWarehouseIsbnStream(core.sessionActive)
+  const { lockedWarehouseBoxes } = useWarehouseSSE()
 
   const { toast } = useToast()
   const {
-    setLots, setLotsLoading, setLotsError, setUserName, setLastStatsUpdate,
+    setLots, setLotsLoading, setLotsError, setUserName, setUserId, setLastStatsUpdate,
     setRefreshingStats, sessionActive, currentSessionRef, sessionActiveRef,
   } = core
+
+  // Live lock check: name of the user currently processing the typed lot/box
+  // combination (null when the box is free or locked by the current user).
+  const boxLockedBy = useMemo(() => {
+    const lot = core.activeLot.trim().toLowerCase()
+    const box = core.selectedBox.trim()
+    if (!lot || !box) return null
+    const match = lockedWarehouseBoxes.find((l) =>
+      (l.lot_number || '').trim().toLowerCase() === lot &&
+      (l.box_number || '').trim() === box &&
+      (!brand || (l.box_type || '').toLowerCase() === brand.toLowerCase())
+    )
+    if (!match) return null
+    if (core.userId && match.user_id === core.userId) return null
+    return match.user_name || 'another user'
+  }, [lockedWarehouseBoxes, core.activeLot, core.selectedBox, brand, core.userId])
 
   const loadLots = async () => {
     setLotsLoading(true)
@@ -49,8 +67,11 @@ export function useWarehouse() {
   }
 
   useEffect(() => {
-    fetchUserProfile().then((profile) => profile?.name && setUserName(profile.name))
-  }, [setUserName])
+    fetchUserProfile().then((profile) => {
+      if (profile?.name) setUserName(profile.name)
+      if (profile?.id) setUserId(profile.id)
+    })
+  }, [setUserName, setUserId])
 
   useEffect(() => {
     loadLots()
@@ -80,5 +101,7 @@ export function useWarehouse() {
     ...scans,
     loadLots,
     handleRefreshStats,
+    lockedWarehouseBoxes,
+    boxLockedBy,
   }
 }
