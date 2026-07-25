@@ -27,7 +27,9 @@ export const getQcFlagsSchema = {
     page: z.string().regex(/^\d+$/).optional(),
     limit: z.string().regex(/^\d+$/).optional(),
     today: z.enum(['true', 'false']).optional(),
-    box_type: z.string().optional()
+    box_type: z.string().optional(),
+    from_date: z.string().optional(),
+    to_date: z.string().optional()
   })
 };
 
@@ -49,5 +51,11 @@ export const getPipelineStatsSchema = {
   query: z.object({
     lot_number: z.string().optional(),
     brand: z.string().optional()
+  })
+};
+
+export const resolveQcFlagSchema = {
+  params: z.object({
+    id: z.string().regex(/^\d+$/)
   })
 };

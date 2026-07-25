@@ -7,11 +7,14 @@ import { useBrand } from '@/hooks/use-brand'
 import { cn } from '@/lib/utils'
 import { getApiBaseUrl } from '@/lib/auth-api'
 import { authFetch } from '@/lib/auth-api'
-import { AlertTriangle, AlertOctagon, ScanBarcode, Scissors, X, Loader2, CheckCircle2, TrendingUp, RefreshCw } from 'lucide-react'
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts'
+import { AlertTriangle, AlertOctagon, ScanBarcode, Scissors, X, Loader2, CheckCircle2, TrendingUp, RefreshCw, Download, Calendar as CalendarIcon, PackageX, FileWarning, WifiOff, Check } from 'lucide-react'
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Package, Inbox, FileText, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { format } from 'date-fns'
 import { RefreshControl } from '@/components/refresh-control'
 
@@ -33,23 +36,74 @@ export default function NonProcessablePage() {
   
   const [totalCount, setTotalCount] = useState<number>(0)
   const [issueBreakdown, setIssueBreakdown] = useState({
-    scanning: 0,
-    cut: 0,
-    other: 0
+    damage: 0,
+    mismatch: 0,
+    system: 0
   })
   
+  const [timelineData, setTimelineData] = useState([
+    { name: 'Mon', flags: 0 },
+    { name: 'Tue', flags: 0 },
+    { name: 'Wed', flags: 0 },
+    { name: 'Thu', flags: 0 },
+    { name: 'Fri', flags: 0 },
+    { name: 'Sat', flags: 0 },
+    { name: 'Sun', flags: 0 },
+  ])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  
+  const [fromDateOpen, setFromDateOpen] = useState(false)
+  const [toDateOpen, setToDateOpen] = useState(false)
+  
   const [flags, setFlags] = useState<any[]>([])
+  
+  const [resolvingId, setResolvingId] = useState<number | null>(null)
+  const [modalPage, setModalPage] = useState(1)
   const [structuredLots, setStructuredLots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  const [flagToResolve, setFlagToResolve] = useState<any | null>(null)
   
   // Modal state
   const [selectedCategory, setSelectedCategory] = useState<'Total' | 'Scanning' | 'Cut' | 'Other' | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
+  useEffect(() => {
+    setModalPage(1)
+  }, [selectedCategory])
+
+  const handleResolveClick = (flag: any) => {
+    setFlagToResolve(flag)
+  }
+
+  const resolveFlag = async () => {
+    if (!flagToResolve) return;
+    
+    setResolvingId(flagToResolve.scan_id)
+    try {
+      const res = await authFetch(`${getApiBaseUrl()}/api/dashboard/qc-flags/${flagToResolve.scan_id}/resolve`, {
+        method: 'POST'
+      })
+      if (res.ok) {
+        fetchCounts()
+        setFlagToResolve(null)
+      } else {
+        alert('Failed to resolve flag.')
+      }
+    } catch (e) {
+      alert('An error occurred.')
+    } finally {
+      setResolvingId(null)
+    }
+  }
+
   const fetchCounts = async () => {
     setLoading(true)
     try {
-      const res = await authFetch(`${getApiBaseUrl()}/api/dashboard/qc-flags?page=1&limit=1000&box_type=${brand}`)
+      const dateQuery = (fromDate && toDate) ? `&from_date=${fromDate}&to_date=${toDate}` : ''
+      const res = await authFetch(`${getApiBaseUrl()}/api/dashboard/qc-flags?page=1&limit=1000&box_type=${brand}${dateQuery}`)
       if (res.ok) {
         const data = await res.json()
         setTotalCount(data.total || 0)
@@ -57,17 +111,75 @@ export default function NonProcessablePage() {
         const flagsList = data.flags || []
         setFlags(flagsList)
         
-        let scanning = 0
-        let cut = 0
-        let other = 0
+        let damage = 0
+        let mismatch = 0
+        let system = 0
+        
+        const dateCounts: Record<string, number> = {}
+        const dayCounts: Record<string, number> = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 }
         
         flagsList.forEach((f: any) => {
-          if (f.issue.includes('scanning') || f.issue.includes('barcode')) scanning++
-          else if (f.issue.includes('cut')) cut++
-          else other++
+          const issueStr = (f.issue || '').toLowerCase()
+          if (issueStr.includes('torn') || issueStr.includes('dog-ear') || issueStr.includes('damage') || issueStr.includes('split') || issueStr.includes('bleed') || issueStr.includes('cut')) damage++
+          else if (issueStr.includes('missing') || issueStr.includes('extra') || issueStr.includes('mismatch')) mismatch++
+          else if (issueStr.includes('sync') || issueStr.includes('transmission') || issueStr.includes('system') || issueStr.includes('scanning') || issueStr.includes('barcode')) system++
+          
+          if (f.flagged_at) {
+            const date = new Date(f.flagged_at)
+            const dateKey = format(date, 'yyyy-MM-dd')
+            dateCounts[dateKey] = (dateCounts[dateKey] || 0) + 1
+            
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+            const dayName = days[date.getDay()]
+            dayCounts[dayName]++
+          }
         })
         
-        setIssueBreakdown({ scanning, cut, other })
+        setIssueBreakdown({ damage, mismatch, system })
+        
+        let dynamicTimeline: any[] = []
+        
+        if (!fromDate && !toDate) {
+          dynamicTimeline = [
+            { name: 'Sun', flags: dayCounts['Sun'] },
+            { name: 'Mon', flags: dayCounts['Mon'] },
+            { name: 'Tue', flags: dayCounts['Tue'] },
+            { name: 'Wed', flags: dayCounts['Wed'] },
+            { name: 'Thu', flags: dayCounts['Thu'] },
+            { name: 'Fri', flags: dayCounts['Fri'] },
+            { name: 'Sat', flags: dayCounts['Sat'] },
+          ]
+        } else {
+          const sortedDateKeys = Object.keys(dateCounts).sort((a, b) => a.localeCompare(b))
+          let minDate: Date;
+          let maxDate: Date;
+
+          if (fromDate && toDate) {
+            minDate = new Date(fromDate)
+            maxDate = new Date(toDate)
+          } else if (sortedDateKeys.length > 0) {
+            minDate = new Date(sortedDateKeys[0])
+            maxDate = new Date(sortedDateKeys[sortedDateKeys.length - 1])
+          } else {
+            maxDate = new Date()
+            minDate = new Date()
+            minDate.setDate(minDate.getDate() - 6)
+          }
+
+          const diffTime = Math.abs(maxDate.getTime() - minDate.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+          if (diffDays < 6) {
+              minDate = new Date(maxDate)
+              minDate.setDate(minDate.getDate() - 6)
+          }
+
+          for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+            const k = format(d, 'yyyy-MM-dd')
+            dynamicTimeline.push({ name: format(d, 'MMM dd'), flags: dateCounts[k] || 0 })
+          }
+        }
+        
+        setTimelineData(dynamicTimeline)
 
         // Structure data for accordion
         const lotData: Record<string, any> = {}
@@ -99,7 +211,7 @@ export default function NonProcessablePage() {
 
   useEffect(() => {
     fetchCounts()
-  }, [brand])
+  }, [brand, fromDate, toDate])
 
   const isJaguar = brand === 'jaguar'
   
@@ -144,12 +256,85 @@ export default function NonProcessablePage() {
   const redTone = TONE.redSolid
 
   const displayFlags = selectedCategory === 'Total' ? flags :
-                       selectedCategory === 'Scanning' ? flags.filter(f => f.issue.includes('scanning') || f.issue.includes('barcode')) :
-                       selectedCategory === 'Cut' ? flags.filter(f => f.issue.includes('cut')) :
-                       selectedCategory === 'Other' ? flags.filter(f => !f.issue.includes('scanning') && !f.issue.includes('barcode') && !f.issue.includes('cut')) :
+                       selectedCategory === 'Damage' ? flags.filter(f => {
+                         const s = (f.issue || '').toLowerCase();
+                         return s.includes('torn') || s.includes('dog-ear') || s.includes('damage') || s.includes('split') || s.includes('bleed') || s.includes('cut');
+                       }) :
+                       selectedCategory === 'Mismatch' ? flags.filter(f => {
+                         const s = (f.issue || '').toLowerCase();
+                         return s.includes('missing') || s.includes('extra') || s.includes('mismatch');
+                       }) :
+                       selectedCategory === 'System' ? flags.filter(f => {
+                         const s = (f.issue || '').toLowerCase();
+                         return s.includes('sync') || s.includes('transmission') || s.includes('system') || s.includes('scanning') || s.includes('barcode');
+                       }) :
                        []
 
+  const query = searchQuery.toLowerCase().trim()
+  const filteredLots = structuredLots.map(lot => {
+    if (!query) return lot;
+    
+    let lotMatches = lot.lot_number.toLowerCase().includes(query)
+    
+    const filteredBoxes: Record<string, any> = {}
+    let hasMatchingBoxes = false
+    let totalFilteredFlags = 0
+    
+    Object.values(lot.boxes).forEach((box: any) => {
+      let boxMatches = lotMatches || box.box_number.toLowerCase().includes(query)
+      
+      const matchingFlags = box.flags.filter((f: any) => {
+        return boxMatches || (f.isbn && f.isbn.toLowerCase().includes(query)) || (f.title && f.title.toLowerCase().includes(query))
+      })
+      
+      if (matchingFlags.length > 0) {
+        filteredBoxes[box.box_number] = { ...box, flags: matchingFlags }
+        hasMatchingBoxes = true
+        totalFilteredFlags += matchingFlags.length
+      }
+    })
+    
+    if (hasMatchingBoxes) {
+      return { ...lot, boxes: filteredBoxes, totalFlags: totalFilteredFlags }
+    }
+    
+    return null
+  }).filter(Boolean)
+
   const activeTone = selectedCategory === 'Total' ? TONE.redSolid : TONE.theme
+
+  const exportToCsv = () => {
+    const csvRows = [
+      ['ISBN', 'Title', 'Lot Number', 'Box Number', 'Issue', 'Remarks', 'Flagged By', 'Flagged At']
+    ];
+    
+    filteredLots.forEach((lot: any) => {
+      Object.values(lot.boxes).forEach((box: any) => {
+        box.flags.forEach((f: any) => {
+          csvRows.push([
+            f.isbn || 'Unknown',
+            `"${(f.title || '').replace(/"/g, '""')}"`,
+            lot.lot_number,
+            box.box_number,
+            ISSUE_LABELS[f.issue] || f.issue,
+            `"${(f.remarks || '').replace(/"/g, '""')}"`,
+            `"${(f.flagged_by_name || '').replace(/"/g, '""')}"`,
+            f.flagged_at ? new Date(f.flagged_at).toLocaleString() : ''
+          ]);
+        });
+      });
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const dateRangeStr = (fromDate && toDate) ? `${fromDate}-to-${toDate}` : 'all-time';
+    link.setAttribute("download", `non-processable-${brand}-${dateRangeStr}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
   return (
     <div className={cn('flex h-screen bg-background font-sans', `theme-${brand}`)}>
@@ -191,13 +376,71 @@ export default function NonProcessablePage() {
                   </p>
                 </div>
               </div>
-              <RefreshControl
-                onRefresh={fetchCounts}
-                refreshing={loading}
-                lastUpdated={lastUpdated}
-                storageKey={`non-processable-${brand}`}
-                className="hidden sm:flex"
-              />
+              <div className="flex items-center gap-2 flex-wrap mt-3 sm:mt-0 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">From</span>
+                  <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {fromDate ? format(new Date(fromDate), 'MMM dd, yyyy') : 'Pick date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={fromDate ? new Date(fromDate) : undefined}
+                        onSelect={(date) => {
+                          setFromDate(date ? format(date, 'yyyy-MM-dd') : '')
+                          setFromDateOpen(false)
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">To</span>
+                  <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                        {toDate ? format(new Date(toDate), 'MMM dd, yyyy') : 'Pick date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={toDate ? new Date(toDate) : undefined}
+                        onSelect={(date) => {
+                          setToDate(date ? format(date, 'yyyy-MM-dd') : '')
+                          setToDateOpen(false)
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={exportToCsv} 
+                  disabled={filteredLots.length === 0} 
+                  className="gap-1.5 h-8"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Export</span>
+                </Button>
+
+                <RefreshControl
+                  onRefresh={fetchCounts}
+                  refreshing={loading}
+                  lastUpdated={lastUpdated}
+                  storageKey={`non-processable-${brand}`}
+                  className="hidden sm:flex"
+                />
+              </div>
             </header>
 
             {/* KPI Cards */}
@@ -218,116 +461,164 @@ export default function NonProcessablePage() {
                 <div className={cn("relative text-xs font-medium", redTone.sub)}>Needs review</div>
               </div>
 
-              {/* Scanning Issues (Dynamic) */}
-              <div onClick={() => setSelectedCategory('Scanning')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
+              {/* Physical Damage */}
+              <div onClick={() => setSelectedCategory('Damage')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
                 <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
                 <div className="relative flex items-start justify-between mb-3">
                   <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", dynamicTone.icon)}>
-                    <ScanBarcode className="h-6 w-6" />
+                    <FileWarning className="h-6 w-6" />
                   </div>
                   <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", dynamicTone.value)}>
-                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.scanning.toLocaleString()}
+                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.damage.toLocaleString()}
                   </div>
                 </div>
-                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Scanning / Barcode</div>
-                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>System errors</div>
+                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Physical Damage</div>
+                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Torn / Cut / Split</div>
               </div>
 
-              {/* Cut Issues (Dynamic) */}
-              <div onClick={() => setSelectedCategory('Cut')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
+              {/* Inventory Mismatch */}
+              <div onClick={() => setSelectedCategory('Mismatch')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
                 <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
                 <div className="relative flex items-start justify-between mb-3">
                   <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", dynamicTone.icon)}>
-                    <Scissors className="h-6 w-6" />
+                    <PackageX className="h-6 w-6" />
                   </div>
                   <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", dynamicTone.value)}>
-                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.cut.toLocaleString()}
+                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.mismatch.toLocaleString()}
                   </div>
                 </div>
-                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Cut Quality</div>
-                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Misaligned / Split</div>
+                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Inventory Mismatch</div>
+                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Missing or Extra</div>
               </div>
 
-              {/* Other Issues (Dynamic) */}
-              <div onClick={() => setSelectedCategory('Other')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
+              {/* System & Sync */}
+              <div onClick={() => setSelectedCategory('System')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
                 <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
                 <div className="relative flex items-start justify-between mb-3">
                   <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", dynamicTone.icon)}>
-                    <AlertTriangle className="h-6 w-6" />
+                    <WifiOff className="h-6 w-6" />
                   </div>
                   <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", dynamicTone.value)}>
-                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.other.toLocaleString()}
+                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.system.toLocaleString()}
                   </div>
                 </div>
-                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Other Issues</div>
-                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Transmission / Physical</div>
+                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>System & Sync</div>
+                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Transmission / Scanner</div>
               </div>
 
             </div>
 
-            {/* Timeline Graph */}
-            <div className={cn("rounded-2xl border p-5 shadow-sm ring-1 flex flex-col h-96 mt-2 transition-colors duration-300", dynamicTone.card)}>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h3 className="font-bold tracking-tight text-gray-800 flex items-center gap-2 mb-1">
-                    Weekly Timeline
-                  </h3>
-                  <p className="text-xs text-gray-500">Non-processable items flagged from Monday to Sunday</p>
-                </div>
-                <div className={cn("flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg", isJaguar ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50" : "bg-blue-50 text-blue-700 ring-1 ring-blue-200/50")}>
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  Past 7 Days
-                </div>
-              </div>
+            {/* Charts Row Container */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 shrink-0 mt-2">
               
-              <div className="flex-1 w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={[
-                    { name: 'Mon', flags: 42 },
-                    { name: 'Tue', flags: 38 },
-                    { name: 'Wed', flags: 55 },
-                    { name: 'Thu', flags: 48 },
-                    { name: 'Fri', flags: totalCount > 0 ? totalCount : 62 },
-                    { name: 'Sat', flags: 25 },
-                    { name: 'Sun', flags: 15 },
-                  ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorFlags" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={isJaguar ? '#10b981' : '#3b82f6'} stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor={isJaguar ? '#10b981' : '#3b82f6'} stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }}
-                      dy={10}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }}
-                    />
-                    <RechartsTooltip 
-                      contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      itemStyle={{ color: '#1f2937', fontWeight: 600 }}
-                      labelStyle={{ color: '#6b7280', fontWeight: 500, marginBottom: '4px' }}
-                      cursor={{ stroke: isJaguar ? '#10b981' : '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="flags" 
-                      stroke={isJaguar ? '#10b981' : '#3b82f6'} 
-                      strokeWidth={3}
-                      fillOpacity={1} 
-                      fill="url(#colorFlags)" 
-                      activeDot={{ r: 6, strokeWidth: 0, fill: isJaguar ? '#10b981' : '#3b82f6' }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+              {/* Timeline Graph */}
+              <div className={cn("rounded-2xl border p-5 shadow-sm ring-1 flex flex-col h-96 transition-colors duration-300 lg:col-span-2 bg-white", dynamicTone.card)}>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold tracking-tight text-gray-800 flex items-center gap-2 mb-1">
+                      Timeline
+                    </h3>
+                    <p className="text-xs text-gray-500">Non-processable items flagged over time</p>
+                  </div>
+                  <div className={cn("flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg bg-white shadow-sm", isJaguar ? "text-emerald-700 ring-1 ring-emerald-200/50" : "text-blue-700 ring-1 ring-blue-200/50")}>
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    Selected Period
+                  </div>
+                </div>
+                
+                <div className="flex-1 w-full min-h-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorFlags" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={isJaguar ? '#10b981' : '#3b82f6'} stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor={isJaguar ? '#10b981' : '#3b82f6'} stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                      <XAxis 
+                        dataKey="name" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }}
+                        dy={10}
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }}
+                        allowDecimals={false}
+                      />
+                      <RechartsTooltip 
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        itemStyle={{ color: '#1f2937', fontWeight: 600 }}
+                        labelStyle={{ color: '#6b7280', fontWeight: 500, marginBottom: '4px' }}
+                        cursor={{ stroke: isJaguar ? '#10b981' : '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="flags" 
+                        stroke={isJaguar ? '#10b981' : '#3b82f6'} 
+                        strokeWidth={3}
+                        fillOpacity={1} 
+                        fill="url(#colorFlags)" 
+                        activeDot={{ r: 6, strokeWidth: 0, fill: isJaguar ? '#10b981' : '#3b82f6' }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
+
+              {/* Top 5 Worst Lots Graph */}
+              <div className={cn("rounded-2xl border p-5 shadow-sm ring-1 flex flex-col h-96 transition-colors duration-300 lg:col-span-1 bg-white", dynamicTone.card)}>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="font-bold tracking-tight text-gray-800 flex items-center gap-2 mb-1">
+                      Worst Lots
+                    </h3>
+                    <p className="text-xs text-gray-500">Top 5 by flag count</p>
+                  </div>
+                  <div className={cn("flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg bg-white shadow-sm", "text-red-700 ring-1 ring-red-200/50")}>
+                    Top 5
+                  </div>
+                </div>
+                
+                <div className="flex-1 w-full min-h-0 relative">
+                  {structuredLots.length === 0 && !loading ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 mb-3 opacity-80">
+                        <Check className="h-6 w-6 text-white stroke-[3]" />
+                      </div>
+                      <span className="font-medium text-gray-600 text-sm">No worst lots found</span>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full -ml-5">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={structuredLots.slice(0, 5).map(l => ({ name: l.lot_number, flags: l.totalFlags }))} layout="vertical" margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f3f4f6" />
+                          <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }} allowDecimals={false} />
+                          <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6b7280', fontWeight: 600 }} width={90} />
+                          <RechartsTooltip 
+                            contentStyle={{ borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            itemStyle={{ color: '#1f2937', fontWeight: 600 }}
+                            labelStyle={{ color: '#6b7280', fontWeight: 500, marginBottom: '4px' }}
+                            cursor={{ fill: '#f3f4f6', opacity: 0.4 }}
+                          />
+                          <Bar dataKey="flags" radius={[0, 4, 4, 0]} barSize={24}>
+                            {
+                              structuredLots.slice(0, 5).map((entry, index) => {
+                                const heatGradient = ['#7f1d1d', '#991b1b', '#b91c1c', '#dc2626', '#ef4444'];
+                                return <Cell key={`cell-${index}`} fill={heatGradient[index] || '#f87171'} />
+                              })
+                            }
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
 
             {/* Hierarchical Lots & Boxes Accordion Container */}
@@ -351,15 +642,17 @@ export default function NonProcessablePage() {
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input 
-                    placeholder="Search ISBN or box..." 
+                    placeholder="Search ISBN, box, lot or title..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full sm:w-64 pl-9 h-9 bg-white border-gray-200 text-sm rounded-lg shadow-sm focus-visible:ring-blue-500"
                   />
                 </div>
               </div>
 
-              <div className={cn("p-5", structuredLots.length > 4 && "max-h-[28rem] overflow-y-auto")}>
+              <div className={cn("p-5", filteredLots.length > 4 && "max-h-[28rem] overflow-y-auto")}>
                 <Accordion type="multiple" className="w-full space-y-3">
-                {structuredLots.map(lot => (
+                {filteredLots.map((lot: any) => (
                   <AccordionItem key={lot.lot_number} value={lot.lot_number} className={cn("border rounded-2xl bg-white overflow-hidden shadow-sm transition-all data-[state=open]:shadow-md", dynamicTone.card)}>
                     <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-black/5 transition-colors">
                        <div className="flex justify-between items-center w-full pr-4">
@@ -401,7 +694,16 @@ export default function NonProcessablePage() {
                                          <span className="bg-red-50 text-red-700 ring-1 ring-red-200/60 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
                                            {ISSUE_LABELS[f.issue] || f.issue}
                                          </span>
-                                         <span className="text-[10px] font-medium text-gray-400">by {f.flagged_by_name || 'System'}</span>
+                                         <div className="flex items-center gap-2">
+                                           <span className="text-[10px] font-medium text-gray-400">by {f.flagged_by_name || 'System'}</span>
+                                           <button 
+                                             onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
+                                             disabled={resolvingId === f.scan_id}
+                                             className="text-[10px] text-emerald-600 font-bold hover:underline disabled:opacity-50"
+                                           >
+                                             {resolvingId === f.scan_id ? 'Resolving...' : 'Resolve'}
+                                           </button>
+                                         </div>
                                        </div>
                                      </div>
                                    ))}
@@ -413,10 +715,21 @@ export default function NonProcessablePage() {
                     </AccordionContent>
                   </AccordionItem>
                 ))}
-                {structuredLots.length === 0 && !loading && (
+                {filteredLots.length === 0 && !loading && (
                   <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-                    <CheckCircle2 className="h-10 w-10 text-emerald-500 opacity-50 mb-3" />
-                    <span className="font-medium text-gray-600">No problem lots found</span>
+                    {searchQuery ? (
+                      <>
+                        <Search className="h-10 w-10 text-gray-300 mb-3" />
+                        <span className="font-medium text-gray-600">No results found for "{searchQuery}"</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 mb-3 opacity-80">
+                          <Check className="h-6 w-6 text-white stroke-[3]" />
+                        </div>
+                        <span className="font-medium text-gray-600">No problem lots found</span>
+                      </>
+                    )}
                   </div>
                 )}
               </Accordion>
@@ -436,9 +749,9 @@ export default function NonProcessablePage() {
             <div className={cn("px-6 py-5 flex items-center justify-between", activeTone.modalBg)}>
               <div className="flex items-center gap-3">
                 <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg", activeTone.modalIcon)}>
-                  {selectedCategory === 'Scanning' ? <ScanBarcode className="h-5 w-5" /> :
-                   selectedCategory === 'Cut' ? <Scissors className="h-5 w-5" /> :
-                   selectedCategory === 'Other' ? <AlertTriangle className="h-5 w-5" /> :
+                  {selectedCategory === 'Damage' ? <FileWarning className="h-5 w-5" /> :
+                   selectedCategory === 'Mismatch' ? <PackageX className="h-5 w-5" /> :
+                   selectedCategory === 'System' ? <WifiOff className="h-5 w-5" /> :
                    <AlertOctagon className="h-5 w-5" />}
                 </div>
                 <div>
@@ -478,11 +791,12 @@ export default function NonProcessablePage() {
                 <table className="w-full text-sm table-fixed border-separate border-spacing-y-1">
                   <colgroup>
                     <col className="w-10" />
-                    <col className="w-36" />
+                    <col className="w-32" />
                     <col className="hidden sm:table-column" />
-                    <col className="w-28" />
-                    <col className="w-52" />
-                    <col className="w-36" />
+                    <col className="w-24" />
+                    <col className="w-48" />
+                    <col className="w-32" />
+                    <col className="w-24" />
                   </colgroup>
                   <thead className="sticky top-0 bg-white z-10 shadow-[0_-12px_0_0_white]">
                     <tr>
@@ -492,12 +806,13 @@ export default function NonProcessablePage() {
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Lot &amp; Box</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Issue</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Flagged By</th>
+                      <th className="text-right py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {displayFlags.map((f, i) => (
+                    {displayFlags.slice((modalPage - 1) * 20, modalPage * 20).map((f, i) => (
                       <tr key={`${f.scan_id}-${i}`} className={cn("bg-gray-50/60 transition-colors align-middle [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl", selectedCategory === 'Total' ? 'hover:bg-red-50/50' : isJaguar ? 'hover:bg-emerald-50/50' : 'hover:bg-blue-50/50')}>
-                        <td className="py-2 px-3 text-xs font-medium text-gray-400 align-middle">{i + 1}</td>
+                        <td className="py-2 px-3 text-xs font-medium text-gray-400 align-middle">{(modalPage - 1) * 20 + i + 1}</td>
                         <td className="py-2 px-3 font-mono text-xs font-semibold text-gray-800 truncate align-middle">{f.isbn}</td>
                         <td className="hidden sm:table-cell py-2 px-3 text-gray-600 truncate align-middle">{f.title || '—'}</td>
                         <td className="text-xs px-3 py-2 align-middle whitespace-nowrap">
@@ -522,6 +837,15 @@ export default function NonProcessablePage() {
                             <span className="truncate text-gray-700 font-medium">{f.flagged_by_name || '—'}</span>
                           </div>
                         </td>
+                        <td className="py-2 px-3 align-middle text-right">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }}
+                            disabled={resolvingId === f.scan_id}
+                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded transition-colors disabled:opacity-50"
+                          >
+                            {resolvingId === f.scan_id ? '...' : 'Resolve'}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -530,9 +854,72 @@ export default function NonProcessablePage() {
             )}
             
             <div className="border-t border-gray-100 px-6 py-3 text-xs text-gray-500 font-medium shrink-0 flex items-center justify-between bg-gray-50/50">
-              <span>Showing {displayFlags.length} items</span>
+              <span>Showing {Math.min(displayFlags.length, (modalPage - 1) * 20 + (displayFlags.length > 0 ? 1 : 0))} - {Math.min(displayFlags.length, modalPage * 20)} of {displayFlags.length} items</span>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setModalPage(p => Math.max(1, p - 1))}
+                  disabled={modalPage === 1}
+                  className="px-2.5 py-1 bg-white border rounded shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+                >
+                  Prev
+                </button>
+                <span className="font-semibold px-2">{modalPage}</span>
+                <button 
+                  onClick={() => setModalPage(p => Math.min(Math.ceil(displayFlags.length / 20), p + 1))}
+                  disabled={modalPage >= Math.ceil(displayFlags.length / 20) || displayFlags.length === 0}
+                  className="px-2.5 py-1 bg-white border rounded shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700"
+                >
+                  Next
+                </button>
+              </div>
             </div>
             
+          </div>
+        </div>
+      )}
+
+      {/* Resolve Confirmation Modal */}
+      {flagToResolve && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setFlagToResolve(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-in" onClick={e => e.stopPropagation()}>
+            <div className={cn("px-6 py-5 flex items-center gap-3", activeTone.modalBg)}>
+              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg", activeTone.modalIcon)}>
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold tracking-tight text-gray-800">Resolve Issue</h3>
+                <p className="text-xs text-gray-500 font-medium">ISBN: {flagToResolve.isbn || 'Unknown'}</p>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                Are you sure you want to mark this item as resolved? It will be removed from the Non-Processable queue.
+              </p>
+              
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
+                <div className="grid grid-cols-2 gap-y-2 text-sm">
+                  <div className="text-gray-500">Box Number:</div>
+                  <div className="font-medium text-gray-800 text-right">{flagToResolve.assigned_box?.box_number || '-'}</div>
+                  <div className="text-gray-500">Issue Type:</div>
+                  <div className="font-medium text-gray-800 text-right">{ISSUE_LABELS[flagToResolve.issue] || flagToResolve.issue}</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-end gap-3">
+                <Button variant="outline" onClick={() => setFlagToResolve(null)} className="h-10 px-5 rounded-xl text-gray-600 hover:text-gray-800 font-semibold" disabled={resolvingId === flagToResolve.scan_id}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={resolveFlag} 
+                  disabled={resolvingId === flagToResolve.scan_id}
+                  className={cn("h-10 px-6 rounded-xl text-white font-semibold shadow-sm transition-all", isJaguar ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700")}
+                >
+                  {resolvingId === flagToResolve.scan_id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                  {resolvingId === flagToResolve.scan_id ? 'Resolving...' : 'Confirm Resolve'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
