@@ -91,10 +91,10 @@ export function NonProcessableModals({
                   <colgroup>
                     <col className="w-10" />
                     <col className="w-32" />
-                    <col className="hidden sm:table-column" />
-                    <col className="w-24" />
-                    <col className="w-48" />
+                    <col className="w-auto" />
                     <col className="w-32" />
+                    <col className="w-48" />
+                    <col className="w-48" />
                   </colgroup>
                   <thead className="sticky top-0 bg-white z-10 shadow-[0_-12px_0_0_white]">
                     <tr>
@@ -123,15 +123,21 @@ export function NonProcessableModals({
                             <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap ring-1", selectedCategory === 'Total' ? 'bg-red-100 text-red-700 ring-red-200/60' : isJaguar ? 'bg-emerald-100 text-emerald-700 ring-emerald-200/60' : 'bg-blue-100 text-blue-700 ring-blue-200/60')}>
                               {ISSUE_LABELS[f.issue] || f.issue}
                             </span>
-                            {f.remarks && <span className="text-[11px] text-gray-400 italic truncate" title={f.remarks}>“{f.remarks}”</span>}
                           </div>
                         </td>
                         <td className="py-2 px-3 align-middle">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold uppercase ring-1", selectedCategory === 'Total' ? 'bg-red-100 text-red-600 ring-red-200/60' : isJaguar ? 'bg-emerald-100 text-emerald-600 ring-emerald-200/60' : 'bg-blue-100 text-blue-600 ring-blue-200/60')}>
-                              {(f.flagged_by_name || '—').split(/\s+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('') || '?'}
-                            </span>
-                            <span className="truncate text-gray-700 font-medium">{f.flagged_by_name || '—'}</span>
+                          <div className="flex items-center justify-between min-w-0">
+                            <div className="flex items-center gap-2 min-w-0 pr-2">
+                              <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold uppercase ring-1", selectedCategory === 'Total' ? 'bg-red-100 text-red-600 ring-red-200/60' : isJaguar ? 'bg-emerald-100 text-emerald-600 ring-emerald-200/60' : 'bg-blue-100 text-blue-600 ring-blue-200/60')}>
+                                {(f.flagged_by_name || '—').split(/\s+/).filter(Boolean).slice(0, 2).map((w: string) => w[0]).join('') || '?'}
+                              </span>
+                              <span className="truncate text-gray-700 font-medium">{f.flagged_by_name || '—'}</span>
+                            </div>
+                            {f.flagged_at && (
+                              <span className="text-[10px] text-gray-400 whitespace-nowrap hidden md:block">
+                                {new Date(f.flagged_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            )}
                           </div>
                         </td>
                       </tr>
