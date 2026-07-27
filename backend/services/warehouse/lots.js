@@ -31,7 +31,10 @@ export const getWarehouseOverviewService = async (req, res) => {
     
     if (search) {
       params.push(`%${search}%`);
-      where = where ? `${where} AND l.lot_number ILIKE $${params.length}` : `WHERE l.lot_number ILIKE $${params.length}`;
+      const searchClause = `(l.lot_number ILIKE $${params.length} OR EXISTS (
+        SELECT 1 FROM boxes b WHERE b.lot_id = l.id AND b.box_number ILIKE $${params.length}
+      ))`;
+      where = where ? `${where} AND ${searchClause}` : `WHERE ${searchClause}`;
     }
 
     if (status) {
@@ -77,16 +80,39 @@ export const getWarehouseOverviewService = async (req, res) => {
             WHERE bs.box_id = b.id AND bs.warehouse_user_received IS NOT NULL
             ORDER BY bs.warehouse_time_received DESC NULLS LAST
             LIMIT 1
-          ) AS session_id
+          ) AS session_id,
+          (
+            SELECT u.name FROM box_sessions bs
+            LEFT JOIN users u ON u.id = bs.warehouse_user_received
+            WHERE bs.box_id = b.id AND bs.warehouse_user_received IS NOT NULL
+            ORDER BY bs.warehouse_time_received DESC NULLS LAST
+            LIMIT 1
+          ) AS last_touched_by
         FROM boxes b
         WHERE b.lot_id = ANY($1)
         ORDER BY b.box_number ASC
       `, [lotIds]);
 
+      // Create a map of lot ID to lot_number for filtering
+      const lotMap = lots.reduce((acc, l) => {
+        acc[l.id] = l.lot_number;
+        return acc;
+      }, {});
+
       boxesByLot = boxes.reduce((acc, b) => {
         if (status && b.status !== status) {
           return acc;
         }
+        
+        // If searching, and the lot doesn't match the search, filter the boxes
+        if (search) {
+          const lotMatches = lotMap[b.lot_id]?.toLowerCase().includes(search.toLowerCase());
+          const boxMatches = b.box_number?.toLowerCase().includes(search.toLowerCase());
+          if (!lotMatches && !boxMatches) {
+            return acc; // skip this box
+          }
+        }
+
         (acc[b.lot_id] = acc[b.lot_id] || []).push({
           id: b.id,
           box_number: b.box_number,
@@ -94,6 +120,7 @@ export const getWarehouseOverviewService = async (req, res) => {
           total_expected_books: b.total_expected_books,
           status: b.status || null,
           session_id: b.session_id || null,
+          last_touched_by: b.last_touched_by || null,
         });
         return acc;
       }, {});
@@ -105,7 +132,7 @@ export const getWarehouseOverviewService = async (req, res) => {
         id: l.id,
         lot_number: l.lot_number,
         type: l.type,
-        total_boxes: (boxesByLot[l.id] || []).length,
+        total_boxes: (boxesByLot[l.id] || []).length, // Update total_boxes based on filtered results
         boxes: boxesByLot[l.id] || [],
       })),
       pagination: { currentPage: page, totalPages, totalItems },

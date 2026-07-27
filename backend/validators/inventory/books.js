@@ -26,7 +26,7 @@ export const flagBookSchema = {
   }),
   body: z.object({
     issue: z.string().trim().min(1).max(200),
-    remarks: z.string().trim().max(2000).optional(),
+    remarks: z.string().trim().max(1000).optional(),
     box_id: z.string().trim().max(50).optional()
   })
 };

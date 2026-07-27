@@ -508,7 +508,6 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                             <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700 whitespace-nowrap ring-1 ring-red-200/60">
                               {ISSUE_LABELS[f.issue] || f.issue}
                             </span>
-                            {f.remarks && <span className="text-[11px] text-gray-400 italic truncate">“{f.remarks}”</span>}
                           </div>
                         </td>
                         <td className="py-2 px-3 align-middle">

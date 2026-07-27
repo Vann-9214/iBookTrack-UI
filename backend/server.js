@@ -162,7 +162,7 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter)
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '16kb' }))
+app.use(express.json({ limit: '10mb' }))
 app.use(cookieParser())
 
 // ── Root health-check ─────────────────────────────────────────────────────────

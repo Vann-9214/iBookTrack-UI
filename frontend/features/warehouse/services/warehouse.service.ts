@@ -94,6 +94,7 @@ export interface OverviewBox {
   total_expected_books: number
   status: 'in_progress' | 'delayed' | 'completed' | null
   session_id?: string | null
+  last_touched_by?: string | null
 }
 
 export interface OverviewLot {
