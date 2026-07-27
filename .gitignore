@@ -69,3 +69,4 @@ turbo.json.local
 # Agent & codebase memory (local only)
 AGENTS.md
 .codebase-memory/
+.agent/

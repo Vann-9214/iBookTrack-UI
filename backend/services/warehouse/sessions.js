@@ -1,6 +1,7 @@
 import { db } from '../../config/db.js';
 import { logger } from '../../utils/logger.js';
 import { broadcastEvent } from '../../utils/sse.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 // ── Warehouse session locking helpers ────────────────────────────────────────
 // A box is "locked" while it has an active warehouse session ('in_progress' or
@@ -33,6 +34,9 @@ const getBoxLockPayload = async (boxId) => {
 
 export const startSessionService = async (req, res) => {
   try {
+    // Mark any in_progress sessions older than 30 min as delayed before lock checks
+    await runWarehouseTimeoutSweep();
+
     const { lot_number, box_id, box_number: requestedBoxNumber } = req.body
 
     if (!lot_number) {

@@ -9,7 +9,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 const isProd = process.env.NODE_ENV === 'production';
-const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'strict' };
+const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'lax' };
 
 const getMillisecondsUntilMidnight = () => {
   const now = new Date();
@@ -211,9 +211,79 @@ export const updateProfileService = async (req, res) => {
 
 // Innodata SSO functions omitted for brevity unless needed
 export const innodataService = async (req, res) => {
-  throw { status: 501, payload: { error: 'SSO not implemented yet for vanilla Postgres' } };
+  const authUrl = new URL(process.env.OAUTH_AUTHORIZE_URL);
+  authUrl.searchParams.append('client_id', process.env.OAUTH_CLIENT_ID);
+  authUrl.searchParams.append('redirect_uri', process.env.OAUTH_REDIRECT_URI);
+  authUrl.searchParams.append('response_type', 'code');
+  authUrl.searchParams.append('scope', 'openid email profile');
+  return authUrl.toString();
 };
 
 export const innodataCallbackService = async (req, res) => {
-  throw { status: 501, payload: { error: 'SSO not implemented yet for vanilla Postgres' } };
+  const { code } = req.query;
+  if (!code) throw { status: 400, payload: { error: 'Authorization code is missing.' } };
+
+  try {
+    // 1. Exchange code for access token
+    const basicAuth = Buffer.from(`${process.env.OAUTH_CLIENT_ID}:${process.env.OAUTH_CLIENT_SECRET}`).toString('base64');
+    const tokenResponse = await fetch(process.env.OAUTH_TOKEN_URL, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basicAuth}`
+      },
+      body: new URLSearchParams({
+        redirect_uri: process.env.OAUTH_REDIRECT_URI,
+        grant_type: 'authorization_code',
+        code,
+      }),
+    });
+    
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      throw new Error(`Failed to get access token: ${errorText}`);
+    }
+    
+    const tokenData = await tokenResponse.json();
+
+    // 2. Get user info
+    const userResponse = await fetch(process.env.OAUTH_USERINFO_URL, {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    
+    if (!userResponse.ok) {
+      const errorText = await userResponse.text();
+      throw new Error(`Failed to get user info: ${errorText}`);
+    }
+    
+    const userData = await userResponse.json();
+
+    // 3. Find or create user in DB
+    const email = userData.email || userData.upn || userData.username || userData.sub;
+    const name = userData.name || userData.given_name || (email ? email.split('@')[0] : 'SSO User');
+    
+    if (!email) throw new Error('Email not provided by SSO provider');
+
+    let user = await authRepo.getUserByEmail(email);
+    if (!user) {
+      // Create user with dummy password since they use SSO
+      const dummyPassword = await bcrypt.hash(Math.random().toString(36), 10);
+      user = await authRepo.createUser(name, email, dummyPassword, null);
+    }
+
+    // 4. Generate token and set cookie
+    const msUntilMidnight = getMillisecondsUntilMidnight();
+    const token = generateToken(user, Math.floor(msUntilMidnight / 1000));
+    res.cookie('access_token', token, { ...cookieOpts, maxAge: msUntilMidnight });
+
+    // 5. Redirect to frontend
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) throw new Error('FRONTEND_URL environment variable is missing.');
+    return frontendUrl;
+  } catch (error) {
+    console.error('SSO error details:', error);
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) throw new Error('FRONTEND_URL environment variable is missing.');
+    return `${frontendUrl}/login?error=${encodeURIComponent('SSO Authentication failed: ' + error.message)}`;
+  }
 };
