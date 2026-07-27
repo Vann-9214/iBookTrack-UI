@@ -59,11 +59,11 @@ export async function syncBoxWithSimflex(box) {
       return { advanced: false, newStage: 'scan', message: `Still Transmitting (${doneCount}/${isbns.length} ISBNs done)` }
       
     } else if (box.current_stage === 'scan' && allCompleted) {
-      // All ISBNs fully transmitted — box is done!
-      // NOTE: We do NOT auto-advance to 'storage' here. The operator must physically
-      // put the box on a shelf and manually assign a storage locator to transfer it.
-      logger.info(`[Scan Sync] ✅ Box ${box.box_number}: all ${isbns.length} done. Ready for storage assignment.`)
-      return { advanced: false, newStage: 'scan', message: `All ${isbns.length} ISBNs fully transmitted. Box is ready to be assigned a storage locator.` }
+      // All processable ISBNs fully transmitted — box is done!
+      // Auto-advance the box to the 'storage' stage so it appears in the Storage card in Checkpoints.
+      await db.query(`UPDATE boxes SET current_stage = 'storage', updated_at = NOW() WHERE id = $1`, [box.id]);
+      logger.info(`[Scan Sync] ✅ Box ${box.box_number}: all ${isbns.length} done. Advanced to storage assignment.`)
+      return { advanced: true, newStage: 'storage', message: `All ${isbns.length} processable ISBNs fully transmitted. Box advanced to Storage.` }
     }
 
     return { advanced: false, newStage: box.current_stage, message: 'No stage advancement needed.' }

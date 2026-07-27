@@ -4,6 +4,7 @@ import {
   fetchLiveScanCounts,
   fetchScanRows,
   fetchTransmitRows,
+  checkSimflexForBox,
 } from '../services/checkpoints.service'
 import { hasDataChanged, STAGE_ORDER } from '../utils/checkpoints.helpers'
 import type { BoxItem, Stage } from '../types/checkpoints.types'
@@ -56,6 +57,29 @@ export function useCheckpointBoxes(brand: string) {
       }
 
       setLastUpdated(new Date())
+
+      // Auto-sync boxes in 'scan' stage with Simflex
+      const scanBoxesToSync = boxData.boxes?.filter((b: BoxItem) => b.current_stage === 'scan' && !b.is_fully_completed_in_simflex) || []
+      if (scanBoxesToSync.length > 0) {
+        let needsRefresh = false
+        await Promise.allSettled(
+          scanBoxesToSync.map(async (box: BoxItem) => {
+            try {
+              const res = await checkSimflexForBox(box.id)
+              if (res.autoAdvanced) needsRefresh = true
+            } catch (e) {
+              // ignore sync errors in background
+            }
+          })
+        )
+        if (needsRefresh) {
+          const newBoxData = await fetchBoxes(brand)
+          if (newBoxData.boxes) {
+            setBoxes(newBoxData.boxes)
+            prevBoxesRef.current = newBoxData.boxes
+          }
+        }
+      }
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
