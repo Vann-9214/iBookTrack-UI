@@ -225,14 +225,14 @@ export const innodataCallbackService = async (req, res) => {
 
   try {
     // 1. Exchange code for access token
-    const basicAuth = Buffer.from(`${process.env.OAUTH_CLIENT_ID}:${process.env.OAUTH_CLIENT_SECRET}`).toString('base64');
     const tokenResponse = await fetch(process.env.OAUTH_TOKEN_URL, {
       method: 'POST',
       headers: { 
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${basicAuth}`
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
+        client_id: process.env.OAUTH_CLIENT_ID,
+        client_secret: process.env.OAUTH_CLIENT_SECRET,
         redirect_uri: process.env.OAUTH_REDIRECT_URI,
         grant_type: 'authorization_code',
         code,
