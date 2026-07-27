@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Pagination } from '@/components/common/Pagination'
 import { usePagination } from '@/hooks/usePagination'
 import { fetchWarehouseOverview, deleteSession, type OverviewLot } from '../services/warehouse.service'
-import { AlertTriangle, Boxes, CheckCircle2, ChevronRight, Hash, Inbox, Loader2, Package, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { AlertTriangle, Boxes, CheckCircle2, ChevronRight, Hash, Inbox, Loader2, Package, Search, Trash2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { useUser } from '@/hooks/use-user'
@@ -50,9 +50,15 @@ interface WarehouseLotsOverviewProps {
   brand: string
   /** Any changing value (e.g. the live lock list) that should trigger a background refetch. */
   refreshKey?: unknown
+  /** Any changing value (e.g. manual refresh) that should trigger a foreground refetch (skeleton). */
+  refreshTrigger?: unknown
+  /** Unified loading state from parent. */
+  unifiedLoading?: boolean
+  /** Callback to notify parent of local loading state. */
+  setOverviewLoading?: (loading: boolean) => void
 }
 
-export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOverviewProps) {
+export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifiedLoading, setOverviewLoading }: WarehouseLotsOverviewProps) {
   const [lots, setLots] = useState<OverviewLot[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -62,12 +68,17 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
   const [boxPage, setBoxPage] = useState(1)
   const [lotSearchInput, setLotSearchInput] = useState('')
   const [debouncedLotSearch, setDebouncedLotSearch] = useState('')
-  const [boxSearch, setBoxSearch] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const pagination = usePagination({ totalItems, defaultPageSize: 10 })
   const { user } = useUser()
   const { toast } = useToast()
   const firstLoadRef = useRef(true)
+
+  const displayLoading = unifiedLoading !== undefined ? unifiedLoading : loading
+
+  useEffect(() => {
+    setOverviewLoading?.(loading)
+  }, [loading, setOverviewLoading])
 
   const handleDeleteSession = async (sessionId: string) => {
     if (!confirm('Are you sure you want to cancel and delete this delayed session?')) return
@@ -103,93 +114,110 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
     return () => clearTimeout(timer)
   }, [lotSearchInput])
 
+  const loadRef = useRef(load)
+  useEffect(() => {
+    loadRef.current = load
+  }, [load])
+
   useEffect(() => {
     if (firstLoadRef.current) return
     pagination.goToPage(1)
-    load(1, pagination.pageSize, false)
-  }, [debouncedLotSearch, activeTab])
+    loadRef.current(1, pagination.pageSize, false)
+  }, [debouncedLotSearch, activeTab, brand])
 
   useEffect(() => {
     setExpandedLot(null)
-    load(pagination.currentPage, pagination.pageSize, !firstLoadRef.current)
+    loadRef.current(pagination.currentPage, pagination.pageSize, !firstLoadRef.current)
     firstLoadRef.current = false
-  }, [pagination.currentPage, pagination.pageSize, load])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.currentPage, pagination.pageSize])
 
   // Background refetch when live lock events arrive, so statuses stay current
   // without the user needing to press refresh.
   useEffect(() => {
     if (firstLoadRef.current) return
-    const timer = setTimeout(() => load(pagination.currentPage, pagination.pageSize, true), 400)
+    const timer = setTimeout(() => loadRef.current(pagination.currentPage, pagination.pageSize, true), 400)
     return () => clearTimeout(timer)
   }, [refreshKey])
+
+  // Foreground refetch (skeleton) on manual refresh button
+  useEffect(() => {
+    if (firstLoadRef.current) return
+    if (refreshTrigger) {
+      loadRef.current(1, pagination.pageSize, false) // also reset to page 1 on manual refresh
+    }
+  }, [refreshTrigger])
 
   const toggleLot = (lotId: string) => {
     setExpandedLot((prev) => {
       if (prev === lotId) return null
       setBoxPage(1)
-      setBoxSearch('')
       return lotId
     })
   }
 
+  const isJaguar = brand === 'jaguar'
+  const cardTheme = isJaguar
+    ? 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/20 border-emerald-200/50 ring-emerald-100/50'
+    : 'bg-gradient-to-br from-blue-50/50 to-indigo-100/20 border-blue-200/50 ring-blue-100/50'
+  const iconTheme = isJaguar
+    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
+    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+  const headerTextTheme = isJaguar ? 'text-emerald-950/80' : 'text-blue-950/80'
+  const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
+
   return (
-    <div className="bg-card border border-border rounded-2xl shadow-sm ring-1 ring-black/5 overflow-hidden flex flex-col">
+    <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col transition-all duration-300", cardTheme)}>
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/20 blur-2xl" />
       {/* Header */}
-      <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="relative flex items-center justify-between px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-sm">
+        <div className="flex items-center gap-2.5">
           <div className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm',
-            brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-blue-500 to-indigo-600'
+            'flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg',
+            iconTheme
           )}>
             <Boxes className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-[15px] font-bold tracking-tight text-foreground leading-none">Lots &amp; Boxes</p>
-            <p className="text-xs font-medium text-muted-foreground mt-1">
+            <p className={cn("text-[15px] font-black tracking-tight leading-none", headerTextTheme)}>Lots & Boxes</p>
+            <p className={cn("text-[11.5px] font-medium mt-0.5", subTextTheme)}>
               Received inventory and warehouse session status
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="relative hidden sm:block mr-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+        <div className="flex items-center gap-2">
+          <div className="relative hidden sm:block">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground/60" />
             <Input 
-              placeholder="Search lots..." 
+              placeholder="Search lots or boxes..." 
               value={lotSearchInput} 
               onChange={e => setLotSearchInput(e.target.value)}
-              className="w-56 h-9 pl-9 text-xs bg-muted/40 border-transparent shadow-none focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all rounded-lg"
+              disabled={displayLoading}
+              className="w-48 h-8 pl-8 text-xs bg-white/70 backdrop-blur-sm border-transparent shadow-sm focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all rounded-lg disabled:opacity-50"
             />
           </div>
-          {loading ? (
-            <Skeleton className="h-6 w-16 rounded-full bg-muted-foreground/15" />
+          {displayLoading ? (
+            <Skeleton className="h-6 w-14 rounded-md bg-black/5" />
           ) : (
             <Badge variant="outline" className={cn(
-              'bg-background text-[11px] font-bold px-2.5 whitespace-nowrap',
-              brand === 'jaguar' ? 'border-green-200 text-green-700' : 'border-blue-200 text-blue-700'
+              'bg-white/80 backdrop-blur-sm text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap shadow-sm border-transparent',
+              brand === 'jaguar' ? 'text-emerald-700 ring-1 ring-emerald-200' : 'text-blue-700 ring-1 ring-blue-200'
             )}>
               {totalItems} lots
             </Badge>
           )}
-          <button
-            onClick={() => load(pagination.currentPage, pagination.pageSize, true)}
-            disabled={loading || refreshing}
-            className="flex items-center justify-center w-8 h-8 rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
-            aria-label="Refresh lots overview"
-          >
-            <RefreshCw className={cn('h-3.5 w-3.5', (loading || refreshing) && 'animate-spin')} />
-          </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="px-5 sm:px-6 py-2 border-b shrink-0 flex items-center justify-between">
-        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); setBoxSearch(''); }}>
-          <TabsList className="bg-muted/40 border ring-1 ring-black/5">
-            <TabsTrigger value="all" className="text-xs">All Lots</TabsTrigger>
-            <TabsTrigger value="in_progress" className="text-xs">
+      <div className="relative px-4 sm:px-5 py-2 border-b border-black/5 shrink-0 flex items-center justify-between bg-white/20 backdrop-blur-sm">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
+          <TabsList className={cn("bg-white/60 backdrop-blur-md border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
+            <TabsTrigger disabled={displayLoading} value="all" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">All Lots</TabsTrigger>
+            <TabsTrigger disabled={displayLoading} value="in_progress" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
               In Progress
             </TabsTrigger>
-            <TabsTrigger value="delayed" className="text-xs">
+            <TabsTrigger disabled={displayLoading} value="delayed" className="text-[11px] px-2.5 py-1">
               Delayed
             </TabsTrigger>
           </TabsList>
@@ -197,161 +225,178 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
       </div>
 
       {/* Table header */}
-      {!loading && !error && lots.length > 0 && (
-        <div className="grid grid-cols-12 gap-4 px-5 sm:px-6 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
-          <div className="col-span-1"></div>
+      {!error && (
+        <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center", isJaguar ? "bg-emerald-50/50 text-emerald-800/70" : "bg-blue-50/50 text-blue-800/70")}>
+          <div className="col-span-1 flex justify-start"><Hash className="h-2.5 w-2.5" /></div>
           <div className="col-span-5 sm:col-span-4">Lot Number</div>
           <div className="col-span-3 sm:col-span-4 text-center">Boxes</div>
-          <div className="col-span-3 text-right pr-2">Actions</div>
+          <div className="col-span-3 text-right pr-1">Actions</div>
         </div>
       )}
 
       {/* Body */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {loading ? (
-          <div className="divide-y divide-border/50">
+        {displayLoading ? (
+          <div className="divide-y divide-border/40">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="grid grid-cols-12 gap-4 items-center px-5 sm:px-6 py-3.5">
-                <div className="col-span-1"><Skeleton className="h-8 w-8 rounded-lg bg-muted-foreground/8" /></div>
-                <div className="col-span-5 sm:col-span-4"><Skeleton className="h-4 w-24 rounded bg-muted-foreground/8" /></div>
-                <div className="col-span-3 sm:col-span-4 flex justify-center"><Skeleton className="h-5 w-14 rounded-full bg-muted-foreground/8" /></div>
-                <div className="col-span-3 flex justify-end"><Skeleton className="h-4 w-4 rounded bg-muted-foreground/8" /></div>
+              <div key={i} className="grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5">
+                <div className="col-span-1 flex justify-start"><Skeleton className="h-3 w-3 rounded-sm bg-black/5" /></div>
+                <div className="col-span-5 sm:col-span-4"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
+                <div className="col-span-3 sm:col-span-4 flex justify-center"><Skeleton className="h-5 w-12 rounded-md bg-black/5" /></div>
+                <div className="col-span-3 flex justify-end items-center gap-1.5 pr-1">
+                  <span className="text-[10px] font-medium text-muted-foreground/40 hidden sm:inline">Expand</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
+                </div>
               </div>
             ))}
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-destructive/70" />
+          <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
+            <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-destructive/70" />
             </div>
             <p className="text-sm font-bold text-foreground">Couldn&apos;t load lots</p>
             <p className="text-xs text-muted-foreground max-w-sm">{error}</p>
           </div>
         ) : lots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-              <Inbox className="h-6 w-6 text-muted-foreground/50" />
+          <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <Inbox className="h-5 w-5 text-muted-foreground/50" />
             </div>
             <p className="text-sm font-bold text-foreground">No lots yet</p>
             <p className="text-xs text-muted-foreground max-w-sm">Lots will appear here as soon as a warehouse receiving session is started.</p>
           </div>
         ) : (
           <div className="divide-y divide-border/40">
-            {lots.map((lot) => {
+            {lots.map((lot, idx) => {
               const expanded = expandedLot === lot.id
-              const filteredBoxes = boxSearch
-                ? lot.boxes.filter(b => b.box_number.toLowerCase().includes(boxSearch.toLowerCase()))
-                : lot.boxes
               const boxPageSize = 10
-              const totalBoxPages = Math.max(1, Math.ceil(filteredBoxes.length / boxPageSize))
-              const displayedBoxes = filteredBoxes.slice((boxPage - 1) * boxPageSize, boxPage * boxPageSize)
+              const totalBoxPages = Math.max(1, Math.ceil(lot.boxes.length / boxPageSize))
+              const displayedBoxes = lot.boxes.slice((boxPage - 1) * boxPageSize, boxPage * boxPageSize)
+              const absoluteLotIndex = (pagination.currentPage - 1) * pagination.pageSize + idx + 1
               
               return (
-                <div key={lot.id}>
+                <div key={lot.id} className={cn("transition-colors", expanded ? "bg-white/60" : "")}>
                   {/* Lot row */}
                   <button
                     onClick={() => toggleLot(lot.id)}
                     className={cn(
-                      'w-full grid grid-cols-12 gap-4 items-center px-5 sm:px-6 py-3 text-left transition-all duration-150 group',
-                      expanded ? 'bg-primary/[0.03]' : 'hover:bg-muted/40'
+                      'w-full grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5 text-left transition-all duration-150 group',
+                      expanded
+                        ? isJaguar 
+                          ? 'bg-gradient-to-r from-emerald-500/80 to-green-600/80 shadow-sm backdrop-blur-md' 
+                          : 'bg-gradient-to-r from-blue-500/80 to-indigo-600/80 shadow-sm backdrop-blur-md'
+                        : 'hover:bg-white/40'
                     )}
                     aria-expanded={expanded}
                   >
-                    {/* Icon */}
-                    <div className="col-span-1">
-                      <div className={cn(
-                        "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
-                        expanded
-                          ? (brand === 'jaguar' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600')
-                          : 'bg-muted/60 text-muted-foreground group-hover:bg-muted'
-                      )}>
-                        <Package className="h-4 w-4" />
-                      </div>
+                    {/* Index */}
+                    <div className="col-span-1 flex justify-start items-center">
+                      <span className={cn("text-[11px] font-black tabular-nums transition-colors", expanded ? "text-white/90" : isJaguar ? "text-emerald-500" : "text-blue-500")}>#{absoluteLotIndex}</span>
                     </div>
 
                     {/* Lot name */}
                     <div className="col-span-5 sm:col-span-4 min-w-0">
-                      <span className="text-sm font-bold text-foreground truncate block">
+                      <span className={cn("text-[13px] font-bold truncate block transition-colors", expanded ? "text-white" : "text-gray-800 group-hover:text-black")}>
                         {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
                       </span>
                     </div>
 
                     {/* Box count */}
                     <div className="col-span-3 sm:col-span-4 flex justify-center">
-                      <Badge variant="outline" className="border-border bg-muted/40 text-muted-foreground text-[11px] font-bold">
+                      <Badge variant="outline" className={cn(
+                        "text-[10px] font-bold py-0 h-5 shadow-sm transition-colors",
+                        expanded 
+                          ? "bg-white/20 border-white/20 text-white" 
+                          : cn("bg-white/60 text-gray-600 border-black/5", isJaguar ? "group-hover:text-emerald-700 group-hover:border-emerald-200" : "group-hover:text-blue-700 group-hover:border-blue-200")
+                      )}>
                         {lot.total_boxes} {lot.total_boxes === 1 ? 'box' : 'boxes'}
                       </Badge>
                     </div>
 
                     {/* Expand chevron */}
-                    <div className="col-span-3 flex justify-end items-center gap-2 pr-1">
-                      <span className="text-[11px] font-medium text-muted-foreground hidden sm:inline">
+                    <div className="col-span-3 flex justify-end items-center gap-1.5 pr-1">
+                      <span className={cn("text-[10px] font-medium hidden sm:inline transition-colors", expanded ? "text-white/80" : "text-muted-foreground")}>
                         {expanded ? 'Collapse' : 'Expand'}
                       </span>
                       <ChevronRight className={cn(
-                        'h-4 w-4 text-muted-foreground/60 transition-transform duration-200',
-                        expanded && 'rotate-90'
+                        'h-3.5 w-3.5 transition-all duration-200',
+                        expanded ? 'rotate-90 text-white' : 'text-muted-foreground/60'
                       )} />
                     </div>
                   </button>
 
                   {/* Expanded box list */}
                   {expanded && (
-                    <div className="bg-muted/20 border-t border-border/40 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <div className="bg-white/50 border-t border-black/5 animate-in fade-in slide-in-from-top-1 duration-200">
                       {lot.boxes.length === 0 ? (
-                        <p className="px-6 py-6 text-xs font-medium text-muted-foreground text-center">No boxes received in this lot yet.</p>
+                        <div className="flex flex-col items-center justify-center gap-2 py-8 px-6 text-center">
+                          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center ring-1 ring-black/5 shadow-sm">
+                            <Package className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <p className="text-xs font-semibold text-gray-600">No boxes received</p>
+                        </div>
                       ) : (
-                        <div className="px-5 sm:px-6 py-3">
+                        <div className="px-4 sm:px-5 py-3">
                           {/* Box sub-header */}
-                          <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-2 px-3">
-                            <div className="grid grid-cols-12 gap-4 flex-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 items-center">
-                              <div className="col-span-1"><Hash className="h-3 w-3" /></div>
-                              <div className="col-span-4 sm:col-span-5">Box Number</div>
-                              <div className="col-span-3 text-center">Books</div>
-                              <div className="col-span-4 sm:col-span-3 text-right">Status</div>
-                            </div>
-                            <div className="relative shrink-0 ml-4 hidden sm:block">
-                              <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-muted-foreground/60" />
-                              <Input 
-                                placeholder="Search boxes..." 
-                                value={boxSearch} 
-                                onChange={e => { setBoxSearch(e.target.value); setBoxPage(1); }}
-                                className="w-40 h-7 pl-8 text-[11px] bg-background border-border/60 shadow-sm focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 rounded-md"
-                              />
+                          <div className="flex items-center justify-between px-2 mb-2">
+                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                              <Boxes className="h-3.5 w-3.5 opacity-70" />
+                              Box Details
                             </div>
                           </div>
-                          <div className="space-y-1">
+                          
+                          <div className="grid grid-cols-12 gap-3 pb-1.5 mb-1.5 px-3 text-[9px] font-bold uppercase tracking-wider text-gray-500 items-center">
+                            <div className="col-span-1"><Hash className="h-2.5 w-2.5" /></div>
+                            <div className="col-span-4 sm:col-span-3">Box Number</div>
+                            <div className="col-span-2 text-center">Books</div>
+                            <div className="col-span-2 text-center hidden sm:block">Last Holder</div>
+                            <div className="col-span-5 sm:col-span-4 text-right">Status</div>
+                          </div>
+                          
+                          <div className="space-y-1.5">
                             {displayedBoxes.map((box, idx) => {
                               const absoluteIndex = (boxPage - 1) * boxPageSize + idx + 1
                               return (
-                                <div key={box.id} className="grid grid-cols-12 gap-4 items-center px-3 py-2.5 rounded-lg hover:bg-background/60 transition-colors group">
+                                <div key={box.id} className="grid grid-cols-12 gap-3 items-center px-3 py-2 bg-white/80 rounded-xl hover:bg-white shadow-sm ring-1 ring-black/5 transition-colors group">
                                   {/* Index */}
                                   <div className="col-span-1">
-                                    <span className="text-[11px] font-bold text-muted-foreground/50 tabular-nums">{absoluteIndex}</span>
+                                    <span className="text-[10px] font-bold text-gray-400 tabular-nums">{absoluteIndex}</span>
                                   </div>
 
                                   {/* Box name */}
-                                  <div className="col-span-4 sm:col-span-5 min-w-0">
-                                    <span className="text-[13px] font-semibold text-foreground truncate block group-hover:text-foreground transition-colors">
-                                      Box {box.box_number}
+                                  <div className="col-span-4 sm:col-span-3 min-w-0 flex items-center gap-2">
+                                    <span className="text-[12px] font-bold text-gray-800 truncate block transition-colors">
+                                      BOX {box.box_number}
                                     </span>
                                   </div>
 
                                   {/* Book count */}
-                                  <div className="col-span-3 text-center">
+                                  <div className="col-span-2 text-center">
                                     {box.total_expected_books > 0 ? (
-                                      <span className="text-[12px] font-medium text-muted-foreground tabular-nums">
+                                      <span className="text-[11px] font-bold text-gray-600 tabular-nums bg-gray-100/80 px-2 py-0.5 rounded-md">
                                         {box.total_expected_books}
                                       </span>
                                     ) : (
-                                      <span className="text-[11px] text-muted-foreground/40">—</span>
+                                      <span className="text-[10px] text-gray-300">—</span>
+                                    )}
+                                  </div>
+
+                                  {/* Last Touched */}
+                                  <div className="col-span-2 text-center hidden sm:block truncate px-1">
+                                    {box.last_touched_by ? (
+                                      <span className="text-[10px] font-medium text-gray-600 truncate" title={box.last_touched_by}>
+                                        {box.last_touched_by}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-300">—</span>
                                     )}
                                   </div>
 
                                   {/* Status */}
-                                  <div className="col-span-4 sm:col-span-3 flex justify-end items-center gap-2">
+                                  <div className="col-span-5 sm:col-span-4 flex justify-end items-center gap-2">
                                     {box.current_stage && (
-                                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider hidden sm:inline-block truncate max-w-[120px]" title={box.current_stage}>
+                                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider hidden sm:inline-block truncate max-w-[100px]" title={box.current_stage}>
                                         {box.current_stage.replace(/_/g, ' ')}
                                       </span>
                                     )}
@@ -359,10 +404,10 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                                     {box.status === 'delayed' && box.session_id && user?.role === 'supervisor' && (
                                       <button 
                                         onClick={(e) => { e.stopPropagation(); handleDeleteSession(box.session_id!); }}
-                                        className="ml-2 p-1.5 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                        className="ml-1 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Delete Delayed Session"
                                       >
-                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <Trash2 className="h-3 w-3" />
                                       </button>
                                     )}
                                   </div>
@@ -373,8 +418,8 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                           
                           {/* Inner pagination for boxes */}
                           {totalBoxPages > 1 && (
-                            <div className="pt-3 pb-1 flex justify-end border-t border-border/40 mt-3">
-                              <div className="scale-90 origin-right">
+                            <div className="pt-3 pb-0.5 flex justify-end border-t border-black/5 mt-3">
+                              <div className="scale-[0.85] origin-right">
                                 <Pagination
                                   currentPage={boxPage}
                                   totalPages={totalBoxPages}
@@ -398,7 +443,7 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
       </div>
 
       {/* Footer: pagination */}
-      {!loading && !error && pagination.totalPages > 1 && (
+      {!displayLoading && !error && pagination.totalPages > 1 && (
         <Pagination
           currentPage={pagination.currentPage}
           totalPages={pagination.totalPages}
