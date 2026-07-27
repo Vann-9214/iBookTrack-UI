@@ -31,7 +31,10 @@ export const getWarehouseOverviewService = async (req, res) => {
     
     if (search) {
       params.push(`%${search}%`);
-      where = where ? `${where} AND l.lot_number ILIKE $${params.length}` : `WHERE l.lot_number ILIKE $${params.length}`;
+      const searchClause = `(l.lot_number ILIKE $${params.length} OR EXISTS (
+        SELECT 1 FROM boxes b WHERE b.lot_id = l.id AND b.box_number ILIKE $${params.length}
+      ))`;
+      where = where ? `${where} AND ${searchClause}` : `WHERE ${searchClause}`;
     }
 
     if (status) {
@@ -90,10 +93,26 @@ export const getWarehouseOverviewService = async (req, res) => {
         ORDER BY b.box_number ASC
       `, [lotIds]);
 
+      // Create a map of lot ID to lot_number for filtering
+      const lotMap = lots.reduce((acc, l) => {
+        acc[l.id] = l.lot_number;
+        return acc;
+      }, {});
+
       boxesByLot = boxes.reduce((acc, b) => {
         if (status && b.status !== status) {
           return acc;
         }
+        
+        // If searching, and the lot doesn't match the search, filter the boxes
+        if (search) {
+          const lotMatches = lotMap[b.lot_id]?.toLowerCase().includes(search.toLowerCase());
+          const boxMatches = b.box_number?.toLowerCase().includes(search.toLowerCase());
+          if (!lotMatches && !boxMatches) {
+            return acc; // skip this box
+          }
+        }
+
         (acc[b.lot_id] = acc[b.lot_id] || []).push({
           id: b.id,
           box_number: b.box_number,
@@ -113,7 +132,7 @@ export const getWarehouseOverviewService = async (req, res) => {
         id: l.id,
         lot_number: l.lot_number,
         type: l.type,
-        total_boxes: (boxesByLot[l.id] || []).length,
+        total_boxes: (boxesByLot[l.id] || []).length, // Update total_boxes based on filtered results
         boxes: boxesByLot[l.id] || [],
       })),
       pagination: { currentPage: page, totalPages, totalItems },

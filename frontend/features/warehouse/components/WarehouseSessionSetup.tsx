@@ -42,11 +42,20 @@ export function WarehouseSessionSetup({
 
   if (lotsLoading) return <WarehouseSessionSetupSkeleton />
 
+  const isJaguar = brand === 'jaguar'
+  const cardTheme = isJaguar
+    ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60'
+    : 'bg-gradient-to-br from-blue-50 to-indigo-100/40 border-blue-200/70 ring-blue-100/60'
+  const iconTheme = isJaguar
+    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
+    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+
   return (
-    <div className="bg-card border border-border rounded-2xl shadow-sm ring-1 ring-black/5 overflow-hidden relative">
+    <div className={cn("relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300", cardTheme)}>
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
       {/* Loading overlay */}
       {loading && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-2xl">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/50 backdrop-blur-sm rounded-2xl">
           <div className="flex items-center gap-3 px-6 py-3.5 bg-card border border-border rounded-full shadow-lg">
             <span className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             <span className="text-sm font-bold text-foreground">Starting session...</span>
@@ -54,32 +63,29 @@ export function WarehouseSessionSetup({
         </div>
       )}
 
-      <div className="p-4 sm:p-5">
+      <div className="relative">
         {/* Card header row */}
         <div className="flex items-center gap-3 mb-4">
-          <div className={cn(
-            "flex items-center justify-center w-9 h-9 rounded-lg text-white shadow-sm shrink-0",
-            brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-blue-500 to-indigo-600'
-          )}>
-            <ScanBarcode className="h-4 w-4" />
+          <div className={cn("flex items-center justify-center w-10 h-10 rounded-xl text-white shadow-lg", iconTheme)}>
+            <ScanBarcode className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-black tracking-tight text-foreground leading-none">Start Receiving Session</h2>
-            <p className="text-[12px] font-medium text-muted-foreground mt-0.5">Select a lot and box number, then start scanning.</p>
+            <h2 className={cn("text-[16px] font-black tracking-tight leading-none", isJaguar ? "text-emerald-950/80" : "text-blue-950/80")}>Start Receiving Session</h2>
+            <p className={cn("text-[12px] font-medium mt-0.5", isJaguar ? "text-emerald-600/80" : "text-blue-600/80")}>Select a lot and box number, then start scanning.</p>
           </div>
         </div>
 
         {/* Form row — all inline on desktop */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
           {/* Lot input */}
-          <div className="flex flex-col gap-1 w-full sm:w-[240px]">
-            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+          <div className="flex flex-col gap-1.5 w-full sm:w-[240px]">
+            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", isJaguar ? "text-emerald-700/80" : "text-blue-700/80")}>
               Lot Number
-              {activeLot && !lotsLoading && <span className="text-primary font-bold text-[10px]">✓</span>}
+              {activeLot && !lotsLoading && <span className={cn("font-bold text-[10px]", isJaguar ? "text-emerald-600" : "text-blue-600")}>✓</span>}
             </label>
             <Popover open={lotOpen} onOpenChange={setLotOpen}>
               <PopoverAnchor asChild>
-                <div className="relative">
+                <div className="relative group">
                   <Input
                     placeholder="Type or search lot..."
                     value={activeLot}
@@ -97,9 +103,9 @@ export function WarehouseSessionSetup({
                     }}
                     onFocus={() => setLotOpen(true)}
                     disabled={lotsLoading}
-                    className="h-9 pr-10 bg-background text-sm font-medium shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+                    className="h-9 pr-10 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
                   />
-                  <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none" />
+                  <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none transition-opacity group-hover:opacity-60" />
                 </div>
               </PopoverAnchor>
               <PopoverContent className="w-[280px] p-0 shadow-xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
@@ -137,10 +143,10 @@ export function WarehouseSessionSetup({
           </div>
 
           {/* Box input */}
-          <div className="flex flex-col gap-1 w-full sm:w-[160px]">
-            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+          <div className="flex flex-col gap-1.5 w-full sm:w-[160px]">
+            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", isJaguar ? "text-emerald-700/80" : "text-blue-700/80")}>
               Box Number
-              {selectedBox && <span className="text-primary font-bold text-[10px]">✓</span>}
+              {selectedBox && <span className={cn("font-bold text-[10px]", isJaguar ? "text-emerald-600" : "text-blue-600")}>✓</span>}
             </label>
             <Input
               ref={boxInputRef}
@@ -154,7 +160,7 @@ export function WarehouseSessionSetup({
                   handleNewSession(false)
                 }
               }}
-              className="h-9 bg-background text-sm font-medium shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+              className="h-9 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
