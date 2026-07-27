@@ -36,7 +36,6 @@ import reportsRoutes   from './routes/analytics/reports.js'
 import scanningRoutes  from './routes/warehouse/scanning.js'
 import storageRoutes   from './routes/inventory/storage.js'
 import eventsRoutes    from './routes/events.js'
-import { startWarehouseTimeoutJob } from './cron/warehouseTimeout.js'
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js'
 import { logger } from './utils/logger.js'
 
@@ -198,8 +197,6 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`🚀 Backend running at http://localhost:${PORT}`)
   // Verify DB connection on startup
   await testConnection()
-  // Start the warehouse session timeout watchdog (marks stale sessions as delayed)
-  startWarehouseTimeoutJob()
 })
 
 // Drop idle HTTP connections after 2 minutes so the process can't accumulate

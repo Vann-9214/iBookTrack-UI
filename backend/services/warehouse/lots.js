@@ -1,5 +1,6 @@
 import { logger } from '../../utils/logger.js';
 import { db } from '../../config/db.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 // ── Warehouse overview: paginated Lots -> Boxes -> latest warehouse status ───
 // GET /api/warehouse/overview?page=1&limit=10&type=mustang
@@ -7,6 +8,9 @@ import { db } from '../../config/db.js';
 // the status of that box's latest warehouse session.
 export const getWarehouseOverviewService = async (req, res) => {
   try {
+    // Mark any in_progress sessions older than 30 min as delayed before querying
+    await runWarehouseTimeoutSweep();
+
     const requestedPage = parseInt(req.query.page || '1', 10);
     const requestedLimit = parseInt(req.query.limit || '10', 10);
     const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;

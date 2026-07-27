@@ -1,20 +1,20 @@
 /**
- * cron/warehouseTimeout.js
+ * utils/warehouseTimeout.js
  *
- * The 20-minute timeout engine for warehouse sessions.
+ * On-demand 30-minute timeout check for warehouse sessions.
  *
- * Every minute, any warehouse session still 'in_progress' whose last activity
- * (updated_at) is older than 20 minutes is flipped to 'delayed'. Delayed
- * sessions keep the box locked (only the same user or a supervisor can
- * release it), and a WAREHOUSE_DELAYED event is broadcast so connected
- * clients can update their lock state in real time.
+ * Called inline by the warehouse overview and start-session endpoints
+ * (instead of running on a cron schedule). Any warehouse session still
+ * 'in_progress' whose last activity (updated_at) is older than 30 minutes
+ * is flipped to 'delayed'. Delayed sessions keep the box locked (only the
+ * same user or a supervisor can release it), and a WAREHOUSE_DELAYED event
+ * is broadcast so connected clients can update their lock state in real time.
  */
-import cron from 'node-cron';
 import { db } from '../config/db.js';
-import { logger } from '../utils/logger.js';
-import { broadcastEvent } from '../utils/sse.js';
+import { logger } from './logger.js';
+import { broadcastEvent } from './sse.js';
 
-const TIMEOUT_MINUTES = 20;
+const TIMEOUT_MINUTES = 30;
 
 export const runWarehouseTimeoutSweep = async () => {
   try {
@@ -47,9 +47,4 @@ export const runWarehouseTimeoutSweep = async () => {
   } catch (err) {
     logger.error('Warehouse timeout sweep failed:', err);
   }
-};
-
-export const startWarehouseTimeoutJob = () => {
-  cron.schedule('* * * * *', runWarehouseTimeoutSweep);
-  logger.info(`⏱️ Warehouse timeout job started (marks sessions delayed after ${TIMEOUT_MINUTES} min of inactivity)`);
 };
