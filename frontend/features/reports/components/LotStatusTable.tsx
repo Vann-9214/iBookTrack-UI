@@ -77,12 +77,12 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
         brand === 'jaguar' ? 'border-green-200 bg-white' : 'border-blue-200 bg-white'
       )}
     >
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto overflow-y-auto max-h-[36rem]">
+        <table className="w-full text-sm relative">
           <thead
             className={cn(
-              'border-b',
-              brand === 'jaguar' ? 'border-green-200 bg-green-50/50' : 'border-blue-200 bg-blue-50/50'
+              'border-b sticky top-0 z-10 shadow-sm',
+              brand === 'jaguar' ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'
             )}
           >
             <tr>

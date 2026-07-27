@@ -19,4 +19,6 @@ router.get('/daily-output', requireAuth, requireRole(OPERATIONAL_ROLES), validat
 router.get('/lot-details/:lot_number', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.getLotDetailsSchema), controller.getLotDetails);
 router.get('/pipeline-stats', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.getPipelineStatsSchema), controller.getPipelineStats);
 
+router.post('/qc-flags/:id/resolve', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.resolveQcFlagSchema), controller.resolveQcFlag);
+
 export default router;

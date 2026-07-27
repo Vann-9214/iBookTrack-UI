@@ -19,6 +19,7 @@ interface InspectionSessionProps {
   handleInspScan: (isbn: string) => void
   openInspFlagModal: (book: InspScannedBook) => void
   handleRemoveInspBook: (bookId: string) => void
+  brand: string
 }
 
 export const InspectionSession: React.FC<InspectionSessionProps> = ({
@@ -35,6 +36,7 @@ export const InspectionSession: React.FC<InspectionSessionProps> = ({
   handleInspScan,
   openInspFlagModal,
   handleRemoveInspBook,
+  brand,
 }) => {
   return (
     <>
@@ -62,6 +64,7 @@ export const InspectionSession: React.FC<InspectionSessionProps> = ({
         inspScannedBooks={inspScannedBooks}
         openInspFlagModal={openInspFlagModal}
         handleRemoveInspBook={handleRemoveInspBook}
+        brand={brand}
       />
     </>
   )

@@ -68,3 +68,14 @@ export const getPipelineStats = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const resolveQcFlag = async (req, res) => {
+  try {
+    const result = await dashboardService.resolveQcFlagService(req);
+    res.json(result);
+  } catch (error) {
+    if (error.status) return res.status(error.status).json({ success: false, error: error.message });
+    logger.error('Resolve QC flag error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
