@@ -77,7 +77,14 @@ export const getWarehouseOverviewService = async (req, res) => {
             WHERE bs.box_id = b.id AND bs.warehouse_user_received IS NOT NULL
             ORDER BY bs.warehouse_time_received DESC NULLS LAST
             LIMIT 1
-          ) AS session_id
+          ) AS session_id,
+          (
+            SELECT u.name FROM box_sessions bs
+            LEFT JOIN users u ON u.id = bs.warehouse_user_received
+            WHERE bs.box_id = b.id AND bs.warehouse_user_received IS NOT NULL
+            ORDER BY bs.warehouse_time_received DESC NULLS LAST
+            LIMIT 1
+          ) AS last_touched_by
         FROM boxes b
         WHERE b.lot_id = ANY($1)
         ORDER BY b.box_number ASC
@@ -94,6 +101,7 @@ export const getWarehouseOverviewService = async (req, res) => {
           total_expected_books: b.total_expected_books,
           status: b.status || null,
           session_id: b.session_id || null,
+          last_touched_by: b.last_touched_by || null,
         });
         return acc;
       }, {});

@@ -303,14 +303,9 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                       ) : (
                         <div className="px-5 sm:px-6 py-3">
                           {/* Box sub-header */}
-                          <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-2 px-3">
-                            <div className="grid grid-cols-12 gap-4 flex-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 items-center">
-                              <div className="col-span-1"><Hash className="h-3 w-3" /></div>
-                              <div className="col-span-4 sm:col-span-5">Box Number</div>
-                              <div className="col-span-3 text-center">Books</div>
-                              <div className="col-span-4 sm:col-span-3 text-right">Status</div>
-                            </div>
-                            <div className="relative shrink-0 ml-4 hidden sm:block">
+                          <div className="flex items-center justify-between px-3 mb-2">
+                            <div className="text-[11px] font-semibold text-muted-foreground">Box List</div>
+                            <div className="relative shrink-0 hidden sm:block">
                               <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-muted-foreground/60" />
                               <Input 
                                 placeholder="Search boxes..." 
@@ -319,6 +314,13 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                                 className="w-40 h-7 pl-8 text-[11px] bg-background border-border/60 shadow-sm focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 rounded-md"
                               />
                             </div>
+                          </div>
+                          <div className="grid grid-cols-12 gap-4 border-b border-border/40 pb-2 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 items-center">
+                            <div className="col-span-1"><Hash className="h-3 w-3" /></div>
+                            <div className="col-span-4 sm:col-span-3">Box Number</div>
+                            <div className="col-span-2 text-center">Books</div>
+                            <div className="col-span-2 text-center hidden sm:block">Last Holder</div>
+                            <div className="col-span-5 sm:col-span-4 text-right">Status</div>
                           </div>
                           <div className="space-y-1">
                             {displayedBoxes.map((box, idx) => {
@@ -331,14 +333,14 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                                   </div>
 
                                   {/* Box name */}
-                                  <div className="col-span-4 sm:col-span-5 min-w-0">
+                                  <div className="col-span-4 sm:col-span-3 min-w-0">
                                     <span className="text-[13px] font-semibold text-foreground truncate block group-hover:text-foreground transition-colors">
                                       Box {box.box_number}
                                     </span>
                                   </div>
 
                                   {/* Book count */}
-                                  <div className="col-span-3 text-center">
+                                  <div className="col-span-2 text-center">
                                     {box.total_expected_books > 0 ? (
                                       <span className="text-[12px] font-medium text-muted-foreground tabular-nums">
                                         {box.total_expected_books}
@@ -348,8 +350,19 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                                     )}
                                   </div>
 
+                                  {/* Last Touched */}
+                                  <div className="col-span-2 text-center hidden sm:block truncate px-1">
+                                    {box.last_touched_by ? (
+                                      <span className="text-[11px] font-medium text-muted-foreground" title={box.last_touched_by}>
+                                        {box.last_touched_by}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] text-muted-foreground/40">—</span>
+                                    )}
+                                  </div>
+
                                   {/* Status */}
-                                  <div className="col-span-4 sm:col-span-3 flex justify-end items-center gap-2">
+                                  <div className="col-span-5 sm:col-span-4 flex justify-end items-center gap-2">
                                     {box.current_stage && (
                                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider hidden sm:inline-block truncate max-w-[120px]" title={box.current_stage}>
                                         {box.current_stage.replace(/_/g, ' ')}
