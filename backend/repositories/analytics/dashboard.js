@@ -254,6 +254,24 @@ export const getBooksByIsbnsWithLots = async (isbns) => {
   }
 };
 
+export const resolveQcFlag = async (id) => {
+  try {
+    await db.query('BEGIN');
+    const { rows } = await db.query('DELETE FROM user_flags WHERE id = $1 RETURNING book_activity_id', [id]);
+    if (rows.length === 0) {
+      await db.query('ROLLBACK');
+      return { success: false, error: { status: 404, message: 'Flag not found' } };
+    }
+    const bookActivityId = rows[0].book_activity_id;
+    await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2', ['processable', bookActivityId]);
+    await db.query('COMMIT');
+    return { success: true, error: null };
+  } catch (error) {
+    await db.query('ROLLBACK');
+    return { success: false, error };
+  }
+};
+
 export const searchLotByCandidate = async (candidate) => {
   try {
     const { rows } = await db.query('SELECT id, lot_number, type FROM lots WHERE lot_number ILIKE $1 LIMIT 1', [candidate]);

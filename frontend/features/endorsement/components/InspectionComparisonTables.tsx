@@ -10,6 +10,7 @@ interface InspectionComparisonTablesProps {
   inspScannedBooks: InspScannedBook[]
   openInspFlagModal: (book: InspScannedBook) => void
   handleRemoveInspBook: (bookId: string) => void
+  brand: string
 }
 
 export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProps> = ({
@@ -18,6 +19,7 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
   inspScannedBooks,
   openInspFlagModal,
   handleRemoveInspBook,
+  brand,
 }) => {
   return (
     <div className="grid grid-cols-2 gap-4">
@@ -66,7 +68,7 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
                   <div
                     key={i}
                     className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
-                      isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'bg-green-100 border-green-300' : 'bg-red-100 border-red-300'
+                      isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? (brand === 'jaguar' ? 'bg-green-100 border-green-300' : 'bg-blue-100 border-blue-300') : 'bg-red-100 border-red-300'
                     }`}
                   >
                     <div className="col-span-2">
@@ -78,7 +80,7 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
                     <div className="col-span-3 flex items-center justify-end">
                       <span
                         className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
-                          book.scan_status === 'processable' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                          book.scan_status === 'processable' ? (brand === 'jaguar' ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800') : 'bg-red-200 text-red-800'
                         }`}
                       >
                         {book.scan_status === 'processable'
@@ -132,7 +134,7 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
                     key={`${book.id}-${idx}`}
                     className={cn(
                       'grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center',
-                      isMatch ? 'bg-primary/5 border-primary/20 hover:bg-primary/10' : 'bg-red-100 border-red-300'
+                      isMatch ? (brand === 'jaguar' ? 'bg-green-100 border-green-300' : 'bg-blue-100 border-blue-300') : 'bg-red-100 border-red-300'
                     )}
                   >
                     <div className="col-span-3">
@@ -150,7 +152,7 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
                     <div className="col-span-3 flex flex-row items-center justify-end gap-2">
                       {book.scan_status === 'processable' ? (
                         <>
-                          <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700 whitespace-nowrap">
+                          <span className={cn("px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap", brand === 'jaguar' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700')}>
                             Processable
                           </span>
                           <button

@@ -146,7 +146,12 @@ export const getQcFlagsService = async (req) => {
   let startIso = null;
   let endIso = null;
 
-  if (todayOnly) {
+  if (req.query.from_date && req.query.to_date) {
+    const fromDate = new Date(req.query.from_date);
+    const toDate = new Date(req.query.to_date);
+    startIso = new Date(Date.UTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth(), fromDate.getUTCDate(), 0, 0, 0)).toISOString();
+    endIso = new Date(Date.UTC(toDate.getUTCFullYear(), toDate.getUTCMonth(), toDate.getUTCDate() + 1, 0, 0, 0)).toISOString();
+  } else if (todayOnly) {
     const now = new Date();
     const startOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
     const endOfDay = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0));
@@ -427,4 +432,16 @@ export const getPipelineStatsService = async (req) => {
   });
 
   return { stageCounts, stageCountsByType, activeTransmitBooks, today: startIso.split('T')[0] };
+};
+
+export const resolveQcFlagService = async (req) => {
+  const { id } = req.params;
+  const { success, error } = await dashboardRepo.resolveQcFlag(id);
+  if (!success) {
+    if (error && error.status === 404) {
+      throw { status: 404, message: 'Flag not found' };
+    }
+    throw error;
+  }
+  return { success: true };
 };
