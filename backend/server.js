@@ -126,7 +126,7 @@ const isDevBrowserOriginAllowed = (origin) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (explicitAllowedOrigins.includes(origin) || isDevBrowserOriginAllowed(origin)) {
+    if (!origin || explicitAllowedOrigins.includes(origin) || isDevBrowserOriginAllowed(origin)) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))
