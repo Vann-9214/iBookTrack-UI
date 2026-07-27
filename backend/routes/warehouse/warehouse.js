@@ -12,12 +12,15 @@ router.post('/sessions/:session_id/complete', requireAuth, requireRole(OPERATION
 router.post('/sessions/bulk-save', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.bulkSaveSchema), controller.bulkSaveSession);
 router.post('/boxes/:box_id/resume-session', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.resumeSessionSchema), controller.resumeSession);
 router.post('/boxes/:box_id/cancel-session', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.cancelSessionSchema), controller.cancelSession);
-router.delete('/sessions/:session_id', requireAuth, requireRole(['supervisor']), controller.deleteSession);
+// Operational users may cancel/reset their own warehouse sessions; the service
+// enforces that non-supervisors can only delete sessions they own.
+router.delete('/sessions/:session_id', requireAuth, requireRole(OPERATIONAL_ROLES), controller.deleteSession);
 // Data-returning routes: require an assigned operational role (or supervisor).
 // requireRole(OPERATIONAL_ROLES) blocks role-less/pending-approval accounts,
 // which would otherwise pass requireAuth alone and read warehouse data.
 router.get('/sessions', requireAuth, requireRole(OPERATIONAL_ROLES), controller.listSessions);
 router.get('/ilms-lots', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getIlmsLots);
+router.get('/overview', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getWarehouseOverview);
 router.get('/box-exists', requireAuth, requireRole(OPERATIONAL_ROLES), controller.checkBoxExists);
 router.get('/isbn-stream', requireAuth, requireRole(OPERATIONAL_ROLES), controller.isbnStream);
 router.post('/isbn-stream/query', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.isbnStreamQuerySchema), controller.queryIsbnStream);

@@ -35,6 +35,7 @@ import warehouseRoutes from './routes/warehouse/warehouse.js'
 import reportsRoutes   from './routes/analytics/reports.js'
 import scanningRoutes  from './routes/warehouse/scanning.js'
 import storageRoutes   from './routes/inventory/storage.js'
+import eventsRoutes    from './routes/events.js'
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler.js'
 import { logger } from './utils/logger.js'
 
@@ -125,7 +126,7 @@ const isDevBrowserOriginAllowed = (origin) => {
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (explicitAllowedOrigins.includes(origin) || isDevBrowserOriginAllowed(origin)) {
+    if (!origin || explicitAllowedOrigins.includes(origin) || isDevBrowserOriginAllowed(origin)) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))
@@ -179,6 +180,7 @@ app.use('/api/warehouse', warehouseRoutes)
 app.use('/api/reports',   reportsRoutes)
 app.use('/api/scanning',  scanningRoutes)
 app.use('/api/storage',   storageRoutes)
+app.use('/api/events',    eventsRoutes)
 
 // Simple liveness probe — useful for uptime monitors and container health checks
 app.get('/api/health', (_, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }))

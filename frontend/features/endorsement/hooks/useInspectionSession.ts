@@ -118,7 +118,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
         toast.warning('ISBN not found in iLMS — added to log anyway.')
       }
     } catch {
-      addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, prevStatus)
+      addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, initialStatus)
       toast.error('API error — added to log anyway.')
     } finally {
       setLoadingInspSession(false)
