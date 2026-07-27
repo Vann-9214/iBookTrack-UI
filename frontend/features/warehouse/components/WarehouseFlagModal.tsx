@@ -107,11 +107,17 @@ export function WarehouseFlagModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-foreground mb-1.5 block">Remarks / Page No. <span className="text-destructive">*</span></label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-foreground block">Remarks / Page No. <span className="text-destructive">*</span></label>
+              <span className={cn('text-[10px] font-medium', flagRemarks.length > 950 ? 'text-destructive' : 'text-muted-foreground')}>
+                {flagRemarks.length}/1000
+              </span>
+            </div>
             <textarea
               value={flagRemarks}
               onChange={(e) => setFlagRemarks(e.target.value)}
               placeholder="e.g. Page 42, bottom margin"
+              maxLength={1000}
               className="w-full min-h-[80px] resize-y rounded-md border border-input bg-background p-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
