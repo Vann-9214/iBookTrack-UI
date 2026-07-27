@@ -54,25 +54,25 @@ export function WarehouseSessionSetup({
         </div>
       )}
 
-      <div className="p-5 sm:p-6">
+      <div className="p-4 sm:p-5">
         {/* Card header row */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-3 mb-4">
           <div className={cn(
-            "flex items-center justify-center w-11 h-11 rounded-xl text-white shadow-sm shrink-0",
+            "flex items-center justify-center w-9 h-9 rounded-lg text-white shadow-sm shrink-0",
             brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-500 to-green-600' : 'bg-gradient-to-br from-blue-500 to-indigo-600'
           )}>
-            <ScanBarcode className="h-5 w-5" />
+            <ScanBarcode className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-lg font-black tracking-tight text-foreground leading-none">Start Receiving Session</h2>
-            <p className="text-[13px] font-medium text-muted-foreground mt-1">Select a lot and box number, then start scanning.</p>
+            <h2 className="text-[15px] font-black tracking-tight text-foreground leading-none">Start Receiving Session</h2>
+            <p className="text-[12px] font-medium text-muted-foreground mt-0.5">Select a lot and box number, then start scanning.</p>
           </div>
         </div>
 
         {/* Form row — all inline on desktop */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
           {/* Lot input */}
-          <div className="flex flex-col gap-1.5 w-full sm:w-[260px]">
+          <div className="flex flex-col gap-1 w-full sm:w-[240px]">
             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               Lot Number
               {activeLot && !lotsLoading && <span className="text-primary font-bold text-[10px]">✓</span>}
@@ -97,7 +97,7 @@ export function WarehouseSessionSetup({
                     }}
                     onFocus={() => setLotOpen(true)}
                     disabled={lotsLoading}
-                    className="h-10 pr-10 bg-background text-sm font-medium shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+                    className="h-9 pr-10 bg-background text-sm font-medium shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
                   />
                   <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none" />
                 </div>
@@ -137,7 +137,7 @@ export function WarehouseSessionSetup({
           </div>
 
           {/* Box input */}
-          <div className="flex flex-col gap-1.5 w-full sm:w-[180px]">
+          <div className="flex flex-col gap-1 w-full sm:w-[160px]">
             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               Box Number
               {selectedBox && <span className="text-primary font-bold text-[10px]">✓</span>}
@@ -154,7 +154,7 @@ export function WarehouseSessionSetup({
                   handleNewSession(false)
                 }
               }}
-              className="h-10 bg-background text-sm font-medium shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+              className="h-9 bg-background text-sm font-medium shadow-sm transition-colors focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
             />
           </div>
 
@@ -163,7 +163,7 @@ export function WarehouseSessionSetup({
             onClick={() => handleNewSession(false)}
             disabled={loading || !activeLot || !selectedBox || lotsLoading || !!boxLockedBy}
             className={cn(
-              "w-full sm:w-auto h-10 px-6 text-sm font-bold shadow-md transition-all hover:shadow-lg disabled:hover:shadow-none shrink-0",
+              "w-full sm:w-auto h-9 px-5 text-sm font-bold shadow-md transition-all hover:shadow-lg disabled:hover:shadow-none shrink-0",
               brand === 'jaguar'
                 ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white'
                 : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
@@ -176,13 +176,13 @@ export function WarehouseSessionSetup({
 
         {/* Status feedback strip */}
         {boxLockedBy && (
-          <div className="flex items-center gap-2.5 mt-4 py-2.5 px-4 bg-destructive/10 border border-destructive/20 rounded-lg text-sm font-bold text-destructive animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex items-center gap-2.5 mt-3 py-2 px-3.5 bg-destructive/10 border border-destructive/20 rounded-lg text-[13px] font-bold text-destructive animate-in fade-in zoom-in-95 duration-200">
             <Lock className="h-4 w-4 shrink-0" />
             <span>This box is currently being processed by <span className="underline underline-offset-2">{boxLockedBy}</span>.</span>
           </div>
         )}
         {activeLot && selectedBox && !boxLockedBy && (
-          <div className="flex items-center gap-2.5 mt-4 py-2.5 px-4 bg-primary/5 border border-primary/10 rounded-lg text-sm font-semibold text-primary animate-in fade-in zoom-in-95 duration-200">
+          <div className="flex items-center gap-2.5 mt-3 py-2 px-3.5 bg-primary/5 border border-primary/10 rounded-lg text-[13px] font-semibold text-primary animate-in fade-in zoom-in-95 duration-200">
             <Package className="h-4 w-4 opacity-70" />
             <span>{activeLot.toLowerCase().startsWith('lot') ? activeLot : `Lot ${activeLot}`}</span>
             <span className="text-primary/30">→</span>
