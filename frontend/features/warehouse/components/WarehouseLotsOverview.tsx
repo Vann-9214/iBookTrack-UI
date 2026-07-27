@@ -50,9 +50,15 @@ interface WarehouseLotsOverviewProps {
   brand: string
   /** Any changing value (e.g. the live lock list) that should trigger a background refetch. */
   refreshKey?: unknown
+  /** Any changing value (e.g. manual refresh) that should trigger a foreground refetch (skeleton). */
+  refreshTrigger?: unknown
+  /** Unified loading state from parent. */
+  unifiedLoading?: boolean
+  /** Callback to notify parent of local loading state. */
+  setOverviewLoading?: (loading: boolean) => void
 }
 
-export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOverviewProps) {
+export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifiedLoading, setOverviewLoading }: WarehouseLotsOverviewProps) {
   const [lots, setLots] = useState<OverviewLot[]>([])
   const [totalItems, setTotalItems] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -67,6 +73,12 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
   const { user } = useUser()
   const { toast } = useToast()
   const firstLoadRef = useRef(true)
+
+  const displayLoading = unifiedLoading !== undefined ? unifiedLoading : loading
+
+  useEffect(() => {
+    setOverviewLoading?.(loading)
+  }, [loading, setOverviewLoading])
 
   const handleDeleteSession = async (sessionId: string) => {
     if (!confirm('Are you sure you want to cancel and delete this delayed session?')) return
@@ -102,25 +114,39 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
     return () => clearTimeout(timer)
   }, [lotSearchInput])
 
+  const loadRef = useRef(load)
+  useEffect(() => {
+    loadRef.current = load
+  }, [load])
+
   useEffect(() => {
     if (firstLoadRef.current) return
     pagination.goToPage(1)
-    load(1, pagination.pageSize, false)
-  }, [debouncedLotSearch, activeTab])
+    loadRef.current(1, pagination.pageSize, false)
+  }, [debouncedLotSearch, activeTab, brand])
 
   useEffect(() => {
     setExpandedLot(null)
-    load(pagination.currentPage, pagination.pageSize, !firstLoadRef.current)
+    loadRef.current(pagination.currentPage, pagination.pageSize, !firstLoadRef.current)
     firstLoadRef.current = false
-  }, [pagination.currentPage, pagination.pageSize, load])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.currentPage, pagination.pageSize])
 
   // Background refetch when live lock events arrive, so statuses stay current
   // without the user needing to press refresh.
   useEffect(() => {
     if (firstLoadRef.current) return
-    const timer = setTimeout(() => load(pagination.currentPage, pagination.pageSize, true), 400)
+    const timer = setTimeout(() => loadRef.current(pagination.currentPage, pagination.pageSize, true), 400)
     return () => clearTimeout(timer)
   }, [refreshKey])
+
+  // Foreground refetch (skeleton) on manual refresh button
+  useEffect(() => {
+    if (firstLoadRef.current) return
+    if (refreshTrigger) {
+      loadRef.current(1, pagination.pageSize, false) // also reset to page 1 on manual refresh
+    }
+  }, [refreshTrigger])
 
   const toggleLot = (lotId: string) => {
     setExpandedLot((prev) => {
@@ -166,10 +192,11 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
               placeholder="Search lots or boxes..." 
               value={lotSearchInput} 
               onChange={e => setLotSearchInput(e.target.value)}
-              className="w-48 h-8 pl-8 text-xs bg-white/70 backdrop-blur-sm border-transparent shadow-sm focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all rounded-lg"
+              disabled={displayLoading}
+              className="w-48 h-8 pl-8 text-xs bg-white/70 backdrop-blur-sm border-transparent shadow-sm focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all rounded-lg disabled:opacity-50"
             />
           </div>
-          {loading ? (
+          {displayLoading ? (
             <Skeleton className="h-6 w-14 rounded-md bg-black/5" />
           ) : (
             <Badge variant="outline" className={cn(
@@ -185,12 +212,12 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
       {/* Tabs */}
       <div className="relative px-4 sm:px-5 py-2 border-b border-black/5 shrink-0 flex items-center justify-between bg-white/20 backdrop-blur-sm">
         <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
-          <TabsList className="bg-white/60 backdrop-blur-md border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg">
-            <TabsTrigger value="all" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">All Lots</TabsTrigger>
-            <TabsTrigger value="in_progress" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+          <TabsList className={cn("bg-white/60 backdrop-blur-md border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
+            <TabsTrigger disabled={displayLoading} value="all" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">All Lots</TabsTrigger>
+            <TabsTrigger disabled={displayLoading} value="in_progress" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
               In Progress
             </TabsTrigger>
-            <TabsTrigger value="delayed" className="text-[11px] px-2.5 py-1">
+            <TabsTrigger disabled={displayLoading} value="delayed" className="text-[11px] px-2.5 py-1">
               Delayed
             </TabsTrigger>
           </TabsList>
@@ -198,9 +225,9 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
       </div>
 
       {/* Table header */}
-      {!loading && !error && lots.length > 0 && (
-        <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5", isJaguar ? "bg-emerald-50/50 text-emerald-800/70" : "bg-blue-50/50 text-blue-800/70")}>
-          <div className="col-span-1"></div>
+      {!error && (
+        <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center", isJaguar ? "bg-emerald-50/50 text-emerald-800/70" : "bg-blue-50/50 text-blue-800/70")}>
+          <div className="col-span-1 flex justify-start"><Hash className="h-2.5 w-2.5" /></div>
           <div className="col-span-5 sm:col-span-4">Lot Number</div>
           <div className="col-span-3 sm:col-span-4 text-center">Boxes</div>
           <div className="col-span-3 text-right pr-1">Actions</div>
@@ -209,14 +236,17 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
 
       {/* Body */}
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {loading ? (
-          <div className="divide-y divide-border/50">
+        {displayLoading ? (
+          <div className="divide-y divide-border/40">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2">
-                <div className="col-span-1"><Skeleton className="h-7 w-7 rounded-md bg-muted-foreground/8" /></div>
-                <div className="col-span-5 sm:col-span-4"><Skeleton className="h-3.5 w-20 rounded bg-muted-foreground/8" /></div>
-                <div className="col-span-3 sm:col-span-4 flex justify-center"><Skeleton className="h-4 w-12 rounded-full bg-muted-foreground/8" /></div>
-                <div className="col-span-3 flex justify-end"><Skeleton className="h-3.5 w-3.5 rounded bg-muted-foreground/8" /></div>
+              <div key={i} className="grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5">
+                <div className="col-span-1 flex justify-start"><Skeleton className="h-3 w-3 rounded-sm bg-black/5" /></div>
+                <div className="col-span-5 sm:col-span-4"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
+                <div className="col-span-3 sm:col-span-4 flex justify-center"><Skeleton className="h-5 w-12 rounded-md bg-black/5" /></div>
+                <div className="col-span-3 flex justify-end items-center gap-1.5 pr-1">
+                  <span className="text-[10px] font-medium text-muted-foreground/40 hidden sm:inline">Expand</span>
+                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
+                </div>
               </div>
             ))}
           </div>
@@ -238,11 +268,12 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
           </div>
         ) : (
           <div className="divide-y divide-border/40">
-            {lots.map((lot) => {
+            {lots.map((lot, idx) => {
               const expanded = expandedLot === lot.id
               const boxPageSize = 10
               const totalBoxPages = Math.max(1, Math.ceil(lot.boxes.length / boxPageSize))
               const displayedBoxes = lot.boxes.slice((boxPage - 1) * boxPageSize, boxPage * boxPageSize)
+              const absoluteLotIndex = (pagination.currentPage - 1) * pagination.pageSize + idx + 1
               
               return (
                 <div key={lot.id} className={cn("transition-colors", expanded ? "bg-white/60" : "")}>
@@ -251,44 +282,46 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                     onClick={() => toggleLot(lot.id)}
                     className={cn(
                       'w-full grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5 text-left transition-all duration-150 group',
-                      expanded ? 'bg-transparent' : 'hover:bg-white/40'
+                      expanded
+                        ? isJaguar 
+                          ? 'bg-gradient-to-r from-emerald-500/80 to-green-600/80 shadow-sm backdrop-blur-md' 
+                          : 'bg-gradient-to-r from-blue-500/80 to-indigo-600/80 shadow-sm backdrop-blur-md'
+                        : 'hover:bg-white/40'
                     )}
                     aria-expanded={expanded}
                   >
-                    {/* Icon */}
-                    <div className="col-span-1">
-                      <div className={cn(
-                        "flex items-center justify-center w-7 h-7 rounded-md transition-colors",
-                        expanded
-                          ? (brand === 'jaguar' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600')
-                          : 'bg-muted/60 text-muted-foreground group-hover:bg-muted'
-                      )}>
-                        <Package className="h-3.5 w-3.5" />
-                      </div>
+                    {/* Index */}
+                    <div className="col-span-1 flex justify-start items-center">
+                      <span className={cn("text-[11px] font-black tabular-nums transition-colors", expanded ? "text-white/90" : isJaguar ? "text-emerald-500" : "text-blue-500")}>#{absoluteLotIndex}</span>
                     </div>
 
                     {/* Lot name */}
                     <div className="col-span-5 sm:col-span-4 min-w-0">
-                      <span className="text-[13px] font-bold text-gray-800 truncate block group-hover:text-black transition-colors">
+                      <span className={cn("text-[13px] font-bold truncate block transition-colors", expanded ? "text-white" : "text-gray-800 group-hover:text-black")}>
                         {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
                       </span>
                     </div>
 
                     {/* Box count */}
                     <div className="col-span-3 sm:col-span-4 flex justify-center">
-                      <Badge variant="outline" className={cn("bg-white/60 text-gray-600 text-[10px] font-bold py-0 h-5 border-black/5 shadow-sm", isJaguar ? "group-hover:text-emerald-700 group-hover:border-emerald-200" : "group-hover:text-blue-700 group-hover:border-blue-200")}>
+                      <Badge variant="outline" className={cn(
+                        "text-[10px] font-bold py-0 h-5 shadow-sm transition-colors",
+                        expanded 
+                          ? "bg-white/20 border-white/20 text-white" 
+                          : cn("bg-white/60 text-gray-600 border-black/5", isJaguar ? "group-hover:text-emerald-700 group-hover:border-emerald-200" : "group-hover:text-blue-700 group-hover:border-blue-200")
+                      )}>
                         {lot.total_boxes} {lot.total_boxes === 1 ? 'box' : 'boxes'}
                       </Badge>
                     </div>
 
                     {/* Expand chevron */}
                     <div className="col-span-3 flex justify-end items-center gap-1.5 pr-1">
-                      <span className="text-[10px] font-medium text-muted-foreground hidden sm:inline">
+                      <span className={cn("text-[10px] font-medium hidden sm:inline transition-colors", expanded ? "text-white/80" : "text-muted-foreground")}>
                         {expanded ? 'Collapse' : 'Expand'}
                       </span>
                       <ChevronRight className={cn(
-                        'h-3.5 w-3.5 text-muted-foreground/60 transition-transform duration-200',
-                        expanded && 'rotate-90'
+                        'h-3.5 w-3.5 transition-all duration-200',
+                        expanded ? 'rotate-90 text-white' : 'text-muted-foreground/60'
                       )} />
                     </div>
                   </button>
@@ -333,9 +366,8 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
 
                                   {/* Box name */}
                                   <div className="col-span-4 sm:col-span-3 min-w-0 flex items-center gap-2">
-                                    <span className={cn("flex shrink-0 h-6 w-6 items-center justify-center rounded-md text-[9px] font-bold", isJaguar ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700")}>BX</span>
                                     <span className="text-[12px] font-bold text-gray-800 truncate block transition-colors">
-                                      {box.box_number}
+                                      BOX {box.box_number}
                                     </span>
                                   </div>
 
@@ -411,7 +443,7 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
       </div>
 
       {/* Footer: pagination */}
-      {!loading && !error && pagination.totalPages > 1 && (
+      {!displayLoading && !error && pagination.totalPages > 1 && (
         <Pagination
           currentPage={pagination.currentPage}
           totalPages={pagination.totalPages}

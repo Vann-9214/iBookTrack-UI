@@ -7,8 +7,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { ChevronsUpDown, Package, ScanBarcode, Check, Lock } from 'lucide-react'
 import type { Lot } from '../types/warehouse.types'
-import { WarehouseSessionSetupSkeleton } from './WarehouseSessionSetupSkeleton'
-
+import { Skeleton } from '@/components/ui/skeleton'
 interface WarehouseSessionSetupProps {
   brand: string
   lots: Lot[]
@@ -39,9 +38,6 @@ export function WarehouseSessionSetup({
   boxLockedBy,
 }: WarehouseSessionSetupProps) {
   const [lotOpen, setLotOpen] = useState(false)
-
-  if (lotsLoading) return <WarehouseSessionSetupSkeleton />
-
   const isJaguar = brand === 'jaguar'
   const cardTheme = isJaguar
     ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60'
@@ -83,63 +79,67 @@ export function WarehouseSessionSetup({
               Lot Number
               {activeLot && !lotsLoading && <span className={cn("font-bold text-[10px]", isJaguar ? "text-emerald-600" : "text-blue-600")}>✓</span>}
             </label>
-            <Popover open={lotOpen} onOpenChange={setLotOpen}>
-              <PopoverAnchor asChild>
-                <div className="relative group">
-                  <Input
-                    placeholder="Type or search lot..."
-                    value={activeLot}
-                    onChange={(e) => { setActiveLot(e.target.value); setLotOpen(true); setSessionError(null) }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        setLotOpen(false)
-                        if (activeLot && selectedBox && !boxLockedBy) {
-                          handleNewSession(false)
-                        } else {
-                          setTimeout(() => boxInputRef.current?.focus(), 0)
+            {lotsLoading ? (
+              <Skeleton className="h-9 w-full rounded-md bg-black/5" />
+            ) : (
+              <Popover open={lotOpen} onOpenChange={setLotOpen}>
+                <PopoverAnchor asChild>
+                  <div className="relative group">
+                    <Input
+                      placeholder="Type or search lot..."
+                      value={activeLot}
+                      onChange={(e) => { setActiveLot(e.target.value); setLotOpen(true); setSessionError(null) }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          setLotOpen(false)
+                          if (activeLot && selectedBox && !boxLockedBy) {
+                            handleNewSession(false)
+                          } else {
+                            setTimeout(() => boxInputRef.current?.focus(), 0)
+                          }
                         }
-                      }
-                    }}
-                    onFocus={() => setLotOpen(true)}
-                    disabled={lotsLoading}
-                    className="h-9 pr-10 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
-                  />
-                  <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none transition-opacity group-hover:opacity-60" />
-                </div>
-              </PopoverAnchor>
-              <PopoverContent className="w-[280px] p-0 shadow-xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
-                <Command>
-                  <CommandList>
-                    <CommandEmpty className="py-4 flex justify-center text-sm">
-                      {activeLot ? (
-                        <div className="bg-primary/10 text-primary border border-primary/20 px-3 py-1.5 rounded-md font-medium text-xs tracking-wide">
-                          Use custom: {activeLot}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">No lot found.</span>
-                      )}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {lots
-                        .filter(l => l.type?.toLowerCase() === brand && String(l.lot_number).toLowerCase().includes(activeLot.toLowerCase()))
-                        .slice(0, 10)
-                        .map(l => (
-                          <CommandItem
-                            key={l.lot_number}
-                            value={String(l.lot_number)}
-                            onSelect={() => { setActiveLot(String(l.lot_number)); setLotOpen(false); setSessionError(null); setTimeout(() => boxInputRef.current?.focus(), 0) }}
-                            className="flex justify-between items-center w-full py-2 cursor-pointer"
-                          >
-                            <span className="font-medium">{String(l.lot_number).toLowerCase().startsWith('lot') ? String(l.lot_number) : `Lot ${String(l.lot_number)}`}</span>
-                            <Check className={cn('h-4 w-4 text-primary ml-auto', activeLot === String(l.lot_number) ? 'opacity-100' : 'opacity-0')} />
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                      }}
+                      onFocus={() => setLotOpen(true)}
+                      disabled={lotsLoading}
+                      className="h-9 pr-10 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
+                    />
+                    <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none transition-opacity group-hover:opacity-60" />
+                  </div>
+                </PopoverAnchor>
+                <PopoverContent className="w-[280px] p-0 shadow-xl" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
+                  <Command>
+                    <CommandList>
+                      <CommandEmpty className="py-4 flex justify-center text-sm">
+                        {activeLot ? (
+                          <div className="bg-primary/10 text-primary border border-primary/20 px-3 py-1.5 rounded-md font-medium text-xs tracking-wide">
+                            Use custom: {activeLot}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">No lot found.</span>
+                        )}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {lots
+                          .filter(l => l.type?.toLowerCase() === brand && String(l.lot_number).toLowerCase().includes(activeLot.toLowerCase()))
+                          .slice(0, 10)
+                          .map(l => (
+                            <CommandItem
+                              key={l.lot_number}
+                              value={String(l.lot_number)}
+                              onSelect={() => { setActiveLot(String(l.lot_number)); setLotOpen(false); setSessionError(null); setTimeout(() => boxInputRef.current?.focus(), 0) }}
+                              className="flex justify-between items-center w-full py-2 cursor-pointer"
+                            >
+                              <span className="font-medium">{String(l.lot_number).toLowerCase().startsWith('lot') ? String(l.lot_number) : `Lot ${String(l.lot_number)}`}</span>
+                              <Check className={cn('h-4 w-4 text-primary ml-auto', activeLot === String(l.lot_number) ? 'opacity-100' : 'opacity-0')} />
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
 
           {/* Box input */}
@@ -148,20 +148,24 @@ export function WarehouseSessionSetup({
               Box Number
               {selectedBox && <span className={cn("font-bold text-[10px]", isJaguar ? "text-emerald-600" : "text-blue-600")}>✓</span>}
             </label>
-            <Input
-              ref={boxInputRef}
-              placeholder="e.g. 181/264"
-              value={selectedBox}
-              onChange={(e) => { const val = e.target.value; if (/^[0-9/]*$/.test(val)) { setSelectedBox(val); setSessionError(null) } }}
-              disabled={!activeLot}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && activeLot && selectedBox && !boxLockedBy) {
-                  e.preventDefault()
-                  handleNewSession(false)
-                }
-              }}
-              className="h-9 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
-            />
+            {lotsLoading ? (
+              <Skeleton className="h-9 w-full rounded-md bg-black/5" />
+            ) : (
+              <Input
+                ref={boxInputRef}
+                placeholder="e.g. 181/264"
+                value={selectedBox}
+                onChange={(e) => { const val = e.target.value; if (/^[0-9/]*$/.test(val)) { setSelectedBox(val); setSessionError(null) } }}
+                disabled={!activeLot}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && activeLot && selectedBox && !boxLockedBy) {
+                    e.preventDefault()
+                    handleNewSession(false)
+                  }
+                }}
+                className="h-9 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
+              />
+            )}
           </div>
 
           {/* Start button */}

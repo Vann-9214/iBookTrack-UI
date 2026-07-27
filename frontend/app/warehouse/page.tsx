@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { cn } from '@/lib/utils'
@@ -23,6 +24,8 @@ import { AlertTriangle, RefreshCw, Warehouse, X } from 'lucide-react'
 export default function WarehousePage() {
   const { brand } = useBrand()
   const wh = useWarehouse()
+  const [overviewLoading, setOverviewLoading] = useState(true)
+  const unifiedLoading = wh.lotsLoading || overviewLoading
 
   return (
     <div className={cn('flex h-dvh overflow-hidden bg-background', `theme-${brand}`)}>
@@ -116,10 +119,10 @@ export default function WarehousePage() {
                 </header>
 
                 {/* Session Setup Card */}
-                <WarehouseSessionSetup brand={brand} lots={wh.lots} lotsLoading={wh.lotsLoading} activeLot={wh.activeLot} setActiveLot={wh.setActiveLot} selectedBox={wh.selectedBox} setSelectedBox={wh.setSelectedBox} loading={wh.loading} handleNewSession={wh.handleNewSession} boxInputRef={wh.boxInputRef} setSessionError={wh.setSessionError} boxLockedBy={wh.boxLockedBy} />
+                <WarehouseSessionSetup brand={brand} lots={wh.lots} lotsLoading={unifiedLoading} activeLot={wh.activeLot} setActiveLot={wh.setActiveLot} selectedBox={wh.selectedBox} setSelectedBox={wh.setSelectedBox} loading={wh.loading} handleNewSession={wh.handleNewSession} boxInputRef={wh.boxInputRef} setSessionError={wh.setSessionError} boxLockedBy={wh.boxLockedBy} />
 
                 {/* Lots Overview Table */}
-                <WarehouseLotsOverview brand={brand} refreshKey={wh.lockedWarehouseBoxes} />
+                <WarehouseLotsOverview brand={brand} refreshKey={wh.lockedWarehouseBoxes} refreshTrigger={wh.refreshingStats} unifiedLoading={unifiedLoading} setOverviewLoading={setOverviewLoading} />
               </>
             ) : (
               <WarehouseActiveSession brand={brand} activeLot={wh.activeLot} currentBoxNumber={wh.currentBoxNumber} currentBoxBooks={wh.currentBoxBooks} userName={wh.userName} loading={wh.loading} isbnLoading={wh.isbnLoading} scannedBooks={wh.scannedBooks} currentSession={wh.currentSession!} handleResetSession={wh.handleResetSession} handleCloseSession={wh.handleCloseSession}>
