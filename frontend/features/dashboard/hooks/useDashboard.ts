@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useBrand } from '@/hooks/use-brand'
+import { getApiBaseUrl } from '@/lib/auth-api'
 import { fetchDashboardData, findBoxByNumber, searchIsbn } from '../services/dashboard.service'
 import { buildPipelineStages, getDashboardDisplayText, type SearchResult } from '../utils/dashboard.helpers'
 
@@ -121,6 +122,43 @@ export function useDashboard() {
     setIsRefreshing(true)
     void fetchStats().finally(() => setIsRefreshing(false))
   }, [brand])
+
+  const backgroundRefresh = useCallback(async () => {
+    try {
+      await fetchStats()
+      if (searchResult) await handleSearch()
+      setRefreshKey((key) => key + 1)
+    } catch (e) {
+      console.error('Background refresh failed', e)
+    }
+  }, [fetchStats, handleSearch, searchResult])
+
+  const backgroundRefreshRef = useRef(backgroundRefresh)
+  useEffect(() => {
+    backgroundRefreshRef.current = backgroundRefresh
+  }, [backgroundRefresh])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      backgroundRefreshRef.current()
+    }
+
+    es.addEventListener('WAREHOUSE_LOCKED', handleUpdate)
+    es.addEventListener('WAREHOUSE_UNLOCKED', handleUpdate)
+    es.addEventListener('WAREHOUSE_DELAYED', handleUpdate)
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('FLAG_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Dashboard SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
 
   return {
     brand, searchOpen, setSearchOpen, searchValue, setSearchValue, searchResult, loading, dashboardStats, isRefreshing, lastStatsUpdate, refreshKey, liveScans, boxScanInput, setBoxScanInput, boxScanModal, setBoxScanModal, loadingBoxScan, handleSearch, handleBoxScan, refreshAll, clearSearch,
