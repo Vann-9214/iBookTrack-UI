@@ -7,17 +7,11 @@ import { useBrand } from '@/hooks/use-brand'
 import Image from 'next/image'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
-  LayoutDashboard,
-  Warehouse,
-  Archive,
-  MapPin,
-  CheckCircle,
-  Radio,
-  BarChart3,
-  X,
-  Menu,
-  Scissors,
-  ScanBarcode,
+  LayoutDashboard, Box, Scissors, FileCheck2,
+  ScanBarcode, Send, Menu, Search, PackageOpen, AlertTriangle,
+  LogOut, Settings, Bell, Radio, Database, RefreshCw, Layers, ShieldCheck, BarChart3, AlertOctagon,
+  FileText, Activity, AlertCircle, FileStack, BookOpenCheck,
+  Warehouse, Archive, MapPin, CheckCircle, X
 } from 'lucide-react'
 import { PageLoader } from '@/components/ui/page-loader'
 import { RoleGuard } from '@/components/role-guard'
@@ -116,7 +110,10 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
   const pathname = usePathname()
   const { colors } = useBrand()
 
-  const isActive = (href: string) => pathname === href
+  const isActive = (href: string) => {
+    if (href === '/Dashboard') return pathname === '/Dashboard'
+    return pathname.startsWith(href)
+  }
 
   useEffect(() => {
     setIsNavigatingTo(null)
@@ -330,6 +327,18 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             {isActive('/reports') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
             <IconCell><BarChart3 className="h-5 w-5" /></IconCell>
             <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Reports</span>
+          </LockedNavButton>
+
+          <LockedNavButton
+            navigationLocked={navigationLocked}
+            onClick={() => navigate('/non-processable')}
+            className={navItemCls(isActive('/non-processable'))}
+            aria-current={isActive('/non-processable') ? 'page' : undefined}
+            title="Non-Processable"
+          >
+            {isActive('/non-processable') && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
+            <IconCell><AlertOctagon className="h-5 w-5" /></IconCell>
+            <span className="text-sm font-semibold truncate whitespace-nowrap opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200">Non-Processable</span>
           </LockedNavButton>
         </nav>
 

@@ -64,10 +64,13 @@ export function PipelineStageFlow({
         })}
       </div>
 
-      {/* Mobile wrapping headers */}
-      <div className="flex lg:hidden flex-col gap-3 py-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          {STAGE_ORDER.map((stage, i) => {
+      {/* Mobile straight line headers with connecting line */}
+      <div className="lg:hidden relative w-full py-2">
+        {/* Mobile continuous connecting line */}
+        <div className="absolute top-[26px] left-[6%] right-[6%] h-[2px] bg-border/60 rounded-full z-0" />
+
+        <div className="flex items-center justify-between w-full relative z-10">
+          {STAGE_ORDER.map((stage) => {
             const meta = STAGE_META[stage]
             const count =
               stage === 'transmit'
@@ -77,30 +80,27 @@ export function PipelineStageFlow({
             const borderClass = meta.color.match(/border-\w+-300/)?.[0] || 'border-gray-300'
 
             return (
-              <div key={stage} className="flex items-center gap-2">
+              <div key={stage} className="flex items-center justify-center">
                 <div
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border-2 bg-background shadow-sm',
+                    'relative h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full flex items-center justify-center border-2 bg-background shadow-sm',
                     borderClass,
                     textClass
                   )}
+                  title={meta.label}
                 >
-                  <meta.icon className="h-3.5 w-3.5" />
-                  {meta.label}
+                  <meta.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {count > 0 && (
-                    <span
+                    <div
                       className={cn(
-                        'ml-1 px-1.5 py-0.5 rounded-full text-[10px] text-white',
+                        'absolute -top-1.5 -right-1.5 h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-background shadow-sm leading-none',
                         meta.solidBg
                       )}
                     >
                       {count}
-                    </span>
+                    </div>
                   )}
                 </div>
-                {i < STAGE_ORDER.length - 1 && (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                )}
               </div>
             )
           })}
