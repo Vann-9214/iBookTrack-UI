@@ -7,7 +7,7 @@ import { useBrand } from '@/hooks/use-brand'
 import { cn } from '@/lib/utils'
 import { getApiBaseUrl } from '@/lib/auth-api'
 import { authFetch } from '@/lib/auth-api'
-import { AlertTriangle, AlertOctagon, ScanBarcode, Scissors, X, Loader2, CheckCircle2, TrendingUp, RefreshCw, Download, Calendar as CalendarIcon, PackageX, FileWarning, WifiOff, Check } from 'lucide-react'
+import { AlertTriangle, AlertOctagon, ScanBarcode, Scissors, X, Loader2, CheckCircle2, TrendingUp, RefreshCw, Download, Calendar as CalendarIcon, PackageX, FileWarning, WifiOff, Check, Clock } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Package, Inbox, FileText, Search } from 'lucide-react'
@@ -37,8 +37,7 @@ export default function NonProcessablePage() {
   const [totalCount, setTotalCount] = useState<number>(0)
   const [issueBreakdown, setIssueBreakdown] = useState({
     damage: 0,
-    mismatch: 0,
-    system: 0
+    mismatch: 0
   })
   
   const [timelineData, setTimelineData] = useState([
@@ -64,10 +63,11 @@ export default function NonProcessablePage() {
   const [structuredLots, setStructuredLots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   
+  const [sessionResolvedCount, setSessionResolvedCount] = useState(0)
   const [flagToResolve, setFlagToResolve] = useState<any | null>(null)
   
   // Modal state
-  const [selectedCategory, setSelectedCategory] = useState<'Total' | 'Scanning' | 'Cut' | 'Other' | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<'Total' | 'Damage' | 'Mismatch' | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   useEffect(() => {
@@ -87,6 +87,7 @@ export default function NonProcessablePage() {
         method: 'POST'
       })
       if (res.ok) {
+        setSessionResolvedCount(prev => prev + 1)
         fetchCounts()
         setFlagToResolve(null)
       } else {
@@ -113,19 +114,19 @@ export default function NonProcessablePage() {
         
         let damage = 0
         let mismatch = 0
-        let system = 0
         
         const dateCounts: Record<string, number> = {}
         const dayCounts: Record<string, number> = { 'Sun': 0, 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0 }
+        const now = new Date()
         
         flagsList.forEach((f: any) => {
           const issueStr = (f.issue || '').toLowerCase()
           if (issueStr.includes('torn') || issueStr.includes('dog-ear') || issueStr.includes('damage') || issueStr.includes('split') || issueStr.includes('bleed') || issueStr.includes('cut')) damage++
           else if (issueStr.includes('missing') || issueStr.includes('extra') || issueStr.includes('mismatch')) mismatch++
-          else if (issueStr.includes('sync') || issueStr.includes('transmission') || issueStr.includes('system') || issueStr.includes('scanning') || issueStr.includes('barcode')) system++
           
           if (f.flagged_at) {
             const date = new Date(f.flagged_at)
+            
             const dateKey = format(date, 'yyyy-MM-dd')
             dateCounts[dateKey] = (dateCounts[dateKey] || 0) + 1
             
@@ -135,7 +136,7 @@ export default function NonProcessablePage() {
           }
         })
         
-        setIssueBreakdown({ damage, mismatch, system })
+        setIssueBreakdown({ damage, mismatch })
         
         let dynamicTimeline: any[] = []
         
@@ -264,10 +265,7 @@ export default function NonProcessablePage() {
                          const s = (f.issue || '').toLowerCase();
                          return s.includes('missing') || s.includes('extra') || s.includes('mismatch');
                        }) :
-                       selectedCategory === 'System' ? flags.filter(f => {
-                         const s = (f.issue || '').toLowerCase();
-                         return s.includes('sync') || s.includes('transmission') || s.includes('system') || s.includes('scanning') || s.includes('barcode');
-                       }) :
+
                        []
 
   const query = searchQuery.toLowerCase().trim()
@@ -491,19 +489,19 @@ export default function NonProcessablePage() {
                 <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Missing or Extra</div>
               </div>
 
-              {/* System & Sync */}
-              <div onClick={() => setSelectedCategory('System')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
+              {/* Cleared This Session */}
+              <div className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, "cursor-default")}>
                 <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
                 <div className="relative flex items-start justify-between mb-3">
                   <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", dynamicTone.icon)}>
-                    <WifiOff className="h-6 w-6" />
+                    <CheckCircle2 className="h-6 w-6" />
                   </div>
                   <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", dynamicTone.value)}>
-                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.system.toLocaleString()}
+                    {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : sessionResolvedCount.toLocaleString()}
                   </div>
                 </div>
-                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>System & Sync</div>
-                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Transmission / Scanner</div>
+                <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Cleared This Session</div>
+                <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Flags resolved by you</div>
               </div>
 
             </div>
@@ -751,7 +749,6 @@ export default function NonProcessablePage() {
                 <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg", activeTone.modalIcon)}>
                   {selectedCategory === 'Damage' ? <FileWarning className="h-5 w-5" /> :
                    selectedCategory === 'Mismatch' ? <PackageX className="h-5 w-5" /> :
-                   selectedCategory === 'System' ? <WifiOff className="h-5 w-5" /> :
                    <AlertOctagon className="h-5 w-5" />}
                 </div>
                 <div>
@@ -796,7 +793,6 @@ export default function NonProcessablePage() {
                     <col className="w-24" />
                     <col className="w-48" />
                     <col className="w-32" />
-                    <col className="w-24" />
                   </colgroup>
                   <thead className="sticky top-0 bg-white z-10 shadow-[0_-12px_0_0_white]">
                     <tr>
@@ -806,7 +802,6 @@ export default function NonProcessablePage() {
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Lot &amp; Box</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Issue</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Flagged By</th>
-                      <th className="text-right py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -836,15 +831,6 @@ export default function NonProcessablePage() {
                             </span>
                             <span className="truncate text-gray-700 font-medium">{f.flagged_by_name || '—'}</span>
                           </div>
-                        </td>
-                        <td className="py-2 px-3 align-middle text-right">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }}
-                            disabled={resolvingId === f.scan_id}
-                            className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded transition-colors disabled:opacity-50"
-                          >
-                            {resolvingId === f.scan_id ? '...' : 'Resolve'}
-                          </button>
                         </td>
                       </tr>
                     ))}
