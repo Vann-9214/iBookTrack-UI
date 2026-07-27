@@ -20,6 +20,7 @@ export const getWarehouseOverviewService = async (req, res) => {
       : null;
 
     const search = req.query.search || '';
+    const status = req.query.status || '';
 
     let where = '';
     const params = [];
@@ -31,6 +32,20 @@ export const getWarehouseOverviewService = async (req, res) => {
     if (search) {
       params.push(`%${search}%`);
       where = where ? `${where} AND l.lot_number ILIKE $${params.length}` : `WHERE l.lot_number ILIKE $${params.length}`;
+    }
+
+    if (status) {
+      params.push(status);
+      const existsClause = `EXISTS (
+        SELECT 1 FROM boxes b 
+        WHERE b.lot_id = l.id AND (
+          SELECT bs.status FROM box_sessions bs 
+          WHERE bs.box_id = b.id AND bs.warehouse_user_received IS NOT NULL
+          ORDER BY bs.warehouse_time_received DESC NULLS LAST
+          LIMIT 1
+        ) = $${params.length}
+      )`;
+      where = where ? `${where} AND ${existsClause}` : `WHERE ${existsClause}`;
     }
 
     const { rows: countRows } = await db.query(`SELECT COUNT(*)::int AS count FROM lots l ${where}`, params);
@@ -63,6 +78,9 @@ export const getWarehouseOverviewService = async (req, res) => {
       `, [lotIds]);
 
       boxesByLot = boxes.reduce((acc, b) => {
+        if (status && b.status !== status) {
+          return acc;
+        }
         (acc[b.lot_id] = acc[b.lot_id] || []).push({
           id: b.id,
           box_number: b.box_number,

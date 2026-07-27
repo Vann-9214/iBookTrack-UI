@@ -8,6 +8,7 @@ import { Pagination } from '@/components/common/Pagination'
 import { usePagination } from '@/hooks/usePagination'
 import { fetchWarehouseOverview, type OverviewLot } from '../services/warehouse.service'
 import { AlertTriangle, Boxes, CheckCircle2, ChevronRight, Hash, Inbox, Loader2, Package, RefreshCw, Search } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 
 function BoxStatusBadge({ status }: { status: string | null }) {
@@ -60,6 +61,7 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
   const [lotSearchInput, setLotSearchInput] = useState('')
   const [debouncedLotSearch, setDebouncedLotSearch] = useState('')
   const [boxSearch, setBoxSearch] = useState('')
+  const [activeTab, setActiveTab] = useState('all')
   const pagination = usePagination({ totalItems, defaultPageSize: 10 })
   const firstLoadRef = useRef(true)
 
@@ -68,7 +70,7 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
     else setLoading(true)
     setError(null)
     try {
-      const data = await fetchWarehouseOverview(page, pageSize, brand, debouncedLotSearch)
+      const data = await fetchWarehouseOverview(page, pageSize, brand, debouncedLotSearch, activeTab)
       setLots(data.lots)
       setTotalItems(data.pagination.totalItems)
     } catch (err: any) {
@@ -77,7 +79,7 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
       setLoading(false)
       setRefreshing(false)
     }
-  }, [brand, debouncedLotSearch])
+  }, [brand, debouncedLotSearch, activeTab])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,7 +92,7 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
     if (firstLoadRef.current) return
     pagination.goToPage(1)
     load(1, pagination.pageSize, false)
-  }, [debouncedLotSearch])
+  }, [debouncedLotSearch, activeTab])
 
   useEffect(() => {
     setExpandedLot(null)
@@ -162,6 +164,21 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
             <RefreshCw className={cn('h-3.5 w-3.5', (loading || refreshing) && 'animate-spin')} />
           </button>
         </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="px-5 sm:px-6 py-2 border-b shrink-0 flex items-center justify-between">
+        <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); setBoxSearch(''); }}>
+          <TabsList className="bg-muted/40 border ring-1 ring-black/5">
+            <TabsTrigger value="all" className="text-xs">All Lots</TabsTrigger>
+            <TabsTrigger value="in_progress" className="text-xs">
+              In Progress
+            </TabsTrigger>
+            <TabsTrigger value="delayed" className="text-xs">
+              Delayed
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {/* Table header */}
