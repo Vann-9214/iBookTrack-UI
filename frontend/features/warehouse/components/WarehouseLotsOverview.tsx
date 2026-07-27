@@ -6,10 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Pagination } from '@/components/common/Pagination'
 import { usePagination } from '@/hooks/usePagination'
-import { fetchWarehouseOverview, type OverviewLot } from '../services/warehouse.service'
-import { AlertTriangle, Boxes, CheckCircle2, ChevronRight, Hash, Inbox, Loader2, Package, RefreshCw, Search } from 'lucide-react'
+import { fetchWarehouseOverview, deleteSession, type OverviewLot } from '../services/warehouse.service'
+import { AlertTriangle, Boxes, CheckCircle2, ChevronRight, Hash, Inbox, Loader2, Package, RefreshCw, Search, Trash2 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
+import { useUser } from '@/hooks/use-user'
+import { useToast } from '@/hooks/use-toast'
 
 function BoxStatusBadge({ status }: { status: string | null }) {
   if (status === 'completed') return (
@@ -63,7 +65,20 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
   const [boxSearch, setBoxSearch] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const pagination = usePagination({ totalItems, defaultPageSize: 10 })
+  const { user } = useUser()
+  const { toast } = useToast()
   const firstLoadRef = useRef(true)
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to cancel and delete this delayed session?')) return
+    try {
+      await deleteSession(sessionId)
+      toast({ title: 'Session Deleted', description: 'The delayed session has been removed.' })
+      load(pagination.currentPage, pagination.pageSize, true)
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to delete session', variant: 'destructive' })
+    }
+  }
 
   const load = useCallback(async (page: number, pageSize: number, background = false) => {
     if (background) setRefreshing(true)
@@ -341,6 +356,15 @@ export function WarehouseLotsOverview({ brand, refreshKey }: WarehouseLotsOvervi
                                       </span>
                                     )}
                                     <BoxStatusBadge status={box.status} />
+                                    {box.status === 'delayed' && box.session_id && user?.role === 'supervisor' && (
+                                      <button 
+                                        onClick={(e) => { e.stopPropagation(); handleDeleteSession(box.session_id!); }}
+                                        className="ml-2 p-1.5 text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                        title="Delete Delayed Session"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               )

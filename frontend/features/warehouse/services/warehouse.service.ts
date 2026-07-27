@@ -93,6 +93,7 @@ export interface OverviewBox {
   current_stage: string | null
   total_expected_books: number
   status: 'in_progress' | 'delayed' | 'completed' | null
+  session_id?: string | null
 }
 
 export interface OverviewLot {

@@ -156,6 +156,7 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
   }
 
   return {
+    clearSession,
     handleNewSession, handleCloseSession, confirmCloseSession,
     handleResetSession, confirmResetSession,
   }
