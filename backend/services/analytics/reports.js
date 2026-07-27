@@ -69,7 +69,7 @@ export const getLotStatusService = async (req, res) => {
       const sessionStatus = b.box_sessions && b.box_sessions.length > 0 ? b.box_sessions[0].status : 'received';
 
       if (stage === 'warehouse') {
-        baseProgress = 10;
+        baseProgress = sessionStatus === 'received' ? 0 : (sessionStatus === 'completed' ? 10 : 5);
       } else if (stage === 'inventory') {
         baseProgress = sessionStatus === 'received' ? 15 : (sessionStatus === 'completed' ? 20 : 25);
       } else if (stage === 'cut') {

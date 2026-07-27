@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getApiBaseUrl } from '@/lib/auth-api'
 
 export interface LockedWarehouseBox {
@@ -19,8 +19,13 @@ export interface LockedWarehouseBox {
  * ('in_progress' or 'delayed'). Used to block the Lot/Box entry UI when
  * another user is already processing that box.
  */
-export function useWarehouseSSE() {
+export function useWarehouseSSE(options?: { onUnlocked?: (box: LockedWarehouseBox) => void }) {
   const [lockedWarehouseBoxes, setLockedWarehouseBoxes] = useState<LockedWarehouseBox[]>([])
+  const optionsRef = useRef(options)
+
+  useEffect(() => {
+    optionsRef.current = options
+  }, [options])
 
   useEffect(() => {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
@@ -45,7 +50,10 @@ export function useWarehouseSSE() {
     })
     es.addEventListener('WAREHOUSE_UNLOCKED', (e) => {
       const data = parse(e as MessageEvent)
-      if (data?.box_id) setLockedWarehouseBoxes((prev) => prev.filter((b) => b.box_id !== data.box_id))
+      if (data?.box_id) {
+        setLockedWarehouseBoxes((prev) => prev.filter((b) => b.box_id !== data.box_id))
+        if (optionsRef.current?.onUnlocked) optionsRef.current.onUnlocked(data as LockedWarehouseBox)
+      }
     })
     es.onerror = () => {
       // EventSource reconnects automatically; the snapshot event resyncs state.

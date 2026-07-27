@@ -93,6 +93,7 @@ export interface OverviewBox {
   current_stage: string | null
   total_expected_books: number
   status: 'in_progress' | 'delayed' | 'completed' | null
+  session_id?: string | null
 }
 
 export interface OverviewLot {
@@ -118,11 +119,13 @@ export async function fetchWarehouseOverview(
   page: number,
   limit: number,
   type?: string,
-  search?: string
+  search?: string,
+  status?: string
 ): Promise<WarehouseOverviewResponse> {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (type) params.set('type', type)
   if (search) params.set('search', search)
+  if (status && status !== 'all') params.set('status', status)
   const res = await authFetch(`${baseUrl}/api/warehouse/overview?${params.toString()}`)
   const data = await res.json()
   if (!res.ok || !data.success) throw new Error(data.error || 'Failed to load warehouse overview')

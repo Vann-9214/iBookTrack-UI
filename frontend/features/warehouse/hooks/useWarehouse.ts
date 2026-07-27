@@ -16,10 +16,21 @@ export function useWarehouse() {
   const core = useWarehouseState()
   const session = useWarehouseSession(core)
   const scans = useWarehouseScans(core)
-  useWarehouseIsbnStream(core.sessionActive)
-  const { lockedWarehouseBoxes } = useWarehouseSSE()
-
   const { toast } = useToast()
+  
+  const { lockedWarehouseBoxes } = useWarehouseSSE({
+    onUnlocked: (box) => {
+      // If the currently active session's box was just unlocked by a supervisor,
+      // force the session to clear.
+      if (core.sessionActive && core.activeLot.trim().toLowerCase() === (box.lot_number || '').trim().toLowerCase() && core.selectedBox.trim() === (box.box_number || '').trim()) {
+        session.clearSession()
+        toast({ title: 'Session Terminated', description: 'Your session was closed by an administrator.', variant: 'destructive' })
+      }
+    }
+  })
+
+  useWarehouseIsbnStream(core.sessionActive)
+
   const {
     setLots, setLotsLoading, setLotsError, setUserName, setUserId, setLastStatsUpdate,
     setRefreshingStats, sessionActive, currentSessionRef, sessionActiveRef,

@@ -83,11 +83,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [loadingDailyOutput, setLoadingDailyOutput] = useState(false)
   const dailyOutputPagination = usePagination({ totalItems: totalDailyOutput, defaultPageSize: 50 })
 
-  const openLiveLots = async () => {
-    setLiveLotsOpen(true)
-    setSelectedLot(null)
-    if (liveLots.length > 0) return
-    setLoadingLiveLots(true)
+  const fetchLiveLots = async (background = false) => {
+    if (!background) setLoadingLiveLots(true)
     try {
       const res = await authFetch(`${API_URL}/api/reports/lot-status?type=${brand}`)
       const data = await res.json()
@@ -109,6 +106,10 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         }
       })
       setLiveLots(mappedLots)
+      if (selectedLot) {
+        const updated = mappedLots.find((ml: any) => ml.id === selectedLot.id)
+        if (updated) setSelectedLot(updated)
+      }
     } catch {
       setLiveLots([])
     } finally {
@@ -116,8 +117,20 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     }
   }
 
-  const fetchFlags = async (page = 1) => {
-    setLoadingFlags(true)
+  const openLiveLots = async () => {
+    setLiveLotsOpen(true)
+    setSelectedLot(null)
+    if (liveLots.length > 0) return
+    await fetchLiveLots()
+  }
+
+  useEffect(() => {
+    if (refreshKey === undefined || !liveLotsOpen) return
+    fetchLiveLots(true)
+  }, [refreshKey, liveLotsOpen])
+
+  const fetchFlags = async (page = 1, background = false) => {
+    if (!background) setLoadingFlags(true)
     try {
       const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10&today=true&box_type=${brand}`)
       const data = await res.json()
@@ -144,8 +157,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     await fetchFlags(1)
   }
 
-  const fetchDailyOutput = async (page = 1) => {
-    setLoadingDailyOutput(true)
+  const fetchDailyOutput = async (page = 1, background = false) => {
+    if (!background) setLoadingDailyOutput(true)
     try {
       const res = await authFetch(`${API_URL}/api/dashboard/daily-output?page=${page}&limit=${dailyOutputPagination.pageSize}&brand=${brand}`)
       const data = await res.json()
@@ -176,7 +189,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
 
   useEffect(() => {
     if (refreshKey === undefined || !flagsOpen) return
-    fetchFlags(flagsPagination.currentPage)
+    fetchFlags(flagsPagination.currentPage, true)
   }, [refreshKey, flagsOpen])
 
   useEffect(() => {
@@ -186,7 +199,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
 
   useEffect(() => {
     if (refreshKey === undefined || !dailyOutputOpen) return
-    fetchDailyOutput(dailyOutputPagination.currentPage)
+    fetchDailyOutput(dailyOutputPagination.currentPage, true)
   }, [refreshKey, dailyOutputOpen])
 
   useEffect(() => {
