@@ -29,27 +29,32 @@ export function NonProcessableList({
   isJaguar
 }: NonProcessableListProps) {
   const TONE = getTone(isJaguar)
-  const dynamicTone = TONE.theme
-  const [boxSearches, setBoxSearches] = useState<Record<string, string>>({})
   const [selectedNote, setSelectedNote] = useState<{ isbn: string, title: string, remarks: string } | null>(null)
 
-  const handleBoxSearchChange = (lotNumber: string, value: string) => {
-    setBoxSearches(prev => ({ ...prev, [lotNumber]: value }))
-  }
+  const cardTheme = isJaguar
+    ? 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/20 border-emerald-200/50 ring-emerald-100/50'
+    : 'bg-gradient-to-br from-blue-50/50 to-indigo-100/20 border-blue-200/50 ring-blue-100/50'
+  const iconTheme = isJaguar
+    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
+    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+  const headerTextTheme = isJaguar ? 'text-emerald-950/80' : 'text-blue-950/80'
+  const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
 
   return (
-    <div className={cn("rounded-2xl border shadow-sm ring-1 flex flex-col mt-5 overflow-hidden shrink-0 bg-white transition-colors duration-300", dynamicTone.card)}>
-      <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-border/40 shrink-0">
-        <div className="flex items-center gap-3">
+    <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col mt-5 transition-all duration-300 min-h-[400px]", cardTheme)}>
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/20 blur-2xl" />
+      {/* Header */}
+      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-sm">
+        <div className="flex items-center gap-2.5">
           <div className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-sm',
-            dynamicTone.icon
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-lg',
+            iconTheme
           )}>
             <Boxes className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-[15px] font-bold tracking-tight text-foreground leading-none">Non-Processable by Lot & Box</p>
-            <p className="text-xs font-medium text-muted-foreground mt-1">
+            <h2 className={cn("text-[15px] font-black tracking-tight leading-none", headerTextTheme)}>Non-Processable by Lot & Box</h2>
+            <p className={cn("text-[11.5px] font-medium mt-0.5", subTextTheme)}>
               Items flagged during receiving and QC
             </p>
           </div>
@@ -75,17 +80,32 @@ export function NonProcessableList({
       </div>
 
       {/* Table header */}
-      {filteredLots.length > 0 && (
-        <div className="grid grid-cols-12 gap-4 px-5 sm:px-6 py-2.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b bg-muted/30">
-          <div className="col-span-1"></div>
-          <div className="col-span-5 sm:col-span-4">Lot Number</div>
-          <div className="col-span-3 sm:col-span-4 text-center">Items</div>
-          <div className="col-span-3 text-right pr-2">Actions</div>
-        </div>
-      )}
+      <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center", isJaguar ? "bg-emerald-50/50 text-emerald-800/70" : "bg-blue-50/50 text-blue-800/70")}>
+        <div className="col-span-1 flex justify-start"><span className="hidden">#</span></div>
+        <div className="col-span-5 sm:col-span-4">Lot Number</div>
+        <div className="col-span-3 sm:col-span-4 text-center">Items</div>
+        <div className="col-span-3 text-right pr-1">Actions</div>
+      </div>
 
-      <div className={cn("flex-1 min-h-0 overflow-y-auto", filteredLots.length > 4 && "max-h-[28rem]")}>
-        <Accordion type="multiple" className="w-full divide-y divide-border/40">
+      {/* Content */}
+      <div className="flex-1 min-h-0 overflow-y-auto bg-white/40">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 px-6 text-center h-full">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground/20 border-t-muted-foreground/60 mb-4" />
+            <p className="text-sm font-medium text-muted-foreground">Loading lots...</p>
+          </div>
+        ) : filteredLots.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-24 px-6 text-center h-full">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shadow-sm">
+              <Inbox className="h-6 w-6 text-muted-foreground/60" />
+            </div>
+            <p className="text-[15px] font-bold text-foreground mt-1">No lots & boxes found</p>
+            <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
+              {searchQuery ? `No results match "${searchQuery}"` : 'There are no flagged items matching your criteria.'}
+            </p>
+          </div>
+        ) : (
+          <Accordion type="multiple" className={cn("w-full divide-y divide-border/40 bg-white/60", filteredLots.length > 4 && "max-h-[28rem]")}>
         {filteredLots.map((lot) => (
           <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border-none bg-transparent">
             <AccordionTrigger className="w-full grid grid-cols-12 gap-4 items-center px-5 sm:px-6 py-3 text-left transition-all duration-150 group hover:bg-muted/40 hover:no-underline data-[state=open]:bg-primary/[0.03] [&>svg]:hidden">
@@ -118,23 +138,13 @@ export function NonProcessableList({
                </div>
             </AccordionTrigger>
             
-            <AccordionContent className="bg-muted/10 border-t border-border/40 pb-0 pt-0">
+            <AccordionContent className="bg-white/40 border-t border-border/40 pb-0 pt-0">
                <div className="px-5 sm:px-6 py-3">
-                 <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-2 px-1">
+                 <div className="border-b border-border/40 pb-2 mb-2 px-1">
                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Boxes in {lot.lot_number}</span>
-                   <div className="relative shrink-0 hidden sm:block">
-                     <Search className="absolute left-2.5 top-1.5 h-3.5 w-3.5 text-muted-foreground/60" />
-                     <Input 
-                       placeholder="Search boxes..." 
-                       value={boxSearches[lot.lot_number] || ''} 
-                       onChange={e => handleBoxSearchChange(lot.lot_number, e.target.value)}
-                       className="w-40 h-7 pl-8 text-[11px] bg-background border-border/60 shadow-sm focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 rounded-md"
-                     />
-                   </div>
                  </div>
                  <Accordion type="multiple" className="w-full space-y-2 pb-3">
                     {Object.values(lot.boxes)
-                      .filter(box => !boxSearches[lot.lot_number] || box.box_number.toLowerCase().includes(boxSearches[lot.lot_number].toLowerCase()))
                       .map((box) => (
                     <AccordionItem key={box.box_number} value={box.box_number} className="border rounded-xl bg-white overflow-hidden shadow-sm">
                       <AccordionTrigger className="px-4 py-3 hover:no-underline text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
@@ -191,24 +201,8 @@ export function NonProcessableList({
             </AccordionContent>
           </AccordionItem>
         ))}
-        {filteredLots.length === 0 && !loading && (
-          <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-            {searchQuery ? (
-              <>
-                <Search className="h-10 w-10 text-gray-300 mb-3" />
-                <span className="font-medium text-gray-600">No results found for "{searchQuery}"</span>
-              </>
-            ) : (
-              <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 mb-3 opacity-80">
-                  <Check className="h-6 w-6 text-white stroke-[3]" />
-                </div>
-                <span className="font-medium text-gray-600">No problem lots found</span>
-              </>
-            )}
-          </div>
-        )}
         </Accordion>
+        )}
       </div>
 
       {/* Notes Modal */}
