@@ -235,7 +235,15 @@ export const completeSessionService = async (req, res) => {
       }
     }
 
-    const { rows: updRows } = await db.query("UPDATE box_sessions SET status = 'completed' WHERE id = $1 RETURNING *", [session_id]);
+    const { rows: updRows } = await db.query(`
+      UPDATE box_sessions 
+      SET status = 'completed',
+          total_scanned_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id),
+          total_processable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'processable'),
+          total_nonprocessable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'non_processable')
+      WHERE id = $1 
+      RETURNING *
+    `, [session_id]);
 
     if (session.box_id) {
       const lockPayload = await getBoxLockPayload(session.box_id);
@@ -392,6 +400,16 @@ export const bulkSaveSessionService = async (req, res) => {
     if (total_expected_books && existingBox) {
       await db.query('UPDATE boxes SET total_expected_books = $1 WHERE id = $2', [parseInt(total_expected_books), assignedBoxId]);
     }
+
+    const { rows: finalSessRows } = await db.query(`
+      UPDATE box_sessions 
+      SET total_scanned_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id),
+          total_processable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'processable'),
+          total_nonprocessable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'non_processable')
+      WHERE id = $1 
+      RETURNING *
+    `, [session.id]);
+    session = finalSessRows[0];
 
     const lockPayload = await getBoxLockPayload(assignedBoxId);
     broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
