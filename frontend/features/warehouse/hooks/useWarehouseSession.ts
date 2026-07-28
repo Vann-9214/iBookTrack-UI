@@ -2,7 +2,7 @@
 
 import { useToast } from '@/hooks/use-toast'
 import { useBrand } from '@/hooks/use-brand'
-import { bulkSaveSession, deleteSession, startWarehouseSession, type StartSessionError } from '../services/warehouse.service'
+import { bulkSaveSession, deleteSession, startWarehouseSession, type StartSessionError, fetchLots } from '../services/warehouse.service'
 import { findSimilarLot } from '../utils/warehouse.helpers'
 import type { useWarehouseState } from './useWarehouseState'
 
@@ -14,8 +14,8 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
     setCurrentSession, loading, setLoading, currentBoxNumber, setCurrentBoxNumber,
     setCurrentBoxBooks, setBookCounter, setScannedBooks, scannedBooks,
     currentSession, issues, setIssues, totalBooksExpected, setTotalBooksExpected,
-    setIssueIsbn, setIssueType, setConfirmCompleteOpen, setConfirmResetOpen,
-    setSessionError, setConflictModalState, setSimilarLotModal,
+    setIssueIsbn, setIssueType, setConfirmCompleteOpen, setConfirmResetOpen, setSessionError, setConflictModalState,
+    setSimilarLotModal, setLots
   } = core
 
   const clearSession = () => {
@@ -43,6 +43,7 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
       }
     }
     if (!formattedLot.toLowerCase().startsWith('lot')) { setSessionError("The Lot Number must start with the word 'Lot' (e.g. Lot-109)."); setLoading(false); return }
+    if (!/^lot[- ]+[a-zA-Z0-9]+$/i.test(formattedLot)) { setSessionError("The Lot Number must contain a '-' or space followed by a letter or number (e.g. Lot-109 or Lot 109)."); setLoading(false); return }
     if (!selectedBox) { setSessionError('Please select a box first'); setLoading(false); return }
     if (!selectedBox.includes('/')) { setSessionError("The Box Number must contain a '/' (e.g. 181/264)."); setLoading(false); return }
     const [currentBox, totalBoxes] = selectedBox.split('/')
@@ -136,6 +137,12 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
       setIssueIsbn('')
       setIssues([])
       toast({ title: 'Session Closed', description: 'Session closed successfully.' })
+      try {
+        const updatedLots = await fetchLots()
+        setLots(updatedLots)
+      } catch (err) {
+        console.error('Failed to refresh lots:', err)
+      }
     } catch (error: any) {
       setSessionError(error.message || 'Failed to complete session')
     } finally {
