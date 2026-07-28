@@ -43,20 +43,18 @@ export const startSessionService = async (req, res) => {
       return res.status(400).json({ error: 'lot_number is required' })
     }
 
-    const bookType = req.body.type ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase() : null;
+    const bookType = req.body.type ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase() : 'Mustang';
 
     // Get or create the lot (type-aware, matching bulk-save/box-exists resolution)
-    let lotQuery = 'SELECT * FROM lots WHERE lot_number = $1';
-    const lotParams = [lot_number];
-    if (bookType) { lotQuery += ' AND type = $2'; lotParams.push(bookType); }
-    else { lotQuery += ' AND type IS NULL'; }
+    let lotQuery = 'SELECT * FROM lots WHERE lot_number = $1 AND type = $2';
+    const lotParams = [lot_number, bookType];
     let { rows: lotRows } = await db.query(lotQuery + ' LIMIT 1', lotParams);
     let lot = lotRows[0] || null;
 
     if (!lot) {
       const { rows: newLotRows } = await db.query(
-        'INSERT INTO lots (lot_number, total_boxes, type) VALUES ($1, 0, $2) RETURNING *',
-        [lot_number, bookType]
+        'INSERT INTO lots (lot_number, total_boxes, type, created_by) VALUES ($1, 0, $2, $3) RETURNING *',
+        [lot_number, bookType, req.user.id]
       );
       lot = newLotRows[0];
     }
@@ -235,7 +233,15 @@ export const completeSessionService = async (req, res) => {
       }
     }
 
-    const { rows: updRows } = await db.query("UPDATE box_sessions SET status = 'completed' WHERE id = $1 RETURNING *", [session_id]);
+    const { rows: updRows } = await db.query(`
+      UPDATE box_sessions 
+      SET status = 'completed',
+          total_scanned_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id),
+          total_processable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'processable'),
+          total_nonprocessable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'non_processable')
+      WHERE id = $1 
+      RETURNING *
+    `, [session_id]);
 
     if (session.box_id) {
       const lockPayload = await getBoxLockPayload(session.box_id);
@@ -255,18 +261,17 @@ export const bulkSaveSessionService = async (req, res) => {
     if (book_type) book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
 
     // 1. Resolve Lot
-    let lotQuery = 'SELECT id, lot_number FROM lots WHERE lot_number = $1';
-    const lotParams = [lot_number];
-    if (book_type) { lotQuery += ' AND type = $2'; lotParams.push(book_type); }
-    else { lotQuery += ' AND type IS NULL'; }
+    if (!book_type) book_type = 'Mustang';
+    let lotQuery = 'SELECT id, lot_number FROM lots WHERE lot_number = $1 AND type = $2';
+    const lotParams = [lot_number, book_type];
     
     let { rows: lotRows } = await db.query(lotQuery + ' LIMIT 1', lotParams);
     let lot = lotRows[0] || null;
 
     if (!lot) {
       const { rows: newLotRows } = await db.query(
-        'INSERT INTO lots (lot_number, type, total_boxes) VALUES ($1, $2, 0) RETURNING *',
-        [lot_number, book_type || null]
+        'INSERT INTO lots (lot_number, type, total_boxes, created_by) VALUES ($1, $2, 0, $3) RETURNING *',
+        [lot_number, book_type, req.user.id]
       );
       lot = newLotRows[0];
     }
@@ -392,6 +397,16 @@ export const bulkSaveSessionService = async (req, res) => {
     if (total_expected_books && existingBox) {
       await db.query('UPDATE boxes SET total_expected_books = $1 WHERE id = $2', [parseInt(total_expected_books), assignedBoxId]);
     }
+
+    const { rows: finalSessRows } = await db.query(`
+      UPDATE box_sessions 
+      SET total_scanned_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id),
+          total_processable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'processable'),
+          total_nonprocessable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'non_processable')
+      WHERE id = $1 
+      RETURNING *
+    `, [session.id]);
+    session = finalSessRows[0];
 
     const lockPayload = await getBoxLockPayload(assignedBoxId);
     broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);

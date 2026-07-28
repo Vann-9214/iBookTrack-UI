@@ -202,6 +202,8 @@ export const getLotStatusService = async (req, res) => {
       lot_status: lot.type ? lot.type.charAt(0).toUpperCase() + lot.type.slice(1) : null,
       computed_status: computedStatus,
       created_at: lot.created_at,
+      created_by: lot.created_by,
+      created_by_name: lot.created_by_name,
       total_boxes: totalBoxes,
       active_boxes: activeBoxes.length,
       stored_boxes: storedBoxes.length,

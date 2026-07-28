@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.lots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lot_number TEXT NOT NULL UNIQUE,
+  lot_number TEXT NOT NULL,
   total_boxes INTEGER NOT NULL DEFAULT 0,
   type TEXT NOT NULL DEFAULT 'Mustang',
   total_scanned_books INTEGER DEFAULT 0,
@@ -14,11 +14,13 @@ CREATE TABLE IF NOT EXISTS public.lots (
   total_nonprocessable_books INTEGER DEFAULT 0,
   total_expected_books INTEGER DEFAULT 0,
   total_transmitted_books INTEGER DEFAULT 0,
+  created_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_lots_type ON public.lots (type);
+CREATE INDEX IF NOT EXISTS idx_lots_created_by ON public.lots (created_by);
 CREATE UNIQUE INDEX IF NOT EXISTS lots_lot_number_type_key ON public.lots (lot_number, type);
 
 

@@ -6,6 +6,7 @@ import { BrandProvider } from '@/hooks/use-brand'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from '@/components/ui/sonner'
 import { IdleTimeout } from '@/components/idle-timeout'
+import { ModalOriginTracker } from '@/components/modal-origin-tracker'
 import { UserProvider } from '@/hooks/use-user'
 import './globals.css'
 
@@ -38,6 +39,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <UserProvider>
             <BrandProvider>
+              <ModalOriginTracker />
               {children}
             </BrandProvider>
           </UserProvider>

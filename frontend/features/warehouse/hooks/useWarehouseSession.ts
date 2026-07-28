@@ -2,7 +2,7 @@
 
 import { useToast } from '@/hooks/use-toast'
 import { useBrand } from '@/hooks/use-brand'
-import { bulkSaveSession, deleteSession, startWarehouseSession, type StartSessionError } from '../services/warehouse.service'
+import { bulkSaveSession, deleteSession, startWarehouseSession, type StartSessionError, fetchLots } from '../services/warehouse.service'
 import { findSimilarLot } from '../utils/warehouse.helpers'
 import type { useWarehouseState } from './useWarehouseState'
 
@@ -14,8 +14,8 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
     setCurrentSession, loading, setLoading, currentBoxNumber, setCurrentBoxNumber,
     setCurrentBoxBooks, setBookCounter, setScannedBooks, scannedBooks,
     currentSession, issues, setIssues, totalBooksExpected, setTotalBooksExpected,
-    setIssueIsbn, setIssueType, setConfirmCompleteOpen, setConfirmResetOpen,
-    setSessionError, setConflictModalState, setSimilarLotModal,
+    setIssueIsbn, setIssueType, setConfirmCompleteOpen, setConfirmResetOpen, setSessionError, setConflictModalState,
+    setSimilarLotModal, setLots
   } = core
 
   const clearSession = () => {
@@ -42,13 +42,7 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
         return
       }
     }
-    if (!formattedLot.toLowerCase().startsWith('lot')) { setSessionError("The Lot Number must start with the word 'Lot' (e.g. Lot-109)."); setLoading(false); return }
     if (!selectedBox) { setSessionError('Please select a box first'); setLoading(false); return }
-    if (!selectedBox.includes('/')) { setSessionError("The Box Number must contain a '/' (e.g. 181/264)."); setLoading(false); return }
-    const [currentBox, totalBoxes] = selectedBox.split('/')
-    const currentNum = parseInt(currentBox, 10)
-    const totalNum = parseInt(totalBoxes, 10)
-    if (isNaN(currentNum) || isNaN(totalNum) || currentNum > totalNum) { setSessionError('The total boxes (right side) must be greater than or equal to the current box (left side). Example: 12/400.'); setLoading(false); return }
     try {
       // Creates a real 'in_progress' session in the database, which locks this
       // lot/box combination for every other user until completed or cancelled.
@@ -136,6 +130,12 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
       setIssueIsbn('')
       setIssues([])
       toast({ title: 'Session Closed', description: 'Session closed successfully.' })
+      try {
+        const updatedLots = await fetchLots()
+        setLots(updatedLots)
+      } catch (err) {
+        console.error('Failed to refresh lots:', err)
+      }
     } catch (error: any) {
       setSessionError(error.message || 'Failed to complete session')
     } finally {
@@ -147,12 +147,15 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
 
   const confirmResetSession = async () => {
     if (!currentSession) return
-    setConfirmResetOpen(false)
     try {
       if (!currentSession.id.startsWith('pending')) await deleteSession(currentSession.id)
-    } catch (e) { console.error('Failed to delete session', e) }
-    clearSession()
-    toast({ title: 'Session Cancelled', description: 'Session has been cancelled and removed from the database.' })
+      clearSession()
+      setConfirmResetOpen(false)
+      toast({ title: 'Session Cancelled', description: 'Session has been cancelled and removed from the database.' })
+    } catch (e) {
+      console.error('Failed to delete session', e)
+      setSessionError('Failed to reset session.')
+    }
   }
 
   return {

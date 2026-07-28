@@ -23,6 +23,8 @@ export interface LotStatusRow {
   lot_status: string
   computed_status: ComputedStatus
   created_at: string
+  created_by?: string | null
+  created_by_name?: string | null
   total_boxes: number
   active_boxes: number
   stored_boxes: number
@@ -41,5 +43,5 @@ export interface LotStatusRow {
 }
 
 export type FilterStatus = 'all' | ComputedStatus
-export type SortKey = 'lot_number' | 'computed_status' | 'total_boxes' | 'transmitted' | 'pending' | 'progress'
+export type SortKey = 'lot_number' | 'computed_status' | 'total_boxes' | 'transmitted' | 'pending' | 'progress' | 'created_by_name'
 export type SortDir = 'asc' | 'desc'

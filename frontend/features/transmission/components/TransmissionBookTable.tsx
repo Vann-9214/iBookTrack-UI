@@ -8,10 +8,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/pagination'
 import { RoleGuard } from '@/components/role-guard'
+import { cn } from '@/lib/utils'
 import type { LotIsbn, PaginationState } from '../types/transmission.types'
 import { getScanStatusBadge, getSimflexBadge } from '../utils/transmission.helpers'
 
 interface TransmissionBookTableProps {
+  brand: 'mustang' | 'jaguar'
   filteredLotIsbns: LotIsbn[]
   paginatedLotIsbns: LotIsbn[]
   lotIsbnSearch: string
@@ -22,6 +24,7 @@ interface TransmissionBookTableProps {
 }
 
 export function TransmissionBookTable({
+  brand,
   filteredLotIsbns,
   paginatedLotIsbns,
   lotIsbnSearch,
@@ -73,9 +76,18 @@ export function TransmissionBookTable({
             <tbody>
               {paginatedLotIsbns.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-muted-foreground">
-                    <BookOpen className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground/40" />
-                    No books found{lotBoxFilter !== 'all' ? ` in box ${lotBoxFilter}` : ''}
+                  <td colSpan={8} className="text-center py-16 text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className={cn(
+                        "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
+                        brand === 'jaguar' 
+                          ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+                          : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+                      )}>
+                        <BookOpen className="h-6 w-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-600">No books found{lotBoxFilter !== 'all' ? ` in box ${lotBoxFilter}` : ''}</p>
+                    </div>
                   </td>
                 </tr>
               ) : (

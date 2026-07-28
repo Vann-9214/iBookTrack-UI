@@ -7,9 +7,11 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Pagination } from '@/components/pagination'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import type { LotSearchResult, LotSummary } from '../types/transmission.types'
 
 interface LotSelectorProps {
+  brand: 'mustang' | 'jaguar'
   lotSearchQuery: string
   setLotSearchQuery: (value: string) => void
   handleLotSearchChange: (value: string) => void
@@ -25,6 +27,7 @@ interface LotSelectorProps {
 }
 
 export function LotSelector({
+  brand,
   lotSearchQuery,
   setLotSearchQuery,
   handleLotSearchChange,
@@ -42,9 +45,17 @@ export function LotSelector({
 
   return (
     <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-gradient-to-r from-indigo-50/70 to-white">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500 text-white shrink-0">
-          <Package className="h-4 w-4" />
+      <div className={cn(
+        "flex items-center gap-3 px-5 py-3 border-b",
+        brand === 'jaguar' ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"
+      )}>
+        <div className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg",
+          brand === 'jaguar' 
+            ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+            : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+        )}>
+          <Package className="h-5 w-5" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-gray-800">LOT Transmission</p>
@@ -79,8 +90,13 @@ export function LotSelector({
       <div className="max-h-[360px] overflow-y-auto">
         {lotSearchResults.length === 0 && !lotSearchLoading ? (
           <div className="flex flex-col items-center justify-center py-14 px-5 text-center">
-            <div className="h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-3">
-              <Package className="h-6 w-6 text-indigo-400" />
+            <div className={cn(
+              "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg mb-3",
+              brand === 'jaguar' 
+                ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+                : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+            )}>
+              <Package className="h-6 w-6" />
             </div>
             {lotSearchQuery ? (
               <>

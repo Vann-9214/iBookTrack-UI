@@ -8,13 +8,17 @@
 import { db } from '../../config/db.js';
 
 export const getLots = async (brandType) => {
-  let query = 'SELECT id, lot_number, type, created_at, total_boxes FROM lots';
+  let query = `
+    SELECT l.id, l.lot_number, l.type, l.created_at, l.total_boxes, l.created_by, u.name AS created_by_name
+    FROM lots l
+    LEFT JOIN users u ON u.id = l.created_by
+  `;
   const params = [];
   if (brandType) {
-    query += ' WHERE type = $1';
+    query += ' WHERE l.type = $1';
     params.push(brandType);
   }
-  query += ' ORDER BY created_at DESC';
+  query += ' ORDER BY l.created_at DESC';
 
   try {
     const { rows } = await db.query(query, params);
