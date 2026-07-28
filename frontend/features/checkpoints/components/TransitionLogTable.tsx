@@ -35,7 +35,7 @@ export function TransitionLogTable({
           No transitions logged yet. Use "Receive" buttons above to advance boxes.
         </div>
       ) : (
-        <div className="flex flex-col border-t border-border/50 max-h-[600px] overflow-y-auto overflow-x-hidden relative">
+        <div className="flex flex-col border-t border-border/50 max-h-[600px] overflow-y-auto overflow-x-auto relative">
           <div className="flex items-center gap-4 px-6 py-3 bg-card border-b border-border/50 text-[10px] font-bold text-muted-foreground uppercase tracking-wider sticky top-0 z-20 shadow-sm">
             <div className="w-[220px] shrink-0 flex items-center">
               <div className="w-[80px] shrink-0 mr-2">Box & Lot</div>

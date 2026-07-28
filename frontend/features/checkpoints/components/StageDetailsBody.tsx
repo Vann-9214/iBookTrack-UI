@@ -59,7 +59,7 @@ export function StageDetailsBody({
   })
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
+    <div className="flex-1 overflow-y-auto p-3 bg-white">
       {isSimflexView ? (
         <div className="flex flex-col gap-2">
           {simflexRowsLoading ? (
@@ -79,7 +79,7 @@ export function StageDetailsBody({
           No boxes at this station.
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="space-y-2">
           {filteredBoxes
             .slice((stageModalPage - 1) * 50, stageModalPage * 50)
             .map((box) => {

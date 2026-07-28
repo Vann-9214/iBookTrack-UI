@@ -49,6 +49,7 @@ export default function ReportsPage() {
             lastUpdated={lastUpdated}
             loading={loading}
             onRefresh={fetchData}
+            lots={lots}
           />
 
           <ReportStatusSummary
