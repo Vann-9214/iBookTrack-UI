@@ -128,7 +128,7 @@ export default function WarehousePage() {
               <WarehouseActiveSession brand={brand} activeLot={wh.activeLot} currentBoxNumber={wh.currentBoxNumber} currentBoxBooks={wh.currentBoxBooks} userName={wh.userName} loading={wh.loading} isbnLoading={wh.isbnLoading} scannedBooks={wh.scannedBooks} currentSession={wh.currentSession!} handleResetSession={wh.handleResetSession} handleCloseSession={wh.handleCloseSession}>
                 <WarehouseSessionStats currentSession={wh.currentSession!} />
                 <WarehouseScanner onScan={wh.handleScan} />
-                <WarehouseScanLog scannedBooks={wh.scannedBooks} openFlagModal={wh.openFlagModal} handleRemoveBook={wh.handleRemoveBook} />
+                <WarehouseScanLog scannedBooks={wh.scannedBooks} openFlagModal={wh.openFlagModal} handleRemoveBook={wh.handleRemoveBook} brand={brand} />
               </WarehouseActiveSession>
             )}
           </div>

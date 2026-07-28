@@ -37,17 +37,26 @@ export function WarehouseActiveSession({
   return (
     <div className="relative flex flex-col gap-4">
       {loading && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-card rounded-xl">
-          <div className="flex items-center gap-3 px-5 py-4 bg-muted/50 border border-border rounded-xl shadow-lg">
-            <span className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+          <div className={cn(
+            "flex items-center gap-3 px-5 py-4 bg-card border rounded-xl shadow-lg",
+            brand === 'jaguar' ? "border-emerald-200 shadow-emerald-900/5" : "border-blue-200 shadow-blue-900/5"
+          )}>
+            <span className={cn(
+              "w-6 h-6 rounded-full border-2 border-t-transparent animate-spin",
+              brand === 'jaguar' ? "border-emerald-600" : "border-blue-600"
+            )} />
             <span className="text-sm font-semibold text-foreground">Completing session...</span>
           </div>
         </div>
       )}
 
       {isbnLoading && (
-        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-card border border-primary/30 rounded-xl shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-200">
-          <Loader2 className="h-4 w-4 text-primary animate-spin" />
+        <div className={cn(
+          "fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-card border rounded-xl shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-200",
+          brand === 'jaguar' ? "border-emerald-500/30" : "border-blue-500/30"
+        )}>
+          <Loader2 className={cn("h-4 w-4 animate-spin", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
           <div>
             <p className="text-sm font-semibold text-foreground">Adding ISBN...</p>
             <p className="text-xs text-muted-foreground">Verifying with iLMS</p>
@@ -72,69 +81,63 @@ export function WarehouseActiveSession({
       </div>
 
       {/* Active session banner */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {/* Top accent strip */}
-        <div className="h-0.5 w-full bg-primary/80" />
-        <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
-          {/* Info */}
-          <div className="flex items-start gap-3 sm:gap-5">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
-              <Package className="h-4 w-4 text-primary" />
+      <div className={cn(
+        "flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2.5 px-3 sm:px-4 rounded-xl border",
+        brand === 'jaguar'
+          ? "bg-emerald-50 border-emerald-200"
+          : "bg-blue-50 border-blue-200"
+      )}>
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className={cn(
+            "flex items-center justify-center w-10 h-10 rounded-lg shrink-0",
+            brand === 'jaguar' ? "bg-emerald-100/50 text-emerald-600" : "bg-blue-100/50 text-blue-600"
+          )}>
+            <Package className="h-5 w-5" />
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Lot</span>
+              <span className={cn("text-sm font-bold", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>{activeLot}</span>
             </div>
-            <div className="flex items-center divide-x divide-border min-w-0">
-              <div className="pr-3 sm:pr-5 shrink-0">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Lot</p>
-                <p className="text-sm font-bold text-foreground mt-0.5">{activeLot}</p>
-              </div>
-              {currentBoxNumber && (
-                <div className="px-3 sm:px-5 shrink-0">
-                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Box</p>
-                  <p className="text-sm font-bold text-foreground mt-0.5">{currentBoxNumber}</p>
-                  <p className="text-[10px] text-muted-foreground">{currentBoxBooks} books</p>
+            
+            {currentBoxNumber && (
+              <>
+                <div className={cn("w-px h-8", brand === 'jaguar' ? "bg-emerald-200/50" : "bg-blue-200/50")} />
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Box</span>
+                  <span className={cn("text-sm font-bold", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>{currentBoxNumber}</span>
                 </div>
-              )}
-              <div className="pl-3 sm:pl-5 min-w-0">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Operator</p>
-                <p className="text-sm font-bold text-foreground mt-0.5 truncate">{userName || 'Unknown'}</p>
-              </div>
+              </>
+            )}
+
+            <div className={cn("w-px h-8 hidden sm:block", brand === 'jaguar' ? "bg-emerald-200/50" : "bg-blue-200/50")} />
+            
+            <div className="hidden sm:flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Operator</span>
+              <span className={cn("text-sm font-bold truncate max-w-[150px]", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>{userName || 'Unknown'}</span>
             </div>
           </div>
-          {/* Buttons */}
-          <div className="flex gap-2 shrink-0">
-            <button onClick={handleResetSession}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
-              <X className="h-3.5 w-3.5" />
-              Reset
-            </button>
-            {scannedBooks.length === 0 ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1 sm:flex-none inline-flex">
-                    <button
-                      onClick={handleCloseSession}
-                      disabled
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                    >
-                      <CircleCheck className="h-3.5 w-3.5" />
-                      Complete Session
-                    </button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={8} variant="destructive">
-                  Scan at least one book first
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <button
-                onClick={handleCloseSession}
-                disabled={loading}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-              >
-                <CircleCheck className="h-3.5 w-3.5" />
-                Complete Session
-              </button>
+        </div>
+
+        <div className="flex gap-2 w-full sm:w-auto shrink-0">
+          <button onClick={handleResetSession}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg border bg-white hover:bg-red-50 text-red-500 hover:text-red-600 hover:border-red-200 transition-colors shadow-sm">
+            <X className="h-4 w-4" />
+            Reset
+          </button>
+          
+          <button
+            onClick={handleCloseSession}
+            disabled={loading || scannedBooks.length === 0}
+            className={cn(
+              "flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg text-white font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+              brand === 'jaguar' ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700"
             )}
-          </div>
+          >
+            <CircleCheck className="h-4 w-4" />
+            Complete Session
+          </button>
         </div>
       </div>
 
