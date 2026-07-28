@@ -42,14 +42,7 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
         return
       }
     }
-    if (!formattedLot.toLowerCase().startsWith('lot')) { setSessionError("The Lot Number must start with the word 'Lot' (e.g. Lot-109)."); setLoading(false); return }
-    if (!/^lot[- ]+[a-zA-Z0-9]+$/i.test(formattedLot)) { setSessionError("The Lot Number must contain a '-' or space followed by a letter or number (e.g. Lot-109 or Lot 109)."); setLoading(false); return }
     if (!selectedBox) { setSessionError('Please select a box first'); setLoading(false); return }
-    if (!selectedBox.includes('/')) { setSessionError("The Box Number must contain a '/' (e.g. 181/264)."); setLoading(false); return }
-    const [currentBox, totalBoxes] = selectedBox.split('/')
-    const currentNum = parseInt(currentBox, 10)
-    const totalNum = parseInt(totalBoxes, 10)
-    if (isNaN(currentNum) || isNaN(totalNum) || currentNum > totalNum) { setSessionError('The total boxes (right side) must be greater than or equal to the current box (left side). Example: 12/400.'); setLoading(false); return }
     try {
       // Creates a real 'in_progress' session in the database, which locks this
       // lot/box combination for every other user until completed or cancelled.
