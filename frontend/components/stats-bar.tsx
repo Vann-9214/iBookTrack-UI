@@ -464,8 +464,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : flags.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100">
-                  <CheckCircle2 className="h-7 w-7" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
+                  <AlertTriangle className="h-7 w-7" />
                 </div>
                 <span className="text-sm font-semibold text-gray-600">No flagged books</span>
                 <span className="text-xs text-gray-400">Everything looks clean for today</span>
@@ -635,8 +635,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : liveLots.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-2">
-                <div className={cn("h-12 w-12 rounded-full flex items-center justify-center", M.track, M.soft)}>
-                  <Package className="h-6 w-6" />
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg", M.iconBg)}>
+                  <Activity className="h-7 w-7" />
                 </div>
                 <span className="text-sm font-medium text-gray-500">No open lots currently</span>
               </div>
@@ -743,7 +743,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : dailyOutputRows.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl ring-1", M.track, M.soft, M.border)}>
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg", M.iconBg)}>
                   <FileOutput className="h-7 w-7" />
                 </div>
                 <span className="text-sm font-semibold text-gray-600">No books transmitted today</span>

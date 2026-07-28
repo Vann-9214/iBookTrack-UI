@@ -79,8 +79,11 @@ export function NonProcessableModals({
               </div>
             ) : displayFlags.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl shadow-md", activeTone.modalIcon)}>
-                  <CheckCircle2 className="h-7 w-7 text-white" />
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg", activeTone.modalIcon)}>
+                  {selectedCategory === 'Damage' ? <FileWarning className="h-7 w-7" /> :
+                   selectedCategory === 'Mismatch' ? <PackageX className="h-7 w-7" /> :
+                   selectedCategory === 'Resolved' ? <CheckCircle2 className="h-7 w-7" /> :
+                   <AlertOctagon className="h-7 w-7" />}
                 </div>
                 <span className="text-sm font-semibold text-gray-600">No flagged books</span>
                 <span className="text-xs text-gray-400">Everything looks clean for this category</span>
