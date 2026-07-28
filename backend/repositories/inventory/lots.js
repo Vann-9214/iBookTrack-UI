@@ -147,10 +147,16 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
   return Array.from(grouped.values());
 };
 
-export const getLotWithBoxesByNumber = async (lot_number) => {
+export const getLotWithBoxesByNumber = async (lot_number, lotType = null) => {
   try {
     // Fetch the lot
-    const { rows: lots } = await db.query('SELECT * FROM lots WHERE lot_number = $1', [lot_number]);
+    let query = 'SELECT * FROM lots WHERE lot_number = $1';
+    let params = [lot_number];
+    if (lotType) {
+      query += ' AND type = $2';
+      params.push(lotType);
+    }
+    const { rows: lots } = await db.query(query, params);
     if (lots.length === 0) return null;
     const lot = lots[0];
 

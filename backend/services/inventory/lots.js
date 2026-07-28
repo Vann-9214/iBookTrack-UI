@@ -129,7 +129,8 @@ export const getLotTransmissionSummaryService = async (req, res) => {
 
 export const getLotService = async (req, res) => {
   const { lot_number } = req.params;
-  const data = await lotsRepo.getLotWithBoxesByNumber(lot_number);
+  const lotType = VALID_LOT_TYPES.includes(req.query.type) ? req.query.type : null;
+  const data = await lotsRepo.getLotWithBoxesByNumber(lot_number, lotType);
   if (!data) throw { status: 404, payload: { error: 'Lot not found' } };
   return { lot: data };
 };

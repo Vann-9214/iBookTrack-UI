@@ -17,12 +17,10 @@ export function WarehouseSessionStats({ currentSession }: WarehouseSessionStatsP
       label: 'Total scanned',
       value: currentSession.total_scanned_books,
       icon: ScanBarcode,
-      card: isJaguar
-        ? 'border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/70 ring-emerald-100/70 hover:shadow-emerald-200/60'
-        : 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/70 ring-blue-100/70 hover:shadow-blue-200/60',
-      iconBg: isJaguar ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25' : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25',
-      text: isJaguar ? 'text-emerald-700' : 'text-blue-700',
-      accent: isJaguar ? 'bg-emerald-400/20' : 'bg-blue-400/20',
+      card: 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/70 ring-blue-100/70 hover:shadow-blue-200/60',
+      iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25',
+      text: 'text-blue-700',
+      accent: 'bg-blue-400/20',
     },
     {
       label: 'Processable',

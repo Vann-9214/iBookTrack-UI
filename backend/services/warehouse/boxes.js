@@ -10,20 +10,11 @@ export const checkBoxExistsService = async (req, res) => {
       return res.status(400).json({ error: 'lot_number and box_number are required' })
     }
 
-    let book_type = null
-    if (type) {
-      book_type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()
-    }
+    let book_type = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'Mustang';
 
     // Resolve the lot
-    let lotQuery = 'SELECT id FROM lots WHERE lot_number = $1';
-    let lotParams = [lot_number];
-    if (book_type) {
-      lotQuery += ' AND type = $2';
-      lotParams.push(book_type);
-    } else {
-      lotQuery += ' AND type IS NULL';
-    }
+    let lotQuery = 'SELECT id FROM lots WHERE lot_number = $1 AND type = $2';
+    let lotParams = [lot_number, book_type];
 
     const { rows: lotRows } = await db.query(lotQuery + ' LIMIT 1', lotParams);
     const lot = lotRows[0] || null;
