@@ -6,7 +6,7 @@ export function ModalOriginTracker() {
   useEffect(() => {
     const trackOrigin = (event: PointerEvent) => {
       const target = event.target
-      if (!(target instanceof Element) || target.closest('[data-modal-origin-surface]') || !target.closest('button, [role="button"]')) return
+      if (!(target instanceof Element) || target.closest('[data-modal-origin-surface]') || !target.closest('button, [role="button"], [data-modal-trigger]')) return
       document.documentElement.style.setProperty('--modal-origin-x', `${event.clientX}px`)
       document.documentElement.style.setProperty('--modal-origin-y', `${event.clientY}px`)
     }
