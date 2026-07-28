@@ -40,7 +40,7 @@ export function StageCardsSection({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:hidden">
+      <div className="flex flex-wrap justify-center gap-3 lg:hidden">
         {STAGE_ORDER.map((stage) => (
           <PipelineStageCard
             key={stage}
@@ -49,7 +49,7 @@ export function StageCardsSection({
             transmitBooks={transmitBooks}
             brand={brand}
             onClick={onSelectStage}
-            className="hover:scale-[1.01]"
+            className="hover:scale-[1.01] w-[calc(50%-0.375rem)]"
           />
         ))}
       </div>
