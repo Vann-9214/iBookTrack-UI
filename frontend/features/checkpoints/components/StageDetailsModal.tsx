@@ -89,9 +89,12 @@ export function StageDetailsModal(props: StageDetailsModalProps) {
   const totalPages = Math.max(1, Math.ceil(totalItems / 50))
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in"
+      onClick={onClose}
+    >
       <div
-        className="bg-card border border-border rounded-xl shadow-xl w-full max-w-6xl mx-4 h-[700px] max-h-[90vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5"
         onClick={(e) => e.stopPropagation()}
       >
         <StageDetailsHeader

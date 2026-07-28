@@ -16,8 +16,8 @@ export function TransitionTimeline({
   isCompleted,
 }: TransitionTimelineProps) {
   return (
-    <div className="px-6 py-4 bg-muted/20 border-t border-border overflow-hidden">
-      <div className="flex items-start justify-between relative px-2">
+    <div className="px-6 py-4 bg-muted/20 border-t border-border overflow-x-auto">
+      <div className="flex items-start justify-between relative px-2 min-w-[600px]">
         {/* Connecting background line */}
         <div className="absolute top-3 left-10 right-10 h-[2px] bg-border z-0" />
         {/* Progress line */}

@@ -1,4 +1,5 @@
 export * from './ReportsHeader'
+export * from './ReportsExportButton'
 export * from './ReportStatusSummary'
 export * from './ReportFilters'
 export * from './LotStatusTable'

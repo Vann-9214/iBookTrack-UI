@@ -49,44 +49,46 @@ export function TransitionLogFilters({
 
   return (
     <div className="px-5 py-4 border-b border-border/50 bg-muted/20 flex flex-col md:flex-row gap-4 items-end">
-      <div className="relative flex-1 w-full md:min-w-[250px]">
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-          Search
-        </label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search box or lot (Press Enter)"
-            value={searchInput}
-            onChange={(e) => onSearchInputChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onSearchApply()
-            }}
-            className="pl-9 h-10 bg-background border-border/50 focus-visible:border-primary focus-visible:ring-1 hover:border-border transition-colors rounded-xl shadow-sm"
-          />
+      <div className="flex flex-row gap-3 w-full md:w-auto md:flex-1">
+        <div className="relative flex-1 min-w-0">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+            Search
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search box or lot (Press Enter)"
+              value={searchInput}
+              onChange={(e) => onSearchInputChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') onSearchApply()
+              }}
+              className="pl-9 h-10 bg-background border-border/50 focus-visible:border-primary focus-visible:ring-1 hover:border-border transition-colors rounded-xl shadow-sm"
+            />
+          </div>
         </div>
-      </div>
 
-      <div className="w-full md:w-[180px]">
-        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-          Stage
-        </label>
-        <Select
-          value={stageFilter || 'all'}
-          onValueChange={(v) => onStageFilterChange(v === 'all' ? '' : (v as Stage))}
-        >
-          <SelectTrigger className="h-10 bg-background border-border/50 focus:ring-1 focus:ring-primary rounded-xl shadow-sm hover:border-border transition-colors">
-            <SelectValue placeholder="All stages" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All stages</SelectItem>
-            {STAGE_ORDER.filter((s) => s !== 'transmit').map((stage) => (
-              <SelectItem key={stage} value={stage}>
-                {STAGE_META[stage].label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="w-[140px] shrink-0">
+          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
+            Stage
+          </label>
+          <Select
+            value={stageFilter || 'all'}
+            onValueChange={(v) => onStageFilterChange(v === 'all' ? '' : (v as Stage))}
+          >
+            <SelectTrigger className="h-10 bg-background border-border/50 focus:ring-1 focus:ring-primary rounded-xl shadow-sm hover:border-border transition-colors">
+              <SelectValue placeholder="All stages" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All stages</SelectItem>
+              {STAGE_ORDER.filter((s) => s !== 'transmit').map((stage) => (
+                <SelectItem key={stage} value={stage}>
+                  {STAGE_META[stage].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 w-full md:w-auto">
