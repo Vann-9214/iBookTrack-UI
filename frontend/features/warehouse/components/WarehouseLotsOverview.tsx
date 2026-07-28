@@ -181,6 +181,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
   const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
   const tableHeaderTheme = isJaguar ? 'bg-emerald-50/50 text-emerald-800/70' : 'bg-blue-50/50 text-blue-800/70'
   const borderTheme = isJaguar ? 'border-emerald-200/80 focus-visible:ring-emerald-500/20' : 'border-blue-200/80 focus-visible:ring-blue-500/20'
+  const tabActiveTheme = isJaguar
+    ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-emerald-500/20 data-[state=active]:border-transparent'
+    : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-500/20 data-[state=active]:border-transparent'
 
   return (
     <div className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden flex flex-col transition-all duration-300", cardTheme)}>
@@ -205,11 +208,11 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
         <div className="flex items-center gap-2 shrink-0">
           <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
             <TabsList className={cn("bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
-              <TabsTrigger disabled={displayLoading} value="all" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">All Lots</TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="in_progress" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger disabled={displayLoading} value="all" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>All Lots</TabsTrigger>
+              <TabsTrigger disabled={displayLoading} value="in_progress" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 In Progress
               </TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="delayed" className="text-[11px] px-2.5 py-1">
+              <TabsTrigger disabled={displayLoading} value="delayed" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 Delayed
               </TabsTrigger>
             </TabsList>
