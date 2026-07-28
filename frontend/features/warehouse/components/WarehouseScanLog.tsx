@@ -25,7 +25,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
   
   return (
     <div className={cn('relative flex flex-col overflow-hidden rounded-2xl border-2 shadow-sm ring-1', cardTheme)}>
-      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-2xl" />
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
       <div className={cn('relative flex items-center justify-between border-b px-5 py-4', isJaguar ? 'border-emerald-200/70 bg-emerald-50/35' : 'border-blue-200/70 bg-blue-50/35')}>
         <div className="flex items-center gap-3">
           <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg', iconTheme)}>

@@ -42,7 +42,7 @@ export function WarehouseActiveSession({
   return (
     <div className="relative flex flex-col gap-4">
       {loading && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/50 backdrop-blur-sm rounded-xl">
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-xl">
           <div className={cn(
             "flex items-center gap-3 px-5 py-4 bg-card border rounded-xl shadow-lg",
             brand === 'jaguar' ? "border-emerald-200 shadow-emerald-900/5" : "border-blue-200 shadow-blue-900/5"

@@ -154,12 +154,15 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
 
   const confirmResetSession = async () => {
     if (!currentSession) return
-    setConfirmResetOpen(false)
     try {
       if (!currentSession.id.startsWith('pending')) await deleteSession(currentSession.id)
-    } catch (e) { console.error('Failed to delete session', e) }
-    clearSession()
-    toast({ title: 'Session Cancelled', description: 'Session has been cancelled and removed from the database.' })
+      clearSession()
+      setConfirmResetOpen(false)
+      toast({ title: 'Session Cancelled', description: 'Session has been cancelled and removed from the database.' })
+    } catch (e) {
+      console.error('Failed to delete session', e)
+      setSessionError('Failed to reset session.')
+    }
   }
 
   return {

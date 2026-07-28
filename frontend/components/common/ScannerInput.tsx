@@ -36,7 +36,7 @@ export function ScannerInput({ onScan, brand }: ScannerInputProps) {
 
   return (
     <div className={cn('relative w-full overflow-hidden rounded-2xl border-2 p-4 shadow-sm ring-1 sm:p-5', isWarehouse ? cardTheme : 'border-primary/30 bg-card ring-primary/10')}>
-      {isWarehouse && <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-2xl" />}
+      {isWarehouse && <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />}
       <div className="relative mb-4 flex items-center gap-3">
         <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl', isWarehouse ? `${iconTheme} text-white shadow-lg` : 'bg-primary/10 text-primary')}>
           <Barcode className={isWarehouse ? 'h-5 w-5' : 'w-4 h-4'} />
@@ -60,7 +60,7 @@ export function ScannerInput({ onScan, brand }: ScannerInputProps) {
           value={scanInput}
           onChange={handleChange}
           onKeyPress={handleKeyPress}
-          className={cn('h-12 rounded-xl border-2 border-primary/20 pl-12 text-base shadow-inner ring-1 ring-black/5 transition-all duration-300 focus-visible:border-primary/60 focus-visible:shadow-[0_0_15px_rgba(var(--primary),0.2)] sm:h-14 sm:text-lg', isWarehouse ? 'bg-white/85 backdrop-blur-sm' : 'bg-background/50')}
+          className={cn('h-12 rounded-xl border-2 border-primary/20 pl-12 text-base shadow-inner ring-1 ring-black/5 transition-all duration-300 focus-visible:border-primary/60 focus-visible:shadow-[0_0_15px_rgba(var(--primary),0.2)] sm:h-14 sm:text-lg', isWarehouse ? 'bg-white/85 backdrop-blur-[2px]' : 'bg-background/50')}
           autoFocus
         />
       </div>

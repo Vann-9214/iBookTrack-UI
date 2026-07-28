@@ -55,7 +55,25 @@
 
 .animate-modal-origin-out {
   transform-origin: calc(var(--modal-origin-x, 50vw) - 50vw + 50%) calc(var(--modal-origin-y, 50vh) - 50vh + 50%);
-  animation: modalOriginOut 0.22s cubic-bezier(0.4, 0, 1, 1) both;
+  animation: modalOriginOut 0.34s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(6px); }
+}
+
+.animate-modal-fade {
+  animation: modalFadeIn 0.24s ease-out both;
+}
+
+.animate-modal-fade-out {
+  animation: modalFadeOut 0.2s ease-in both;
 }
 
 /* QR scanner line animation */

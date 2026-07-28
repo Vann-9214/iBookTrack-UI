@@ -29,14 +29,15 @@ export function WarehouseIlmsMismatchModal({
     setIsClosing(true)
     window.setTimeout(() => {
       setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
+      setIsClosing(false)
       onClosed?.()
     }, 220)
   }
 
   if (!ilmsMismatchModal.open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={() => close()}>
-      <div data-modal-origin-surface className={cn('w-full max-w-lg overflow-hidden rounded-2xl border bg-card shadow-2xl shadow-slate-950/20 ring-1 ring-black/5', isClosing ? 'animate-modal-origin-out' : 'animate-modal-origin', theme.border)} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]" onClick={() => close()}>
+      <div className={cn('w-full max-w-lg overflow-hidden rounded-2xl border bg-card shadow-2xl shadow-slate-950/20 ring-1 ring-black/5', isClosing ? 'animate-modal-fade-out' : 'animate-modal-fade', theme.border)} onClick={(e) => e.stopPropagation()}>
         <div className={cn('flex items-center justify-between border-b bg-gradient-to-r px-5 py-4 sm:px-6', theme.header)}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 shadow-sm ring-1 ring-amber-200/80">

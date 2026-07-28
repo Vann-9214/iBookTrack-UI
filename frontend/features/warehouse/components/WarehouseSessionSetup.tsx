@@ -48,7 +48,7 @@ export function WarehouseSessionSetup({
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300", cardTheme)}>
-      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-xl" />
 
       <div className="relative">
         {/* Card header row */}
@@ -98,7 +98,7 @@ export function WarehouseSessionSetup({
                       }}
                       onFocus={() => setLotOpen(true)}
                       disabled={lotsLoading}
-                      className="h-9 pr-10 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
+                      className="h-9 pr-10 bg-white/70 backdrop-blur-[2px] border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
                     />
                     <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none transition-opacity group-hover:opacity-60" />
                   </div>
@@ -170,7 +170,7 @@ export function WarehouseSessionSetup({
                     handleNewSession(false)
                   }
                 }}
-                className="h-9 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
+                className="h-9 bg-white/70 backdrop-blur-[2px] border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
               />
             )}
           </div>

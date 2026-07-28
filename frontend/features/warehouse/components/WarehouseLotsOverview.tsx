@@ -168,9 +168,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
 
   return (
     <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col transition-all duration-300", cardTheme)}>
-      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/20 blur-2xl" />
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/20 blur-xl" />
       {/* Header */}
-      <div className="relative flex items-center justify-between px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-sm">
+      <div className="relative flex items-center justify-between px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-[2px]">
         <div className="flex items-center gap-2.5">
           <div className={cn(
             'flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg',
@@ -193,14 +193,14 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
               value={lotSearchInput} 
               onChange={e => setLotSearchInput(e.target.value)}
               disabled={displayLoading}
-              className="w-48 h-8 pl-8 text-xs bg-white/70 backdrop-blur-sm border-transparent shadow-sm focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all rounded-lg disabled:opacity-50"
+              className="w-48 h-8 pl-8 text-xs bg-white/70 backdrop-blur-[2px] border-transparent shadow-sm focus-visible:bg-white focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all rounded-lg disabled:opacity-50"
             />
           </div>
           {displayLoading ? (
             <Skeleton className="h-6 w-14 rounded-md bg-black/5" />
           ) : (
             <Badge variant="outline" className={cn(
-              'bg-white/80 backdrop-blur-sm text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap shadow-sm border-transparent',
+              'bg-white/80 backdrop-blur-[2px] text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap shadow-sm border-transparent',
               brand === 'jaguar' ? 'text-emerald-700 ring-1 ring-emerald-200' : 'text-blue-700 ring-1 ring-blue-200'
             )}>
               {totalItems} lots
@@ -210,9 +210,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
       </div>
 
       {/* Tabs */}
-      <div className="relative px-4 sm:px-5 py-2 border-b border-black/5 shrink-0 flex items-center justify-between bg-white/20 backdrop-blur-sm">
+      <div className="relative px-4 sm:px-5 py-2 border-b border-black/5 shrink-0 flex items-center justify-between bg-white/20 backdrop-blur-[2px]">
         <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
-          <TabsList className={cn("bg-white/60 backdrop-blur-md border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
+          <TabsList className={cn("bg-white/60 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
             <TabsTrigger disabled={displayLoading} value="all" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">All Lots</TabsTrigger>
             <TabsTrigger disabled={displayLoading} value="in_progress" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
               In Progress
@@ -283,9 +283,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                     className={cn(
                       'w-full grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5 text-left transition-all duration-150 group',
                       expanded
-                        ? isJaguar 
-                          ? 'bg-gradient-to-r from-emerald-500/80 to-green-600/80 shadow-sm backdrop-blur-md' 
-                          : 'bg-gradient-to-r from-blue-500/80 to-indigo-600/80 shadow-sm backdrop-blur-md'
+                        ? isJaguar
+                          ? 'bg-gradient-to-r from-emerald-500/80 to-green-600/80 shadow-sm backdrop-blur-sm'
+                          : 'bg-gradient-to-r from-blue-500/80 to-indigo-600/80 shadow-sm backdrop-blur-sm'
                         : 'hover:bg-white/40'
                     )}
                     aria-expanded={expanded}

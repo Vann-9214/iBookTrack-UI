@@ -49,15 +49,16 @@ export function WarehouseFlagModal({
     setIsClosing(true)
     window.setTimeout(() => {
       setFlagModalBook(null)
+      setIsClosing(false)
       onClosed?.()
-    }, 220)
+    }, 360)
   }
   const standardIssues = WAREHOUSE_FLAG_ISSUES.filter((issue) => issue.value !== 'mismatched-book' && issue.value !== 'extra-book')
   const inventoryIssues = WAREHOUSE_FLAG_ISSUES.filter((issue) => issue.value === 'mismatched-book' || issue.value === 'extra-book')
 
   if (!flagModalBook) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={() => close()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]" onClick={() => close()}>
       <div data-modal-origin-surface className={cn('w-full max-w-lg overflow-hidden rounded-2xl border bg-card shadow-2xl shadow-slate-950/20 ring-1 ring-black/5', isClosing ? 'animate-modal-origin-out' : 'animate-modal-origin', theme.border)} onClick={(e) => e.stopPropagation()}>
         <div className={cn('flex items-center justify-between border-b px-5 py-4 sm:px-6', theme.header)}>
           <div className="flex items-center gap-3">
