@@ -40,35 +40,42 @@ export function WarehouseSessionSetup({
   const [lotOpen, setLotOpen] = useState(false)
   const isJaguar = brand === 'jaguar'
   const cardTheme = isJaguar
-    ? 'bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60'
-    : 'bg-gradient-to-br from-blue-50 to-indigo-100/40 border-blue-200/70 ring-blue-100/60'
+    ? 'border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70'
+    : 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70'
   const iconTheme = isJaguar
     ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
     : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+  const textTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
+  const labelTheme = isJaguar ? 'text-emerald-700/75' : 'text-blue-700/75'
+  const borderTheme = isJaguar ? 'border-emerald-200/80 focus:ring-emerald-500/20' : 'border-blue-200/80 focus:ring-blue-500/20'
 
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300", cardTheme)}>
-      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+    <div className={cn("relative overflow-hidden rounded-2xl border-2 p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300", cardTheme)}>
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
 
       <div className="relative">
         {/* Card header row */}
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3">
           <div className={cn("flex items-center justify-center w-10 h-10 rounded-xl text-white shadow-lg", iconTheme)}>
             <ScanBarcode className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className={cn("text-[16px] font-black tracking-tight leading-none", isJaguar ? "text-emerald-950/80" : "text-blue-950/80")}>Start Receiving Session</h2>
+            <p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", textTheme)}>Receiving setup</p>
+            <h2 className={cn("text-[16px] font-black tracking-tight leading-none mt-0.5", isJaguar ? "text-emerald-950/80" : "text-blue-950/80")}>Start Receiving Session</h2>
             <p className={cn("text-[12px] font-medium mt-0.5", isJaguar ? "text-emerald-600/80" : "text-blue-600/80")}>Select a lot and box number, then start scanning.</p>
           </div>
         </div>
 
+        {/* Divider */}
+        <div className={cn("my-4 border-t", isJaguar ? 'border-emerald-200/60' : 'border-blue-200/60')} />
+
         {/* Form row — all inline on desktop */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
           {/* Lot input */}
-          <div className="flex flex-col gap-1.5 w-full sm:w-[240px]">
-            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", isJaguar ? "text-emerald-700/80" : "text-blue-700/80")}>
+          <div className="flex flex-col gap-1.5 w-full sm:w-[200px]">
+            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", labelTheme)}>
               Lot Number
-              {activeLot && /^lot[- ]+[a-zA-Z0-9]+$/i.test(activeLot.trim()) && !lotsLoading && <span className={cn("font-bold text-[10px]", isJaguar ? "text-emerald-600" : "text-blue-600")}>✓</span>}
+              {activeLot && /^lot[- ]+[a-zA-Z0-9]+$/i.test(activeLot.trim()) && !lotsLoading && <span className={cn("font-bold text-[10px]", textTheme)}>✓</span>}
             </label>
             {lotsLoading ? (
               <Skeleton className="h-9 w-full rounded-md bg-black/5" />
@@ -98,7 +105,7 @@ export function WarehouseSessionSetup({
                       }}
                       onFocus={() => setLotOpen(true)}
                       disabled={lotsLoading}
-                      className="h-9 pr-10 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
+                      className={cn("h-9 pr-10 rounded-lg bg-white/85 shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2", borderTheme)}
                     />
                     <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none transition-opacity group-hover:opacity-60" />
                   </div>
@@ -139,15 +146,15 @@ export function WarehouseSessionSetup({
           </div>
 
           {/* Box input */}
-          <div className="flex flex-col gap-1.5 w-full sm:w-[160px]">
-            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", isJaguar ? "text-emerald-700/80" : "text-blue-700/80")}>
+          <div className="flex flex-col gap-1.5 w-full sm:w-[200px]">
+            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", labelTheme)}>
               Box Number
               {selectedBox && selectedBox.includes('/') && (() => {
                 const [c, t] = selectedBox.split('/')
                 const cnVal = parseInt(c, 10)
                 const tnVal = parseInt(t, 10)
                 return !isNaN(cnVal) && !isNaN(tnVal) && cnVal <= tnVal
-              })() && <span className={cn("font-bold text-[10px]", isJaguar ? "text-emerald-600" : "text-blue-600")}>✓</span>}
+              })() && <span className={cn("font-bold text-[10px]", textTheme)}>✓</span>}
             </label>
             {lotsLoading ? (
               <Skeleton className="h-9 w-full rounded-md bg-black/5" />
@@ -170,7 +177,7 @@ export function WarehouseSessionSetup({
                     handleNewSession(false)
                   }
                 }}
-                className="h-9 bg-white/70 backdrop-blur-sm border-transparent shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2 focus:ring-primary/20"
+                className={cn("h-9 rounded-lg bg-white/85 shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2", borderTheme)}
               />
             )}
           </div>
@@ -180,10 +187,10 @@ export function WarehouseSessionSetup({
             onClick={() => handleNewSession(false)}
             disabled={loading || !activeLot || !selectedBox || lotsLoading || !!boxLockedBy}
             className={cn(
-              "w-full sm:w-auto h-9 px-5 text-sm font-bold shadow-md transition-all hover:shadow-lg disabled:hover:shadow-none shrink-0",
+              "w-full sm:w-auto h-9 px-5 text-sm font-bold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:hover:translate-y-0 disabled:hover:shadow-lg shrink-0 rounded-xl text-white",
               brand === 'jaguar'
-                ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white'
-                : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
+                ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700'
+                : 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700'
             )}
           >
             {loading ? (

@@ -4,7 +4,7 @@
 
 CREATE TABLE IF NOT EXISTS public.lots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lot_number TEXT NOT NULL UNIQUE,
+  lot_number TEXT NOT NULL,
   total_boxes INTEGER NOT NULL DEFAULT 0,
   type TEXT NOT NULL DEFAULT 'Mustang',
   total_scanned_books INTEGER DEFAULT 0,

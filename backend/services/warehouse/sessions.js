@@ -43,13 +43,11 @@ export const startSessionService = async (req, res) => {
       return res.status(400).json({ error: 'lot_number is required' })
     }
 
-    const bookType = req.body.type ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase() : null;
+    const bookType = req.body.type ? req.body.type.charAt(0).toUpperCase() + req.body.type.slice(1).toLowerCase() : 'Mustang';
 
     // Get or create the lot (type-aware, matching bulk-save/box-exists resolution)
-    let lotQuery = 'SELECT * FROM lots WHERE lot_number = $1';
-    const lotParams = [lot_number];
-    if (bookType) { lotQuery += ' AND type = $2'; lotParams.push(bookType); }
-    else { lotQuery += ' AND type IS NULL'; }
+    let lotQuery = 'SELECT * FROM lots WHERE lot_number = $1 AND type = $2';
+    const lotParams = [lot_number, bookType];
     let { rows: lotRows } = await db.query(lotQuery + ' LIMIT 1', lotParams);
     let lot = lotRows[0] || null;
 
@@ -263,10 +261,9 @@ export const bulkSaveSessionService = async (req, res) => {
     if (book_type) book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
 
     // 1. Resolve Lot
-    let lotQuery = 'SELECT id, lot_number FROM lots WHERE lot_number = $1';
-    const lotParams = [lot_number];
-    if (book_type) { lotQuery += ' AND type = $2'; lotParams.push(book_type); }
-    else { lotQuery += ' AND type IS NULL'; }
+    if (!book_type) book_type = 'Mustang';
+    let lotQuery = 'SELECT id, lot_number FROM lots WHERE lot_number = $1 AND type = $2';
+    const lotParams = [lot_number, book_type];
     
     let { rows: lotRows } = await db.query(lotQuery + ' LIMIT 1', lotParams);
     let lot = lotRows[0] || null;
@@ -274,7 +271,7 @@ export const bulkSaveSessionService = async (req, res) => {
     if (!lot) {
       const { rows: newLotRows } = await db.query(
         'INSERT INTO lots (lot_number, type, total_boxes) VALUES ($1, $2, 0) RETURNING *',
-        [lot_number, book_type || null]
+        [lot_number, book_type]
       );
       lot = newLotRows[0];
     }

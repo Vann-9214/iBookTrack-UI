@@ -38,6 +38,44 @@
   animation: modalIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+@keyframes modalOriginIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.68); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-modal-origin {
+  transform-origin: calc(var(--modal-origin-x, 50vw) - 50vw + 50%) calc(var(--modal-origin-y, 50vh) - 50vh + 50%);
+  animation: modalOriginIn 0.34s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modalOriginOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(12px) scale(0.68); }
+}
+
+.animate-modal-origin-out {
+  transform-origin: calc(var(--modal-origin-x, 50vw) - 50vw + 50%) calc(var(--modal-origin-y, 50vh) - 50vh + 50%);
+  animation: modalOriginOut 0.34s cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(6px); }
+}
+
+.animate-modal-fade {
+  animation: modalFadeIn 0.24s ease-out both;
+}
+
+.animate-modal-fade-out {
+  animation: modalFadeOut 0.2s ease-in both;
+}
+
 /* QR scanner line animation */
 @keyframes scanLine {
   0%   { top: 8px; }
@@ -124,6 +162,79 @@
     radial-gradient(900px 520px at -10% 108%, var(--brand-soft), transparent 58%);
   background-attachment: local;
   transition: background-color 0.5s ease, background-image 0.5s ease;
+}
+
+.premium-gradient-ui-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklch, var(--brand-strong) 22%, white);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--brand-soft), var(--card) 52%, color-mix(in oklch, var(--brand-soft) 60%, white));
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 28px color-mix(in oklch, var(--brand-strong) 10%, transparent);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.premium-gradient-ui-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklch, var(--brand-strong) 34%, white);
+  box-shadow: 0 4px 12px rgb(15 23 42 / 0.08), 0 16px 32px color-mix(in oklch, var(--brand-strong) 16%, transparent);
+}
+
+.premium-gradient-ui-card__glow {
+  position: absolute;
+  inset: -4rem 0 auto;
+  height: 6rem;
+  pointer-events: none;
+  background: rgb(255 255 255 / 0.3);
+  filter: blur(1.5rem);
+}
+
+.premium-gradient-ui-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  color: white;
+  background: linear-gradient(135deg, var(--brand-strong), color-mix(in oklch, var(--brand-strong) 70%, black));
+  box-shadow: 0 8px 18px color-mix(in oklch, var(--brand-strong) 24%, transparent);
+}
+
+.premium-gradient-ui-card__eyebrow {
+  color: color-mix(in oklch, var(--brand-strong) 82%, black);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.premium-gradient-ui-card__title {
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.premium-gradient-ui-card__value {
+  color: color-mix(in oklch, var(--brand-strong) 82%, black);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.premium-gradient-ui-card__surface {
+  border: 1px solid color-mix(in oklch, var(--brand-strong) 16%, white);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 0.68);
+}
+
+.premium-gradient-ui-card--solid {
+  color: white;
+  border-color: color-mix(in oklch, var(--brand-strong) 78%, black);
+  background: linear-gradient(135deg, var(--brand-strong), color-mix(in oklch, var(--brand-strong) 70%, black));
 }
 
 .dark {

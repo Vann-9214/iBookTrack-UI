@@ -14,17 +14,29 @@ interface WarehouseScanLogProps {
 
 export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook, brand = 'mustang' }: WarehouseScanLogProps) {
   const isJaguar = brand === 'jaguar'
+  const cardTheme = isJaguar
+    ? 'border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70'
+    : 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70'
+  const iconTheme = isJaguar
+    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
+    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+  const textTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
+  const surfaceTheme = isJaguar ? 'border-emerald-100 bg-white/65' : 'border-blue-100 bg-white/65'
   
   return (
-    <div className="bg-card rounded-2xl border-2 border-primary/30 shadow-sm ring-1 ring-primary/10 overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/40">
+    <div className={cn('relative flex flex-col overflow-hidden rounded-2xl border-2 shadow-sm ring-1', cardTheme)}>
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
+      <div className={cn('relative flex items-center justify-between border-b px-5 py-4', isJaguar ? 'border-emerald-200/70 bg-emerald-50/35' : 'border-blue-200/70 bg-blue-50/35')}>
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
-            <BookOpen className="h-4 w-4 text-primary" />
+          <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg', iconTheme)}>
+            <BookOpen className="h-5 w-5" />
           </div>
-          <h3 className="text-sm font-semibold text-primary">Scan Log</h3>
+          <div>
+            <h3 className={cn('text-[15px] font-black tracking-tight', textTheme)}>Scan Log</h3>
+            <p className={cn('mt-0.5 text-[11px] font-medium', isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80')}>Books added to this session</p>
+          </div>
           {scannedBooks.length > 0 && (
-            <span className="min-w-[22px] h-[22px] rounded-full text-[10px] font-bold bg-primary text-primary-foreground flex items-center justify-center px-1.5">
+            <span className={cn('flex h-7 min-w-7 items-center justify-center rounded-xl px-2 text-xs font-black text-white shadow-md ring-2 ring-white/60', iconTheme)}>
               {scannedBooks.length}
             </span>
           )}
@@ -34,7 +46,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
         )}
       </div>
       {scannedBooks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-4 text-center min-h-[240px] py-12">
+        <div className="relative flex min-h-[240px] flex-col items-center justify-center gap-4 py-12 text-center">
           <div className={cn(
             "flex items-center justify-center w-14 h-14 rounded-full text-white shadow-sm",
             isJaguar ? "bg-gradient-to-br from-emerald-400 to-green-600" : "bg-gradient-to-br from-indigo-400 to-blue-600"
@@ -49,21 +61,24 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
       ) : (
         <div className="divide-y divide-border">
           <div className="overflow-x-auto">
-            <div className="flex gap-2 px-4 sm:px-5 py-3 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50 min-w-[480px]">
+            <div className={cn('flex min-w-[520px] gap-2 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:px-5 sm:text-[11px]', surfaceTheme, isJaguar ? 'border-emerald-200/80' : 'border-blue-200/80')}>
               <div className="w-[110px] shrink-0">ISBN</div>
-              <div className="flex-1 min-w-0">Title</div>
-              <div className="w-[140px] sm:w-[160px] shrink-0 text-center">Status</div>
-              <div className="w-[60px] sm:w-[80px] shrink-0 text-right">Remove</div>
+              <div className="min-w-0 flex-1">Title</div>
+              <div className="w-[200px] shrink-0 text-center sm:w-[220px]">Status</div>
+              <div className="grid w-[90px] shrink-0 grid-cols-[1fr_28px] gap-1.5">
+                <span className="text-center">Time</span>
+              </div>
             </div>
-            <div className="max-h-[420px] overflow-y-auto divide-y divide-border">
+            <div className={cn('divide-y divide-border pr-1', scannedBooks.length > 8 ? 'h-[320px] overflow-y-scroll' : 'max-h-[320px] overflow-y-auto')}>
               {scannedBooks.map((book, idx) => (
                 <div
                   key={`${book.id}-${idx}`}
                   className={cn(
-                    "flex gap-2 px-4 sm:px-5 py-3.5 items-center transition-colors min-w-[480px]",
-                    idx % 2 === 0 ? "bg-card" : "bg-muted/10",
-                    "hover:bg-muted/40",
-                    book.scan_status === 'non_processable' && "bg-destructive/5 hover:bg-destructive/10"
+                    'flex min-w-[520px] items-center gap-2 px-4 py-2 transition-colors sm:px-5',
+                    idx % 2 === 0 ? 'bg-white/75' : isJaguar ? 'bg-emerald-50/35' : 'bg-blue-50/35',
+                    isJaguar ? 'hover:bg-emerald-100/60' : 'hover:bg-blue-100/60',
+                    book.scan_status === 'processable' && (isJaguar ? 'hover:bg-gradient-to-r hover:from-white hover:via-emerald-50/65 hover:to-emerald-100/60' : 'hover:bg-gradient-to-r hover:from-white hover:via-blue-50/65 hover:to-indigo-100/60'),
+                    book.scan_status === 'non_processable' && 'bg-gradient-to-r from-white/80 via-rose-50/35 to-rose-100/50 hover:from-white hover:via-rose-50/60 hover:to-rose-100/70'
                   )}
                 >
                   <div className="w-[110px] shrink-0">
@@ -71,13 +86,8 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   </div>
                   <div className="flex-1 min-w-0 pr-2">
                     <p className="text-[11px] sm:text-xs text-foreground font-semibold truncate leading-snug">{book.title}</p>
-                    {book.flag_issue && (
-                      <p className="text-[10px] text-destructive mt-1 truncate font-medium">
-                        {issueLabel(book.flag_issue)}{book.flag_remarks ? ` — ${book.flag_remarks}` : ''}
-                      </p>
-                    )}
                   </div>
-                  <div className="w-[140px] sm:w-[160px] shrink-0 flex items-center justify-center gap-2 sm:gap-3">
+                  <div className="flex w-[200px] shrink-0 items-center justify-center gap-2 sm:w-[220px] sm:gap-3">
                     {book.scan_status === 'processable' ? (
                       <>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap">
@@ -86,25 +96,32 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                         </span>
                         <button
                           onClick={() => openFlagModal(book)}
-                          className="text-[10px] font-medium text-muted-foreground hover:text-destructive underline decoration-muted-foreground/30 hover:decoration-destructive transition-colors"
+                          className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40"
                         >
                           Flag
                         </button>
                       </>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 whitespace-nowrap">
-                        <CircleX className="h-3.5 w-3.5" />
-                        Non-Processable
-                      </span>
+                      <>
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/20 bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold text-destructive whitespace-nowrap sm:text-[11px]">
+                          <CircleX className="h-3.5 w-3.5" />
+                          Non-Processable
+                        </span>
+                        {book.flag_issue && (
+                          <span className="truncate text-[10px] font-semibold text-destructive/80 sm:text-[11px]">
+                            {issueLabel(book.flag_issue)}
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
-                  <div className="w-[60px] sm:w-[80px] shrink-0 flex items-center justify-end gap-2 sm:gap-3">
-                    <p className="hidden sm:block text-[10px] font-medium text-muted-foreground">
+                  <div className="grid w-[90px] shrink-0 grid-cols-[1fr_28px] items-center gap-1.5">
+                    <p className="hidden whitespace-nowrap text-center text-[10px] font-medium text-muted-foreground sm:block">
                       {new Date(book.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     <button
                       onClick={() => handleRemoveBook(book.id)}
-                      className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                       title="Remove from scan log"
                     >
                       <Trash2 className="h-4 w-4" />
