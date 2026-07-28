@@ -59,7 +59,7 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
           </div>
         ) : filteredPendingAssignments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
-            <CheckCircle2 className="h-7 w-7 opacity-30" />
+            <CheckCircle2 className="h-7 w-7 text-amber-500" />
             <p className="text-xs">{activeSearchQuery ? 'No matching pending boxes' : 'No pending assignments'}</p>
             <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Assigned boxes awaiting physical placement confirmation will appear here.'}</p>
           </div>

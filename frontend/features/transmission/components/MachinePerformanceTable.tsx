@@ -86,15 +86,26 @@ export function MachinePerformanceTable({
   return (
     <div className="space-y-4">
       <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-        <div className="flex items-center justify-between px-5 py-4 bg-teal-50 border-b border-teal-100">
+        <div className={cn(
+          "flex items-center justify-between px-5 py-4 border-b",
+          brand === 'jaguar' ? 'bg-emerald-50 border-emerald-100' : 'bg-blue-50 border-blue-100'
+        )}>
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500 text-white">
-              <Activity className="h-4 w-4" />
+            <div className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg",
+              brand === 'jaguar' 
+                ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+                : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+            )}>
+              <Activity className="h-5 w-5" />
             </div>
             <div>
               <p className="text-sm font-bold text-gray-800">Scans by Machine</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />
+                <span className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  brand === 'jaguar' ? "bg-emerald-500" : "bg-blue-500"
+                )} />
                 <span className="text-xs text-gray-500">Per machine output</span>
               </div>
             </div>
@@ -117,7 +128,10 @@ export function MachinePerformanceTable({
           </button>
         </div>
         {machineSearchOpen && (
-          <div className="sm:hidden px-4 py-2 border-b border-teal-100 bg-teal-50/60">
+          <div className={cn(
+            "sm:hidden px-4 py-2 border-b",
+            brand === 'jaguar' ? "border-emerald-100 bg-emerald-50/60" : "border-blue-100 bg-blue-50/60"
+          )}>
             <Input
               autoFocus
               placeholder="Search machine..."
@@ -152,8 +166,20 @@ export function MachinePerformanceTable({
                   </tr>
                 ) : filteredByMachine.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="text-center py-12 text-gray-400">
-                      {byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}
+                    <td colSpan={3} className="text-center py-16">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <div className={cn(
+                          "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
+                          brand === 'jaguar' 
+                            ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+                            : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+                        )}>
+                          <Activity className="h-6 w-6" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-600">
+                          {byMachine.length === 0 ? 'No machine data for today' : 'No machines match your search'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -164,9 +190,12 @@ export function MachinePerformanceTable({
                     return (
                       <tr
                         key={i}
-                        className={`border-b border-gray-50 cursor-pointer transition-colors ${
-                          isSelected ? 'bg-teal-50 hover:bg-teal-100' : 'hover:bg-gray-50'
-                        }`}
+                        className={cn(
+                          "border-b border-gray-50 cursor-pointer transition-colors",
+                          isSelected 
+                            ? (brand === 'jaguar' ? 'bg-emerald-50 hover:bg-emerald-100' : 'bg-blue-50 hover:bg-blue-100')
+                            : 'hover:bg-gray-50'
+                        )}
                         onClick={() => fetchMachineBooks(m.MachineName)}
                       >
                         <td className="font-semibold text-xs text-gray-800 px-4 py-3">
@@ -204,14 +233,20 @@ export function MachinePerformanceTable({
 
       {selectedMachine && (
         <Card className="border-border bg-card overflow-hidden py-0 gap-0">
-          <div className="flex items-center justify-between px-5 py-3 bg-teal-50 border-b border-teal-100">
+          <div className={cn(
+            "flex items-center justify-between px-5 py-3 border-b",
+            brand === 'jaguar' ? "bg-emerald-50 border-emerald-100" : "bg-blue-50 border-blue-100"
+          )}>
             <div>
               <p className="text-sm font-bold text-gray-800">
                 Books scanned on {machineDisplayName(selectedMachine)}
               </p>
               <p className="text-xs text-gray-500">ISBNs reported by Simflex for the selected date range</p>
             </div>
-            <Badge variant="outline" className="border-teal-200 bg-white text-teal-700 text-xs">
+            <Badge variant="outline" className={cn(
+              "bg-white text-xs",
+              brand === 'jaguar' ? "border-emerald-200 text-emerald-700" : "border-blue-200 text-blue-700"
+            )}>
               {selectedMachineBooks.length} book{selectedMachineBooks.length === 1 ? '' : 's'}
             </Badge>
           </div>
@@ -245,8 +280,18 @@ export function MachinePerformanceTable({
                     <tbody>
                       {selectedMachineBooks.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="text-center py-12 text-gray-400">
-                            No books found for this machine
+                          <td colSpan={4} className="text-center py-16">
+                            <div className="flex flex-col items-center justify-center gap-2">
+                              <div className={cn(
+                                "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
+                                brand === 'jaguar' 
+                                  ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+                                  : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+                              )}>
+                                <Activity className="h-6 w-6" />
+                              </div>
+                              <p className="text-sm font-semibold text-gray-600">No books found for this machine</p>
+                            </div>
                           </td>
                         </tr>
                       ) : (

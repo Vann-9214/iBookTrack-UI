@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { Check, TrendingUp } from 'lucide-react'
+import { Check, TrendingUp, Inbox } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts'
 import { LotGroup } from '../types'
 import { getTone } from '../utils/constants'
@@ -98,8 +98,11 @@ export function NonProcessableCharts({
         <div className="flex-1 w-full min-h-0 relative">
           {structuredLots.length === 0 && !loading ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 mb-3 opacity-80">
-                <Check className="h-6 w-6 text-white stroke-[3]" />
+              <div className={cn(
+                "flex w-12 h-12 rounded-full items-center justify-center shadow-sm mb-3",
+                isJaguar ? "bg-emerald-100" : "bg-blue-100"
+              )}>
+                <Inbox className={cn("h-6 w-6", isJaguar ? "text-emerald-600" : "text-blue-600")} />
               </div>
               <span className="font-medium text-gray-600 text-sm">No worst lots found</span>
             </div>

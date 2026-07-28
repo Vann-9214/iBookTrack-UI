@@ -53,13 +53,13 @@ export function LiveScanFeed({
         )}
       >
         <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-xl text-white',
-              brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500'
-            )}
-          >
-            <FileUp className="h-4 w-4" />
+          <div className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg",
+            brand === 'jaguar' 
+              ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+              : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+          )}>
+            <FileUp className="h-5 w-5" />
           </div>
           <div>
             <p className="text-sm font-bold text-gray-800">
@@ -163,8 +163,18 @@ export function LiveScanFeed({
                 </tr>
               ) : filteredScans.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
-                    No scans found
+                  <td colSpan={7} className="text-center py-16">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className={cn(
+                        "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
+                        brand === 'jaguar' 
+                          ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
+                          : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+                      )}>
+                        <FileUp className="h-6 w-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-gray-600">No scans found</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
