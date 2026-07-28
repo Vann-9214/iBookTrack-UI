@@ -241,8 +241,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
       {!error && (
         <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center", tableHeaderTheme)}>
           <div className="col-span-1 flex justify-start"><Hash className="h-2.5 w-2.5" /></div>
-          <div className="col-span-5 sm:col-span-4">Lot Number</div>
-          <div className="col-span-3 sm:col-span-4 text-center">Boxes</div>
+          <div className="col-span-5 sm:col-span-3">Lot Number</div>
+          <div className="hidden sm:block sm:col-span-3">Created By</div>
+          <div className="col-span-3 sm:col-span-2 text-center">Boxes</div>
           <div className="col-span-3 text-right pr-1">Actions</div>
         </div>
       )}
@@ -254,8 +255,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5">
                 <div className="col-span-1 flex justify-start"><Skeleton className="h-3 w-3 rounded-sm bg-black/5" /></div>
-                <div className="col-span-5 sm:col-span-4"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
-                <div className="col-span-3 sm:col-span-4 flex justify-center"><Skeleton className="h-5 w-12 rounded-md bg-black/5" /></div>
+                <div className="col-span-5 sm:col-span-3"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
+                <div className="hidden sm:block sm:col-span-3"><Skeleton className="h-4 w-24 rounded bg-black/5" /></div>
+                <div className="col-span-3 sm:col-span-2 flex justify-center"><Skeleton className="h-5 w-12 rounded-md bg-black/5" /></div>
                 <div className="col-span-3 flex justify-end items-center gap-1.5 pr-1">
                   <span className="text-[10px] font-medium text-muted-foreground/40 hidden sm:inline">Expand</span>
                   <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
@@ -308,14 +310,32 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                     </div>
 
                     {/* Lot name */}
-                    <div className="col-span-5 sm:col-span-4 min-w-0">
+                    <div className="col-span-5 sm:col-span-3 min-w-0">
                       <span className={cn("text-[13px] font-bold truncate block transition-colors", expanded ? "text-white" : "text-gray-800 group-hover:text-black")}>
                         {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
                       </span>
+                      {lot.created_by_name && (
+                        <span className={cn("sm:hidden text-[10px] truncate block transition-colors", expanded ? "text-white/70" : "text-muted-foreground")}>
+                          by {lot.created_by_name}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Created By column (desktop only) */}
+                    <div className="hidden sm:flex sm:col-span-3 min-w-0 items-center">
+                      {lot.created_by_name ? (
+                        <span className={cn("text-[12px] truncate transition-colors", expanded ? "text-white/80" : "text-muted-foreground")}>
+                          {lot.created_by_name}
+                        </span>
+                      ) : (
+                        <span className={cn("text-[12px] italic transition-colors", expanded ? "text-white/50" : "text-muted-foreground/50")}>
+                          Unknown
+                        </span>
+                      )}
                     </div>
 
                     {/* Box count */}
-                    <div className="col-span-3 sm:col-span-4 flex justify-center">
+                    <div className="col-span-3 sm:col-span-2 flex justify-center">
                       <Badge variant="outline" className={cn(
                         "text-[10px] font-bold py-0 h-5 shadow-sm transition-colors",
                         expanded 

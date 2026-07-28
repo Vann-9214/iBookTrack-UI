@@ -114,6 +114,11 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Non-Processable
               </th>
+              <th className={thCls('created_by_name')} onClick={() => onSort('created_by_name')}>
+                <span className="flex items-center gap-1">
+                  Created by <SortIcon k="created_by_name" />
+                </span>
+              </th>
               <th className={thCls('progress')} onClick={() => onSort('progress')}>
                 <span className="flex items-center gap-1">
                   Progress <SortIcon k="progress" />

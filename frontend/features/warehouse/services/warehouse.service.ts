@@ -103,6 +103,8 @@ export interface OverviewLot {
   type: string | null
   total_boxes: number
   boxes: OverviewBox[]
+  created_by?: string | null
+  created_by_name?: string | null
 }
 
 export interface OverviewPagination {
