@@ -86,6 +86,9 @@ export const LotStatusRowComponent: React.FC<LotStatusRowProps> = ({
             {lot.non_processable}
           </span>
         </td>
+        <td className="px-4 py-3 text-muted-foreground">
+          {lot.created_by_name || '—'}
+        </td>
         <td className="px-4 py-3 min-w-[140px]">
           {lot.total_boxes > 0 ? (
             <div className="flex items-center gap-2">

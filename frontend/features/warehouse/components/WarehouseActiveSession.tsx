@@ -34,20 +34,34 @@ export function WarehouseActiveSession({
   handleCloseSession,
   children,
 }: WarehouseActiveSessionProps) {
+  const isJaguar = brand === 'jaguar'
+  const labelTheme = isJaguar ? 'text-emerald-700/75' : 'text-blue-700/75'
+  const valueTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
+  const iconTheme = isJaguar ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25' : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+
   return (
     <div className="relative flex flex-col gap-4">
       {loading && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-card rounded-xl">
-          <div className="flex items-center gap-3 px-5 py-4 bg-muted/50 border border-border rounded-xl shadow-lg">
-            <span className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-xl">
+          <div className={cn(
+            "flex items-center gap-3 px-5 py-4 bg-card border rounded-xl shadow-lg",
+            brand === 'jaguar' ? "border-emerald-200 shadow-emerald-900/5" : "border-blue-200 shadow-blue-900/5"
+          )}>
+            <span className={cn(
+              "w-6 h-6 rounded-full border-2 border-t-transparent animate-spin",
+              brand === 'jaguar' ? "border-emerald-600" : "border-blue-600"
+            )} />
             <span className="text-sm font-semibold text-foreground">Completing session...</span>
           </div>
         </div>
       )}
 
       {isbnLoading && (
-        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-card border border-primary/30 rounded-xl shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-200">
-          <Loader2 className="h-4 w-4 text-primary animate-spin" />
+        <div className={cn(
+          "fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-card border rounded-xl shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-200",
+          brand === 'jaguar' ? "border-emerald-500/30" : "border-blue-500/30"
+        )}>
+          <Loader2 className={cn("h-4 w-4 animate-spin", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
           <div>
             <p className="text-sm font-semibold text-foreground">Adding ISBN...</p>
             <p className="text-xs text-muted-foreground">Verifying with iLMS</p>
@@ -55,86 +69,86 @@ export function WarehouseActiveSession({
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+          <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ring-1 ring-black/5', iconTheme)}>
             <Warehouse className="h-7 w-7" />
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
+            </span>
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
-              Warehouse Receiving
-            </h1>
-            <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-              Active scanning session for <span className={cn("inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none", brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>{brand}</span>
-            </p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-black leading-none tracking-tighter text-foreground sm:text-3xl">Warehouse Receiving</h1>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700 shadow-sm">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                Live
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+              <span>Active scanning session</span>
+              <span className="text-muted-foreground/40">•</span>
+              <span className={cn('inline-flex items-center justify-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm leading-none', iconTheme)}>{brand}</span>
+
+            </div>
           </div>
         </div>
       </div>
 
       {/* Active session banner */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {/* Top accent strip */}
-        <div className="h-0.5 w-full bg-primary/80" />
-        <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
-          {/* Info */}
-          <div className="flex items-start gap-3 sm:gap-5">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
-              <Package className="h-4 w-4 text-primary" />
+      <div className={cn(
+        'relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3 px-3 sm:px-4 rounded-2xl border shadow-sm ring-1',
+        brand === 'jaguar'
+          ? 'bg-gradient-to-r from-emerald-50 via-card to-emerald-100/60 border-emerald-200/80 ring-emerald-100/70'
+          : 'bg-gradient-to-r from-blue-50 via-card to-indigo-100/60 border-blue-200/80 ring-blue-100/70'
+      )}>
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg', iconTheme)}>
+            <Package className="h-5 w-5" />
+          </div>
+          
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-5">
+            <div className="min-w-[64px]">
+              <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Lot</span>
+              <span className={cn('mt-0.5 block truncate text-sm font-semibold tracking-tight', valueTheme)}>{activeLot}</span>
             </div>
-            <div className="flex items-center divide-x divide-border min-w-0">
-              <div className="pr-3 sm:pr-5 shrink-0">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Lot</p>
-                <p className="text-sm font-bold text-foreground mt-0.5">{activeLot}</p>
-              </div>
-              {currentBoxNumber && (
-                <div className="px-3 sm:px-5 shrink-0">
-                  <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Box</p>
-                  <p className="text-sm font-bold text-foreground mt-0.5">{currentBoxNumber}</p>
-                  <p className="text-[10px] text-muted-foreground">{currentBoxBooks} books</p>
+            
+            {currentBoxNumber && (
+              <>
+                <div className={cn('hidden h-7 w-px sm:block', isJaguar ? 'bg-emerald-200/80' : 'bg-blue-200/80')} />
+                <div className="min-w-[52px]">
+                  <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Box</span>
+                  <span className={cn('mt-0.5 block text-sm font-semibold tracking-tight', valueTheme)}>{currentBoxNumber}</span>
                 </div>
-              )}
-              <div className="pl-3 sm:pl-5 min-w-0">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">Operator</p>
-                <p className="text-sm font-bold text-foreground mt-0.5 truncate">{userName || 'Unknown'}</p>
-              </div>
+              </>
+            )}
+
+            <div className={cn('hidden h-7 w-px sm:block', isJaguar ? 'bg-emerald-200/80' : 'bg-blue-200/80')} />
+            <div className="min-w-[112px] flex-1 sm:flex-none">
+              <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Operator</span>
+              <span className={cn('mt-0.5 block truncate text-sm font-semibold tracking-tight', valueTheme)}>{userName || 'Unknown'}</span>
             </div>
           </div>
-          {/* Buttons */}
-          <div className="flex gap-2 shrink-0">
-            <button onClick={handleResetSession}
-              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg border border-red-400 text-red-500 hover:border-destructive hover:text-destructive hover:bg-destructive/5 transition-all">
-              <X className="h-3.5 w-3.5" />
-              Reset
-            </button>
-            {scannedBooks.length === 0 ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="flex-1 sm:flex-none inline-flex">
-                    <button
-                      onClick={handleCloseSession}
-                      disabled
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-                    >
-                      <CircleCheck className="h-3.5 w-3.5" />
-                      Complete Session
-                    </button>
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={8} variant="destructive">
-                  Scan at least one book first
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <button
-                onClick={handleCloseSession}
-                disabled={loading}
-                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-              >
-                <CircleCheck className="h-3.5 w-3.5" />
-                Complete Session
-              </button>
+        </div>
+
+        <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+          <button onClick={handleResetSession}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200/80 bg-white/80 px-4 py-3 text-xs font-semibold text-red-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:shadow-red-200/40 sm:flex-none">
+            <X className="h-4 w-4" />
+            Reset
+          </button>
+          
+          <button
+            onClick={handleCloseSession}
+            disabled={loading || scannedBooks.length === 0}
+            className={cn(
+              'inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none',
+              isJaguar ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700' : 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700'
             )}
-          </div>
+          >
+            <CircleCheck className="h-4 w-4" />
+            Complete Session
+          </button>
         </div>
       </div>
 

@@ -7,18 +7,31 @@
 
 import { db } from '../../config/db.js';
 
-export const getLotByNumber = async (lotNumber) => {
+export const getLotByNumber = async (lotNumber, lotType = null) => {
   try {
-    const { rows } = await db.query('SELECT id FROM lots WHERE lot_number = $1 LIMIT 1', [lotNumber]);
+    let query = 'SELECT id FROM lots WHERE lot_number = $1';
+    let params = [lotNumber];
+    if (lotType) {
+      query += ' AND type = $2';
+      params.push(lotType);
+    }
+    query += ' LIMIT 1';
+    const { rows } = await db.query(query, params);
     return { data: rows[0] || null, error: null };
   } catch (error) {
     return { data: null, error };
   }
 };
 
-export const getLotsInRange = async (start, end) => {
+export const getLotsInRange = async (start, end, lotType = null) => {
   try {
-    const { rows } = await db.query('SELECT id FROM lots WHERE lot_number >= $1 AND lot_number <= $2', [start, end]);
+    let query = 'SELECT id FROM lots WHERE lot_number >= $1 AND lot_number <= $2';
+    let params = [start, end];
+    if (lotType) {
+      query += ' AND type = $3';
+      params.push(lotType);
+    }
+    const { rows } = await db.query(query, params);
     return { data: rows, error: null };
   } catch (error) {
     return { data: null, error };

@@ -21,7 +21,7 @@ export const LotBoxDetails: React.FC<LotBoxDetailsProps> = ({
   if (!boxes || boxes.length === 0) {
     return (
       <tr className="bg-muted/5 border-b">
-        <td colSpan={7} className="px-10 py-8 text-sm text-muted-foreground text-center flex flex-col items-center justify-center gap-2">
+        <td colSpan={8} className="px-10 py-8 text-sm text-muted-foreground text-center flex flex-col items-center justify-center gap-2">
           <Package className="h-8 w-8 opacity-20" />
           No boxes have been created for this lot yet.
         </td>
@@ -35,7 +35,7 @@ export const LotBoxDetails: React.FC<LotBoxDetailsProps> = ({
 
   return (
     <tr className="bg-muted/10 border-b shadow-inner">
-      <td colSpan={7} className="p-0">
+      <td colSpan={8} className="p-0">
         <div className="border-l-4 border-primary/30 my-0 overflow-hidden bg-background/50">
           <div className="max-h-[500px] overflow-y-auto w-full">
             <table className="w-full text-xs">

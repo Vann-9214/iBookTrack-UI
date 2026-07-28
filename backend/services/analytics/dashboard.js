@@ -11,14 +11,15 @@ import { ilmsApi } from '../ilms/api.js';
 import { generateLotCandidates } from '../../utils/lotUtils.js';
 
 export const getStatsService = async (req) => {
-  const { lot_number, lot_range_start, lot_range_end, box_type } = req.query;
+  const { lot_number, lot_range_start, lot_range_end, box_type, type } = req.query;
+  const bookType = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : null;
 
   let lotIds = null;
   if (lot_number) {
-    const { data: lot } = await dashboardRepo.getLotByNumber(lot_number);
+    const { data: lot } = await dashboardRepo.getLotByNumber(lot_number, bookType);
     if (lot) lotIds = [lot.id];
   } else if (lot_range_start && lot_range_end) {
-    const { data: lots } = await dashboardRepo.getLotsInRange(lot_range_start, lot_range_end);
+    const { data: lots } = await dashboardRepo.getLotsInRange(lot_range_start, lot_range_end, bookType);
     if (lots) lotIds = lots.map(l => l.id);
   }
 
