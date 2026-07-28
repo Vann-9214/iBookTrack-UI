@@ -2,6 +2,8 @@ import React from 'react'
 import { BarChart3 } from 'lucide-react'
 import { RefreshControl } from '@/components/refresh-control'
 import { cn } from '@/lib/utils'
+import { LotStatusRow } from '../types/reports.types'
+import { ReportsExportButton } from './ReportsExportButton'
 
 interface ReportsHeaderProps {
   brand: string
@@ -9,6 +11,7 @@ interface ReportsHeaderProps {
   lastUpdated: Date | null
   loading: boolean
   onRefresh: () => void
+  lots: LotStatusRow[]
 }
 
 export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
@@ -17,6 +20,7 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
   lastUpdated,
   loading,
   onRefresh,
+  lots,
 }) => {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 flex-wrap">
@@ -51,13 +55,16 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
           </p>
         </div>
       </div>
-      <RefreshControl
-        onRefresh={onRefresh}
-        refreshing={loading}
-        lastUpdated={lastUpdated}
-        storageKey="reports"
-        className="hidden sm:flex"
-      />
+      <div className="flex items-center gap-2">
+        <ReportsExportButton brand={brand} lots={lots} disabled={loading} />
+        <RefreshControl
+          onRefresh={onRefresh}
+          refreshing={loading}
+          lastUpdated={lastUpdated}
+          storageKey="reports"
+          className="hidden sm:flex"
+        />
+      </div>
     </header>
   )
 }
