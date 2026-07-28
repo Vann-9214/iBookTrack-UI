@@ -179,7 +179,6 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
   const textTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
   const headerTextTheme = isJaguar ? 'text-emerald-950/80' : 'text-blue-950/80'
   const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
-  const surfaceTheme = isJaguar ? 'bg-emerald-50/35 border-emerald-200/70' : 'bg-blue-50/35 border-blue-200/70'
   const tableHeaderTheme = isJaguar ? 'bg-emerald-50/50 text-emerald-800/70' : 'bg-blue-50/50 text-blue-800/70'
   const borderTheme = isJaguar ? 'border-emerald-200/80 focus-visible:ring-emerald-500/20' : 'border-blue-200/80 focus-visible:ring-blue-500/20'
 
@@ -188,22 +187,22 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
       {/* Header */}
       <div className="relative flex items-center justify-between px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-[2px] gap-3">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg shrink-0',
-              iconTheme
-            )}>
-              <Boxes className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", textTheme)}>Inventory overview</p>
-              <p className={cn("text-[15px] font-black tracking-tight leading-none", headerTextTheme)}>Lots & Boxes</p>
-              <p className={cn("text-[11.5px] font-medium mt-0.5 truncate", subTextTheme)}>
-                Received inventory and warehouse session status
-              </p>
-            </div>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={cn(
+            'flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg shrink-0',
+            iconTheme
+          )}>
+            <Boxes className="h-4 w-4" />
           </div>
+          <div className="min-w-0">
+            <p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", textTheme)}>Inventory overview</p>
+            <p className={cn("text-[15px] font-black tracking-tight leading-none", headerTextTheme)}>Lots & Boxes</p>
+            <p className={cn("text-[11.5px] font-medium mt-0.5 truncate", subTextTheme)}>
+              Received inventory and warehouse session status
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
             <TabsList className={cn("bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
               <TabsTrigger disabled={displayLoading} value="all" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">All Lots</TabsTrigger>
@@ -215,8 +214,6 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
               </TabsTrigger>
             </TabsList>
           </Tabs>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
           <div className="relative hidden sm:block">
             <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground/60" />
             <Input 
