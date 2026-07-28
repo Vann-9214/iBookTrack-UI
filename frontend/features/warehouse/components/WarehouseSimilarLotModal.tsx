@@ -17,7 +17,7 @@ export function WarehouseSimilarLotModal({
   if (!similarLotModal.open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSimilarLotModal({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} })}>
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="animate-modal-origin bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10">

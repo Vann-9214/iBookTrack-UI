@@ -34,6 +34,11 @@ export function WarehouseActiveSession({
   handleCloseSession,
   children,
 }: WarehouseActiveSessionProps) {
+  const isJaguar = brand === 'jaguar'
+  const labelTheme = isJaguar ? 'text-emerald-700/75' : 'text-blue-700/75'
+  const valueTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
+  const iconTheme = isJaguar ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25' : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+
   return (
     <div className="relative flex flex-col gap-4">
       {loading && (
@@ -64,65 +69,71 @@ export function WarehouseActiveSession({
         </div>
       )}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <div className={cn("p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5", brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600')}>
+          <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ring-1 ring-black/5', iconTheme)}>
             <Warehouse className="h-7 w-7" />
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
+            </span>
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
-              Warehouse Receiving
-            </h1>
-            <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-              Active scanning session for <span className={cn("inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none", brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>{brand}</span>
-            </p>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-black leading-none tracking-tighter text-foreground sm:text-3xl">Warehouse Receiving</h1>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700 shadow-sm">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                Live
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] font-medium text-muted-foreground sm:text-[13px]">
+              <span>Active scanning session</span>
+              <span className="text-muted-foreground/40">•</span>
+              <span className={cn('inline-flex items-center justify-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm leading-none', iconTheme)}>{brand}</span>
+
+            </div>
           </div>
         </div>
       </div>
 
       {/* Active session banner */}
       <div className={cn(
-        "flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2.5 px-3 sm:px-4 rounded-xl border",
+        'relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3 px-3 sm:px-4 rounded-2xl border shadow-sm ring-1',
         brand === 'jaguar'
-          ? "bg-emerald-50 border-emerald-200"
-          : "bg-blue-50 border-blue-200"
+          ? 'bg-gradient-to-r from-emerald-50 via-card to-emerald-100/60 border-emerald-200/80 ring-emerald-100/70'
+          : 'bg-gradient-to-r from-blue-50 via-card to-indigo-100/60 border-blue-200/80 ring-blue-100/70'
       )}>
-        <div className="flex items-center gap-4 sm:gap-6">
-          <div className={cn(
-            "flex items-center justify-center w-10 h-10 rounded-lg shrink-0",
-            brand === 'jaguar' ? "bg-emerald-100/50 text-emerald-600" : "bg-blue-100/50 text-blue-600"
-          )}>
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg', iconTheme)}>
             <Package className="h-5 w-5" />
           </div>
           
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Lot</span>
-              <span className={cn("text-sm font-bold", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>{activeLot}</span>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-5">
+            <div className="min-w-[64px]">
+              <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Lot</span>
+              <span className={cn('mt-0.5 block truncate text-sm font-semibold tracking-tight', valueTheme)}>{activeLot}</span>
             </div>
             
             {currentBoxNumber && (
               <>
-                <div className={cn("w-px h-8", brand === 'jaguar' ? "bg-emerald-200/50" : "bg-blue-200/50")} />
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Box</span>
-                  <span className={cn("text-sm font-bold", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>{currentBoxNumber}</span>
+                <div className={cn('hidden h-7 w-px sm:block', isJaguar ? 'bg-emerald-200/80' : 'bg-blue-200/80')} />
+                <div className="min-w-[52px]">
+                  <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Box</span>
+                  <span className={cn('mt-0.5 block text-sm font-semibold tracking-tight', valueTheme)}>{currentBoxNumber}</span>
                 </div>
               </>
             )}
 
-            <div className={cn("w-px h-8 hidden sm:block", brand === 'jaguar' ? "bg-emerald-200/50" : "bg-blue-200/50")} />
-            
-            <div className="hidden sm:flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Operator</span>
-              <span className={cn("text-sm font-bold truncate max-w-[150px]", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>{userName || 'Unknown'}</span>
+            <div className={cn('hidden h-7 w-px sm:block', isJaguar ? 'bg-emerald-200/80' : 'bg-blue-200/80')} />
+            <div className="min-w-[112px] flex-1 sm:flex-none">
+              <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Operator</span>
+              <span className={cn('mt-0.5 block truncate text-sm font-semibold tracking-tight', valueTheme)}>{userName || 'Unknown'}</span>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto shrink-0">
+        <div className="flex w-full shrink-0 gap-2 sm:w-auto">
           <button onClick={handleResetSession}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg border bg-white hover:bg-red-50 text-red-500 hover:text-red-600 hover:border-red-200 transition-colors shadow-sm">
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200/80 bg-white/80 px-4 py-3 text-xs font-semibold text-red-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:shadow-red-200/40 sm:flex-none">
             <X className="h-4 w-4" />
             Reset
           </button>
@@ -131,8 +142,8 @@ export function WarehouseActiveSession({
             onClick={handleCloseSession}
             disabled={loading || scannedBooks.length === 0}
             className={cn(
-              "flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm rounded-lg text-white font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
-              brand === 'jaguar' ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700"
+              'inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none',
+              isJaguar ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700' : 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700'
             )}
           >
             <CircleCheck className="h-4 w-4" />

@@ -1,8 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useBrand } from '@/hooks/use-brand'
 import type { IlmsMismatchModalState } from '../types/warehouse.types'
 
 interface WarehouseIlmsMismatchModalProps {
@@ -14,33 +14,29 @@ export function WarehouseIlmsMismatchModal({
   ilmsMismatchModal,
   setIlmsMismatchModal,
 }: WarehouseIlmsMismatchModalProps) {
-  const { brand } = useBrand()
-  const isJaguar = brand === 'jaguar'
-  const theme = isJaguar
-    ? {
-        border: 'border-emerald-200/80',
-        header: 'border-emerald-100 bg-gradient-to-r from-emerald-50 via-card to-card',
-        hover: 'hover:bg-emerald-100/70',
-        surface: 'border-emerald-200/80 bg-emerald-50/70',
-        surfaceLabel: 'text-emerald-700',
-        detail: 'border-emerald-100 bg-card/85',
-        footer: 'border-emerald-100 bg-emerald-50/45',
-      }
-    : {
-        border: 'border-blue-200/80',
-        header: 'border-blue-100 bg-gradient-to-r from-blue-50 via-card to-card',
-        hover: 'hover:bg-blue-100/70',
-        surface: 'border-blue-200/80 bg-blue-50/70',
-        surfaceLabel: 'text-blue-700',
-        detail: 'border-blue-100 bg-card/85',
-        footer: 'border-blue-100 bg-blue-50/45',
-      }
-  const dismiss = () => setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
+  const [isClosing, setIsClosing] = useState(false)
+  const theme = {
+    border: 'border-amber-200/80',
+    header: 'border-amber-100 bg-gradient-to-r from-amber-50 via-card to-amber-50/60',
+    hover: 'hover:bg-amber-100/70',
+    surface: 'border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/50',
+    surfaceLabel: 'text-amber-800',
+    detail: 'border-amber-200/70 bg-white/80',
+    footer: 'border-amber-100 bg-gradient-to-r from-amber-50/60 via-card to-amber-50/60',
+  }
+  const close = (onClosed?: () => void) => {
+    if (isClosing) return
+    setIsClosing(true)
+    window.setTimeout(() => {
+      setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
+      onClosed?.()
+    }, 220)
+  }
 
   if (!ilmsMismatchModal.open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={dismiss}>
-      <div className={cn('w-full max-w-lg overflow-hidden rounded-2xl border bg-card shadow-2xl shadow-slate-950/20 ring-1 ring-black/5', theme.border)} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" onClick={() => close()}>
+      <div data-modal-origin-surface className={cn('w-full max-w-lg overflow-hidden rounded-2xl border bg-card shadow-2xl shadow-slate-950/20 ring-1 ring-black/5', isClosing ? 'animate-modal-origin-out' : 'animate-modal-origin', theme.border)} onClick={(e) => e.stopPropagation()}>
         <div className={cn('flex items-center justify-between border-b bg-gradient-to-r px-5 py-4 sm:px-6', theme.header)}>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 shadow-sm ring-1 ring-amber-200/80">
@@ -51,7 +47,7 @@ export function WarehouseIlmsMismatchModal({
               <h3 className="mt-0.5 text-base font-black tracking-tight text-foreground">Lot / Box Mismatch</h3>
             </div>
           </div>
-          <button onClick={dismiss} className={cn('rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground', theme.hover)} aria-label="Close mismatch dialog">
+          <button onClick={() => close()} className={cn('rounded-lg p-2 text-muted-foreground transition-colors hover:text-foreground', theme.hover)} aria-label="Close mismatch dialog">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -64,7 +60,7 @@ export function WarehouseIlmsMismatchModal({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">ISBN</p>
                 <p className="mt-1 text-sm font-bold text-foreground">{ilmsMismatchModal.isbn}</p>
               </div>
-              <div className={cn('border-t pt-3', isJaguar ? 'border-emerald-200/80' : 'border-blue-200/80')}>
+              <div className="border-t border-amber-200/80 pt-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Title</p>
                 <p className="mt-1 text-sm leading-5 text-foreground/80">{ilmsMismatchModal.title || 'Unknown Title'}</p>
               </div>
@@ -98,10 +94,10 @@ export function WarehouseIlmsMismatchModal({
         </div>
 
         <div className={cn('flex flex-col-reverse gap-2 border-t px-5 py-4 sm:flex-row sm:justify-end sm:px-6', theme.footer)}>
-          <button onClick={dismiss} className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          <button onClick={() => close()} className="rounded-xl border border-amber-200/80 bg-white/80 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-amber-50 hover:text-foreground">
             Cancel
           </button>
-          <button onClick={() => { dismiss(); ilmsMismatchModal.onConfirm() }} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98]">
+          <button onClick={() => close(ilmsMismatchModal.onConfirm)} className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600">
             Confirm book
           </button>
         </div>

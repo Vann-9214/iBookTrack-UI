@@ -17,7 +17,7 @@ export function WarehouseConflictModal({
   if (!conflictModalState.open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConflictModalState({ open: false, type: null, message: '' })}>
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="animate-modal-origin bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
             <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${conflictModalState.type === 'has_books' ? 'bg-destructive/10' : 'bg-amber-500/10'}`}>

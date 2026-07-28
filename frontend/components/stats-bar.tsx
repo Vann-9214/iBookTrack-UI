@@ -432,7 +432,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       {/* QC Flagged Books Modal */}
       {flagsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setFlagsOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-origin ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
 
             {/* Red header */}
             <div className="px-6 py-5 flex items-center justify-between bg-gradient-to-r from-red-50 to-rose-50">
@@ -549,7 +549,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           onClick={() => setLiveLotsOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-origin ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -692,7 +692,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           onClick={() => setDailyOutputOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5"
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-origin ring-1 ring-black/5"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
