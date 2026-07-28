@@ -53,8 +53,8 @@ export const startSessionService = async (req, res) => {
 
     if (!lot) {
       const { rows: newLotRows } = await db.query(
-        'INSERT INTO lots (lot_number, total_boxes, type) VALUES ($1, 0, $2) RETURNING *',
-        [lot_number, bookType]
+        'INSERT INTO lots (lot_number, total_boxes, type, created_by) VALUES ($1, 0, $2, $3) RETURNING *',
+        [lot_number, bookType, req.user.id]
       );
       lot = newLotRows[0];
     }
@@ -270,8 +270,8 @@ export const bulkSaveSessionService = async (req, res) => {
 
     if (!lot) {
       const { rows: newLotRows } = await db.query(
-        'INSERT INTO lots (lot_number, type, total_boxes) VALUES ($1, $2, 0) RETURNING *',
-        [lot_number, book_type]
+        'INSERT INTO lots (lot_number, type, total_boxes, created_by) VALUES ($1, $2, 0, $3) RETURNING *',
+        [lot_number, book_type, req.user.id]
       );
       lot = newLotRows[0];
     }

@@ -181,6 +181,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
   const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
   const tableHeaderTheme = isJaguar ? 'bg-emerald-50/50 text-emerald-800/70' : 'bg-blue-50/50 text-blue-800/70'
   const borderTheme = isJaguar ? 'border-emerald-200/80 focus-visible:ring-emerald-500/20' : 'border-blue-200/80 focus-visible:ring-blue-500/20'
+  const tabActiveTheme = isJaguar
+    ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-emerald-500/20 data-[state=active]:border-transparent'
+    : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-500/20 data-[state=active]:border-transparent'
 
   return (
     <div className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden flex flex-col transition-all duration-300", cardTheme)}>
@@ -205,11 +208,11 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
         <div className="flex items-center gap-2 shrink-0">
           <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
             <TabsList className={cn("bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
-              <TabsTrigger disabled={displayLoading} value="all" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">All Lots</TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="in_progress" className="text-[11px] px-3 py-1 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TabsTrigger disabled={displayLoading} value="all" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>All Lots</TabsTrigger>
+              <TabsTrigger disabled={displayLoading} value="in_progress" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 In Progress
               </TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="delayed" className="text-[11px] px-2.5 py-1">
+              <TabsTrigger disabled={displayLoading} value="delayed" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 Delayed
               </TabsTrigger>
             </TabsList>
@@ -241,8 +244,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
       {!error && (
         <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center", tableHeaderTheme)}>
           <div className="col-span-1 flex justify-start"><Hash className="h-2.5 w-2.5" /></div>
-          <div className="col-span-5 sm:col-span-4">Lot Number</div>
-          <div className="col-span-3 sm:col-span-4 text-center">Boxes</div>
+          <div className="col-span-5 sm:col-span-3">Lot Number</div>
+          <div className="hidden sm:block sm:col-span-3">Created By</div>
+          <div className="col-span-3 sm:col-span-2 text-center">Boxes</div>
           <div className="col-span-3 text-right pr-1">Actions</div>
         </div>
       )}
@@ -254,8 +258,9 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5">
                 <div className="col-span-1 flex justify-start"><Skeleton className="h-3 w-3 rounded-sm bg-black/5" /></div>
-                <div className="col-span-5 sm:col-span-4"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
-                <div className="col-span-3 sm:col-span-4 flex justify-center"><Skeleton className="h-5 w-12 rounded-md bg-black/5" /></div>
+                <div className="col-span-5 sm:col-span-3"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
+                <div className="hidden sm:block sm:col-span-3"><Skeleton className="h-4 w-24 rounded bg-black/5" /></div>
+                <div className="col-span-3 sm:col-span-2 flex justify-center"><Skeleton className="h-5 w-12 rounded-md bg-black/5" /></div>
                 <div className="col-span-3 flex justify-end items-center gap-1.5 pr-1">
                   <span className="text-[10px] font-medium text-muted-foreground/40 hidden sm:inline">Expand</span>
                   <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30" />
@@ -308,14 +313,32 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                     </div>
 
                     {/* Lot name */}
-                    <div className="col-span-5 sm:col-span-4 min-w-0">
+                    <div className="col-span-5 sm:col-span-3 min-w-0">
                       <span className={cn("text-[13px] font-bold truncate block transition-colors", expanded ? "text-white" : "text-gray-800 group-hover:text-black")}>
                         {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
                       </span>
+                      {lot.created_by_name && (
+                        <span className={cn("sm:hidden text-[10px] truncate block transition-colors", expanded ? "text-white/70" : "text-muted-foreground")}>
+                          by {lot.created_by_name}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Created By column (desktop only) */}
+                    <div className="hidden sm:flex sm:col-span-3 min-w-0 items-center">
+                      {lot.created_by_name ? (
+                        <span className={cn("text-[12px] truncate transition-colors", expanded ? "text-white/80" : "text-muted-foreground")}>
+                          {lot.created_by_name}
+                        </span>
+                      ) : (
+                        <span className={cn("text-[12px] italic transition-colors", expanded ? "text-white/50" : "text-muted-foreground/50")}>
+                          Unknown
+                        </span>
+                      )}
                     </div>
 
                     {/* Box count */}
-                    <div className="col-span-3 sm:col-span-4 flex justify-center">
+                    <div className="col-span-3 sm:col-span-2 flex justify-center">
                       <Badge variant="outline" className={cn(
                         "text-[10px] font-bold py-0 h-5 shadow-sm transition-colors",
                         expanded 

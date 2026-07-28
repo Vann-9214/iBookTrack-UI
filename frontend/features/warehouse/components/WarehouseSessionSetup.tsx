@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
-import { ChevronsUpDown, Package, ScanBarcode, Check, Lock } from 'lucide-react'
+import { ChevronsUpDown, ScanBarcode, Check, Lock } from 'lucide-react'
 import type { Lot } from '../types/warehouse.types'
 import { Skeleton } from '@/components/ui/skeleton'
 interface WarehouseSessionSetupProps {
@@ -73,9 +73,8 @@ export function WarehouseSessionSetup({
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
           {/* Lot input */}
           <div className="flex flex-col gap-1.5 w-full sm:w-[200px]">
-            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", labelTheme)}>
+            <label className={cn("text-[11px] font-bold uppercase tracking-wider", labelTheme)}>
               Lot Number
-              {activeLot && /^lot[- ]+[a-zA-Z0-9]+$/i.test(activeLot.trim()) && !lotsLoading && <span className={cn("font-bold text-[10px]", textTheme)}>✓</span>}
             </label>
             {lotsLoading ? (
               <Skeleton className="h-9 w-full rounded-md bg-black/5" />
@@ -147,14 +146,8 @@ export function WarehouseSessionSetup({
 
           {/* Box input */}
           <div className="flex flex-col gap-1.5 w-full sm:w-[200px]">
-            <label className={cn("text-[11px] font-bold uppercase tracking-wider flex items-center gap-2", labelTheme)}>
+            <label className={cn("text-[11px] font-bold uppercase tracking-wider", labelTheme)}>
               Box Number
-              {selectedBox && selectedBox.includes('/') && (() => {
-                const [c, t] = selectedBox.split('/')
-                const cnVal = parseInt(c, 10)
-                const tnVal = parseInt(t, 10)
-                return !isNaN(cnVal) && !isNaN(tnVal) && cnVal <= tnVal
-              })() && <span className={cn("font-bold text-[10px]", textTheme)}>✓</span>}
             </label>
             {lotsLoading ? (
               <Skeleton className="h-9 w-full rounded-md bg-black/5" />
@@ -212,20 +205,6 @@ export function WarehouseSessionSetup({
           <div className="flex items-center gap-2.5 mt-3 py-2 px-3.5 bg-destructive/10 border border-destructive/20 rounded-lg text-[13px] font-bold text-destructive animate-in fade-in zoom-in-95 duration-200">
             <Lock className="h-4 w-4 shrink-0" />
             <span>This box is currently being processed by <span className="underline underline-offset-2">{boxLockedBy}</span>.</span>
-          </div>
-        )}
-        {activeLot && /^lot[- ]+[a-zA-Z0-9]+$/i.test(activeLot.trim()) && selectedBox && selectedBox.includes('/') && (() => {
-          const [c, t] = selectedBox.split('/')
-          const cnVal = parseInt(c, 10)
-          const tnVal = parseInt(t, 10)
-          return !isNaN(cnVal) && !isNaN(tnVal) && cnVal <= tnVal
-        })() && !boxLockedBy && (
-          <div className="flex items-center gap-2.5 mt-3 py-2 px-3.5 bg-primary/5 border border-primary/10 rounded-lg text-[13px] font-semibold text-primary animate-in fade-in zoom-in-95 duration-200">
-            <Package className="h-4 w-4 opacity-70" />
-            <span>{activeLot.toLowerCase().startsWith('lot') ? activeLot : `Lot ${activeLot}`}</span>
-            <span className="text-primary/30">→</span>
-            <span>Box {selectedBox}</span>
-            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-primary/60">Ready to scan</span>
           </div>
         )}
       </div>

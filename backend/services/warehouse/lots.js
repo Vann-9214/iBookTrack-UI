@@ -57,8 +57,9 @@ export const getWarehouseOverviewService = async (req, res) => {
 
     const lotParams = [...params, limit, (page - 1) * limit];
     const { rows: lots } = await db.query(`
-      SELECT l.id, l.lot_number, l.type, l.created_at
+      SELECT l.id, l.lot_number, l.type, l.created_at, l.created_by, u.name AS created_by_name
       FROM lots l
+      LEFT JOIN users u ON u.id = l.created_by
       ${where}
       ORDER BY l.created_at DESC, l.lot_number DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -132,6 +133,8 @@ export const getWarehouseOverviewService = async (req, res) => {
         id: l.id,
         lot_number: l.lot_number,
         type: l.type,
+        created_by: l.created_by,
+        created_by_name: l.created_by_name,
         total_boxes: (boxesByLot[l.id] || []).length, // Update total_boxes based on filtered results
         boxes: boxesByLot[l.id] || [],
       })),
