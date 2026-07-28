@@ -49,15 +49,6 @@ export function WarehouseSessionSetup({
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300", cardTheme)}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
-      {/* Loading overlay */}
-      {loading && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/50 backdrop-blur-sm rounded-2xl">
-          <div className="flex items-center gap-3 px-6 py-3.5 bg-card border border-border rounded-full shadow-lg">
-            <span className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-            <span className="text-sm font-bold text-foreground">Starting session...</span>
-          </div>
-        </div>
-      )}
 
       <div className="relative">
         {/* Card header row */}
@@ -195,8 +186,17 @@ export function WarehouseSessionSetup({
                 : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
             )}
           >
-            <ScanBarcode className="h-4 w-4 mr-2" />
-            Start Scanning
+            {loading ? (
+              <>
+                <span className="w-4 h-4 mr-2 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" />
+                Starting session...
+              </>
+            ) : (
+              <>
+                <ScanBarcode className="h-4 w-4 mr-2" />
+                Start Scanning
+              </>
+            )}
           </Button>
         </div>
 
