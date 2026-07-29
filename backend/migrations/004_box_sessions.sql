@@ -21,12 +21,26 @@ CREATE TABLE IF NOT EXISTS public.box_sessions (
   inventory_time_send TIMESTAMPTZ,
   endorsement_time_send TIMESTAMPTZ,
   cut_time_send TIMESTAMPTZ,
+  warehouse_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  inventory_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  endorsement_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  warehouse_complete_at TIMESTAMPTZ,
+  inventory_complete_at TIMESTAMPTZ,
+  endorsement_complete_at TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'in_progress',
   total_scanned_books INTEGER NOT NULL DEFAULT 0,
   total_processable_books INTEGER NOT NULL DEFAULT 0,
   total_nonprocessable_books INTEGER NOT NULL DEFAULT 0,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.box_sessions
+  ADD COLUMN IF NOT EXISTS warehouse_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS inventory_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS endorsement_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS warehouse_complete_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS inventory_complete_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS endorsement_complete_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_box_sessions_box_id ON public.box_sessions (box_id);
 CREATE INDEX IF NOT EXISTS idx_warehouse_sessions_received_by ON public.box_sessions (warehouse_user_received);

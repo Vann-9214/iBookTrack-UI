@@ -69,7 +69,7 @@ export function WarehouseActiveSession({
         </div>
       )}
 
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ring-1 ring-black/5', iconTheme)}>
             <Warehouse className="h-7 w-7" />
