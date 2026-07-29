@@ -4,6 +4,14 @@ import { useBrand } from '@/hooks/use-brand'
 import { BoxEntry, BoxBookEntry } from '../types/endorsement.types'
 import { endorsementService } from '../services/endorsement.service'
 
+function matchesSearch(box: BoxEntry, query: string) {
+  const q = query.trim().toLowerCase()
+  if (!q) return true
+  const boxMatch = (box.box_number || '').toLowerCase().includes(q)
+  const lotMatch = (box.lot?.lot_number || '').toLowerCase().includes(q)
+  return boxMatch || lotMatch
+}
+
 export function useEndorsement() {
   const { brand, colors } = useBrand()
 
@@ -13,7 +21,6 @@ export function useEndorsement() {
 
   // ── Search ────────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchType, setSearchType] = useState<'box' | 'lot' | 'isbn'>('box')
 
   // ── Incoming Boxes ────────────────────────────────────────────────────────
   const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
@@ -23,14 +30,14 @@ export function useEndorsement() {
   const fetchIncoming = useCallback(async () => {
     setLoadingIncoming(true)
     try {
-      const filteredIncoming = await endorsementService.fetchIncomingBoxes(brand, searchQuery, searchType)
+      const filteredIncoming = await endorsementService.fetchIncomingBoxes(brand, '', 'box')
       setIncomingBoxes(filteredIncoming)
     } catch (e) {
       console.error('Failed to fetch incoming boxes:', e)
     } finally {
       setLoadingIncoming(false)
     }
-  }, [brand, searchQuery, searchType])
+  }, [brand])
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)
@@ -53,7 +60,7 @@ export function useEndorsement() {
   const fetchEndorsementBoxes = useCallback(async () => {
     setLoadingEndorsement(true)
     try {
-      const filteredEndorsement = await endorsementService.fetchEndorsementBoxes(brand, searchQuery, searchType)
+      const filteredEndorsement = await endorsementService.fetchEndorsementBoxes(brand, '', 'box')
       setEndorsementBoxes(filteredEndorsement)
       setLastUpdated(new Date())
     } catch (e) {
@@ -61,7 +68,7 @@ export function useEndorsement() {
     } finally {
       setLoadingEndorsement(false)
     }
-  }, [brand, searchQuery, searchType])
+  }, [brand])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -77,16 +84,9 @@ export function useEndorsement() {
   const outgoingBoxes = endorsementBoxes.filter((b) => b.box_sessions?.some((s) => s.status === 'completed'))
   const inspectionBoxes = endorsementBoxes.filter((b) => !b.box_sessions?.some((s) => s.status === 'completed'))
 
-  const matchesLotSearch = (box: BoxEntry) => {
-    if (searchType !== 'lot') return true
-    const query = searchQuery.trim().toLowerCase()
-    if (!query) return true
-    return (box.lot?.lot_number || '').toLowerCase().includes(query)
-  }
-
-  const filteredIncoming = incomingBoxes.filter(matchesLotSearch)
-  const filteredInspection = inspectionBoxes.filter(matchesLotSearch)
-  const filteredOutgoing = outgoingBoxes.filter(matchesLotSearch)
+  const filteredIncoming = incomingBoxes.filter(b => matchesSearch(b, searchQuery))
+  const filteredInspection = inspectionBoxes.filter(b => matchesSearch(b, searchQuery))
+  const filteredOutgoing = outgoingBoxes.filter(b => matchesSearch(b, searchQuery))
 
   const handleSendToScan = async (box: BoxEntry) => {
     setSendingToScan(box.id)
@@ -172,8 +172,6 @@ export function useEndorsement() {
     lastUpdated,
     searchQuery,
     setSearchQuery,
-    searchType,
-    setSearchType,
     filteredIncoming,
     filteredInspection,
     filteredOutgoing,

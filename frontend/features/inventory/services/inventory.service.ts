@@ -1,5 +1,5 @@
 import { authFetch, getApiBaseUrl } from '@/lib/auth-api'
-import type { InventoryBox, InventoryIssue, InventorySearchType, VerificationSession } from '../types/inventory.types'
+import type { InventoryBox, InventoryIssue, VerificationSession } from '../types/inventory.types'
 
 const apiUrl = getApiBaseUrl()
 
@@ -9,16 +9,16 @@ async function json<T = unknown>(response: Response): Promise<T> {
   return data as T
 }
 
-export async function fetchInventoryBoxes(brand: string, searchType: InventorySearchType, searchQuery: string) {
+export async function fetchInventoryBoxes(brand: string, searchQuery: string) {
   const params = new URLSearchParams({ box_type: brand, current_stage: 'warehouse,inventory' })
-  const query = searchQuery.trim()
-  if (query && searchType === 'box') params.set('box_number', query)
-  if (query && searchType === 'isbn') params.set('isbn', query)
+  const query = searchQuery.trim().toLowerCase()
   const data = await authFetch(`${apiUrl}/api/boxes?${params}`).then(json<{ boxes?: InventoryBox[] }>)
   const boxes = data.boxes || []
-  return searchType === 'lot' && query
-    ? boxes.filter((box) => box.lot?.lot_number?.toLowerCase().includes(query.toLowerCase()))
-    : boxes
+  if (!query) return boxes
+  return boxes.filter((box) =>
+    box.box_number.toLowerCase().includes(query) ||
+    (box.lot?.lot_number || '').toLowerCase().includes(query)
+  )
 }
 
 export async function fetchInventoryBox(boxId: string) {

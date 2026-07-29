@@ -1,7 +1,7 @@
 "use client"
 
+import { Boxes } from 'lucide-react'
 import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-mobile"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
 import { useEndorsement, useInspectionSession } from "@/features/endorsement/hooks"
@@ -19,18 +19,13 @@ import {
 } from "@/features/endorsement/components"
 
 export default function BookInspectionPage() {
-  const isMobile = useIsMobile()
-
   const {
     brand,
-    colors,
     activeTab,
     setActiveTab,
     lastUpdated,
     searchQuery,
     setSearchQuery,
-    searchType,
-    setSearchType,
     filteredIncoming,
     filteredInspection,
     filteredOutgoing,
@@ -89,41 +84,48 @@ export default function BookInspectionPage() {
 
   return (
     <>
-      <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
+      <div className={cn("flex h-screen bg-background font-sans print:hidden", `theme-${brand}`)}>
         <DashboardSidebar navigationLocked={inspSessionActive} />
-        <div className="flex-1 flex flex-col min-w-0 h-dvh overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           <DashboardNavbar disableBrandToggle={inspSessionActive} navigationLocked={inspSessionActive} />
-          <main className="ambient-bg flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
-            <div className={cn("mx-auto w-full flex-1 flex flex-col", inspSessionActive ? "max-w-full" : "max-w-6xl")}>
-              {/* Header */}
-              <EndorsementHeader brand={brand} />
-
-              {/* Search bar */}
-              {!inspSessionActive && (
-                <EndorsementSearch
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  searchType={searchType}
-                  setSearchType={setSearchType}
-                />
-              )}
-
-              {/* Tab Navigation */}
-              <EndorsementTabs
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                inspSessionActive={inspSessionActive}
-                incomingCount={filteredIncoming.length}
-                inspectionCount={filteredInspection.length}
-                outgoingCount={filteredOutgoing.length}
-                colors={colors}
-                onRefresh={refreshAll}
+          <main className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+            <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
+              <EndorsementHeader
+                brand={brand}
                 refreshing={loadingIncoming || loadingEndorsement}
+                onRefresh={refreshAll}
                 lastUpdated={lastUpdated}
               />
 
-              {/* TAB: INCOMING BOXES */}
-              {activeTab === 'incoming' && (
+              {!inspSessionActive && (
+                <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">
+                  <div className="premium-gradient-ui-card__glow" />
+                  <div className="relative flex items-center gap-3 mb-4">
+                    <div className="premium-gradient-ui-card__icon w-8 h-8">
+                      <Boxes className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="premium-gradient-ui-card__eyebrow">Receive · Inspect · Send</p>
+                      <h2 className="text-[15px] font-black tracking-tight text-foreground leading-none">Manage Book Inspection</h2>
+                    </div>
+                  </div>
+                  <EndorsementSearch
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                  />
+                  <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
+                  <EndorsementTabs
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    inspSessionActive={inspSessionActive}
+                    incomingCount={filteredIncoming.length}
+                    inspectionCount={filteredInspection.length}
+                    outgoingCount={filteredOutgoing.length}
+                  />
+                </div>
+              )}
+
+              {!inspSessionActive && activeTab === 'incoming' && (
                 <IncomingBoxes
                   loadingIncoming={loadingIncoming}
                   filteredIncoming={filteredIncoming}
@@ -136,9 +138,8 @@ export default function BookInspectionPage() {
                 />
               )}
 
-              {/* TAB: ENDORSEMENT / INSPECTION */}
               {activeTab === 'inspection' && (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 sm:gap-6">
                   <CompleteInspectionModal
                     inspConfirmComplete={inspConfirmComplete}
                     inspScannedBooks={inspScannedBooks}
@@ -165,8 +166,6 @@ export default function BookInspectionPage() {
                       inspExpandedBoxId={inspExpandedBoxId}
                       inspRowBooks={inspRowBooks}
                       loadingInspRowBooks={loadingInspRowBooks}
-                      isMobile={isMobile}
-                      loadingInspSession={loadingInspSession}
                       toggleInspRow={toggleInspRow}
                       openConfirm={openConfirm}
                     />
@@ -193,8 +192,7 @@ export default function BookInspectionPage() {
                 </div>
               )}
 
-              {/* TAB: OUTGOING BOXES */}
-              {activeTab === 'outgoing' && (
+              {!inspSessionActive && activeTab === 'outgoing' && (
                 <OutgoingBoxes
                   filteredOutgoing={filteredOutgoing}
                   expandedBoxId={expandedBoxId}
@@ -203,6 +201,7 @@ export default function BookInspectionPage() {
                   sendingToScan={sendingToScan}
                   toggleBox={toggleBox}
                   openConfirm={openConfirm}
+                  loadingEndorsement={loadingEndorsement}
                 />
               )}
             </div>
@@ -210,7 +209,6 @@ export default function BookInspectionPage() {
         </div>
       </div>
 
-      {/* Action Confirmation Modal */}
       <EndorsementActionConfirmModal
         confirmModal={confirmModal}
         inspUserName={inspUserName}

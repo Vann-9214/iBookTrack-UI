@@ -1,5 +1,5 @@
-import React from 'react'
-import { BoxEntry, WarehouseBook, InspScannedBook } from '../types/endorsement.types'
+import type { BoxEntry, WarehouseBook, InspScannedBook } from '../types/endorsement.types'
+import type { Brand } from '@/hooks/use-brand'
 import { InspectionSessionHeader } from './InspectionSessionHeader'
 import { InspectionStats } from './InspectionStats'
 import { InspectionScanner } from './InspectionScanner'
@@ -19,10 +19,10 @@ interface InspectionSessionProps {
   handleInspScan: (isbn: string) => void
   openInspFlagModal: (book: InspScannedBook) => void
   handleRemoveInspBook: (bookId: string) => void
-  brand: string
+  brand: Brand
 }
 
-export const InspectionSession: React.FC<InspectionSessionProps> = ({
+export function InspectionSession({
   inspBox,
   inspCurrentBoxBooks,
   inspUserName,
@@ -37,10 +37,9 @@ export const InspectionSession: React.FC<InspectionSessionProps> = ({
   openInspFlagModal,
   handleRemoveInspBook,
   brand,
-}) => {
+}: InspectionSessionProps) {
   return (
-    <>
-      {/* ── Active session bar ── */}
+    <div className="flex flex-col gap-4 sm:gap-6">
       <InspectionSessionHeader
         inspBox={inspBox}
         inspCurrentBoxBooks={inspCurrentBoxBooks}
@@ -51,21 +50,17 @@ export const InspectionSession: React.FC<InspectionSessionProps> = ({
         handleOpenInspComplete={handleOpenInspComplete}
       />
 
-      {/* ── Stats cards ── */}
       <InspectionStats inspCurrentSession={inspCurrentSession} />
 
-      {/* ── Scanner ── */}
-      <InspectionScanner onScan={handleInspScan} />
+      <InspectionScanner onScan={handleInspScan} brand={brand} />
 
-      {/* ── Side-by-Side Warehouse and Endorsement Tables ── */}
       <InspectionComparisonTables
         warehouseBooks={warehouseBooks}
         loadingWarehouseBooks={loadingWarehouseBooks}
         inspScannedBooks={inspScannedBooks}
         openInspFlagModal={openInspFlagModal}
         handleRemoveInspBook={handleRemoveInspBook}
-        brand={brand}
       />
-    </>
+    </div>
   )
 }

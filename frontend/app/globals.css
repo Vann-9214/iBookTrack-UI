@@ -259,6 +259,16 @@
   background: linear-gradient(135deg, var(--brand-strong), color-mix(in oklch, var(--brand-strong) 70%, black));
 }
 
+.premium-gradient-ui-card--static {
+  transition: none;
+}
+
+.premium-gradient-ui-card--static:hover {
+  transform: none;
+  border-color: color-mix(in oklch, var(--brand-strong) 22%, white);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 28px color-mix(in oklch, var(--brand-strong) 10%, transparent);
+}
+
 .dark {
   --background: oklch(0.16 0.005 260);
   --foreground: oklch(0.97 0 0);

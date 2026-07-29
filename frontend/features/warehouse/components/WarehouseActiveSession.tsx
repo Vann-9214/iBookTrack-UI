@@ -34,28 +34,24 @@ export function WarehouseActiveSession({
   handleCloseSession,
   children,
 }: WarehouseActiveSessionProps) {
-  const isJaguar = brand === 'jaguar'
-  const labelTheme = isJaguar ? 'text-emerald-700/75' : 'text-blue-700/75'
-  const valueTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
-  const iconTheme = isJaguar ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25' : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+  const labelTheme = 'text-primary/75'
+  const valueTheme = 'text-primary'
+  const iconTheme = 'premium-gradient-ui-card--solid'
 
   return (
     <div className="relative flex flex-col gap-4">
       {loading && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[3px] rounded-2xl animate-in fade-in duration-200">
           <div className="flex items-center gap-3">
-            <Loader2 className={cn("h-4 w-4 animate-spin", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
             <span className="text-sm font-medium text-muted-foreground">Completing session…</span>
           </div>
         </div>
       )}
 
       {isbnLoading && (
-        <div className={cn(
-          "fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-card border rounded-xl shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-200",
-          brand === 'jaguar' ? "border-emerald-500/30" : "border-blue-500/30"
-        )}>
-          <Loader2 className={cn("h-4 w-4 animate-spin", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
+        <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-card border border-primary/30 rounded-xl shadow-lg animate-in slide-in-from-bottom-3 fade-in duration-200">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <div>
             <p className="text-sm font-semibold text-foreground">Adding ISBN...</p>
             <p className="text-xs text-muted-foreground">Verifying with iLMS</p>
@@ -90,12 +86,7 @@ export function WarehouseActiveSession({
       </div>
 
       {/* Active session banner */}
-      <div className={cn(
-        'relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3 px-3 sm:px-4 rounded-2xl border shadow-sm ring-1',
-        brand === 'jaguar'
-          ? 'bg-gradient-to-r from-emerald-50 via-card to-emerald-100/60 border-emerald-200/80 ring-emerald-100/70'
-          : 'bg-gradient-to-r from-blue-50 via-card to-indigo-100/60 border-blue-200/80 ring-blue-100/70'
-      )}>
+      <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3 px-3 sm:px-4 rounded-2xl border shadow-sm ring-1 bg-white/68 border-primary/15 ring-primary/10">
         <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg', iconTheme)}>
             <Package className="h-5 w-5" />
@@ -109,7 +100,7 @@ export function WarehouseActiveSession({
             
             {currentBoxNumber && (
               <>
-                <div className={cn('hidden h-7 w-px sm:block', isJaguar ? 'bg-emerald-200/80' : 'bg-blue-200/80')} />
+                <div className="hidden h-7 w-px sm:block bg-primary/10" />
                 <div className="min-w-[52px]">
                   <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Box</span>
                   <span className={cn('mt-0.5 block text-sm font-semibold tracking-tight', valueTheme)}>{currentBoxNumber}</span>
@@ -117,7 +108,7 @@ export function WarehouseActiveSession({
               </>
             )}
 
-            <div className={cn('hidden h-7 w-px sm:block', isJaguar ? 'bg-emerald-200/80' : 'bg-blue-200/80')} />
+            <div className="hidden h-7 w-px sm:block bg-primary/10" />
             <div className="min-w-[112px] flex-1 sm:flex-none">
               <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Operator</span>
               <span className={cn('mt-0.5 block truncate text-sm font-semibold tracking-tight', valueTheme)}>{userName || 'Unknown'}</span>
@@ -135,10 +126,7 @@ export function WarehouseActiveSession({
           <button
             onClick={handleCloseSession}
             disabled={loading || scannedBooks.length === 0}
-            className={cn(
-              'inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none',
-              isJaguar ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700' : 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700'
-            )}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid"
           >
             <CircleCheck className="h-4 w-4" />
             Complete Session

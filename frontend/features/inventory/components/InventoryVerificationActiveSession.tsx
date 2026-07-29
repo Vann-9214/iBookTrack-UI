@@ -1,9 +1,9 @@
-import { CircleCheck, CircleX, ClipboardCheck, Package, ScanBarcode } from 'lucide-react'
+import { CircleCheck, CircleX, Package, ScanBarcode } from 'lucide-react'
 import { ScannerInput } from '@/components/scanner-input'
 import { InventoryVerificationTables } from './InventoryVerificationTables'
 import type { useVerificationSession } from '../hooks/useVerificationSession'
 
-export function InventoryVerificationActiveSession({ verification }: { verification: ReturnType<typeof useVerificationSession> }) {
+export function InventoryVerificationActiveSession({ brand, verification }: { brand: 'mustang' | 'jaguar'; verification: ReturnType<typeof useVerificationSession> }) {
   const {
     verifBox,
     verifUserName,
@@ -31,81 +31,88 @@ export function InventoryVerificationActiveSession({ verification }: { verificat
   return (
     <>
       {/* Active session bar */}
-      <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-4">
-        <div className="flex items-center gap-4">
-          <Package className="h-5 w-5 text-primary" />
-          <div>
-            <p className="text-xs text-muted-foreground">Active Lot</p>
-            <p className="text-sm font-semibold text-foreground">{verifBox?.lot?.lot_number || '—'}</p>
-          </div>
-          {verifBox?.box_number && (
-            <div>
-              <p className="text-xs text-muted-foreground">Current Box</p>
-              <p className="text-sm font-semibold text-foreground">{verifBox.box_number} ({verifCurrentBoxBooks} books)</p>
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl px-5 py-4">
+        <div className="premium-gradient-ui-card__glow" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            <div className="premium-gradient-ui-card__icon w-9 h-9 shrink-0">
+              <Package className="h-4 w-4" />
             </div>
-          )}
-          <div>
-            <p className="text-xs text-muted-foreground">User</p>
-            <p className="text-sm font-semibold text-foreground">{verifUserName || 'Unknown User'}</p>
+            <div className="flex flex-wrap items-center gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Active Lot</p>
+                <p className="text-sm font-semibold text-foreground">{verifBox?.lot?.lot_number || '—'}</p>
+              </div>
+              {verifBox?.box_number && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Current Box</p>
+                  <p className="text-sm font-semibold text-foreground">{verifBox.box_number} ({verifCurrentBoxBooks} books)</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-muted-foreground">User</p>
+                <p className="text-sm font-semibold text-foreground">{verifUserName || 'Unknown User'}</p>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleResetVerifSession}
-            className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            Reset Session
-          </button>
-          <button
-            onClick={handleOpenVerifComplete}
-            disabled={completeDisabled}
-            className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Complete Session
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleResetVerifSession}
+              className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              Reset Session
+            </button>
+            <button
+              onClick={handleOpenVerifComplete}
+              disabled={completeDisabled}
+              className="px-4 py-1.5 text-sm rounded-lg premium-gradient-ui-card--solid text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Complete Session
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Book count stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 shrink-0">
-            <ScanBarcode className="h-4 w-4 text-primary" />
+        <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl p-4 flex items-center gap-3">
+          <div className="premium-gradient-ui-card__icon w-9 h-9 shrink-0">
+            <ScanBarcode className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Total Scanned</p>
+            <p className="premium-gradient-ui-card__eyebrow">Total Scanned</p>
             <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifScannedBooks.length}</p>
           </div>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-emerald-500/10 shrink-0">
-            <CircleCheck className="h-4 w-4 text-emerald-500" />
+        <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl p-4 flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/25">
+            <CircleCheck className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Processable</p>
+            <p className="premium-gradient-ui-card__eyebrow">Processable</p>
             <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifProcessableBooks.length}</p>
           </div>
         </div>
-        <div className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-destructive/10 shrink-0">
-            <CircleX className="h-4 w-4 text-destructive" />
+        <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl p-4 flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25">
+            <CircleX className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Non-Processable</p>
+            <p className="premium-gradient-ui-card__eyebrow">Non-Processable</p>
             <p className="text-2xl font-bold text-foreground leading-none mt-0.5">{verifBlockedBooks.length + verifMissingBooks.length}</p>
           </div>
         </div>
       </div>
 
       {/* Scanner */}
-      <ScannerInput onScan={handleVerifScan} />
+      <ScannerInput onScan={handleVerifScan} brand={brand} />
 
       {/* Side-by-Side Tables */}
       <InventoryVerificationTables verification={verification} />
 
       {/* Legend */}
-      <div className="bg-card border border-border rounded-xl p-3">
-        <div className="flex items-center justify-center gap-6 text-xs">
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl p-3">
+        <div className="flex items-center justify-center gap-6 text-xs flex-wrap">
           <span className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
             <span className="text-muted-foreground">Match (Warehouse = Inventory)</span>

@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { fetchInventoryBox, fetchInventoryBoxes } from '../services/inventory.service'
-import type { BookInBox, InventoryBox, InventorySearchType } from '../types/inventory.types'
+import type { BookInBox, InventoryBox } from '../types/inventory.types'
 
 export function useInventory(brand: string) {
   const [boxes, setBoxes] = useState<InventoryBox[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchType, setSearchType] = useState<InventorySearchType>('box')
   const [expandedBox, setExpandedBox] = useState<string | null>(null)
   const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
   const [loadingBoxes, setLoadingBoxes] = useState(false)
@@ -18,7 +17,7 @@ export function useInventory(brand: string) {
     async (options?: { silent?: boolean }) => {
       if (!options?.silent) setLoadingBoxes(true)
       try {
-        setBoxes(await fetchInventoryBoxes(brand, searchType, searchQuery))
+        setBoxes(await fetchInventoryBoxes(brand, searchQuery))
         setLastInventoryUpdate(new Date())
       } catch (error) {
         console.error('Failed to fetch boxes:', error)
@@ -26,7 +25,7 @@ export function useInventory(brand: string) {
         if (!options?.silent) setLoadingBoxes(false)
       }
     },
-    [brand, searchQuery, searchType]
+    [brand, searchQuery]
   )
 
   const fetchBooksInBox = useCallback(
@@ -66,8 +65,6 @@ export function useInventory(brand: string) {
     setBoxes,
     searchQuery,
     setSearchQuery,
-    searchType,
-    setSearchType,
     expandedBox,
     setExpandedBox,
     boxBooks,

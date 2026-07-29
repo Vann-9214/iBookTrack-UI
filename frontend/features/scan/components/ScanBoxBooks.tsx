@@ -1,50 +1,59 @@
-import { Loader2 } from "lucide-react"
-import { BookInBox } from "../types/scan.types"
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
+import type { BookInBox } from '../types/scan.types'
 
-interface ScanBoxBooksProps {
+export function ScanBoxBooks({
+  books,
+  loading,
+}: {
   books: BookInBox[]
-  loading: boolean
-}
-
-export function ScanBoxBooks({ books, loading }: ScanBoxBooksProps) {
+  loading?: boolean
+}) {
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading books…
+      <div className="bg-white p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading books...
       </div>
     )
   }
 
   if (books.length === 0) {
-    return <p className="text-xs text-muted-foreground py-2">No books recorded in this box yet.</p>
+    return (
+      <div className="bg-white p-6 text-center text-sm text-muted-foreground">
+        No books found in this box.
+      </div>
+    )
   }
 
   return (
-    <div className="flex flex-col">
-      <p className="text-xs font-medium text-muted-foreground mb-2">
-        {books.length} book{books.length !== 1 ? 's' : ''} in this box
-      </p>
-      <div className="flex flex-col gap-1 border-l-2 border-primary/30 pl-3">
-        {books.map(book => (
-          <div key={book.id} className="flex justify-between items-center py-1">
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-foreground">{book.isbn}</span>
-              {book.title && <span className="text-[10px] text-muted-foreground break-words whitespace-normal">{book.title}</span>}
+    <div className="bg-white divide-y divide-border/60">
+      <div className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-black/5">
+        <span>ISBN / Title</span>
+        <span>Type</span>
+        <span>Status</span>
+      </div>
+      {books.map((book) => {
+        const typeText = book.book_type
+          ? book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase()
+          : '—'
+        return (
+          <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2 hover:bg-primary/5 transition-colors">
+            <div className="min-w-0 pr-3">
+              <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
+              {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
             </div>
-            <div className="flex gap-2 items-center">
-              {book.book_type && (
-                <span className={cn('text-[9px] font-medium px-1.5 py-0.5 rounded', book.book_type.toLowerCase() === 'jaguar' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700')}>
-                  {book.book_type.charAt(0).toUpperCase() + book.book_type.slice(1).toLowerCase()}
-                </span>
-              )}
-              <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            <span className="text-xs font-medium text-primary">{typeText}</span>
+            <div className="flex flex-col gap-0.5">
+              <span className={cn(
+                'text-[10px] px-2 py-0.5 rounded font-medium w-fit',
+                book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              )}>
                 {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
               </span>
             </div>
           </div>
-        ))}
-      </div>
+        )
+      })}
     </div>
   )
 }

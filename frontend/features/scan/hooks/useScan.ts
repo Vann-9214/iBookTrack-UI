@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { fetchUserProfile } from "@/lib/auth-api"
 import { useBrand } from "@/hooks/use-brand"
-import { BoxEntry, BookInBox, SearchType } from "../types/scan.types"
-import { filterBoxesByLot } from "../utils/scan.helpers"
+import { BoxEntry, BookInBox } from "../types/scan.types"
+import { filterIncomingBoxes } from "../utils/scan.helpers"
 import { fetchIncomingBoxes, fetchBoxDetails, advanceBoxToScan } from "../services/scan.service"
 
 export function useScan() {
@@ -18,7 +18,6 @@ export function useScan() {
 
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchType, setSearchType] = useState<SearchType>('box')
 
   const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -58,22 +57,23 @@ export function useScan() {
   const fetchBoxes = useCallback(async () => {
     setLoading(true)
     try {
-      const filteredIncoming = await fetchIncomingBoxes(brand, searchQuery, searchType)
-      setIncomingBoxes(filteredIncoming)
+      // Always fetch all incoming boxes; search is filtered client-side below.
+      const allIncoming = await fetchIncomingBoxes(brand, '', 'box')
+      setIncomingBoxes(allIncoming)
       setLastUpdated(new Date())
     } catch (e) {
       console.error('Failed to fetch boxes:', e)
     } finally {
       setLoading(false)
     }
-  }, [brand, searchQuery, searchType])
+  }, [brand])
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchBoxes() }, 300)
     return () => clearTimeout(timer)
   }, [fetchBoxes])
 
-  const filteredIncoming = filterBoxesByLot(incomingBoxes, searchQuery, searchType)
+  const filteredIncoming = filterIncomingBoxes(incomingBoxes, searchQuery)
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)
@@ -94,8 +94,6 @@ export function useScan() {
     lastUpdated,
     searchQuery,
     setSearchQuery,
-    searchType,
-    setSearchType,
     incomingBoxes: filteredIncoming,
     loading,
     receivingBox,

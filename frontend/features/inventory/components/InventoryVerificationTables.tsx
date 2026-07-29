@@ -15,7 +15,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Warehouse Table (Left) - Read Only */}
-      <div className="bg-card border border-border rounded-xl p-5">
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-3">
           <Package className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-primary">Warehouse Scans</h3>
@@ -87,7 +87,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
       </div>
 
       {/* Inventory Table (Right) - Editable */}
-      <div className="bg-card border-2 border-primary rounded-xl p-5 shadow-sm">
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 border-primary rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4 text-primary" />

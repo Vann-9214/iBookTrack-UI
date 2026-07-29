@@ -52,7 +52,7 @@ export function WarehouseSimilarLotModal({
           </button>
           <button
             onClick={() => { setSimilarLotModal({ open: false, typedLot: '', matchedLot: '', onContinue: () => {} }); similarLotModal.onContinue() }}
-            className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors"
+            className="px-4 py-2 text-sm rounded-lg premium-gradient-ui-card--solid font-medium transition-colors"
           >
             Continue
           </button>

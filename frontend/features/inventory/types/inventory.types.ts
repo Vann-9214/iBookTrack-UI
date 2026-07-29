@@ -1,4 +1,3 @@
-export type InventorySearchType = 'box' | 'lot' | 'isbn'
 export type InventoryTab = 'incoming' | 'verification' | 'outgoing'
 export type VerificationIssueType = 'missing' | 'extra'
 export type InventoryConfirmAction = 'receive' | 'start_session' | 'send_to_cut'

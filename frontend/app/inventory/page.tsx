@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import { Boxes } from 'lucide-react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
 import { ConfirmActionModal } from '@/components/ui/confirm-action-modal'
@@ -20,7 +21,7 @@ import { InventoryTabNavigation } from '@/features/inventory/components/Inventor
 import { InventoryVerificationTab } from '@/features/inventory/components/InventoryVerificationTab'
 
 export default function InventoryPage() {
-  const { brand, colors } = useBrand()
+  const { brand } = useBrand()
   const inventory = useInventory(brand)
   const verification = useVerificationSession(brand, inventory)
   const actions = useInventoryActions(brand, inventory, verification)
@@ -65,24 +66,44 @@ export default function InventoryPage() {
         <DashboardSidebar navigationLocked={verification.verifSessionActive} />
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           <DashboardNavbar disableBrandToggle={verification.verifSessionActive} navigationLocked={verification.verifSessionActive} />
-          <main className="ambient-bg flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
-            <div className={cn('mx-auto w-full flex-1 flex flex-col', verification.verifSessionActive ? 'max-w-full' : 'max-w-6xl')}>
-              <InventoryHeader brand={brand} />
-              {!verification.verifSessionActive && (
-                <InventorySearchBar searchType={inventory.searchType} searchQuery={inventory.searchQuery} onTypeChange={inventory.setSearchType} onQueryChange={inventory.setSearchQuery} />
-              )}
-              <InventoryTabNavigation
-                tab={actions.inventoryTab}
-                onTabChange={actions.setInventoryTab}
-                counts={{ incoming: actions.incomingBoxes.length, verification: actions.inventoryBoxes.length, outgoing: actions.outgoingBoxes.length }}
+          <main className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+            <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
+              <InventoryHeader
+                brand={brand}
                 refreshing={inventory.loadingBoxes || actions.isManualRefreshing}
                 onRefresh={actions.handleManualRefresh}
                 lastUpdated={inventory.lastInventoryUpdate}
-                disabled={verification.verifSessionActive}
-                accentColor={colors.accent}
               />
+              <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">
+                <div className="premium-gradient-ui-card__glow" />
+                <div className="relative flex items-center gap-3 mb-4">
+                  <div className="premium-gradient-ui-card__icon w-8 h-8">
+                    <Boxes className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="premium-gradient-ui-card__eyebrow">Receive · Verify · Send</p>
+                    <h2 className="text-[15px] font-black tracking-tight text-foreground leading-none">Manage Box Movement</h2>
+                  </div>
+                </div>
+                {!verification.verifSessionActive && (
+                  <>
+                    <InventorySearchBar
+                      searchQuery={inventory.searchQuery}
+                      onQueryChange={inventory.setSearchQuery}
+                      loading={inventory.loadingBoxes}
+                    />
+                    <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
+                  </>
+                )}
+                <InventoryTabNavigation
+                  tab={actions.inventoryTab}
+                  onTabChange={actions.setInventoryTab}
+                  counts={{ incoming: actions.incomingBoxes.length, verification: actions.inventoryBoxes.length, outgoing: actions.outgoingBoxes.length }}
+                  disabled={verification.verifSessionActive}
+                />
+              </div>
               {actions.inventoryTab === 'incoming' && <InventoryIncomingTab inventory={inventory} actions={actions} />}
-              {actions.inventoryTab === 'verification' && <InventoryVerificationTab inventory={inventory} actions={actions} verification={verification} />}
+              {actions.inventoryTab === 'verification' && <InventoryVerificationTab brand={brand} inventory={inventory} actions={actions} verification={verification} />}
               {actions.inventoryTab === 'outgoing' && <InventoryOutgoingTab inventory={inventory} actions={actions} />}
             </div>
           </main>

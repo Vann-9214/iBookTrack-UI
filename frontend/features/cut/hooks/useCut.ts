@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { fetchUserProfile } from '@/lib/auth-api'
-import { BookInBox, BoxEntry, ConfirmModalState, CutTab, SearchType } from '../types/cut.types'
+import { BookInBox, BoxEntry, ConfirmModalState, CutTab } from '../types/cut.types'
 import { cutService } from '../services/cut.service'
 import { filterCutBoxBySearch } from '../utils/cut.helpers'
 
 export function useCut(brand: string) {
   const [activeTab, setActiveTab] = useState<CutTab>('incoming')
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchType, setSearchType] = useState<SearchType>('box')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
@@ -62,7 +61,7 @@ export function useCut(brand: string) {
   const fetchBoxes = useCallback(async () => {
     setLoading(true)
     try {
-      const { incoming, outgoing } = await cutService.fetchBoxes(brand, searchQuery, searchType)
+      const { incoming, outgoing } = await cutService.fetchBoxes(brand, '', 'box')
       setIncomingBoxes(incoming)
       setOutgoingBoxes(outgoing)
       setLastUpdated(new Date())
@@ -71,7 +70,7 @@ export function useCut(brand: string) {
     } finally {
       setLoading(false)
     }
-  }, [brand, searchQuery, searchType])
+  }, [brand])
 
   useEffect(() => {
     const timer = setTimeout(() => { fetchBoxes() }, 300)
@@ -104,16 +103,14 @@ export function useCut(brand: string) {
     }
   }
 
-  const filteredIncoming = incomingBoxes.filter(b => filterCutBoxBySearch(b, searchQuery, searchType))
-  const filteredOutgoing = outgoingBoxes.filter(b => filterCutBoxBySearch(b, searchQuery, searchType))
+  const filteredIncoming = incomingBoxes.filter(b => filterCutBoxBySearch(b, searchQuery))
+  const filteredOutgoing = outgoingBoxes.filter(b => filterCutBoxBySearch(b, searchQuery))
 
   return {
     activeTab,
     setActiveTab,
     searchQuery,
     setSearchQuery,
-    searchType,
-    setSearchType,
     lastUpdated,
     loading,
     receivingBox,

@@ -1,10 +1,11 @@
 "use client"
 
+import { Scissors } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useBrand } from "@/hooks/use-brand"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from "@/components/top-bar"
-import { Loader2 } from "lucide-react"
+import { RefreshControl } from "@/components/refresh-control"
 
 import { useCut } from "@/features/cut/hooks"
 import {
@@ -24,8 +25,6 @@ export default function CutPage() {
     setActiveTab,
     searchQuery,
     setSearchQuery,
-    searchType,
-    setSearchType,
     lastUpdated,
     loading,
     receivingBox,
@@ -47,63 +46,81 @@ export default function CutPage() {
 
   return (
     <>
-      <div className={cn("flex h-screen bg-background font-sans", `theme-${brand}`)}>
+      <div className={cn('flex h-screen bg-background font-sans print:hidden', `theme-${brand}`)}>
         <DashboardSidebar />
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           <DashboardNavbar />
-          
-          <main className="ambient-bg flex-1 overflow-auto flex flex-col p-4 md:p-6 lg:p-8">
-            <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
-              <CutHeader brand={brand} />
 
-              <CutSearch
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                searchType={searchType}
-                setSearchType={setSearchType}
-              />
-
-              <CutTabs
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                incomingCount={filteredIncoming.length}
-                outgoingCount={filteredOutgoing.length}
-                onRefresh={fetchBoxes}
+          <main className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+            <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
+              <CutHeader
+                brand={brand}
                 refreshing={loading}
+                onRefresh={fetchBoxes}
                 lastUpdated={lastUpdated}
               />
 
-              {loading ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <p className="text-sm font-medium">Loading boxes...</p>
+              <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">
+                <div className="premium-gradient-ui-card__glow" />
+                <div className="relative flex items-center gap-3 mb-4">
+                  <div className="premium-gradient-ui-card__icon w-8 h-8">
+                    <Scissors className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="premium-gradient-ui-card__eyebrow">Receive · Send</p>
+                    <h2 className="text-[15px] font-black tracking-tight text-foreground leading-none">Manage Box Cutting</h2>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex-1 flex flex-col">
-                  {activeTab === 'incoming' && (
-                    <IncomingCutBoxList
-                      boxes={filteredIncoming}
-                      expandedBoxId={expandedBoxId}
-                      onToggleBox={toggleBox}
-                      onActionClick={openConfirm}
-                      receivingBoxId={receivingBox}
-                      boxBooks={boxBooks}
-                      loadingBoxBooksId={loadingBoxBooks}
-                    />
-                  )}
-                  
-                  {activeTab === 'outgoing' && (
-                    <CutWorkQueue
-                      boxes={filteredOutgoing}
-                      expandedBoxId={expandedBoxId}
-                      onToggleBox={toggleBox}
-                      onActionClick={openConfirm}
-                      sendingBoxId={sendingBox}
-                      boxBooks={boxBooks}
-                      loadingBoxBooksId={loadingBoxBooks}
-                    />
-                  )}
+
+                <CutSearch
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  loading={loading}
+                />
+
+                <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
+
+                <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <CutTabs
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    incomingCount={filteredIncoming.length}
+                    outgoingCount={filteredOutgoing.length}
+                  />
+                  <RefreshControl
+                    onRefresh={fetchBoxes}
+                    refreshing={loading}
+                    lastUpdated={lastUpdated}
+                    storageKey="cut"
+                    className="sm:ml-auto"
+                  />
                 </div>
+              </div>
+
+              {activeTab === 'incoming' && (
+                <IncomingCutBoxList
+                  boxes={filteredIncoming}
+                  expandedBoxId={expandedBoxId}
+                  onToggleBox={toggleBox}
+                  onActionClick={openConfirm}
+                  receivingBoxId={receivingBox}
+                  boxBooks={boxBooks}
+                  loadingBoxBooksId={loadingBoxBooks}
+                  loading={loading}
+                />
+              )}
+
+              {activeTab === 'outgoing' && (
+                <CutWorkQueue
+                  boxes={filteredOutgoing}
+                  expandedBoxId={expandedBoxId}
+                  onToggleBox={toggleBox}
+                  onActionClick={openConfirm}
+                  sendingBoxId={sendingBox}
+                  boxBooks={boxBooks}
+                  loadingBoxBooksId={loadingBoxBooks}
+                  loading={loading}
+                />
               )}
             </div>
           </main>
