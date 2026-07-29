@@ -77,6 +77,8 @@ export const getBoxesBaseQuery = async (lot_id, box_type, current_stage, box_num
           'endorsement_time_received', bs.endorsement_time_received,
           'endorsement_time_send', bs.endorsement_time_send,
           'scan_time_received', bs.scan_time_received,
+          'inventory_printed_by', bs.inventory_printed_by,
+          'inventory_printed_at', bs.inventory_printed_at,
           'warehouse_received_profile', (SELECT json_build_object('name', u1.name) FROM users u1 WHERE u1.id = bs.warehouse_user_received),
           'inventory_received_profile', (SELECT json_build_object('name', u2.name) FROM users u2 WHERE u2.id = bs.inventory_user_received),
           'inventory_send_profile', (SELECT json_build_object('name', u3.name) FROM users u3 WHERE u3.id = bs.inventory_user_send),
@@ -479,6 +481,23 @@ export const updateSession = async (sessionId, updates) => {
   const values = Object.values(updates);
   try {
     await db.query(`UPDATE box_sessions SET ${setString} WHERE id = $${keys.length + 1}`, [...values, sessionId]);
+    return { error: null };
+  } catch (error) {
+    return { error };
+  }
+};
+
+export const updateSessionPrint = async (boxId, userId) => {
+  try {
+    const { rows: sessionRows } = await db.query(`
+      SELECT id FROM box_sessions WHERE box_id = $1 ORDER BY updated_at DESC LIMIT 1
+    `, [boxId]);
+    if (sessionRows.length === 0) return { error: null };
+    
+    await db.query(`
+      UPDATE box_sessions SET inventory_printed_by = $1, inventory_printed_at = NOW()
+      WHERE id = $2
+    `, [userId, sessionRows[0].id]);
     return { error: null };
   } catch (error) {
     return { error };

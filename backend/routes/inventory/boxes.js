@@ -23,6 +23,7 @@ router.post('/:id/send-forward', requireAuth, requireRole(OPERATIONAL_ROLES), va
 router.post('/:id/rollback', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.rollbackBoxSchema), controller.rollbackBox);
 router.get('/:id/transmission', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.getBoxTransmissionSchema), controller.getBoxTransmission);
 router.post('/:id/check-simflex', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.checkSimflexSchema), controller.checkSimflex);
+router.post('/:id/print', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.printBoxSchema), controller.printBox);
 router.delete('/:id', requireAuth, requireRole(['supervisor']), validateRequest(schemas.deleteBoxSchema), controller.deleteBox);
 
 export default router;

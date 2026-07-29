@@ -1,13 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
+import { getApiBaseUrl } from '@/lib/auth-api'
 import { fetchInventoryBox, fetchInventoryBoxes } from '../services/inventory.service'
-import type { BookInBox, InventoryBox, InventorySearchType } from '../types/inventory.types'
+import type { BookInBox, InventoryBox } from '../types/inventory.types'
 
 export function useInventory(brand: string) {
   const [boxes, setBoxes] = useState<InventoryBox[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchType, setSearchType] = useState<InventorySearchType>('box')
   const [expandedBox, setExpandedBox] = useState<string | null>(null)
   const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
   const [loadingBoxes, setLoadingBoxes] = useState(false)
@@ -18,7 +18,7 @@ export function useInventory(brand: string) {
     async (options?: { silent?: boolean }) => {
       if (!options?.silent) setLoadingBoxes(true)
       try {
-        setBoxes(await fetchInventoryBoxes(brand, searchType, searchQuery))
+        setBoxes(await fetchInventoryBoxes(brand, searchQuery))
         setLastInventoryUpdate(new Date())
       } catch (error) {
         console.error('Failed to fetch boxes:', error)
@@ -26,7 +26,7 @@ export function useInventory(brand: string) {
         if (!options?.silent) setLoadingBoxes(false)
       }
     },
-    [brand, searchQuery, searchType]
+    [brand, searchQuery]
   )
 
   const fetchBooksInBox = useCallback(
@@ -61,13 +61,39 @@ export function useInventory(brand: string) {
     return () => window.clearTimeout(timer)
   }, [fetchBoxes])
 
+  const fetchBoxesRef = useRef(fetchBoxes)
+  useEffect(() => {
+    fetchBoxesRef.current = fetchBoxes
+  }, [fetchBoxes])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      fetchBoxesRef.current({ silent: true })
+    }
+
+    es.addEventListener('WAREHOUSE_LOCKED', handleUpdate)
+    es.addEventListener('WAREHOUSE_UNLOCKED', handleUpdate)
+    es.addEventListener('INVENTORY_LOCKED', handleUpdate)
+    es.addEventListener('INVENTORY_UNLOCKED', handleUpdate)
+    es.addEventListener('INVENTORY_DELAYED', handleUpdate)
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Inventory SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
+
   return {
     boxes,
     setBoxes,
     searchQuery,
     setSearchQuery,
-    searchType,
-    setSearchType,
     expandedBox,
     setExpandedBox,
     boxBooks,

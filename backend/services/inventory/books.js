@@ -9,6 +9,7 @@
 import * as booksRepo from '../../repositories/inventory/books.js';
 import { ilmsApi } from '../../services/ilms/api.js';
 import { logger } from '../../utils/logger.js';
+import { broadcastEvent } from '../../utils/sse.js';
 
 export const getBooksService = async (req, res) => {
   const { box_id } = req.query;
@@ -46,11 +47,21 @@ export const flagBookService = async (req, res) => {
     inventory_flag_at: new Date().toISOString()
   });
   if (flagError) throw flagError;
+  
+  if (box_id) {
+    broadcastEvent('FLAG_UPDATED', { scanId: id, boxId: box_id });
+    broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_flag' });
+  }
+
   return { success: true, scan_id: id, issue, remarks };
 };
 
 export const removeFlagService = async (req, res) => {
   const { id } = req.params;
   await booksRepo.deleteFlag(id);
+  
+  broadcastEvent('FLAG_UPDATED', { scanId: id });
+  broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_unflag' });
+  
   return { success: true, scan_id: id };
 };

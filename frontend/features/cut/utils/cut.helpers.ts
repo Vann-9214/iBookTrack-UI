@@ -20,11 +20,12 @@ export function isOutgoingCutBox(box: BoxEntry): boolean {
   return !(box.box_sessions?.some(s => s.status === 'sent') ?? false)
 }
 
-export function filterCutBoxBySearch(box: BoxEntry, searchQuery: string, searchType: SearchType): boolean {
-  if (searchType !== 'lot') return true
+export function filterCutBoxBySearch(box: BoxEntry, searchQuery: string): boolean {
   const query = searchQuery.trim().toLowerCase()
   if (!query) return true
-  return (box.lot?.lot_number || '').toLowerCase().includes(query)
+  const boxMatch = (box.box_number || '').toLowerCase().includes(query)
+  const lotMatch = (box.lot?.lot_number || '').toLowerCase().includes(query)
+  return boxMatch || lotMatch
 }
 
 export function getBoxBookCount(box: BoxEntry): number {

@@ -258,6 +258,10 @@ export const completeSessionService = async (req, res) => {
     if (session.box_id) {
       const lockPayload = await getBoxLockPayload(session.box_id);
       broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+      broadcastEvent('INVENTORY_UNLOCKED', lockPayload);
+      broadcastEvent('ENDORSEMENT_UNLOCKED', lockPayload);
+      broadcastEvent('DASHBOARD_REFRESH', { source: 'session_complete' });
+      broadcastEvent('PIPELINE_UPDATED', { source: 'session_complete' });
     }
 
     res.json({ session: updRows[0] })
@@ -422,6 +426,8 @@ export const bulkSaveSessionService = async (req, res) => {
 
     const lockPayload = await getBoxLockPayload(assignedBoxId);
     broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+    broadcastEvent('INVENTORY_UNLOCKED', lockPayload);
+    broadcastEvent('ENDORSEMENT_UNLOCKED', lockPayload);
     broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_bulk_save' });
 
     res.status(201).json({ success: true, session });
@@ -433,20 +439,101 @@ export const bulkSaveSessionService = async (req, res) => {
 
 export const resumeSessionService = async (req, res) => {
   try {
-    const { box_id } = req.params
-    const { rows: sessionRows } = await db.query('SELECT * FROM box_sessions WHERE box_id = $1 ORDER BY warehouse_time_received DESC LIMIT 1', [box_id]);
+    const { box_id } = req.params;
     
-    if (!sessionRows[0]) {
-      const { rows: boxRows } = await db.query('SELECT lot_id FROM boxes WHERE id = $1', [box_id]);
-      if (!boxRows[0]) throw new Error('Box not found');
+    // determine stage
+    const { rows: boxRows } = await db.query('SELECT lot_id, current_stage, box_number, box_type FROM boxes WHERE id = $1', [box_id]);
+    if (!boxRows[0]) throw new Error('Box not found');
+    const box = boxRows[0];
 
+    const { rows: sessionRows } = await db.query('SELECT * FROM box_sessions WHERE box_id = $1 ORDER BY warehouse_time_received DESC LIMIT 1', [box_id]);
+    const session = sessionRows[0];
+
+    if (box.current_stage === 'inventory') {
+      if (session && ['in_progress', 'delayed'].includes(session.status) && session.inventory_user_received !== req.user.id) {
+        const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1', [session.inventory_user_received]);
+        return res.status(403).json({
+          error: 'BoxInProcess',
+          message: `Box is currently in process by ${userRows[0]?.name || 'another user'}.`,
+        });
+      }
+
+      let updatedSession;
+      if (session) {
+        const { rows: updSess } = await db.query(
+          "UPDATE box_sessions SET status = 'in_progress', inventory_user_received = $2, inventory_time_received = NOW() WHERE id = $1 RETURNING *",
+          [session.id, req.user.id]
+        );
+        updatedSession = updSess[0];
+      } else {
+        const { rows: newSess } = await db.query(
+          "INSERT INTO box_sessions (box_id, inventory_user_received, inventory_time_received, status) VALUES ($1, $2, NOW(), 'in_progress') RETURNING *",
+          [box_id, req.user.id]
+        );
+        updatedSession = newSess[0];
+      }
+
+      const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1 LIMIT 1', [req.user.id]);
+      const { rows: lotRows } = await db.query('SELECT lot_number FROM lots WHERE id = $1 LIMIT 1', [box.lot_id]);
+      broadcastEvent('INVENTORY_LOCKED', {
+        box_id,
+        box_number: box.box_number,
+        box_type: box.box_type,
+        lot_number: lotRows[0]?.lot_number || null,
+        user_id: req.user.id,
+        user_name: userRows[0]?.name || null,
+        status: 'in_progress'
+      });
+      return res.json({ session: updatedSession });
+    }
+
+    if (box.current_stage === 'endorsement' || box.current_stage === 'qa') {
+      if (session && ['in_progress', 'delayed'].includes(session.status) && session.endorsement_user_received !== req.user.id && session.endorsement_user_received !== null) {
+        const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1', [session.endorsement_user_received]);
+        return res.status(403).json({
+          error: 'BoxInProcess',
+          message: `Box is currently in process by ${userRows[0]?.name || 'another user'}.`,
+        });
+      }
+
+      let updatedSession;
+      if (session) {
+        const { rows: updSess } = await db.query(
+          "UPDATE box_sessions SET status = 'in_progress', endorsement_user_received = COALESCE(endorsement_user_received, $2), endorsement_time_received = COALESCE(endorsement_time_received, NOW()), updated_at = NOW() WHERE id = $1 RETURNING *",
+          [session.id, req.user.id]
+        );
+        updatedSession = updSess[0];
+      } else {
+        const { rows: newSess } = await db.query(
+          "INSERT INTO box_sessions (box_id, endorsement_user_received, endorsement_time_received, status) VALUES ($1, $2, NOW(), 'in_progress') RETURNING *",
+          [box_id, req.user.id]
+        );
+        updatedSession = newSess[0];
+      }
+
+      const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1 LIMIT 1', [req.user.id]);
+      const { rows: lotRows } = await db.query('SELECT lot_number FROM lots WHERE id = $1 LIMIT 1', [box.lot_id]);
+      broadcastEvent('ENDORSEMENT_LOCKED', {
+        box_id,
+        box_number: box.box_number,
+        box_type: box.box_type,
+        lot_number: lotRows[0]?.lot_number || null,
+        user_id: req.user.id,
+        user_name: userRows[0]?.name || null,
+        status: 'in_progress'
+      });
+      broadcastEvent('DASHBOARD_REFRESH', { source: 'endorsement_start' });
+      return res.json({ session: updatedSession });
+    }
+
+    if (!session) {
       const { rows: newSess } = await db.query(
         "INSERT INTO box_sessions (box_id, inventory_user_received, inventory_time_received, status) VALUES ($1, $2, NOW(), 'received') RETURNING *",
         [box_id, req.user.id]
       );
       return res.json({ session: newSess[0] });
     }
-    res.json({ session: sessionRows[0] })
+    res.json({ session })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -455,13 +542,15 @@ export const resumeSessionService = async (req, res) => {
 export const cancelSessionService = async (req, res) => {
   try {
     const { box_id } = req.params
-    const { rows: sessionRows } = await db.query('SELECT id FROM box_sessions WHERE box_id = $1 ORDER BY warehouse_time_received DESC LIMIT 1', [box_id]);
+    const { rows: sessionRows } = await db.query('SELECT id FROM box_sessions WHERE box_id = $1 ORDER BY COALESCE(warehouse_time_received, inventory_time_received, cut_time_received, endorsement_time_received, scan_time_received) DESC NULLS LAST LIMIT 1', [box_id]);
     
     if (!sessionRows[0]) return res.json({ success: true, message: 'No session to cancel' });
 
     const { rows: updSess } = await db.query("UPDATE box_sessions SET status = 'received' WHERE id = $1 RETURNING *", [sessionRows[0].id]);
     const lockPayload = await getBoxLockPayload(box_id);
     broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+    broadcastEvent('INVENTORY_UNLOCKED', lockPayload);
+    broadcastEvent('ENDORSEMENT_UNLOCKED', lockPayload);
     broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_cancel' });
 
     res.json({ session: updSess[0] })
@@ -473,11 +562,12 @@ export const cancelSessionService = async (req, res) => {
 export const deleteSessionService = async (req, res) => {
   try {
     const { session_id } = req.params
-    const { rows: sessionRows } = await db.query('SELECT box_id, warehouse_user_received FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
+    const { rows: sessionRows } = await db.query('SELECT box_id, warehouse_user_received, inventory_user_received, endorsement_user_received FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
     
     if (sessionRows[0]) {
-      // Non-supervisors may only delete/reset their own warehouse sessions
-      if (req.user.role !== 'supervisor' && sessionRows[0].warehouse_user_received !== req.user.id) {
+      // Non-supervisors may only delete/reset their own sessions
+      const sessionOwner = sessionRows[0].warehouse_user_received || sessionRows[0].inventory_user_received || sessionRows[0].endorsement_user_received;
+      if (req.user.role !== 'supervisor' && sessionOwner !== req.user.id) {
         return res.status(403).json({ error: 'You can only cancel your own sessions.' })
       }
 
@@ -496,6 +586,8 @@ export const deleteSessionService = async (req, res) => {
             AND NOT EXISTS (SELECT 1 FROM books WHERE box_id = b.id)
         `, [boxId]);
         broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+        broadcastEvent('INVENTORY_UNLOCKED', lockPayload);
+        broadcastEvent('ENDORSEMENT_UNLOCKED', lockPayload);
         broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_delete' });
       }
     }

@@ -12,28 +12,23 @@ interface WarehouseScanLogProps {
   brand?: 'mustang' | 'jaguar'
 }
 
-export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook, brand = 'mustang' }: WarehouseScanLogProps) {
-  const isJaguar = brand === 'jaguar'
-  const cardTheme = isJaguar
-    ? 'border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70'
-    : 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70'
-  const iconTheme = isJaguar
-    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
-    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
-  const textTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
-  const surfaceTheme = isJaguar ? 'border-emerald-100 bg-white/65' : 'border-blue-100 bg-white/65'
-  
+export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook }: WarehouseScanLogProps) {
+  const cardTheme = 'bg-white/68 border border-primary/15 ring-1 ring-primary/10 rounded-2xl'
+  const iconTheme = 'premium-gradient-ui-card--solid'
+  const textTheme = 'text-primary'
+  const surfaceTheme = 'border-primary/10 bg-white/65'
+
   return (
-    <div className={cn('relative flex flex-col overflow-hidden rounded-2xl border-2 shadow-sm ring-1', cardTheme)}>
+    <div className={cn('relative flex flex-col overflow-hidden border-2 shadow-sm ring-1', cardTheme)}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
-      <div className={cn('relative flex items-center justify-between border-b px-5 py-4', isJaguar ? 'border-emerald-200/70 bg-emerald-50/35' : 'border-blue-200/70 bg-blue-50/35')}>
+      <div className={cn('relative flex items-center justify-between border-b px-5 py-4', surfaceTheme)}>
         <div className="flex items-center gap-3">
           <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg', iconTheme)}>
             <BookOpen className="h-5 w-5" />
           </div>
           <div>
             <h3 className={cn('text-[15px] font-black tracking-tight', textTheme)}>Scan Log</h3>
-            <p className={cn('mt-0.5 text-[11px] font-medium', isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80')}>Books added to this session</p>
+            <p className="mt-0.5 text-[11px] font-medium text-primary/80">Books added to this session</p>
           </div>
           {scannedBooks.length > 0 && (
             <span className={cn('flex h-7 min-w-7 items-center justify-center rounded-xl px-2 text-xs font-black text-white shadow-md ring-2 ring-white/60', iconTheme)}>
@@ -47,10 +42,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
       </div>
       {scannedBooks.length === 0 ? (
         <div className="relative flex min-h-[240px] flex-col items-center justify-center gap-4 py-12 text-center">
-          <div className={cn(
-            "flex items-center justify-center w-14 h-14 rounded-full text-white shadow-sm",
-            isJaguar ? "bg-gradient-to-br from-emerald-400 to-green-600" : "bg-gradient-to-br from-indigo-400 to-blue-600"
-          )}>
+          <div className="flex items-center justify-center w-14 h-14 rounded-full text-white shadow-sm premium-gradient-ui-card--solid">
             <ScanBarcode className="h-7 w-7" />
           </div>
           <div>
@@ -61,7 +53,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
       ) : (
         <div className="divide-y divide-border">
           <div className="overflow-x-auto">
-            <div className={cn('flex min-w-[520px] gap-2 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:px-5 sm:text-[11px]', surfaceTheme, isJaguar ? 'border-emerald-200/80' : 'border-blue-200/80')}>
+            <div className={cn('flex min-w-[520px] gap-2 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:px-5 sm:text-[11px]', surfaceTheme, 'border-primary/10')}>
               <div className="w-[110px] shrink-0">ISBN</div>
               <div className="min-w-0 flex-1">Title</div>
               <div className="w-[200px] shrink-0 text-center sm:w-[220px]">Status</div>
@@ -75,9 +67,9 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   key={`${book.id}-${idx}`}
                   className={cn(
                     'flex min-w-[520px] items-center gap-2 px-4 py-2 transition-colors sm:px-5',
-                    idx % 2 === 0 ? 'bg-white/75' : isJaguar ? 'bg-emerald-50/35' : 'bg-blue-50/35',
-                    isJaguar ? 'hover:bg-emerald-100/60' : 'hover:bg-blue-100/60',
-                    book.scan_status === 'processable' && (isJaguar ? 'hover:bg-gradient-to-r hover:from-white hover:via-emerald-50/65 hover:to-emerald-100/60' : 'hover:bg-gradient-to-r hover:from-white hover:via-blue-50/65 hover:to-indigo-100/60'),
+                    idx % 2 === 0 ? 'bg-white/75' : 'bg-primary/[0.03]',
+                    'hover:bg-primary/5',
+                    book.scan_status === 'processable' && 'hover:bg-gradient-to-r hover:from-white hover:via-primary/5 hover:to-primary/10',
                     book.scan_status === 'non_processable' && 'bg-gradient-to-r from-white/80 via-rose-50/35 to-rose-100/50 hover:from-white hover:via-rose-50/60 hover:to-rose-100/70'
                   )}
                 >
@@ -90,7 +82,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   <div className="flex w-[200px] shrink-0 items-center justify-center gap-2 sm:w-[220px] sm:gap-3">
                     {book.scan_status === 'processable' ? (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 whitespace-nowrap">
                           <CircleCheck className="h-3.5 w-3.5" />
                           Processable
                         </span>

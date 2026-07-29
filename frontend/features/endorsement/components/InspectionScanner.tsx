@@ -1,10 +1,11 @@
-import React from 'react'
 import { ScannerInput } from '@/components/scanner-input'
+import type { Brand } from '@/hooks/use-brand'
 
 interface InspectionScannerProps {
   onScan: (isbn: string) => void
+  brand: Brand
 }
 
-export const InspectionScanner: React.FC<InspectionScannerProps> = ({ onScan }) => {
-  return <ScannerInput onScan={onScan} />
+export function InspectionScanner({ onScan, brand }: InspectionScannerProps) {
+  return <ScannerInput onScan={onScan} brand={brand} />
 }

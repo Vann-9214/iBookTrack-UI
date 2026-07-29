@@ -2,7 +2,6 @@
 
 import { CircleCheck, CircleX, ScanBarcode } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useBrand } from '@/hooks/use-brand'
 import type { WarehouseSession } from '../types/warehouse.types'
 
 interface WarehouseSessionStatsProps {
@@ -10,17 +9,15 @@ interface WarehouseSessionStatsProps {
 }
 
 export function WarehouseSessionStats({ currentSession }: WarehouseSessionStatsProps) {
-  const { brand } = useBrand()
-  const isJaguar = brand === 'jaguar'
   const stats = [
     {
       label: 'Total scanned',
       value: currentSession.total_scanned_books,
       icon: ScanBarcode,
-      card: 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/70 ring-blue-100/70 hover:shadow-blue-200/60',
-      iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25',
-      text: 'text-blue-700',
-      accent: 'bg-blue-400/20',
+      card: 'bg-white/68 border border-primary/15 ring-1 ring-primary/10 hover:shadow-primary/20',
+      iconBg: 'premium-gradient-ui-card--solid',
+      text: 'text-primary',
+      accent: 'bg-primary/20',
     },
     {
       label: 'Processable',

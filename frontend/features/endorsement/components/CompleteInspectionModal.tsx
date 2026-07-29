@@ -1,5 +1,5 @@
-import React from 'react'
-import { InspScannedBook } from '../types/endorsement.types'
+import { CheckCircle2 } from 'lucide-react'
+import type { InspScannedBook } from '../types/endorsement.types'
 
 interface CompleteInspectionModalProps {
   inspConfirmComplete: boolean
@@ -9,26 +9,34 @@ interface CompleteInspectionModalProps {
   onConfirm: () => void
 }
 
-export const CompleteInspectionModal: React.FC<CompleteInspectionModalProps> = ({
+export function CompleteInspectionModal({
   inspConfirmComplete,
   inspScannedBooks,
   loadingInspSession,
   onClose,
   onConfirm,
-}) => {
+}: CompleteInspectionModalProps) {
   if (!inspConfirmComplete) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div
-        className="bg-card border border-border rounded-xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto"
+        className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl shadow-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-base font-semibold text-foreground mb-4">Complete Inspection</h3>
+        <div className="premium-gradient-ui-card__glow" />
+        <div className="relative flex items-center gap-3 mb-4">
+          <div className="premium-gradient-ui-card__icon w-9 h-9">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="premium-gradient-ui-card__eyebrow">Review & Confirm</p>
+            <h3 className="text-lg font-black tracking-tight text-foreground leading-none">Complete Inspection</h3>
+          </div>
+        </div>
 
         {/* Scan Log Summary */}
         <div className="mb-4">
-          <label className="text-sm font-medium text-foreground mb-4 block">Scanned Books Summary</label>
           {inspScannedBooks.length === 0 ? (
             <div className="border border-border rounded-lg bg-card p-4 text-center text-xs text-muted-foreground">
               No books scanned.
@@ -48,7 +56,7 @@ export const CompleteInspectionModal: React.FC<CompleteInspectionModalProps> = (
                         <div key={`proc-${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2 bg-muted/30">
                           <span className="text-xs font-semibold w-24 shrink-0">{book.isbn}</span>
                           <span className="text-[11px] break-words flex-1">{book.title}</span>
-                          <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-green-100 text-green-700">Processable</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-primary/20 text-primary">Processable</span>
                         </div>
                       ))}
                   </div>

@@ -1,8 +1,7 @@
-import React from 'react'
-import { Package, Loader2, ClipboardCheck, AlertTriangle, Trash2 } from 'lucide-react'
+import { AlertTriangle, ClipboardCheck, Loader2, Package, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { WarehouseBook, InspScannedBook } from '../types/endorsement.types'
 import { issueLabel } from '../utils/endorsement.helpers'
+import type { WarehouseBook, InspScannedBook } from '../types/endorsement.types'
 
 interface InspectionComparisonTablesProps {
   warehouseBooks: WarehouseBook[]
@@ -10,24 +9,22 @@ interface InspectionComparisonTablesProps {
   inspScannedBooks: InspScannedBook[]
   openInspFlagModal: (book: InspScannedBook) => void
   handleRemoveInspBook: (bookId: string) => void
-  brand: string
 }
 
-export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProps> = ({
+export function InspectionComparisonTables({
   warehouseBooks,
   loadingWarehouseBooks,
   inspScannedBooks,
   openInspFlagModal,
   handleRemoveInspBook,
-  brand,
-}) => {
+}: InspectionComparisonTablesProps) {
   return (
     <div className="grid grid-cols-2 gap-4">
       {/* Warehouse Table (Left) - Read Only */}
-      <div className="bg-card border border-border rounded-xl p-5">
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-3">
-          <Package className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-muted-foreground">Previous Scans (Inventory)</h3>
+          <Package className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-primary">Previous Scans (Inventory)</h3>
           {loadingWarehouseBooks ? (
             <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
           ) : (
@@ -67,21 +64,23 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
                 .map(({ book, isMatch, isMissing }, i) => (
                   <div
                     key={i}
-                    className={`grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center ${
-                      isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? (brand === 'jaguar' ? 'bg-green-100 border-green-300' : 'bg-blue-100 border-blue-300') : 'bg-red-100 border-red-300'
-                    }`}
+                    className={cn(
+                      'grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center',
+                      isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'bg-primary/20 border-primary/40' : 'bg-red-100 border-red-300'
+                    )}
                   >
                     <div className="col-span-2">
                       <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
                     </div>
                     <div className="col-span-6">
-                      <p className="text-[11px] text-foreground break-words">{book.title}</p>
+                      <p className="text-[11px] text-foreground truncate">{book.title}</p>
                     </div>
                     <div className="col-span-3 flex items-center justify-end">
                       <span
-                        className={`px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${
-                          book.scan_status === 'processable' ? (brand === 'jaguar' ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800') : 'bg-red-200 text-red-800'
-                        }`}
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap',
+                          book.scan_status === 'processable' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                        )}
                       >
                         {book.scan_status === 'processable'
                           ? 'Processable'
@@ -99,7 +98,7 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
       </div>
 
       {/* Endorsement Table (Right) - Editable */}
-      <div className="bg-card border-2 border-primary rounded-xl p-5 shadow-sm">
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 border-primary rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="h-4 w-4 text-primary" />
@@ -134,16 +133,16 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
                     key={`${book.id}-${idx}`}
                     className={cn(
                       'grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center',
-                      isMatch ? (brand === 'jaguar' ? 'bg-green-100 border-green-300' : 'bg-blue-100 border-blue-300') : 'bg-red-100 border-red-300'
+                      isMatch ? 'bg-primary/20 border-primary/40' : 'bg-red-100 border-red-300'
                     )}
                   >
                     <div className="col-span-3">
-                      <p className="text-xs font-medium text-foreground truncate">{book.isbn}</p>
+                      <p className="text-xs font-mono text-muted-foreground">{book.isbn}</p>
                     </div>
                     <div className="col-span-5">
-                      <p className="text-[11px] text-muted-foreground break-words">{book.title}</p>
+                      <p className="text-[11px] text-foreground truncate">{book.title}</p>
                       {book.flag_issue && (
-                        <p className="text-[10px] text-red-500 mt-0.5">
+                        <p className="text-[10px] text-red-600 mt-0.5">
                           {issueLabel(book.flag_issue)}
                           {book.flag_remarks ? ` — ${book.flag_remarks}` : ''}
                         </p>
@@ -152,7 +151,7 @@ export const InspectionComparisonTables: React.FC<InspectionComparisonTablesProp
                     <div className="col-span-3 flex flex-row items-center justify-end gap-2">
                       {book.scan_status === 'processable' ? (
                         <>
-                          <span className={cn("px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap", brand === 'jaguar' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700')}>
+                          <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap bg-green-100 text-green-700">
                             Processable
                           </span>
                           <button

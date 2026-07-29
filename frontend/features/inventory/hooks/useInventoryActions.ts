@@ -98,7 +98,11 @@ export function useInventoryActions(brand: string, inventory: InventoryState, ve
 
   const handleReceiveBox = async (box: InventoryBox) => {
     setReceivingBox(box.id)
-    try { await receiveInventoryBox(box.id); void inventory.fetchBoxes() }
+    try { 
+      await receiveInventoryBox(box.id); 
+      void inventory.fetchBoxes();
+      setInventoryTab('verification');
+    }
     catch (e) { alert(e instanceof Error ? e.message : 'Failed to receive box') }
     finally { setReceivingBox(null) }
   }

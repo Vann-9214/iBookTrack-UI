@@ -1,7 +1,6 @@
-export type InventorySearchType = 'box' | 'lot' | 'isbn'
 export type InventoryTab = 'incoming' | 'verification' | 'outgoing'
 export type VerificationIssueType = 'missing' | 'extra'
-export type InventoryConfirmAction = 'receive' | 'start_session' | 'send_to_cut'
+export type InventoryConfirmAction = 'receive' | 'send_to_cut'
 
 export interface BookInBox {
   id: string
@@ -24,6 +23,9 @@ export interface InventoryBoxSession {
   total_scanned_books?: number
   inventory_time_received?: string
   inventory_time_send?: string
+  inventory_printed_by?: string
+  inventory_printed_at?: string
+  inventory_received_profile?: { name: string }
 }
 
 export interface InventoryBox {

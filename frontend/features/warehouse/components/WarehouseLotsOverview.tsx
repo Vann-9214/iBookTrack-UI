@@ -169,21 +169,14 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
     }
   }
 
-  const isJaguar = brand === 'jaguar'
-  const cardTheme = isJaguar
-    ? 'border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70'
-    : 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70'
-  const iconTheme = isJaguar
-    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
-    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
-  const textTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
-  const headerTextTheme = isJaguar ? 'text-emerald-950/80' : 'text-blue-950/80'
-  const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
-  const tableHeaderTheme = isJaguar ? 'bg-emerald-50/50 text-emerald-800/70' : 'bg-blue-50/50 text-blue-800/70'
-  const borderTheme = isJaguar ? 'border-emerald-200/80 focus-visible:ring-emerald-500/20' : 'border-blue-200/80 focus-visible:ring-blue-500/20'
-  const tabActiveTheme = isJaguar
-    ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-emerald-500/20 data-[state=active]:border-transparent'
-    : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:shadow-blue-500/20 data-[state=active]:border-transparent'
+  const cardTheme = 'bg-white/68 border border-primary/15 ring-1 ring-primary/10 rounded-2xl'
+  const iconTheme = 'premium-gradient-ui-card--solid'
+  const textTheme = 'text-primary'
+  const headerTextTheme = 'text-primary'
+  const subTextTheme = 'text-primary/80'
+  const tableHeaderTheme = 'bg-primary/5 text-primary/70'
+  const borderTheme = 'border-primary/20 focus-visible:ring-primary/20'
+  const tabActiveTheme = 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-[color-mix(in_oklch,var(--primary)_70%,black)] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-transparent'
 
   return (
     <div className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden flex flex-col transition-all duration-300", cardTheme)}>
@@ -235,7 +228,7 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
           ) : (
             <Badge variant="outline" className={cn(
               'bg-white/85 text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap shadow-sm border-transparent',
-              brand === 'jaguar' ? 'text-emerald-700 ring-1 ring-emerald-200' : 'text-blue-700 ring-1 ring-blue-200'
+              'text-primary ring-1 ring-primary/20'
             )}>
               {totalItems} lots
             </Badge>
@@ -306,13 +299,13 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                       'w-full grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5 text-left transition-all duration-150 group',
                       expanded
                         ? cn('text-white shadow-lg shadow-black/10', iconTheme)
-                        : isJaguar ? 'hover:bg-emerald-100/50' : 'hover:bg-blue-100/50'
+                        : 'hover:bg-primary/5'
                     )}
                     aria-expanded={expanded || closing}
                   >
                     {/* Index */}
                     <div className="col-span-1 flex justify-start items-center">
-                      <span className={cn("text-[11px] font-black tabular-nums transition-colors", expanded ? "text-white/90" : isJaguar ? "text-emerald-500" : "text-blue-500")}>#{absoluteLotIndex}</span>
+                      <span className={cn("text-[11px] font-black tabular-nums transition-colors", expanded ? "text-white/90" : "text-primary")}>#{absoluteLotIndex}</span>
                     </div>
 
                     {/* Lot name */}
@@ -346,7 +339,7 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                         "text-[10px] font-bold py-0 h-5 shadow-sm transition-colors",
                         expanded 
                           ? "bg-white/20 border-white/20 text-white" 
-                          : cn("bg-white/60 text-gray-600 border-black/5", isJaguar ? "group-hover:text-emerald-700 group-hover:border-emerald-200" : "group-hover:text-blue-700 group-hover:border-blue-200")
+                          : "bg-white/60 text-gray-600 border-black/5 group-hover:text-primary group-hover:border-primary/30"
                       )}>
                         {lot.total_boxes} {lot.total_boxes === 1 ? 'box' : 'boxes'}
                       </Badge>

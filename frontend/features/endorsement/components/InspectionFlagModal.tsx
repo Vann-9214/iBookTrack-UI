@@ -1,7 +1,6 @@
-import React from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { FLAG_ISSUES } from '@/constants/flag-issues'
-import { InspScannedBook } from '../types/endorsement.types'
+import type { InspScannedBook } from '../types/endorsement.types'
 
 interface InspectionFlagModalProps {
   inspFlagModalBook: InspScannedBook | null
@@ -14,7 +13,7 @@ interface InspectionFlagModalProps {
   onSave: () => void
 }
 
-export const InspectionFlagModal: React.FC<InspectionFlagModalProps> = ({
+export function InspectionFlagModal({
   inspFlagModalBook,
   inspFlagIssue,
   setInspFlagIssue,
@@ -23,19 +22,20 @@ export const InspectionFlagModal: React.FC<InspectionFlagModalProps> = ({
   inspFlagSaving,
   onClose,
   onSave,
-}) => {
+}: InspectionFlagModalProps) {
   if (!inspFlagModalBook) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card border border-border rounded-xl shadow-2xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-4">
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="premium-gradient-ui-card__glow" />
+        <div className="relative flex items-start justify-between mb-4">
           <div className="flex gap-3">
-            <div className="p-2 bg-destructive/10 rounded-full h-fit">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
+            <div className="premium-gradient-ui-card__icon w-10 h-10">
+              <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-foreground">Flag as Non-Processable</h3>
+              <h3 className="text-lg font-black tracking-tight text-foreground">Flag as Non-Processable</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 <span className="font-medium text-foreground">{inspFlagModalBook.isbn}</span> — {inspFlagModalBook.title}
               </p>

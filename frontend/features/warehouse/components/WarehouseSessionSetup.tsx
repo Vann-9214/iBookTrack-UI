@@ -38,16 +38,11 @@ export function WarehouseSessionSetup({
   boxLockedBy,
 }: WarehouseSessionSetupProps) {
   const [lotOpen, setLotOpen] = useState(false)
-  const isJaguar = brand === 'jaguar'
-  const cardTheme = isJaguar
-    ? 'border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70'
-    : 'border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70'
-  const iconTheme = isJaguar
-    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
-    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
-  const textTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
-  const labelTheme = isJaguar ? 'text-emerald-700/75' : 'text-blue-700/75'
-  const borderTheme = isJaguar ? 'border-emerald-200/80 focus:ring-emerald-500/20' : 'border-blue-200/80 focus:ring-blue-500/20'
+  const cardTheme = 'bg-white/68 border border-primary/15 ring-1 ring-primary/10 rounded-2xl'
+  const iconTheme = 'premium-gradient-ui-card--solid'
+  const textTheme = 'text-primary'
+  const labelTheme = 'text-primary/75'
+  const borderTheme = 'border-primary/20 focus:ring-primary/20'
 
   return (
     <div className={cn("relative overflow-hidden rounded-2xl border-2 p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300", cardTheme)}>
@@ -61,13 +56,13 @@ export function WarehouseSessionSetup({
           </div>
           <div className="min-w-0 flex-1">
             <p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", textTheme)}>Receiving setup</p>
-            <h2 className={cn("text-[16px] font-black tracking-tight leading-none mt-0.5", isJaguar ? "text-emerald-950/80" : "text-blue-950/80")}>Start Receiving Session</h2>
-            <p className={cn("text-[12px] font-medium mt-0.5", isJaguar ? "text-emerald-600/80" : "text-blue-600/80")}>Select a lot and box number, then start scanning.</p>
+            <h2 className="text-[16px] font-black tracking-tight leading-none mt-0.5 text-foreground">Start Receiving Session</h2>
+            <p className="text-[12px] font-medium mt-0.5 text-primary/80">Select a lot and box number, then start scanning.</p>
           </div>
         </div>
 
         {/* Divider */}
-        <div className={cn("my-4 border-t", isJaguar ? 'border-emerald-200/60' : 'border-blue-200/60')} />
+        <div className="my-4 border-t border-primary/10" />
 
         {/* Form row — all inline on desktop */}
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
@@ -179,12 +174,7 @@ export function WarehouseSessionSetup({
           <Button
             onClick={() => handleNewSession(false)}
             disabled={loading || !activeLot || !selectedBox || lotsLoading || !!boxLockedBy}
-            className={cn(
-              "w-full sm:w-auto h-9 px-5 text-sm font-bold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:hover:translate-y-0 disabled:hover:shadow-lg shrink-0 rounded-xl text-white",
-              brand === 'jaguar'
-                ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700'
-                : 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700'
-            )}
+            className="w-full sm:w-auto h-9 px-5 text-sm font-bold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:hover:translate-y-0 disabled:hover:shadow-lg shrink-0 rounded-xl text-white premium-gradient-ui-card--solid"
           >
             {loading ? (
               <>

@@ -44,7 +44,7 @@ export function WarehouseConflictModal({
           {conflictModalState.type === 'zero_books' ? (
             <>
               <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
-              <button onClick={() => { setConflictModalState({ open: false, type: null, message: '' }); handleNewSession(true) }} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium transition-colors">Retry Again</button>
+              <button onClick={() => { setConflictModalState({ open: false, type: null, message: '' }); handleNewSession(true) }} className="px-4 py-2 text-sm rounded-lg premium-gradient-ui-card--solid font-medium transition-colors">Retry Again</button>
             </>
           ) : (
             <button onClick={() => setConflictModalState({ open: false, type: null, message: '' })} className="px-4 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-muted font-medium transition-colors">Close</button>

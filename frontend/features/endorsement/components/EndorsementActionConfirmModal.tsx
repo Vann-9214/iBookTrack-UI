@@ -1,6 +1,5 @@
-import React from 'react'
 import { ConfirmActionModal } from '@/components/ui/confirm-action-modal'
-import { BoxEntry } from '../types/endorsement.types'
+import type { BoxEntry } from '../types/endorsement.types'
 
 interface EndorsementActionConfirmModalProps {
   confirmModal: {
@@ -16,7 +15,7 @@ interface EndorsementActionConfirmModalProps {
   onConfirm: () => void
 }
 
-export const EndorsementActionConfirmModal: React.FC<EndorsementActionConfirmModalProps> = ({
+export function EndorsementActionConfirmModal({
   confirmModal,
   inspUserName,
   receivingBox,
@@ -24,7 +23,7 @@ export const EndorsementActionConfirmModal: React.FC<EndorsementActionConfirmMod
   sendingToScan,
   onClose,
   onConfirm,
-}) => {
+}: EndorsementActionConfirmModalProps) {
   return (
     <ConfirmActionModal
       open={confirmModal.open}
@@ -62,13 +61,13 @@ export const EndorsementActionConfirmModal: React.FC<EndorsementActionConfirmMod
         confirmModal.action === 'receive'
           ? {
               from: 'Cut',
-              to: 'Book Endorsement',
+              to: 'Book Inspection',
               fromColor: 'bg-orange-100 text-orange-700 border-orange-300',
               toColor: 'bg-purple-100 text-purple-700 border-purple-300',
             }
           : confirmModal.action === 'send_to_scan'
           ? {
-              from: 'Book Endorsement',
+              from: 'Book Inspection',
               to: 'Scan',
               fromColor: 'bg-purple-100 text-purple-700 border-purple-300',
               toColor: 'bg-green-100 text-green-700 border-green-300',

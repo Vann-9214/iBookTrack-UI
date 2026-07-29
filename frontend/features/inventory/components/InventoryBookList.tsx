@@ -1,5 +1,5 @@
-import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
 import type { BookInBox, InventoryBox } from '../types/inventory.types'
 
 export function InventoryBookList({
@@ -15,17 +15,21 @@ export function InventoryBookList({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+      <div className="bg-white p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Loading books...
       </div>
     )
   }
   if (books.length === 0) {
-    return <div className="py-6 text-center text-sm text-muted-foreground">No books found in this box.</div>
+    return (
+      <div className="bg-white p-6 text-center text-sm text-muted-foreground">
+        No books found in this box.
+      </div>
+    )
   }
   return (
-    <div className="divide-y divide-border">
-      <div className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
+    <div className="bg-white divide-y divide-border/60">
+      <div className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-black/5">
         <span>ISBN / Title</span>
         <span>Type</span>
         <span>Status</span>
@@ -34,12 +38,12 @@ export function InventoryBookList({
         const typeKey = (book.book_type || box.lot?.type || '')
         const typeText = typeKey ? typeKey.charAt(0).toUpperCase() + typeKey.slice(1).toLowerCase() : '—'
         return (
-          <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
+          <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2 hover:bg-primary/5 transition-colors">
             <div className="min-w-0 pr-3">
               <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
               {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
             </div>
-            <span className={cn('text-xs font-medium', typeKey.toLowerCase() === 'jaguar' ? 'text-green-600' : 'text-blue-600')}>
+            <span className="text-xs font-medium text-primary">
               {typeText}
             </span>
             <div className="flex flex-col gap-0.5">

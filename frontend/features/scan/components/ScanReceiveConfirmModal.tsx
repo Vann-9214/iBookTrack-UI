@@ -26,7 +26,12 @@ export function ScanReceiveConfirmModal({
         <><strong>{userName || 'You'}</strong> will receive <strong>{box?.box_number}</strong> from <strong>Book Endorsement</strong>.</>
       }
       hint="Make sure you have physically received the box."
-      flow={{ from: 'Book Endorsement', to: 'Scan', fromColor: 'bg-purple-100 text-purple-700 border-purple-300', toColor: 'bg-green-100 text-green-700 border-green-300' }}
+      flow={{
+        from: 'Book Endorsement',
+        to: 'Scan',
+        fromColor: 'premium-gradient-ui-card--solid text-white border-transparent',
+        toColor: 'premium-gradient-ui-card--solid text-white border-transparent',
+      }}
       confirmLabel="Yes, Receive"
       loading={!!receivingBox}
       onCancel={onCancel}

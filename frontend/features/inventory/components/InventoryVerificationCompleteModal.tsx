@@ -2,7 +2,7 @@ import { CircleCheck, CircleX, ClipboardCheck, Loader2, ScanBarcode } from 'luci
 import { cn } from '@/lib/utils'
 import type { useVerificationSession } from '../hooks/useVerificationSession'
 
-export function InventoryVerificationCompleteModal({ verification }: { verification: ReturnType<typeof useVerificationSession> }) {
+export function InventoryVerificationCompleteModal({ verification, onSuccess }: { verification: ReturnType<typeof useVerificationSession>; onSuccess?: () => void }) {
   const {
     verifConfirmComplete,
     setVerifConfirmComplete,
@@ -141,7 +141,7 @@ export function InventoryVerificationCompleteModal({ verification }: { verificat
               Cancel
             </button>
             <button
-              onClick={handleCompleteVerifSession}
+              onClick={() => handleCompleteVerifSession(onSuccess)}
               disabled={loadingVerifBooks}
               className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium disabled:opacity-50"
             >
