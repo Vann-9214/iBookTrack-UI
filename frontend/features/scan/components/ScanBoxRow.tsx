@@ -57,6 +57,19 @@ export function ScanBoxRow({
             </p>
           </div>
         </div>
+        {(box.box_sessions?.[0]?.endorsement_time_send || box.box_sessions?.[0]?.endorsement_send_profile?.name) && (
+          <div className="shrink-0 hidden sm:block text-right mr-2">
+            {box.box_sessions?.[0]?.endorsement_send_profile?.name && (
+              <p className={cn('text-[11px] font-medium mb-0.5', expanded ? 'text-white/90' : 'text-foreground/80')}>Sent by: {box.box_sessions[0].endorsement_send_profile.name}</p>
+            )}
+            {box.box_sessions?.[0]?.endorsement_time_send && (
+              <>
+                <p className={cn('text-xs', expanded ? 'text-white/80' : 'text-muted-foreground')}>{new Date(box.box_sessions[0].endorsement_time_send).toLocaleDateString()}</p>
+                <p className={cn('text-[10px]', expanded ? 'text-white/70' : 'text-muted-foreground/80')}>{new Date(box.box_sessions[0].endorsement_time_send).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+              </>
+            )}
+          </div>
+        )}
         <button
           onClick={(e) => { e.stopPropagation(); onOpenConfirm(box) }}
           disabled={receivingBox === box.id}

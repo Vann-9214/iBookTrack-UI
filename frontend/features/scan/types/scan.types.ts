@@ -10,6 +10,7 @@ export interface BookInBox {
 export interface BoxSession {
   status: string
   endorsement_time_send?: string
+  endorsement_send_profile?: { name: string }
   scan_time_received?: string
   total_scanned_books?: number
 }

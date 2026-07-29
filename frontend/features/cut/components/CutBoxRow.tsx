@@ -14,6 +14,9 @@ interface CutBoxRowProps {
   isProcessing: boolean
   books: BookInBox[]
   isLoadingBooks: boolean
+  sender?: string | null
+  completedBy?: string | null
+  receivedBy?: string | null
 }
 
 export function CutBoxRow({
@@ -25,6 +28,9 @@ export function CutBoxRow({
   isProcessing,
   books,
   isLoadingBooks,
+  sender,
+  completedBy,
+  receivedBy,
 }: CutBoxRowProps) {
   const bookCount = getBoxBookCount(box)
   const isIncoming = type === 'incoming'
@@ -69,6 +75,24 @@ export function CutBoxRow({
               {box.lot?.lot_number || '—'} · {bookCount} books
             </p>
           </div>
+          {sender && (
+            <div className="shrink-0 hidden sm:flex flex-col items-end mr-2">
+              <span className={cn('text-[10px] font-semibold uppercase tracking-wider', isExpanded ? 'text-white/60' : 'text-muted-foreground')}>Sent By</span>
+              <span className={cn('text-xs font-medium', isExpanded ? 'text-white' : 'text-foreground')}>{sender}</span>
+            </div>
+          )}
+          {completedBy && (
+            <div className="shrink-0 hidden sm:flex flex-col items-end mr-2">
+              <span className={cn('text-[10px] font-semibold uppercase tracking-wider', isExpanded ? 'text-white/60' : 'text-muted-foreground')}>Completed By</span>
+              <span className={cn('text-xs font-medium', isExpanded ? 'text-white' : 'text-foreground')}>{completedBy}</span>
+            </div>
+          )}
+          {receivedBy && (
+            <div className="shrink-0 hidden sm:flex flex-col items-end mr-2">
+              <span className={cn('text-[10px] font-semibold uppercase tracking-wider', isExpanded ? 'text-white/60' : 'text-muted-foreground')}>Received By</span>
+              <span className={cn('text-xs font-medium', isExpanded ? 'text-white' : 'text-foreground')}>{receivedBy}</span>
+            </div>
+          )}
           {timeStamp && (
             <div className="shrink-0 hidden sm:block text-right mr-2">
               <p className={cn('text-xs', isExpanded ? 'text-white/80' : 'text-muted-foreground')}>{new Date(timeStamp).toLocaleDateString()}</p>

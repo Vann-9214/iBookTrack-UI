@@ -79,6 +79,7 @@ export function CutWorkQueue({
                 isProcessing={sendingBoxId === box.id}
                 books={boxBooks[box.id] || []}
                 isLoadingBooks={loadingBoxBooksId === box.id}
+                receivedBy={box.box_sessions?.[0]?.cut_received_profile?.name || null}
               />
             ))}
           </div>

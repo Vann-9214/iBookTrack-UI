@@ -125,6 +125,14 @@ export function InventoryVerificationBoxList({
                         LOT {box.lot?.lot_number || (sessionOngoing ? '--' : '—')} · {bookCount} books
                       </p>
                     </div>
+                    {!sessionOngoing && (
+                      <div className="shrink-0 hidden sm:flex flex-col items-end mr-4">
+                        <span className={cn('text-[10px] font-semibold uppercase tracking-wider', isExpanded ? 'text-white/60' : 'text-muted-foreground')}>Received By</span>
+                        <span className={cn('text-xs font-medium', isExpanded ? 'text-white' : 'text-foreground')}>
+                          {box.box_sessions?.[0]?.inventory_received_profile?.name || 'Unknown'}
+                        </span>
+                      </div>
+                    )}
                     {!sessionOngoing && created && (
                       <div className="shrink-0 hidden sm:block text-right mr-2">
                         <p className={cn('text-xs', isExpanded ? 'text-white/80' : 'text-muted-foreground')}>{created.toLocaleDateString()}</p>

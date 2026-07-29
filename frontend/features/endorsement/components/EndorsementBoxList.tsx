@@ -16,6 +16,9 @@ export function EndorsementBoxList({
   renderBadge,
   renderAction,
   renderDate,
+  renderSender,
+  renderReceivedBy,
+  renderCompletedBy,
   renderBooks,
   showEmpty = true,
   emptyText = 'No boxes found.',
@@ -35,6 +38,9 @@ export function EndorsementBoxList({
   renderBadge?: (box: BoxEntry, expanded: boolean) => React.ReactNode
   renderAction?: (box: BoxEntry, expanded: boolean) => React.ReactNode
   renderDate?: (box: BoxEntry) => Date | null
+  renderSender?: (box: BoxEntry) => string | null
+  renderReceivedBy?: (box: BoxEntry) => string | null
+  renderCompletedBy?: (box: BoxEntry) => string | null
   renderBooks: (box: BoxEntry, books: BoxBookEntry[]) => React.ReactNode
   showEmpty?: boolean
   emptyText?: string
@@ -100,6 +106,9 @@ export function EndorsementBoxList({
                   badge={renderBadge?.(box, expanded)}
                   action={renderAction?.(box, expanded)}
                   date={renderDate?.(box)}
+                  sender={renderSender?.(box)}
+                  receivedBy={renderReceivedBy?.(box)}
+                  completedBy={renderCompletedBy?.(box)}
                   lotFallback={lotFallback}
                 >
                   {expanded && renderBooks(box, books)}
