@@ -140,9 +140,10 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
-    <Card className={cn("border-border bg-card flex flex-col overflow-hidden p-0 h-full border-t-2 shadow-sm", brand === 'jaguar' ? "border-t-green-500" : "border-t-blue-600")}>
+    <Card className={cn("relative flex flex-col gap-0 overflow-hidden p-0 h-full rounded-2xl border-2 shadow-sm ring-1", brand === 'jaguar' ? "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70" : "border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70")}>
+      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
       {/* Header - sticky */}
-      <div className={cn("flex items-center justify-between px-5 py-4 border-b shrink-0", brand === 'jaguar' ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-100" : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100")}>
+      <div className={cn("relative z-10 flex items-center justify-between px-5 py-4 border-b border-emerald-200/60 shrink-0", brand === 'jaguar' ? "bg-gradient-to-r from-emerald-50/60 via-transparent to-emerald-50/60 border-emerald-200/60" : "bg-gradient-to-r from-blue-50/60 via-transparent to-indigo-50/60 border-blue-200/60")}>
         <div className="flex items-center gap-3">
           <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
             <Activity className="h-4 w-4" />
@@ -161,18 +162,18 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           {propLoading || loading ? (
             <Skeleton className="h-6 w-16 rounded-full bg-muted-foreground/20" />
           ) : (
-            <Badge variant="outline" className={cn("bg-white text-[11px] font-semibold px-2.5 whitespace-nowrap", brand === 'jaguar' ? "border-green-300 text-green-600" : "border-blue-300 text-blue-600")}>
+            <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-r from-emerald-500 to-green-600" : "bg-gradient-to-r from-blue-500 to-indigo-600")}>
               {`${scans.length} books`}
-            </Badge>
+            </span>
           )}
         </div>
       </div>
 
-      <CardContent className="flex-1 p-0 min-h-0">
+      <CardContent className="relative z-10 flex-1 p-0 min-h-0">
         {propLoading || loading ? (
           <div className="h-full overflow-hidden flex flex-col relative z-0">
             <Table>
-              <TableHeader className="bg-white/50 backdrop-blur-sm">
+              <TableHeader className="bg-white/40 backdrop-blur-md">
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
@@ -210,7 +211,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           const totalPages = Math.ceil(scans.length / MOBILE_PAGE_SIZE)
           const mobileRows = scans.slice(mobilePage * MOBILE_PAGE_SIZE, (mobilePage + 1) * MOBILE_PAGE_SIZE)
           const tableHead = (
-            <TableHeader className="sticky top-0 z-10 bg-white">
+            <TableHeader className="sticky top-0 z-10 bg-white/40 backdrop-blur-md">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
@@ -225,8 +226,8 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
             </TableHeader>
           )
           const renderRows = (rows: any[]) => rows.map((item, i) => (
-            <TableRow key={i} className="border-border">
-              <TableCell className="text-xs text-muted-foreground">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
+            <TableRow key={i} className="border-border hover:bg-transparent cursor-default">
+              <TableCell className="text-xs text-muted-foreground relative z-10">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
               <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
               <TableCell className="text-xs font-semibold text-card-foreground">{(enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—') ? enrichedData[item.ISBN].lot : (item.LotNumber || '—')}</TableCell>
               <TableCell className="text-xs text-card-foreground">{(enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—') ? enrichedData[item.ISBN].box : (item.BoxNumber || '—')}</TableCell>
