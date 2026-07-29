@@ -36,7 +36,7 @@ export async function deleteInventoryBox(boxId: string) {
 export async function receiveInventoryBox(boxId: string, notes = 'Received at Inventory') {
   return authFetch(`${apiUrl}/api/boxes/${boxId}/advance`, {
     method: 'POST',
-    body: JSON.stringify({ notes }),
+    body: JSON.stringify({ notes, expected_stage: 'warehouse' }),
   }).then(json)
 }
 

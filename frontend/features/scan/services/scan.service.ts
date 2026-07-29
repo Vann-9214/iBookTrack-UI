@@ -28,7 +28,7 @@ export async function fetchBoxDetails(boxId: string): Promise<BookInBox[]> {
 export async function advanceBoxToScan(boxId: string): Promise<any> {
   const res = await authFetch(`${API_URL}/api/boxes/${boxId}/advance`, {
     method: 'POST',
-    body: JSON.stringify({ notes: 'Received at Scan' }),
+    body: JSON.stringify({ notes: 'Received at Scan', expected_stage: 'endorsement' }),
   })
   const data = await res.json()
   if (!res.ok) throw new Error(data.error || 'Failed to receive box')
