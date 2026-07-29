@@ -1,5 +1,6 @@
 import { db } from '../../config/db.js';
 import { logger } from '../../utils/logger.js';
+import { broadcastEvent } from '../../utils/sse.js';
 
 
 export const scanBookService = async (req, res) => {
@@ -116,6 +117,9 @@ export const scanBookService = async (req, res) => {
       if (rejection_reason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
     }
 
+    broadcastEvent('BOX_UPDATED', { boxId: assignedBoxId, type: 'scan', bookId });
+    broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_scan' });
+
     res.status(201).json({ scanLog, currentBox: { box_number: currentBox.box_number || null } })
   } catch (error) {
     logger.error('Scan book error:', error)
@@ -161,6 +165,9 @@ export const flagScanService = async (req, res) => {
         [bsRows[0].total_processable_books - 1, bsRows[0].total_nonprocessable_books + 1, existingScan.session_id]);
       }
     }
+
+    broadcastEvent('FLAG_UPDATED', { scanId: scan_id, boxId: sessRows[0]?.box_id });
+    broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_flag' });
 
     res.json({ success: true, scan: updRows[0] })
   } catch (error) {
@@ -216,6 +223,9 @@ export const tagScanService = async (req, res) => {
         [bsRows[0].total_processable_books - 1, bsRows[0].total_nonprocessable_books + 1, existing.session_id]);
       }
     }
+
+    broadcastEvent('FLAG_UPDATED', { scanId: scan_id, boxId: sessRows[0]?.box_id });
+    broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_tag' });
 
     res.json({ success: true, scan: updated, message: `ISBN ${existing.isbn} tagged as ${status}` })
   } catch (error) {

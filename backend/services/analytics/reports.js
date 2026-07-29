@@ -5,8 +5,10 @@
  */
 
 import * as reportsRepo from '../../repositories/analytics/reports.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 export const getLotStatusService = async (req, res) => {
+  await runWarehouseTimeoutSweep();
   const { type } = req.query;
 
   // Normalize brand/type to match database storage (e.g. mustang -> Mustang)

@@ -322,7 +322,7 @@ export const getSessionCompletionForPipeline = async (boxIds) => {
     const ph = boxIds.map((_, i) => `$${i + 1}`).join(',');
     const { rows } = await db.query(`
       SELECT DISTINCT ON (box_id) box_id,
-             warehouse_complete_by, warehouse_complete_at, 
+             warehouse_user_received as warehouse_complete_by, warehouse_time_received as warehouse_complete_at, 
              inventory_complete_by, inventory_complete_at, 
              endorsement_complete_by, endorsement_complete_at
       FROM box_sessions

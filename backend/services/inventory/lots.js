@@ -7,10 +7,12 @@
  */
 
 import * as lotsRepo from '../../repositories/inventory/lots.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 const VALID_LOT_TYPES = ['Mustang', 'Jaguar'];
 
 export const getLotsService = async (req, res) => {
+  await runWarehouseTimeoutSweep();
   const { search, limit: rawLimit, offset: rawOffset, type } = req.query;
   const limit = Math.min(parseInt(rawLimit) || 50, 50);
   const offset = parseInt(rawOffset) || 0;
@@ -29,6 +31,7 @@ export const getLotsService = async (req, res) => {
 };
 
 export const getLotTransmissionSummaryService = async (req, res) => {
+  await runWarehouseTimeoutSweep();
   const { lot_number } = req.params;
   const lotType = VALID_LOT_TYPES.includes(req.query.type) ? req.query.type : null;
 
