@@ -35,7 +35,7 @@ export function NonProcessableModals({
   }, [selectedCategory])
 
   const TONE = getTone(isJaguar)
-  const activeTone = selectedCategory === 'Total' ? TONE.redSolid : TONE.theme
+  const activeTone = selectedCategory === 'Total' ? TONE.red : TONE.theme
 
   return (
     <>

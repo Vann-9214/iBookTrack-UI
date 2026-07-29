@@ -41,7 +41,7 @@ export function NonProcessableList({
   const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
 
   return (
-    <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col mt-5 transition-all duration-300 min-h-[400px]", cardTheme)}>
+    <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col mt-5 transition-all duration-300 min-h-[650px]", cardTheme)}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/20 blur-2xl" />
       {/* Header */}
       <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-sm">
@@ -60,19 +60,22 @@ export function NonProcessableList({
           </div>
         </div>
         
-        <div className="flex items-center gap-2.5">
-          <div className="relative hidden sm:block mr-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/60" />
+        <div className="flex items-center gap-3">
+          <div className="relative hidden sm:block group">
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
             <Input 
               placeholder="Search lots or ISBN..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-56 h-9 pl-9 text-xs bg-muted/40 border-transparent shadow-none focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all rounded-lg"
+              className={cn(
+                "w-56 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0",
+                isJaguar ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
+              )}
             />
           </div>
           <div className={cn(
-            'inline-flex items-center rounded-md border px-2.5 py-0.5 text-[11px] font-bold transition-colors bg-background',
-            isJaguar ? 'border-green-200 text-green-700' : 'border-blue-200 text-blue-700'
+            'inline-flex items-center rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition-all',
+            isJaguar ? 'bg-emerald-50 text-emerald-700 ring-emerald-200/50' : 'bg-blue-50 text-blue-700 ring-blue-200/50'
           )}>
             {totalCount} flags
           </div>
@@ -108,103 +111,114 @@ export function NonProcessableList({
             </p>
           </div>
         ) : (
-          <Accordion type="multiple" className={cn("w-full divide-y divide-border/40 bg-white/60", filteredLots.length > 4 && "max-h-[28rem]")}>
-        {filteredLots.map((lot) => (
-          <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border-none bg-transparent">
-            <AccordionTrigger className="w-full grid grid-cols-12 gap-4 items-center px-5 sm:px-6 py-3 text-left transition-all duration-150 group hover:bg-muted/40 hover:no-underline data-[state=open]:bg-primary/[0.03] [&>svg]:hidden">
-               {/* Icon */}
-               <div className="col-span-1">
-                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/60 text-muted-foreground group-hover:bg-muted group-data-[state=open]:bg-blue-100 group-data-[state=open]:text-blue-600 transition-colors">
-                   <Package className="h-4 w-4" />
-                 </div>
-               </div>
+          <Accordion type="multiple" className="w-full space-y-2 px-1 py-1">
+            {filteredLots.map((lot) => (
+              <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border border-slate-200/60 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+                <AccordionTrigger className="w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden">
+                   {/* Icon */}
+                   <div className="col-span-1">
+                     <div className={cn("flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 group-hover:scale-105 shadow-sm ring-1 ring-black/5", isJaguar ? "bg-emerald-50 text-emerald-600 group-data-[state=open]:bg-emerald-500 group-data-[state=open]:text-white" : "bg-blue-50 text-blue-600 group-data-[state=open]:bg-blue-500 group-data-[state=open]:text-white")}>
+                       <Package className="h-4 w-4" />
+                     </div>
+                   </div>
 
-               {/* Lot name */}
-               <div className="col-span-5 sm:col-span-4 min-w-0">
-                 <span className="text-sm font-bold text-foreground truncate block">
-                   {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
-                 </span>
-               </div>
+                   {/* Lot name */}
+                   <div className="col-span-5 sm:col-span-4 min-w-0">
+                     <span className="text-[13px] font-black text-slate-800 truncate block tracking-tight">
+                       {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
+                     </span>
+                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 block">
+                       Warehouse Entry
+                     </span>
+                   </div>
 
-               {/* Box count */}
-               <div className="col-span-3 sm:col-span-4 flex justify-center">
-                 <Badge variant="outline" className="border-border bg-muted/40 text-muted-foreground text-[11px] font-bold">
-                   {lot.totalFlags} items
-                 </Badge>
-               </div>
+                   {/* Box count */}
+                   <div className="col-span-3 sm:col-span-4 flex justify-center">
+                     <Badge variant="outline" className={cn("border-transparent px-2.5 py-0.5 text-[9px] font-black shadow-sm uppercase tracking-wider ring-1", isJaguar ? "bg-emerald-50 text-emerald-700 ring-emerald-200/50" : "bg-blue-50 text-blue-700 ring-blue-200/50")}>
+                       {lot.totalFlags} items
+                     </Badge>
+                   </div>
 
-               {/* Expand chevron */}
-               <div className="col-span-3 flex justify-end items-center gap-2 pr-1">
-                 <span className="text-[11px] font-medium text-muted-foreground hidden sm:inline group-data-[state=open]:hidden">Expand</span>
-                 <span className="text-[11px] font-medium text-muted-foreground hidden sm:inline group-data-[state=closed]:hidden">Collapse</span>
-                 <ChevronRight className="h-4 w-4 text-muted-foreground/60 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-               </div>
-            </AccordionTrigger>
-            
-            <AccordionContent className="bg-white/40 border-t border-border/40 pb-0 pt-0">
-               <div className="px-5 sm:px-6 py-3">
-                 <div className="border-b border-border/40 pb-2 mb-2 px-1">
-                   <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Boxes in {lot.lot_number}</span>
-                 </div>
-                 <Accordion type="multiple" className="w-full space-y-2 pb-3">
-                    {Object.values(lot.boxes)
-                      .map((box) => (
-                    <AccordionItem key={box.box_number} value={box.box_number} className="border rounded-xl bg-white overflow-hidden shadow-sm">
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                        <div className="flex justify-between items-center w-full pr-4">
-                          <div className="flex items-center gap-2">
-                            <Inbox className="h-4 w-4 text-gray-400" />
-                            <span>Box {box.box_number}</span>
-                          </div>
-                          <span className="text-gray-600 font-medium text-xs bg-gray-100 px-2 py-0.5 rounded-full ring-1 ring-gray-200">
-                            {box.flags.length} flags
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 py-3 bg-gray-50 border-t">
-                        <div className="space-y-2">
-                           {box.flags.map((f, i) => (
-                             <div key={`${f.scan_id}-${i}`} className="bg-white p-3 rounded-lg border text-sm flex justify-between items-center shadow-sm hover:border-red-200 transition-colors">
-                               <div>
-                                 <div className="font-mono font-semibold text-gray-800">{f.isbn}</div>
-                                 <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{f.title || 'Unknown Title'}</div>
-                                 {f.remarks && (
-                                   <button 
-                                     onClick={(e) => { e.stopPropagation(); setSelectedNote({ isbn: f.isbn, title: f.title || 'Unknown Title', remarks: f.remarks! }) }}
-                                     className="mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-100/50 px-2.5 py-1 rounded-md transition-colors border border-blue-100"
-                                   >
-                                     <MessageSquare className="h-3.5 w-3.5" />
-                                     View Notes
-                                   </button>
-                                 )}
-                               </div>
-                               <div className="flex flex-col items-end gap-1.5 shrink-0 ml-4">
-                                 <span className="bg-red-50 text-red-700 ring-1 ring-red-200/60 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                                   {ISSUE_LABELS[f.issue] || f.issue}
-                                 </span>
-                                 <div className="flex items-center gap-2">
-                                   <span className="text-[10px] font-medium text-gray-400">by {f.flagged_by_name || 'System'}</span>
-                                   <button 
-                                     onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
-                                     disabled={resolvingId === f.scan_id}
-                                     className="text-[10px] text-emerald-600 font-bold hover:underline disabled:opacity-50"
-                                   >
-                                     {resolvingId === f.scan_id ? 'Resolving...' : 'Resolve'}
-                                   </button>
+                   {/* Expand chevron */}
+                   <div className="col-span-3 flex justify-end items-center gap-2 pr-1">
+                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 hidden sm:inline group-data-[state=open]:hidden">Expand</span>
+                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 hidden sm:inline group-data-[state=closed]:hidden">Collapse</span>
+                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors">
+                       <ChevronRight className="h-3.5 w-3.5 text-slate-500 transition-transform duration-300 group-data-[state=open]:rotate-90" />
+                     </div>
+                   </div>
+                </AccordionTrigger>
+                
+                <AccordionContent className="bg-slate-50/50 border-t border-slate-100 pb-3 pt-3 px-4 sm:px-5">
+                   <div className="flex items-center gap-2 mb-2 px-2">
+                     <Boxes className="h-3.5 w-3.5 text-slate-400" />
+                     <span className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Boxes inside {lot.lot_number}</span>
+                   </div>
+                   <Accordion type="multiple" className="w-full space-y-2">
+                      {Object.values(lot.boxes).map((box) => (
+                        <AccordionItem key={box.box_number} value={box.box_number} className="border border-slate-200/60 rounded-xl bg-white overflow-hidden shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] transition-all duration-200 hover:border-slate-300 group/box">
+                          <AccordionTrigger className="px-4 py-2.5 hover:no-underline text-sm font-semibold text-slate-700 hover:bg-slate-50/50 transition-colors [&>svg]:opacity-50">
+                            <div className="flex justify-between items-center w-full pr-4">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-lg bg-slate-100 text-slate-500 group-data-[state=open]/box:bg-slate-800 group-data-[state=open]/box:text-white transition-colors shadow-sm ring-1 ring-black/5">
+                                  <Inbox className="h-3.5 w-3.5" />
+                                </div>
+                                <span className="font-bold tracking-tight text-slate-800 text-[13px]">Box {box.box_number}</span>
+                              </div>
+                              <span className="text-slate-600 font-bold text-[9px] uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded-full ring-1 ring-slate-200/60 shadow-sm">
+                                {box.flags.length} flags
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 py-3 bg-slate-50/50 border-t border-slate-100">
+                            <div className="space-y-2">
+                               {box.flags.map((f, i) => (
+                                 <div key={`${f.scan_id}-${i}`} className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center relative overflow-hidden group/flag hover:border-red-200 hover:shadow-md transition-all duration-300">
+                                   {/* Red accent line */}
+                                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 opacity-80" />
+                                   
+                                   <div className="pl-1">
+                                     <div className="flex items-center gap-2 mb-0.5">
+                                       <div className="font-mono font-bold text-slate-800 text-[12px] tracking-wide">{f.isbn}</div>
+                                     </div>
+                                     <div className="text-[11px] font-semibold text-slate-500 line-clamp-1">{f.title || 'Unknown Title'}</div>
+                                     {f.remarks && (
+                                       <button 
+                                         onClick={(e) => { e.stopPropagation(); setSelectedNote({ isbn: f.isbn, title: f.title || 'Unknown Title', remarks: f.remarks! }) }}
+                                         className="mt-2 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-100/50 px-2 py-1 rounded-md transition-colors border border-blue-100 shadow-sm"
+                                       >
+                                         <MessageSquare className="h-2.5 w-2.5" />
+                                         View Notes
+                                       </button>
+                                     )}
+                                   </div>
+                                   
+                                   <div className="flex flex-col items-end gap-1.5 shrink-0 ml-4">
+                                     <span className="bg-red-50 text-red-700 ring-1 ring-red-200/60 px-2 py-0.5 rounded-md text-[8.5px] font-black uppercase tracking-wider shadow-sm">
+                                       {ISSUE_LABELS[f.issue] || f.issue}
+                                     </span>
+                                     <div className="flex items-center gap-2">
+                                       <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400">by {f.flagged_by_name || 'System'}</span>
+                                       <button 
+                                         onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
+                                         disabled={resolvingId === f.scan_id}
+                                         className="text-[8.5px] text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ring-1 ring-emerald-200/50 shadow-sm"
+                                       >
+                                         {resolvingId === f.scan_id ? 'Resolving...' : 'Resolve'}
+                                       </button>
+                                     </div>
+                                   </div>
                                  </div>
-                               </div>
-                             </div>
-                           ))}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-               </Accordion>
-               </div>
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-        </Accordion>
+                               ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                   </Accordion>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         )}
       </div>
 

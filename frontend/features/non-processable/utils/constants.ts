@@ -14,7 +14,7 @@ export const ISSUE_LABELS: Record<string, string> = {
 export const getTone = (isJaguar: boolean) => ({
   theme: isJaguar
     ? {
-        card: "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60",
+        card: "bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70",
         icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
         value: "text-emerald-700",
         title: "text-emerald-950/70",
@@ -25,7 +25,7 @@ export const getTone = (isJaguar: boolean) => ({
         modalDot: "bg-emerald-500",
       }
     : {
-        card: "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-blue-200/70 ring-blue-100/60",
+        card: "bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70",
         icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
         value: "text-blue-700",
         title: "text-blue-950/70",
@@ -35,8 +35,8 @@ export const getTone = (isJaguar: boolean) => ({
         modalIcon: "bg-gradient-to-br from-blue-500 to-indigo-600",
         modalDot: "bg-blue-500",
       },
-  redSolid: {
-    card: "bg-gradient-to-br from-red-500 to-rose-600 border-red-600/40 ring-red-300/30 text-white",
+  red: {
+    card: "bg-gradient-to-br from-red-500 via-red-500 to-rose-600 border-2 border-red-600/40 ring-red-300/30 text-white",
     icon: "bg-white/20 shadow-black/10",
     value: "text-white",
     title: "text-white/90",
