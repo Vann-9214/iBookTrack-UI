@@ -25,6 +25,7 @@ export function EndorsementBoxRow({
   lotFallback?: string
   sender?: string | null
   receivedBy?: string | null
+  receivedByLabel?: string
   completedBy?: string | null
   children?: React.ReactNode
   className?: string
@@ -75,7 +76,7 @@ export function EndorsementBoxRow({
         )}
         {receivedBy && (
           <div className="shrink-0 hidden sm:flex flex-col items-end mr-4">
-            <span className={cn('text-[10px] font-semibold uppercase tracking-wider', expanded ? 'text-white/60' : 'text-muted-foreground')}>Received By</span>
+            <span className={cn('text-[10px] font-semibold uppercase tracking-wider', expanded ? 'text-white/60' : 'text-muted-foreground')}>{receivedByLabel || 'Received By'}</span>
             <span className={cn('text-xs font-medium', expanded ? 'text-white' : 'text-foreground')}>
               {receivedBy}
             </span>
