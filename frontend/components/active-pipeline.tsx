@@ -17,20 +17,20 @@ function getStepStatus(step: any) {
 const getBrandColor = (brand: string, type: 'nodeRing' | 'nodeFill' | 'count' | 'bar' | 'cardBg' | 'dot') => {
   if (brand === 'jaguar') {
     return {
-      nodeRing: 'border-green-400 text-green-500',
-      nodeFill: 'bg-gradient-to-br from-emerald-500 to-green-600 border-transparent text-white shadow-md shadow-emerald-500/25',
-      count: 'text-green-600',
-      bar: 'bg-gradient-to-r from-green-400 via-green-400/50 to-transparent',
-      cardBg: 'bg-gradient-to-b from-green-50 to-green-100/30 border-green-200/60',
-      dot: 'bg-green-500',
+      nodeRing: 'border-emerald-400 text-emerald-500',
+      nodeFill: 'bg-gradient-to-br from-emerald-500 to-green-600 border-transparent text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/20',
+      count: 'text-emerald-600',
+      bar: 'bg-gradient-to-r from-emerald-400 via-emerald-400/60 to-emerald-300/20',
+      cardBg: 'bg-gradient-to-b from-emerald-50/90 via-white/80 to-emerald-100/40 border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
+      dot: 'bg-emerald-500',
     }[type]
   }
   return {
     nodeRing: 'border-blue-400 text-blue-500',
-    nodeFill: 'bg-gradient-to-br from-blue-500 to-indigo-600 border-transparent text-white shadow-md shadow-blue-500/25',
+    nodeFill: 'bg-gradient-to-br from-blue-500 to-indigo-600 border-transparent text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/20',
     count: 'text-blue-600',
-    bar: 'bg-gradient-to-r from-blue-400 via-blue-400/50 to-transparent',
-    cardBg: 'bg-gradient-to-b from-blue-50 to-indigo-100/30 border-blue-200/60',
+    bar: 'bg-gradient-to-r from-blue-400 via-blue-400/60 to-indigo-300/20',
+    cardBg: 'bg-gradient-to-b from-blue-50/90 via-white/80 to-indigo-100/40 border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
     dot: 'bg-blue-500',
   }[type]
 }
@@ -39,19 +39,19 @@ const getStatusConfig = (brand: string, active: number) => ({
   active: {
     nodeRing: getBrandColor(brand, 'nodeRing'),
     nodeFill: getBrandColor(brand, 'nodeFill'),
-    countColor: active > 0 ? getBrandColor(brand, 'count') : 'text-gray-400',
+    countColor: active > 0 ? getBrandColor(brand, 'count') : 'text-slate-400',
     bar: getBrandColor(brand, 'bar'),
     cardBg: getBrandColor(brand, 'cardBg'),
     dot: getBrandColor(brand, 'dot'),
     label: "Active",
   },
   idle: {
-    nodeRing: "border-gray-300 text-gray-400",
-    nodeFill: "bg-white border-gray-300 text-gray-400",
-    countColor: "text-gray-400",
-    bar: "bg-gradient-to-r from-gray-300 via-gray-300/50 to-transparent",
-    cardBg: "bg-gray-50/80 border-gray-200/70",
-    dot: "bg-gray-400",
+    nodeRing: "border-slate-300/80 text-slate-400",
+    nodeFill: "bg-gradient-to-br from-slate-100 to-slate-200/80 border-slate-300/60 text-slate-400 shadow-sm ring-1 ring-slate-200/40",
+    countColor: "text-slate-400",
+    bar: "bg-gradient-to-r from-slate-300/70 via-slate-200/40 to-transparent",
+    cardBg: "bg-gradient-to-b from-slate-50/90 via-white/70 to-slate-100/50 border-slate-200/60 ring-1 ring-slate-100/40 shadow-sm",
+    dot: "bg-slate-400",
     label: "Idle",
   },
 })
@@ -195,17 +195,18 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               return (
                 <div key={i} className="flex-1 min-w-0 flex flex-col items-center gap-0 rounded-xl">
                   {/* Step number circle */}
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold mb-2 shadow-sm", cfg.nodeFill)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold mb-2", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   {/* Card body */}
-                  <div className={cn("w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 shadow-sm", cfg.cardBg)}>
-                    <span className="text-xs font-semibold text-gray-600">{step.label}</span>
-                    <Skeleton className="h-7 w-8 rounded bg-muted-foreground/10 my-0.5" />
-                    <div className={cn("h-0.5 w-full rounded-full my-1", cfg.bar)} />
-                    <div className="flex items-center gap-1">
+                  <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1", cfg.cardBg)}>
+                    <div className="pointer-events-none absolute inset-x-0 -top-6 h-12 bg-white/20 blur-lg" />
+                    <span className="relative text-xs font-bold text-slate-500 uppercase tracking-wider">{step.label}</span>
+                    <Skeleton className="relative h-7 w-8 rounded-lg bg-muted-foreground/10 my-0.5" />
+                    <div className={cn("relative h-[3px] w-full rounded-full my-1", cfg.bar)} />
+                    <div className="relative flex items-center gap-1.5">
                       <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
-                      <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
+                      <span className="text-[11px] font-semibold text-slate-400">{cfg.label}</span>
                     </div>
                   </div>
                 </div>
@@ -214,23 +215,23 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           </div>
 
           {/* Legend */}
-          <div className="hidden lg:flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-600" : "bg-blue-600")} />
-              <span>Received</span>
+          <div className="hidden lg:flex items-center gap-2 mt-5">
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
+              <span className={cn("h-2.5 w-2.5 rounded-full ring-2 ring-offset-1", brand === 'jaguar' ? "bg-emerald-500 ring-emerald-200" : "bg-blue-500 ring-blue-200")} />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Received</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span>Completed</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 ring-offset-1" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Completed</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-purple-500" />
-              <span>Sent</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200 ring-offset-1" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sent</span>
             </div>
-            <span className="text-border">|</span>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-orange-400" />
-              <span>Delayed</span>
+            <div className="w-px h-5 bg-slate-200 mx-1" />
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-50 to-amber-50/80 border border-orange-200/60 px-3 py-1.5 shadow-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-orange-200 ring-offset-1 animate-pulse" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-orange-500">Delayed</span>
             </div>
           </div>
 
@@ -238,17 +239,18 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
             {pipelineSteps.map((step, i) => {
               const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
               return (
-                <div key={i} className="flex items-center gap-3">
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-semibold shadow-sm", cfg.nodeFill)}>
+                <div key={i} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5", cfg.cardBg)}>
+                  <div className="pointer-events-none absolute inset-x-0 -top-4 h-8 bg-white/20 blur-md" />
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold", cfg.nodeFill)}>
                     {i + 1}
                   </div>
-                  <div className="flex flex-col text-left gap-1">
-                    <span className="text-sm font-semibold text-gray-700">{step.label}</span>
-                    <Skeleton className="h-3 w-16 rounded bg-muted-foreground/10" />
+                  <div className="relative flex flex-col text-left gap-1">
+                    <span className="text-sm font-bold text-slate-600">{step.label}</span>
+                    <Skeleton className="h-3 w-16 rounded-lg bg-muted-foreground/10" />
                   </div>
-                  <div className="ml-auto flex items-center gap-1">
+                  <div className="relative ml-auto flex items-center gap-1.5">
                     <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
-                    <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
+                    <span className="text-[11px] font-semibold text-slate-400">{cfg.label}</span>
                   </div>
                 </div>
               )
@@ -284,25 +286,26 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const inner = (
                 <>
                   {/* Step number circle */}
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold mb-2 transition-transform duration-200 group-hover/step:scale-110", cfg.nodeFill)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold mb-2 transition-all duration-300 group-hover/step:scale-110 group-hover/step:shadow-lg", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   {/* Card body */}
-                  <div className={cn("w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 shadow-sm transition-all duration-200 group-hover/step:shadow-md group-hover/step:-translate-y-0.5", cfg.cardBg)}>
-                    <span className="text-xs font-semibold text-gray-600">{step.label}</span>
-                    {renderFormattedCounts(step, cfg.countColor, brand)}
+                  <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 transition-all duration-300 group-hover/step:shadow-lg group-hover/step:-translate-y-1", cfg.cardBg)}>
+                    <div className="pointer-events-none absolute inset-x-0 -top-6 h-12 bg-white/25 blur-lg" />
+                    <span className="relative text-xs font-bold text-slate-500 uppercase tracking-wider">{step.label}</span>
+                    <div className="relative">{renderFormattedCounts(step, cfg.countColor, brand)}</div>
                     {step.delayed > 0 && (
-                      <div className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50" title={`${step.delayed} ${step.isBookStage ? 'books' : 'boxes'} delayed > 1 day`}>
+                      <div className="relative flex items-center gap-1 bg-gradient-to-r from-orange-100/60 to-amber-100/40 px-2 py-0.5 rounded-full border border-orange-200/50 shadow-sm" title={`${step.delayed} ${step.isBookStage ? 'books' : 'boxes'} delayed > 1 day`}>
                         <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
                         <span className="text-[10px] font-bold leading-none text-orange-600">
                           {step.delayed} delayed
                         </span>
                       </div>
                     )}
-                    <div className={cn("h-0.5 w-full rounded-full my-1", cfg.bar)} />
-                    <div className="flex items-center gap-1">
+                    <div className={cn("relative h-[3px] w-full rounded-full my-1", cfg.bar)} />
+                    <div className="relative flex items-center gap-1.5">
                       <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
-                      <span className="text-[11px] font-medium text-gray-500">{cfg.label}</span>
+                      <span className="text-[11px] font-semibold text-slate-400">{cfg.label}</span>
                     </div>
                   </div>
                 </>
@@ -319,23 +322,23 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           </div>
 
           {/* Legend */}
-          <div className="hidden lg:flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <span className={cn("h-2 w-2 rounded-full", brand === 'jaguar' ? "bg-green-600" : "bg-blue-600")} />
-              <span>Received</span>
+          <div className="hidden lg:flex items-center gap-2 mt-5">
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
+              <span className={cn("h-2.5 w-2.5 rounded-full ring-2 ring-offset-1", brand === 'jaguar' ? "bg-emerald-500 ring-emerald-200" : "bg-blue-500 ring-blue-200")} />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Received</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span>Completed</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 ring-offset-1" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Completed</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-purple-500" />
-              <span>Sent</span>
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200 ring-offset-1" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sent</span>
             </div>
-            <span className="text-border">|</span>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-orange-400" />
-              <span>Delayed</span>
+            <div className="w-px h-5 bg-slate-200 mx-1" />
+            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-50 to-amber-50/80 border border-orange-200/60 px-3 py-1.5 shadow-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-orange-200 ring-offset-1 animate-pulse" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-orange-500">Delayed</span>
             </div>
           </div>
 
@@ -346,27 +349,28 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold", cfg.nodeFill)}>
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-sm font-medium text-card-foreground">{step.label}</span>
+                    <span className="text-sm font-bold text-card-foreground">{step.label}</span>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       {renderFormattedCounts(step, cfg.countColor, brand)}
-                      <span>{step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
+                      <span className="font-medium">{step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
                     </div>
                     {step.delayed > 0 && (
-                      <span className="text-xs text-orange-600 font-medium">{step.delayed} delayed</span>
+                      <span className="text-xs text-orange-600 font-semibold">{step.delayed} delayed</span>
                     )}
                   </div>
-                  <div className="ml-auto flex items-center gap-1">
+                  <div className="ml-auto flex items-center gap-1.5">
                     <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
-                    <span className="text-xs text-muted-foreground">{cfg.label}</span>
+                    <span className="text-xs font-semibold text-slate-400">{cfg.label}</span>
                   </div>
                 </>
               )
               return (
-                <div key={step.label} className={cn("flex items-center gap-3 rounded-xl border p-2.5 shadow-sm", cfg.cardBg)}>
+                <div key={step.label} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5 transition-all duration-200 active:scale-[0.98]", cfg.cardBg)}>
+                  <div className="pointer-events-none absolute inset-x-0 -top-4 h-8 bg-white/20 blur-md" />
                   {inner}
                 </div>
               )

@@ -90,23 +90,17 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const fetchLiveLots = async (background = false) => {
     if (!background) setLoadingLiveLots(true)
     try {
-      const res = await authFetch(`${API_URL}/api/reports/lot-status?type=${brand}`)
+      const res = await authFetch(`${API_URL}/api/dashboard/open-lots?brand=${brand}`)
       const data = await res.json()
       
-      const activeLots = (data.lots || []).filter((l: any) => l.computed_status !== 'closed')
-      
-      const mappedLots = activeLots.map((l: any) => {
-        const totalBoxProgress = l.boxes ? l.boxes.reduce((sum: number, box: any) => sum + box.progress, 0) : 0;
-        const pct = l.total_boxes > 0 ? Math.round(totalBoxProgress / l.total_boxes) : 0;
-        const totalBooks = l.boxes ? l.boxes.reduce((sum: number, box: any) => sum + (box.total_expected_books || 0), 0) : 0;
-
+      const mappedLots = (data.lots || []).map((l: any) => {
         return {
-          id: l.lot_id,
+          id: l.id,
           lot_number: l.lot_number,
           total_boxes: l.total_boxes,
-          total_books: totalBooks,
-          status: l.computed_status === 'in-progress' ? 'In Progress' : 'Open',
-          completion_progress: pct
+          total_books: l.total_books,
+          status: l.status,
+          completion_progress: l.completion_progress
         }
       })
       setLiveLots(mappedLots)
