@@ -152,8 +152,11 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
     <>
       {isNavigatingTo && <PageLoader text="Transferring..." />}
 
+      {/* Static spacer — sidebar overlays on hover, no content reflow */}
+      <div className="hidden md:block shrink-0 w-[76px] h-dvh" />
+
       <aside
-        className="group/sidebar hidden md:flex relative z-30 shrink-0 h-dvh flex-col w-[76px] hover:w-[240px] transition-[width] duration-300 ease-in-out overflow-hidden will-change-[width] shadow-xl shadow-black/20"
+        className="group/sidebar hidden md:flex fixed left-0 top-0 z-30 h-dvh flex-col w-[76px] hover:w-[240px] transition-[width] duration-300 ease-in-out overflow-hidden shadow-xl shadow-black/20"
         style={{ background: sidebarBg }}
         onMouseLeave={() => setWarehouseOpen(false)}
       >

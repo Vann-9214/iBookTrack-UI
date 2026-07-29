@@ -111,13 +111,16 @@ export function LiveScanFeed({
               <XCircle className="h-3.5 w-3.5 text-gray-400" />
             </button>
           )}
-          <div className="relative hidden sm:block">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative hidden sm:block group">
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
             <Input
               placeholder="Search ISBN or box..."
               value={historySearch}
               onChange={(e) => setHistorySearch(e.target.value)}
-              className="w-56 pl-9 h-8 text-sm bg-white"
+              className={cn(
+                "w-56 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0",
+                brand === 'jaguar' ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
+              )}
             />
           </div>
           <button
@@ -130,14 +133,23 @@ export function LiveScanFeed({
         </div>
       </div>
       {historySearchOpen && (
-        <div className="sm:hidden px-4 py-2 border-b border-blue-100 bg-blue-50/60">
-          <Input
-            autoFocus
-            placeholder="Search ISBN or box..."
-            value={historySearch}
-            onChange={(e) => setHistorySearch(e.target.value)}
-            className="h-8 text-sm bg-white w-full"
-          />
+        <div className={cn(
+          "sm:hidden px-4 py-3 border-b",
+          brand === 'jaguar' ? "border-emerald-100 bg-emerald-50/60" : "border-blue-100 bg-blue-50/60"
+        )}>
+          <div className="relative group">
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+            <Input
+              autoFocus
+              placeholder="Search ISBN or box..."
+              value={historySearch}
+              onChange={(e) => setHistorySearch(e.target.value)}
+              className={cn(
+                "w-full h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0",
+                brand === 'jaguar' ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
+              )}
+            />
+          </div>
         </div>
       )}
       <CardContent className="p-0">

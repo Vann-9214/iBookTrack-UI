@@ -217,14 +217,17 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="relative hidden sm:block">
-            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground/60" />
+          <div className="relative hidden sm:block group">
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
             <Input 
               placeholder="Search lots or boxes..." 
               value={lotSearchInput} 
               onChange={e => setLotSearchInput(e.target.value)}
               disabled={displayLoading}
-              className={cn("w-48 h-8 pl-8 text-xs bg-white/85 shadow-sm focus-visible:bg-white focus-visible:ring-1 transition-all rounded-lg disabled:opacity-50", borderTheme)}
+              className={cn(
+                "w-56 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0 disabled:opacity-50",
+                brand === 'jaguar' ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
+              )}
             />
           </div>
           {displayLoading ? (

@@ -13,7 +13,7 @@ export function DashboardHeader({ brand, refreshing, lastUpdated, onRefresh, onO
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">Command Center</h1>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">Control Hub</h1>
               <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
                 Overview of operations for
                 <span className={cn('inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none', brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600')}>
