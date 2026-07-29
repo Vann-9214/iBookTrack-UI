@@ -422,6 +422,7 @@ export const bulkSaveSessionService = async (req, res) => {
 
     const lockPayload = await getBoxLockPayload(assignedBoxId);
     broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+    broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_bulk_save' });
 
     res.status(201).json({ success: true, session });
   } catch (error) {
@@ -459,6 +460,10 @@ export const cancelSessionService = async (req, res) => {
     if (!sessionRows[0]) return res.json({ success: true, message: 'No session to cancel' });
 
     const { rows: updSess } = await db.query("UPDATE box_sessions SET status = 'received' WHERE id = $1 RETURNING *", [sessionRows[0].id]);
+    const lockPayload = await getBoxLockPayload(box_id);
+    broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+    broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_cancel' });
+
     res.json({ session: updSess[0] })
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -491,6 +496,7 @@ export const deleteSessionService = async (req, res) => {
             AND NOT EXISTS (SELECT 1 FROM books WHERE box_id = b.id)
         `, [boxId]);
         broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+        broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_delete' });
       }
     }
     res.json({ success: true, message: 'Session cancelled' })

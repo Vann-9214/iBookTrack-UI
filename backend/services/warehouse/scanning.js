@@ -9,8 +9,10 @@ import { logger } from '../../utils/logger.js';
 import * as scanningRepo from '../../repositories/warehouse/scanning.js';
 import scanManagerApi from '../scan_manager/api/index.js';
 import scanManagerStatusCounts from '../scan_manager/status-counts.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 export const getLiveScanningService = async (req) => {
+  await runWarehouseTimeoutSweep();
   const today = new Date().toISOString().split('T')[0];
   const fromDate = req.query.from || today;
   const toDate = req.query.to || today;

@@ -7,6 +7,7 @@
 import { logger } from '../../utils/logger.js';
 import * as boxesRepo from '../../repositories/inventory/boxes.js';
 import { generateLotCandidates } from '../../utils/lotUtils.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 const syncBoxTransmissionStatus = async (boxId, location) => {
   try {
@@ -183,6 +184,7 @@ export const getBoxesService = async (req) => {
 };
 
 export const getPipelineTransitionsService = async (req) => {
+  await runWarehouseTimeoutSweep();
   const { limit = 50, offset = 0, stage, box_type, search, date_from, date_to } = req.query;
   const limitNum = Math.min(Math.max(parseInt(limit) || 50, 1), 50);
   const offsetNum = parseInt(offset);
