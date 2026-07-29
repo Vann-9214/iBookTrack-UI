@@ -366,10 +366,15 @@ export const receiveBoxService = async (req) => {
 
 export const advanceBoxService = async (req) => {
   const { id } = req.params;
+  const { expected_stage } = req.body;
   const STAGE_ORDER = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage'];
 
   const { data: box, error: boxError } = await boxesRepo.getBoxById(id);
   if (boxError || !box) throw { status: 404, message: 'Box not found', detail: boxError?.message };
+
+  if (expected_stage && box.current_stage !== expected_stage) {
+    throw { status: 409, message: `Box is already in '${box.current_stage}' stage. Please refresh your view.` };
+  }
 
   const currentIdx = STAGE_ORDER.indexOf(box.current_stage);
   if (currentIdx === -1 || currentIdx >= STAGE_ORDER.length - 1) {
