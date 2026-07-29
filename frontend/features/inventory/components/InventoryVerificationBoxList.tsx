@@ -23,6 +23,7 @@ export function InventoryVerificationBoxList({
   emptySubtext,
   emptyIcon,
   defaultPageSize = 10,
+  currentUserId,
 }: {
   boxes: InventoryBox[]
   expandedBoxId: string | null
@@ -37,6 +38,7 @@ export function InventoryVerificationBoxList({
   emptySubtext?: string
   emptyIcon?: React.ReactNode
   defaultPageSize?: number
+  currentUserId?: string
 }) {
   const isMobile = useIsMobile()
   const pagination = usePagination({ totalItems: boxes.length, defaultPageSize })
@@ -131,17 +133,42 @@ export function InventoryVerificationBoxList({
                     )}
                   </div>
                   {!sessionOngoing && !isMobile && (
-                    <button
-                      onClick={() => onStartSession(box)}
-                      disabled={loadingStartSession}
-                      className={cn(
-                        'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
-                        isExpanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
-                      )}
-                    >
-                      {loadingStartSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
-                      {loadingStartSession ? 'Starting...' : 'Start Session'}
-                    </button>
+                    box.box_sessions?.[0]?.status === 'in_progress' || box.box_sessions?.[0]?.status === 'delayed' ? (
+                      box.box_sessions[0].inventory_user_received !== currentUserId ? (
+                        <div className="flex flex-col items-end shrink-0 ml-2">
+                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', box.box_sessions[0].status === 'delayed' ? 'text-amber-500' : 'text-red-500')}>
+                            {box.box_sessions[0].status === 'delayed' ? 'Delayed' : 'Locked'}
+                          </span>
+                          <span className={cn('text-[10px]', isExpanded ? 'text-white/80' : 'text-muted-foreground')}>
+                            by {box.box_sessions[0].inventory_received_profile?.name || 'another user'}
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => onStartSession(box)}
+                          disabled={loadingStartSession}
+                          className={cn(
+                            'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+                            isExpanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
+                          )}
+                        >
+                          {loadingStartSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                          {loadingStartSession ? 'Resuming...' : 'Resume Session'}
+                        </button>
+                      )
+                    ) : (
+                      <button
+                        onClick={() => onStartSession(box)}
+                        disabled={loadingStartSession}
+                        className={cn(
+                          'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+                          isExpanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
+                        )}
+                      >
+                        {loadingStartSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
+                        {loadingStartSession ? 'Starting...' : 'Start Session'}
+                      </button>
+                    )
                   )}
                 </div>
                 {isExpanded && (

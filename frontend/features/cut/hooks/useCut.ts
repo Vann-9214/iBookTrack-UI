@@ -106,6 +106,7 @@ export function useCut(brand: string) {
       await cutService.receiveBox(box.id)
       toast.success(`${box.box_number} received`)
       fetchBoxes()
+      setActiveTab('outgoing')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to receive box')
     } finally {

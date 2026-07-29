@@ -14,6 +14,7 @@ interface InspectionBoxListProps {
   loadingInspRowBooks: string | null
   toggleInspRow: (boxId: string) => void
   openConfirm: (action: 'receive' | 'start_session' | 'send_to_scan', box: BoxEntry) => void
+  currentUserId: string
 }
 
 export function InspectionBoxList({
@@ -24,6 +25,7 @@ export function InspectionBoxList({
   loadingInspRowBooks,
   toggleInspRow,
   openConfirm,
+  currentUserId,
 }: InspectionBoxListProps) {
   return (
     <div className="flex-1 flex flex-col">
@@ -39,26 +41,68 @@ export function InspectionBoxList({
         emptyText="No boxes to inspect"
         emptySubtext="Receive boxes from the Incoming Boxes tab first."
         emptyIcon={<ClipboardCheck className="h-5 w-5" />}
-        renderBadge={(_, expanded) => (
-          <span className={cn(
-            'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-            expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
-          )}>
-            Ready for Inspection
-          </span>
-        )}
-        renderAction={(box: BoxEntry, expanded) => (
-          <button
-            onClick={(e) => { e.stopPropagation(); openConfirm('start_session', box) }}
-            className={cn(
-              'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
-              expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
-            )}
-          >
-            <ClipboardCheck className="h-4 w-4" />
-            Start Session
-          </button>
-        )}
+        renderBadge={(box, expanded) => {
+          const session = box.box_sessions?.[0]
+          if (session && (session.status === 'in_progress' || session.status === 'delayed')) {
+            return (
+              <span className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap',
+                expanded ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'
+              )}>
+                Session Ongoing
+              </span>
+            )
+          }
+          return (
+            <span className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+              expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
+            )}>
+              Ready for Inspection
+            </span>
+          )
+        }}
+        renderAction={(box: BoxEntry, expanded) => {
+          const session = box.box_sessions?.[0]
+          if (session && (session.status === 'in_progress' || session.status === 'delayed')) {
+            if (session.endorsement_user_received !== currentUserId) {
+              return (
+                <div className="flex flex-col items-end shrink-0 ml-2">
+                  <span className={cn('text-[10px] font-bold uppercase tracking-wider', session.status === 'delayed' ? 'text-amber-500' : 'text-red-500')}>
+                    {session.status === 'delayed' ? 'Delayed' : 'Locked'}
+                  </span>
+                  <span className={cn('text-[10px]', expanded ? 'text-white/80' : 'text-muted-foreground')}>
+                    by {session.endorsement_received_profile?.name || 'another user'}
+                  </span>
+                </div>
+              )
+            }
+            return (
+              <button
+                onClick={(e) => { e.stopPropagation(); openConfirm('start_session', box) }}
+                className={cn(
+                  'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+                  expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
+                )}
+              >
+                <ClipboardCheck className="h-4 w-4" />
+                Resume Session
+              </button>
+            )
+          }
+          return (
+            <button
+              onClick={(e) => { e.stopPropagation(); openConfirm('start_session', box) }}
+              className={cn(
+                'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+                expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
+              )}
+            >
+              <ClipboardCheck className="h-4 w-4" />
+              Start Session
+            </button>
+          )
+        }}
         renderDate={(box: BoxEntry) => {
           const receivedTime = box.box_sessions?.[0]?.endorsement_time_received
           return receivedTime ? new Date(receivedTime) : null

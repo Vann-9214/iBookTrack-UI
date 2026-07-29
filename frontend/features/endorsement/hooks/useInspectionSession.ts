@@ -180,8 +180,13 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
     setInspFlagSaving(false)
   }
 
-  const handleResetInspSession = () => {
+  const handleResetInspSession = async () => {
     if (!inspCurrentSession) return
+    try {
+      if (inspBox) await endorsementService.cancelSession(inspBox.id)
+    } catch (e) {
+      console.error('Failed to reset session status:', e)
+    }
     setInspSessionActive(false)
     setInspBox(null)
     setInspCurrentSession(null)

@@ -54,6 +54,7 @@ export default function BookInspectionPage() {
     inspSessionActive,
     inspBox,
     inspUserName,
+    inspUserId,
     inspCurrentSession,
     inspScannedBooks,
     inspCurrentBoxBooks,
@@ -168,6 +169,7 @@ export default function BookInspectionPage() {
                       loadingInspRowBooks={loadingInspRowBooks}
                       toggleInspRow={toggleInspRow}
                       openConfirm={openConfirm}
+                      currentUserId={inspUserId}
                     />
                   ) : (
                     inspBox && (

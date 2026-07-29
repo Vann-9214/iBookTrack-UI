@@ -75,6 +75,9 @@ export function useInventory(brand: string) {
 
     es.addEventListener('WAREHOUSE_LOCKED', handleUpdate)
     es.addEventListener('WAREHOUSE_UNLOCKED', handleUpdate)
+    es.addEventListener('INVENTORY_LOCKED', handleUpdate)
+    es.addEventListener('INVENTORY_UNLOCKED', handleUpdate)
+    es.addEventListener('INVENTORY_DELAYED', handleUpdate)
     es.addEventListener('BOX_UPDATED', handleUpdate)
     es.addEventListener('PIPELINE_UPDATED', handleUpdate)
     es.addEventListener('DASHBOARD_REFRESH', handleUpdate)

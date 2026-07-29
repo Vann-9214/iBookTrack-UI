@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Package } from 'lucide-react'
+import { ConfirmActionModal } from '@/components/ui/confirm-action-modal'
 import type { BoxEntry } from '../types/endorsement.types'
 
 interface InspectionSessionHeaderProps {
@@ -20,47 +22,64 @@ export function InspectionSessionHeader({
   handleResetInspSession,
   handleOpenInspComplete,
 }: InspectionSessionHeaderProps) {
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+
   return (
-    <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">
-      <div className="premium-gradient-ui-card__glow" />
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-4">
-          <div className="premium-gradient-ui-card__icon w-9 h-9 shrink-0">
-            <Package className="h-4 w-4" />
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <div>
-              <p className="text-xs text-muted-foreground">Active Lot</p>
-              <p className="text-sm font-semibold text-foreground">{inspBox.lot?.lot_number || '—'}</p>
+    <>
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">
+        <div className="premium-gradient-ui-card__glow" />
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-4">
+            <div className="premium-gradient-ui-card__icon w-9 h-9 shrink-0">
+              <Package className="h-4 w-4" />
             </div>
-            {inspBox.box_number && (
+            <div className="flex flex-wrap items-center gap-4">
               <div>
-                <p className="text-xs text-muted-foreground">Current Box</p>
-                <p className="text-sm font-semibold text-foreground">{inspBox.box_number} ({inspCurrentBoxBooks} books)</p>
+                <p className="text-xs text-muted-foreground">Active Lot</p>
+                <p className="text-sm font-semibold text-foreground">{inspBox.lot?.lot_number || '—'}</p>
               </div>
-            )}
-            <div>
-              <p className="text-xs text-muted-foreground">User</p>
-              <p className="text-sm font-semibold text-foreground">{inspUserName || 'Unknown User'}</p>
+              {inspBox.box_number && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Current Box</p>
+                  <p className="text-sm font-semibold text-foreground">{inspBox.box_number} ({inspCurrentBoxBooks} books)</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-muted-foreground">User</p>
+                <p className="text-sm font-semibold text-foreground">{inspUserName || 'Unknown User'}</p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleResetInspSession}
-            className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            Reset Session
-          </button>
-          <button
-            onClick={handleOpenInspComplete}
-            disabled={loadingInspSession || inspScannedBooksLength === 0}
-            className="px-4 py-1.5 text-sm rounded-lg premium-gradient-ui-card--solid text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Complete Session
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              Reset Session
+            </button>
+            <button
+              onClick={handleOpenInspComplete}
+              disabled={loadingInspSession || inspScannedBooksLength === 0}
+              className="px-4 py-1.5 text-sm rounded-lg premium-gradient-ui-card--solid text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Complete Session
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <ConfirmActionModal
+        open={showResetConfirm}
+        title="Reset Session"
+        description={<>Are you sure you want to reset this session? All scanned progress will be lost.</>}
+        confirmLabel="Yes, Reset"
+        variant="destructive"
+        onCancel={() => setShowResetConfirm(false)}
+        onConfirm={() => {
+          setShowResetConfirm(false)
+          handleResetInspSession()
+        }}
+      />
+    </>
   )
 }

@@ -489,6 +489,7 @@ export const sendForwardBoxService = async (req) => {
   if (updateError) throw updateError;
 
   broadcastEvent('BOX_UPDATED', { boxId: id, type: 'send_forward' });
+  broadcastEvent('PIPELINE_UPDATED', { boxId: id });
   broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_send' });
 
   return { success: true, box, session_status: 'sent', current_stage: box.current_stage };

@@ -113,4 +113,12 @@ export const endorsementService = {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to complete session')
   },
+
+  async cancelSession(boxId: string) {
+    const res = await authFetch(`${API_URL}/api/warehouse/boxes/${boxId}/cancel-session`, {
+      method: 'POST',
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Failed to cancel session')
+  },
 }

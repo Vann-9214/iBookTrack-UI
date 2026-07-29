@@ -47,6 +47,7 @@ export function useEndorsement() {
       toast.success(`${box.box_number} received`)
       fetchIncoming()
       fetchEndorsementBoxes()
+      setActiveTab('inspection')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to receive box')
     } finally {
@@ -98,6 +99,9 @@ export function useEndorsement() {
     es.addEventListener('BOX_UPDATED', handleUpdate)
     es.addEventListener('PIPELINE_UPDATED', handleUpdate)
     es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+    es.addEventListener('ENDORSEMENT_LOCKED', handleUpdate)
+    es.addEventListener('ENDORSEMENT_UNLOCKED', handleUpdate)
+    es.addEventListener('ENDORSEMENT_DELAYED', handleUpdate)
 
     es.onerror = () => {
       console.warn('Endorsement SSE error - reconnecting')

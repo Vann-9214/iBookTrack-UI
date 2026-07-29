@@ -25,6 +25,7 @@ export interface InventoryBoxSession {
   inventory_time_send?: string
   inventory_printed_by?: string
   inventory_printed_at?: string
+  inventory_received_profile?: { name: string }
 }
 
 export interface InventoryBox {

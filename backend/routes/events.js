@@ -38,20 +38,25 @@ router.get('/', requireAuth, requireRole(OPERATIONAL_ROLES), async (req, res) =>
 
   send('connected', { message: 'Events stream ready' });
 
-  // Initial snapshot: every warehouse box currently locked by an active session
+  // Initial snapshot: every warehouse and inventory box currently locked by an active session
   try {
     const { rows } = await db.query(`
-      SELECT bs.box_id, bs.status, bs.warehouse_user_received AS user_id,
-             u.name AS user_name, bx.box_number, bx.box_type, l.lot_number
+      SELECT bs.box_id, bs.status,
+             CASE WHEN bx.current_stage = 'inventory' THEN bs.inventory_user_received ELSE bs.warehouse_user_received END AS user_id,
+             u.name AS user_name, bx.box_number, bx.box_type, l.lot_number, bx.current_stage
       FROM box_sessions bs
       JOIN boxes bx ON bx.id = bs.box_id
       LEFT JOIN lots l ON l.id = bx.lot_id
-      LEFT JOIN users u ON u.id = bs.warehouse_user_received
+      LEFT JOIN users u ON u.id = (CASE WHEN bx.current_stage = 'inventory' THEN bs.inventory_user_received ELSE bs.warehouse_user_received END)
       WHERE bs.status IN ('in_progress', 'delayed')
-        AND bs.warehouse_user_received IS NOT NULL
-        AND bx.current_stage = 'warehouse'
+        AND bx.current_stage IN ('warehouse', 'inventory')
     `);
-    send('WAREHOUSE_LOCK_SNAPSHOT', { locks: rows });
+    
+    const warehouseLocks = rows.filter(r => r.current_stage === 'warehouse');
+    const inventoryLocks = rows.filter(r => r.current_stage === 'inventory');
+
+    send('WAREHOUSE_LOCK_SNAPSHOT', { locks: warehouseLocks });
+    send('INVENTORY_LOCK_SNAPSHOT', { locks: inventoryLocks });
   } catch (err) {
     logger.error('Failed to send warehouse lock snapshot:', err);
   }

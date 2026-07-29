@@ -36,6 +36,7 @@ export function InventoryVerificationTab({
           emptyText="No boxes to verify"
           emptySubtext="Receive boxes from the Incoming Boxes tab first."
           emptyIcon={<ClipboardCheck className="h-5 w-5" />}
+          currentUserId={verification.verifUserId}
         />
         <InventoryVerificationCompleteModal verification={verification} onSuccess={() => actions.setInventoryTab('outgoing')} />
         <InventoryScanModal
