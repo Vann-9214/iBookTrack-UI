@@ -21,10 +21,8 @@ CREATE TABLE IF NOT EXISTS public.box_sessions (
   inventory_time_send TIMESTAMPTZ,
   endorsement_time_send TIMESTAMPTZ,
   cut_time_send TIMESTAMPTZ,
-  warehouse_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   inventory_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   endorsement_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  warehouse_complete_at TIMESTAMPTZ,
   inventory_complete_at TIMESTAMPTZ,
   endorsement_complete_at TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'in_progress',
@@ -35,10 +33,8 @@ CREATE TABLE IF NOT EXISTS public.box_sessions (
 );
 
 ALTER TABLE public.box_sessions
-  ADD COLUMN IF NOT EXISTS warehouse_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS inventory_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS endorsement_complete_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS warehouse_complete_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS inventory_complete_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS endorsement_complete_at TIMESTAMPTZ;
 

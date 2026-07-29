@@ -233,21 +233,27 @@ export const completeSessionService = async (req, res) => {
       }
     }
 
-    let completeCol = 'warehouse';
+    let completeCol = null;
     if (stage === 'inventory') completeCol = 'inventory';
     else if (stage === 'qa' || stage === 'endorsement') completeCol = 'endorsement';
 
-    const { rows: updRows } = await db.query(`
+    let updQuery = `
       UPDATE box_sessions 
       SET status = 'completed',
-          ${completeCol}_complete_by = $2,
-          ${completeCol}_complete_at = NOW(),
           total_scanned_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id),
           total_processable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'processable'),
           total_nonprocessable_books = (SELECT COUNT(*) FROM book_activity ba WHERE ba.session_id = box_sessions.id AND ba.scan_status = 'non_processable')
-      WHERE id = $1 
-      RETURNING *
-    `, [session_id, req.user.id]);
+    `;
+    let queryParams = [session_id];
+
+    if (completeCol) {
+      updQuery += `, ${completeCol}_complete_by = $2, ${completeCol}_complete_at = NOW() `;
+      queryParams.push(req.user.id);
+    }
+    
+    updQuery += ` WHERE id = $1 RETURNING *`;
+    
+    const { rows: updRows } = await db.query(updQuery, queryParams);
 
     if (session.box_id) {
       const lockPayload = await getBoxLockPayload(session.box_id);
@@ -323,15 +329,15 @@ export const bulkSaveSessionService = async (req, res) => {
     let session = null;
     if (session_id) {
       const { rows: lockSessRows } = await db.query(
-        "UPDATE box_sessions SET status = 'completed', warehouse_complete_by = $3, warehouse_complete_at = NOW() WHERE id = $1 AND box_id = $2 RETURNING *",
-        [session_id, assignedBoxId, req.user.id]
+        "UPDATE box_sessions SET status = 'completed' WHERE id = $1 AND box_id = $2 RETURNING *",
+        [session_id, assignedBoxId]
       );
       session = lockSessRows[0] || null;
     }
     if (!session) {
       const { rows: sessRows } = await db.query(`
-        INSERT INTO box_sessions (box_id, warehouse_user_received, warehouse_time_received, status, warehouse_complete_by, warehouse_complete_at, total_scanned_books, total_processable_books, total_nonprocessable_books)
-        VALUES ($1, $2, NOW(), 'completed', $2, NOW(), 0, 0, 0) RETURNING *
+        INSERT INTO box_sessions (box_id, warehouse_user_received, warehouse_time_received, status, total_scanned_books, total_processable_books, total_nonprocessable_books)
+        VALUES ($1, $2, NOW(), 'completed', 0, 0, 0) RETURNING *
       `, [assignedBoxId, req.user.id]);
       session = sessRows[0];
     }
