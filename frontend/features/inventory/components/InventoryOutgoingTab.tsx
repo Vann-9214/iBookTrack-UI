@@ -40,7 +40,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
           return verifiedTime ? new Date(verifiedTime) : (box.created_at ? new Date(box.created_at) : null)
         }}
         renderAction={(box: InventoryBox, expanded) => {
-          const boxLabelPrinted = actions.printedBoxLabels.has(box.id)
+          const boxLabelPrinted = actions.printedBoxLabels.has(box.id) || !!box.box_sessions?.[0]?.inventory_printed_by
           const allPrinted = boxLabelPrinted
           return (
             <div className="flex flex-col gap-1 sm:shrink-0" onClick={(e) => e.stopPropagation()}>

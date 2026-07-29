@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { toast } from "sonner"
-import { fetchUserProfile } from "@/lib/auth-api"
+import { fetchUserProfile, getApiBaseUrl } from "@/lib/auth-api"
 import { useBrand } from "@/hooks/use-brand"
 import { BoxEntry, BookInBox } from "../types/scan.types"
 import { filterIncomingBoxes } from "../utils/scan.helpers"
@@ -54,8 +54,8 @@ export function useScan() {
     }
   }
 
-  const fetchBoxes = useCallback(async () => {
-    setLoading(true)
+  const fetchBoxes = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       // Always fetch all incoming boxes; search is filtered client-side below.
       const allIncoming = await fetchIncomingBoxes(brand, '', 'box')
@@ -72,6 +72,29 @@ export function useScan() {
     const timer = setTimeout(() => { fetchBoxes() }, 300)
     return () => clearTimeout(timer)
   }, [fetchBoxes])
+
+  const fetchBoxesRef = useRef(fetchBoxes)
+  useEffect(() => {
+    fetchBoxesRef.current = fetchBoxes
+  }, [fetchBoxes])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      fetchBoxesRef.current(true)
+    }
+
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Scan SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
 
   const filteredIncoming = filterIncomingBoxes(incomingBoxes, searchQuery)
 

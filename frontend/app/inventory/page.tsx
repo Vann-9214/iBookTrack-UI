@@ -28,6 +28,9 @@ export default function InventoryPage() {
 
   const handleBoxLabelAfterPrint = useCallback(() => {
     if (actions.printBox) {
+      import('@/features/inventory/services/inventory.service').then(({ printInventoryBox }) => {
+        printInventoryBox(actions.printBox!.id).catch(console.error)
+      })
       actions.setPrintedBoxLabels((prev) => new Set(prev).add(actions.printBox!.id))
       actions.setPrintBox(null)
     }
@@ -50,7 +53,6 @@ export default function InventoryPage() {
 
   const confirmActionTitle =
     actions.confirmModal.action === 'receive' ? 'Confirm Receipt' :
-    actions.confirmModal.action === 'start_session' ? 'Start Verification Session' :
     'Send to Cut'
 
   return (
@@ -74,34 +76,31 @@ export default function InventoryPage() {
                 onRefresh={actions.handleManualRefresh}
                 lastUpdated={inventory.lastInventoryUpdate}
               />
-              <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">
-                <div className="premium-gradient-ui-card__glow" />
-                <div className="relative flex items-center gap-3 mb-4">
-                  <div className="premium-gradient-ui-card__icon w-8 h-8">
-                    <Boxes className="h-4 w-4" />
+              {!verification.verifSessionActive && (
+                <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">
+                  <div className="premium-gradient-ui-card__glow" />
+                  <div className="relative flex items-center gap-3 mb-4">
+                    <div className="premium-gradient-ui-card__icon w-8 h-8">
+                      <Boxes className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="premium-gradient-ui-card__eyebrow">Receive · Verify · Send</p>
+                      <h2 className="text-[15px] font-black tracking-tight text-foreground leading-none">Manage Box Movement</h2>
+                    </div>
                   </div>
-                  <div>
-                    <p className="premium-gradient-ui-card__eyebrow">Receive · Verify · Send</p>
-                    <h2 className="text-[15px] font-black tracking-tight text-foreground leading-none">Manage Box Movement</h2>
-                  </div>
+                  <InventorySearchBar
+                    searchQuery={inventory.searchQuery}
+                    onQueryChange={inventory.setSearchQuery}
+                    loading={inventory.loadingBoxes}
+                  />
+                  <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
+                  <InventoryTabNavigation
+                    tab={actions.inventoryTab}
+                    onTabChange={actions.setInventoryTab}
+                    counts={{ incoming: actions.incomingBoxes.length, verification: actions.inventoryBoxes.length, outgoing: actions.outgoingBoxes.length }}
+                  />
                 </div>
-                {!verification.verifSessionActive && (
-                  <>
-                    <InventorySearchBar
-                      searchQuery={inventory.searchQuery}
-                      onQueryChange={inventory.setSearchQuery}
-                      loading={inventory.loadingBoxes}
-                    />
-                    <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
-                  </>
-                )}
-                <InventoryTabNavigation
-                  tab={actions.inventoryTab}
-                  onTabChange={actions.setInventoryTab}
-                  counts={{ incoming: actions.incomingBoxes.length, verification: actions.inventoryBoxes.length, outgoing: actions.outgoingBoxes.length }}
-                  disabled={verification.verifSessionActive}
-                />
-              </div>
+              )}
               {actions.inventoryTab === 'incoming' && <InventoryIncomingTab inventory={inventory} actions={actions} />}
               {actions.inventoryTab === 'verification' && <InventoryVerificationTab brand={brand} inventory={inventory} actions={actions} verification={verification} />}
               {actions.inventoryTab === 'outgoing' && <InventoryOutgoingTab inventory={inventory} actions={actions} />}
@@ -116,8 +115,6 @@ export default function InventoryPage() {
         description={
           actions.confirmModal.action === 'receive' ? (
             <><strong>{verification.verifUserName || 'You'}</strong> will receive <strong>{actions.confirmModal.box?.box_number}</strong> from <strong>Warehouse</strong>.</>
-          ) : actions.confirmModal.action === 'start_session' ? (
-            <>Begin a verification session on <strong>{actions.confirmModal.box?.box_number}</strong>. Make sure the box is physically with you.</>
           ) : (
             <>Send <strong>{actions.confirmModal.box?.box_number}</strong> to <strong>Cut</strong>? This cannot be undone.</>
           )
@@ -136,13 +133,11 @@ export default function InventoryPage() {
         }
         confirmLabel={
           actions.confirmModal.action === 'receive' ? 'Yes, Receive' :
-          actions.confirmModal.action === 'start_session' ? 'Start Session' :
           'Yes, Send to Cut'
         }
         variant={actions.confirmModal.action === 'send_to_cut' ? 'destructive' : 'default'}
         loading={
           (actions.confirmModal.action === 'receive' && !!actions.receivingBox) ||
-          (actions.confirmModal.action === 'start_session' && verification.loadingVerifBooks) ||
           (actions.confirmModal.action === 'send_to_cut' && !!actions.sendingToCut)
         }
         onCancel={actions.closeConfirm}
@@ -151,7 +146,6 @@ export default function InventoryPage() {
           if (!box) return
           actions.closeConfirm()
           if (actions.confirmModal.action === 'receive') actions.handleReceiveBox(box)
-          else if (actions.confirmModal.action === 'start_session') verification.handleStartVerifSession(box.id)
           else if (actions.confirmModal.action === 'send_to_cut') actions.handleSendToCut(box)
         }}
       />

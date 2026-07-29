@@ -8,6 +8,7 @@ import { logger } from '../../utils/logger.js';
 import * as boxesRepo from '../../repositories/inventory/boxes.js';
 import { generateLotCandidates } from '../../utils/lotUtils.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
+import { broadcastEvent } from '../../utils/sse.js';
 
 const syncBoxTransmissionStatus = async (boxId, location) => {
   try {
@@ -357,6 +358,9 @@ export const receiveBoxService = async (req) => {
   const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxReceived(id);
   if (updateError) throw updateError;
 
+  broadcastEvent('BOX_UPDATED', { boxId: id, type: 'receive' });
+  broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_receive' });
+
   return { success: true, box: updatedBox };
 };
 
@@ -448,6 +452,10 @@ export const advanceBoxService = async (req) => {
     await boxesRepo.updateSessionToReceived(id, req.user.id, nextStage);
   }
 
+  broadcastEvent('BOX_UPDATED', { boxId: id, type: 'advance' });
+  broadcastEvent('PIPELINE_UPDATED', { boxId: id });
+  broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_advance' });
+
   return { success: true, box: updatedBox, from_stage: box.current_stage, to_stage: nextStage };
 };
 
@@ -480,6 +488,9 @@ export const sendForwardBoxService = async (req) => {
   const { error: updateError } = await boxesRepo.updateSession(session.id, updates);
   if (updateError) throw updateError;
 
+  broadcastEvent('BOX_UPDATED', { boxId: id, type: 'send_forward' });
+  broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_send' });
+
   return { success: true, box, session_status: 'sent', current_stage: box.current_stage };
 };
 
@@ -497,6 +508,10 @@ export const rollbackBoxService = async (req) => {
 
   const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxStage(id, to_stage);
   if (updateError) throw updateError;
+
+  broadcastEvent('BOX_UPDATED', { boxId: id, type: 'rollback' });
+  broadcastEvent('PIPELINE_UPDATED', { boxId: id });
+  broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_rollback' });
 
   return { success: true, box: updatedBox };
 };
@@ -602,5 +617,22 @@ export const deleteBoxService = async (req) => {
   const { error: deleteError } = await boxesRepo.deleteBox(id);
   if (deleteError) throw deleteError;
 
+  broadcastEvent('PIPELINE_UPDATED', { boxId: id });
+  broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_delete' });
+
   return { success: true, message: `Box ${box.box_number} deleted` };
+};
+
+export const printBoxService = async (req) => {
+  const { id } = req.params;
+  const { data: box, error: boxError } = await boxesRepo.getBoxById(id);
+  if (boxError || !box) throw { status: 404, message: 'Box not found' };
+
+  const { error: updateError } = await boxesRepo.updateSessionPrint(id, req.user.id);
+  if (updateError) throw updateError;
+
+  broadcastEvent('BOX_UPDATED', { boxId: id, type: 'print' });
+  broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_print' });
+
+  return { success: true, message: 'Box print status updated' };
 };

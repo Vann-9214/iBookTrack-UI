@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
-import { fetchUserProfile } from '@/lib/auth-api'
+import { fetchUserProfile, getApiBaseUrl } from '@/lib/auth-api'
 import { BookInBox, BoxEntry, ConfirmModalState, CutTab } from '../types/cut.types'
 import { cutService } from '../services/cut.service'
 import { filterCutBoxBySearch } from '../utils/cut.helpers'
@@ -58,8 +58,8 @@ export function useCut(brand: string) {
     }
   }
 
-  const fetchBoxes = useCallback(async () => {
-    setLoading(true)
+  const fetchBoxes = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const { incoming, outgoing } = await cutService.fetchBoxes(brand, '', 'box')
       setIncomingBoxes(incoming)
@@ -76,6 +76,29 @@ export function useCut(brand: string) {
     const timer = setTimeout(() => { fetchBoxes() }, 300)
     return () => clearTimeout(timer)
   }, [fetchBoxes])
+
+  const fetchBoxesRef = useRef(fetchBoxes)
+  useEffect(() => {
+    fetchBoxesRef.current = fetchBoxes
+  }, [fetchBoxes])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      fetchBoxesRef.current(true)
+    }
+
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Cut SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)

@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { CircleCheck, CircleX, Package, ScanBarcode } from 'lucide-react'
 import { ScannerInput } from '@/components/scanner-input'
+import { ConfirmActionModal } from '@/components/ui/confirm-action-modal'
 import { InventoryVerificationTables } from './InventoryVerificationTables'
 import type { useVerificationSession } from '../hooks/useVerificationSession'
 
@@ -14,6 +16,8 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
     handleOpenVerifComplete,
     handleVerifScan,
   } = verification
+
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   const verifProcessableBooks = verifScannedBooks.filter((book) => book.scan_status === 'processable')
   const verifBlockedBooks = verifScannedBooks.filter((book) => book.scan_status === 'non_processable')
@@ -57,7 +61,7 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
           </div>
           <div className="flex gap-2">
             <button
-              onClick={handleResetVerifSession}
+              onClick={() => setShowResetConfirm(true)}
               className="px-4 py-1.5 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors"
             >
               Reset Session
@@ -127,6 +131,19 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
           </span>
         </div>
       </div>
+
+      <ConfirmActionModal
+        open={showResetConfirm}
+        title="Reset Session"
+        description={<>Are you sure you want to reset this session? All scanned progress will be lost.</>}
+        confirmLabel="Yes, Reset"
+        variant="destructive"
+        onCancel={() => setShowResetConfirm(false)}
+        onConfirm={() => {
+          setShowResetConfirm(false)
+          handleResetVerifSession()
+        }}
+      />
     </>
   )
 }

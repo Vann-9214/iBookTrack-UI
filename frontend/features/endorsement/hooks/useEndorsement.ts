@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { useBrand } from '@/hooks/use-brand'
+import { getApiBaseUrl } from '@/lib/auth-api'
 import { BoxEntry, BoxBookEntry } from '../types/endorsement.types'
 import { endorsementService } from '../services/endorsement.service'
 
@@ -27,8 +28,8 @@ export function useEndorsement() {
   const [loadingIncoming, setLoadingIncoming] = useState(true)
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
-  const fetchIncoming = useCallback(async () => {
-    setLoadingIncoming(true)
+  const fetchIncoming = useCallback(async (silent = false) => {
+    if (!silent) setLoadingIncoming(true)
     try {
       const filteredIncoming = await endorsementService.fetchIncomingBoxes(brand, '', 'box')
       setIncomingBoxes(filteredIncoming)
@@ -57,8 +58,8 @@ export function useEndorsement() {
   const [endorsementBoxes, setEndorsementBoxes] = useState<BoxEntry[]>([])
   const [loadingEndorsement, setLoadingEndorsement] = useState(true)
 
-  const fetchEndorsementBoxes = useCallback(async () => {
-    setLoadingEndorsement(true)
+  const fetchEndorsementBoxes = useCallback(async (silent = false) => {
+    if (!silent) setLoadingEndorsement(true)
     try {
       const filteredEndorsement = await endorsementService.fetchEndorsementBoxes(brand, '', 'box')
       setEndorsementBoxes(filteredEndorsement)
@@ -77,6 +78,33 @@ export function useEndorsement() {
     }, 300)
     return () => clearTimeout(timer)
   }, [fetchIncoming, fetchEndorsementBoxes])
+
+  const fetchIncomingRef = useRef(fetchIncoming)
+  const fetchEndorsementBoxesRef = useRef(fetchEndorsementBoxes)
+  
+  useEffect(() => {
+    fetchIncomingRef.current = fetchIncoming
+    fetchEndorsementBoxesRef.current = fetchEndorsementBoxes
+  }, [fetchIncoming, fetchEndorsementBoxes])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      fetchIncomingRef.current(true)
+      fetchEndorsementBoxesRef.current(true)
+    }
+
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Endorsement SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
 
   // ── Outgoing Boxes ────────────────────────────────────────────────────────
   const [sendingToScan, setSendingToScan] = useState<string | null>(null)

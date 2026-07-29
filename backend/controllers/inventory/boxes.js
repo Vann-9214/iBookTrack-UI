@@ -141,3 +141,14 @@ export const deleteBox = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const printBox = async (req, res) => {
+  try {
+    const result = await boxesService.printBoxService(req);
+    res.json(result);
+  } catch (error) {
+    if (error.status) return res.status(error.status).json({ success: false, error: error.message });
+    logger.error('Print box error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

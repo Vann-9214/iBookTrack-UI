@@ -60,6 +60,10 @@ export async function checkBoxSimflex(boxId: string) {
   return authFetch(`${apiUrl}/api/boxes/${boxId}/check-simflex`, { method: 'POST' }).then(json)
 }
 
+export async function printInventoryBox(boxId: string) {
+  return authFetch(`${apiUrl}/api/boxes/${boxId}/print`, { method: 'POST' }).then(json)
+}
+
 export async function resumeInventorySession(boxId: string) {
   return authFetch(`${apiUrl}/api/warehouse/boxes/${boxId}/resume-session`, { method: 'POST' }).then(json<{ session?: VerificationSession }>)
 }

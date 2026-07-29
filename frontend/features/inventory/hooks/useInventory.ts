@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
+import { getApiBaseUrl } from '@/lib/auth-api'
 import { fetchInventoryBox, fetchInventoryBoxes } from '../services/inventory.service'
 import type { BookInBox, InventoryBox } from '../types/inventory.types'
 
@@ -59,6 +60,31 @@ export function useInventory(brand: string) {
     const timer = window.setTimeout(() => void fetchBoxes(), 300)
     return () => window.clearTimeout(timer)
   }, [fetchBoxes])
+
+  const fetchBoxesRef = useRef(fetchBoxes)
+  useEffect(() => {
+    fetchBoxesRef.current = fetchBoxes
+  }, [fetchBoxes])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      fetchBoxesRef.current({ silent: true })
+    }
+
+    es.addEventListener('WAREHOUSE_LOCKED', handleUpdate)
+    es.addEventListener('WAREHOUSE_UNLOCKED', handleUpdate)
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Inventory SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
 
   return {
     boxes,

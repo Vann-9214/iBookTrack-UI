@@ -31,13 +31,13 @@ export function InventoryVerificationTab({
           loadingBoxId={actions.loadingVerifRowBooks}
           loading={inventory.loadingBoxes}
           onToggle={actions.toggleVerifRow}
-          onStartSession={(box) => actions.openConfirm('start_session', box)}
+          onStartSession={(box) => verification.handleStartVerifSession(box.id)}
           loadingStartSession={verification.loadingVerifBooks}
           emptyText="No boxes to verify"
           emptySubtext="Receive boxes from the Incoming Boxes tab first."
           emptyIcon={<ClipboardCheck className="h-5 w-5" />}
         />
-        <InventoryVerificationCompleteModal verification={verification} />
+        <InventoryVerificationCompleteModal verification={verification} onSuccess={() => actions.setInventoryTab('outgoing')} />
         <InventoryScanModal
           book={verification.verifFlagModalBook}
           issue={verification.verifFlagIssue}
@@ -69,7 +69,7 @@ export function InventoryVerificationTab({
       ) : verification.verifBox ? (
         <InventoryVerificationActiveSession brand={brand} verification={verification} />
       ) : null}
-      <InventoryVerificationCompleteModal verification={verification} />
+      <InventoryVerificationCompleteModal verification={verification} onSuccess={() => actions.setInventoryTab('outgoing')} />
       <InventoryScanModal
         book={verification.verifFlagModalBook}
         issue={verification.verifFlagIssue}

@@ -187,7 +187,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     setVerifTotalBooksExpected(''); setVerifIssues([]); setVerifConfirmComplete(true)
   }, [toast, verifCurrentSession, verifScannedBooks, warehouseBooks])
 
-  const handleCompleteVerifSession = useCallback(async () => {
+  const handleCompleteVerifSession = useCallback(async (onSuccess?: () => void) => {
     if (!verifCurrentSession || !verifBox) return
     setLoadingVerifBooks(true)
     try {
@@ -205,6 +205,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
       inventory.setBoxes((prev) => prev.map((b) => b.id === verifBox.id ? { ...b, box_sessions: b.box_sessions?.map((s) => s.id === verifCurrentSession.id ? { ...s, status: 'completed' } : s) || [{ status: 'completed' }] } : b))
       reset()
       toast({ title: 'Verification Session Closed', description: 'Verification completed successfully.' })
+      onSuccess?.()
     } catch (e) { toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to complete verification session', variant: 'destructive' }) }
     finally { setLoadingVerifBooks(false) }
   }, [inventory, reset, saveVerifBookToDB, toast, verifBox, verifCurrentSession, verifIssues, verifScannedBooks, warehouseBooks])
