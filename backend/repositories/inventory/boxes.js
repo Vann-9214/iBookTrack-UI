@@ -316,26 +316,20 @@ export const getPipelineTransitionsQuery = async (limitNum, offsetNum, stage, bo
   }
 };
 
-export const getBookActivitiesForPipeline = async (boxIds) => {
+export const getSessionCompletionForPipeline = async (boxIds) => {
   if (!boxIds || !boxIds.length) return { data: [], error: null };
   try {
     const ph = boxIds.map((_, i) => `$${i + 1}`).join(',');
     const { rows } = await db.query(`
-      SELECT ba.warehouse_scan_by, ba.warehouse_scan_at, 
-             ba.inventory_scan_by, ba.inventory_scan_at, 
-             ba.endorsement_scan_by, ba.endorsement_scan_at, 
-             b.box_id as "books.box_id"
-      FROM book_activity ba
-      JOIN books b ON ba.book_id = b.id
-      WHERE b.box_id IN (${ph})
+      SELECT DISTINCT ON (box_id) box_id,
+             warehouse_user_received as warehouse_complete_by, warehouse_time_received as warehouse_complete_at, 
+             inventory_complete_by, inventory_complete_at, 
+             endorsement_complete_by, endorsement_complete_at
+      FROM box_sessions
+      WHERE box_id IN (${ph})
+      ORDER BY box_id, updated_at DESC
     `, boxIds);
-    const data = rows.map(r => ({
-      warehouse_scan_by: r.warehouse_scan_by, warehouse_scan_at: r.warehouse_scan_at,
-      inventory_scan_by: r.inventory_scan_by, inventory_scan_at: r.inventory_scan_at,
-      endorsement_scan_by: r.endorsement_scan_by, endorsement_scan_at: r.endorsement_scan_at,
-      books: { box_id: r['books.box_id'] }
-    }));
-    return { data, error: null };
+    return { data: rows, error: null };
   } catch (error) {
     return { data: null, error };
   }

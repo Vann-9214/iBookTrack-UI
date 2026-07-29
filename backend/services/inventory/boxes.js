@@ -7,6 +7,7 @@
 import { logger } from '../../utils/logger.js';
 import * as boxesRepo from '../../repositories/inventory/boxes.js';
 import { generateLotCandidates } from '../../utils/lotUtils.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 const syncBoxTransmissionStatus = async (boxId, location) => {
   try {
@@ -183,6 +184,7 @@ export const getBoxesService = async (req) => {
 };
 
 export const getPipelineTransitionsService = async (req) => {
+  await runWarehouseTimeoutSweep();
   const { limit = 50, offset = 0, stage, box_type, search, date_from, date_to } = req.query;
   const limitNum = Math.min(Math.max(parseInt(limit) || 50, 1), 50);
   const offsetNum = parseInt(offset);
@@ -204,14 +206,14 @@ export const getPipelineTransitionsService = async (req) => {
   
   let boxScanData = {};
   if (boxIds.length > 0) {
-    const { data: bookActivities } = await boxesRepo.getBookActivitiesForPipeline(boxIds);
-    for (const ba of bookActivities || []) {
-      const boxId = ba.books?.box_id;
+    const { data: boxSessions } = await boxesRepo.getSessionCompletionForPipeline(boxIds);
+    for (const session of boxSessions || []) {
+      const boxId = session.box_id;
       if (boxId && !boxScanData[boxId]) {
         boxScanData[boxId] = { 
-          w_by: ba.warehouse_scan_by, w_at: ba.warehouse_scan_at,
-          i_by: ba.inventory_scan_by, i_at: ba.inventory_scan_at,
-          e_by: ba.endorsement_scan_by, e_at: ba.endorsement_scan_at
+          w_by: session.warehouse_complete_by, w_at: session.warehouse_complete_at,
+          i_by: session.inventory_complete_by, i_at: session.inventory_complete_at,
+          e_by: session.endorsement_complete_by, e_at: session.endorsement_complete_at
         };
       }
     }

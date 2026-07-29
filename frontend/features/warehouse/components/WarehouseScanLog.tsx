@@ -69,7 +69,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                 <span className="text-center">Time</span>
               </div>
             </div>
-            <div className={cn('divide-y divide-border pr-1', scannedBooks.length > 8 ? 'h-[320px] overflow-y-scroll' : 'max-h-[320px] overflow-y-auto')}>
+            <div className={cn('divide-y divide-border pr-1', scannedBooks.length > 5 ? 'h-[220px] overflow-y-scroll' : 'max-h-[220px] overflow-y-auto')}>
               {scannedBooks.map((book, idx) => (
                 <div
                   key={`${book.id}-${idx}`}

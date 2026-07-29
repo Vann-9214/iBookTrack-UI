@@ -9,8 +9,10 @@ import * as dashboardRepo from '../../repositories/analytics/dashboard.js';
 import scanManagerApi from '../scan_manager/api/index.js';
 import { ilmsApi } from '../ilms/api.js';
 import { generateLotCandidates } from '../../utils/lotUtils.js';
+import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 
 export const getStatsService = async (req) => {
+  await runWarehouseTimeoutSweep();
   const { lot_number, lot_range_start, lot_range_end, box_type, type } = req.query;
   const bookType = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : null;
 
@@ -72,6 +74,7 @@ export const getStatsService = async (req) => {
 };
 
 export const getOpenLotsService = async (req) => {
+  await runWarehouseTimeoutSweep();
   const { brand } = req.query;
   const normalizedBrand = brand ? brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase() : null;
 
@@ -137,6 +140,7 @@ export const getOpenLotsService = async (req) => {
 };
 
 export const getQcFlagsService = async (req) => {
+  await runWarehouseTimeoutSweep();
   const requestedPage = parseInt(req.query.page || '1', 10);
   const requestedLimit = parseInt(req.query.limit || '50', 10);
   const todayOnly = req.query.today === 'true';
@@ -333,6 +337,7 @@ export const getLotDetailsService = async (req) => {
 };
 
 export const getPipelineStatsService = async (req) => {
+  await runWarehouseTimeoutSweep();
   const { lot_number, brand } = req.query;
   const selectedBrand = (brand === 'jaguar' || brand === 'mustang') ? brand : null;
   const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');

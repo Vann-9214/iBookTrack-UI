@@ -42,16 +42,10 @@ export function WarehouseActiveSession({
   return (
     <div className="relative flex flex-col gap-4">
       {loading && (
-        <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/50 backdrop-blur-[2px] rounded-xl">
-          <div className={cn(
-            "flex items-center gap-3 px-5 py-4 bg-card border rounded-xl shadow-lg",
-            brand === 'jaguar' ? "border-emerald-200 shadow-emerald-900/5" : "border-blue-200 shadow-blue-900/5"
-          )}>
-            <span className={cn(
-              "w-6 h-6 rounded-full border-2 border-t-transparent animate-spin",
-              brand === 'jaguar' ? "border-emerald-600" : "border-blue-600"
-            )} />
-            <span className="text-sm font-semibold text-foreground">Completing session...</span>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[3px] rounded-2xl animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <Loader2 className={cn("h-4 w-4 animate-spin", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
+            <span className="text-sm font-medium text-muted-foreground">Completing session…</span>
           </div>
         </div>
       )}
@@ -69,7 +63,7 @@ export function WarehouseActiveSession({
         </div>
       )}
 
-      <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ring-1 ring-black/5', iconTheme)}>
             <Warehouse className="h-7 w-7" />

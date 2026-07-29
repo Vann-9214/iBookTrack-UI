@@ -133,6 +133,8 @@
   --warning-foreground: oklch(0.2 0 0);
   /* Ambient accent fallbacks (overridden per theme below) */
   --brand-soft: oklch(0.95 0.035 254);
+  --brand-wash: oklch(0.91 0.06 254);
+  --brand-glow: oklch(0.93 0.04 240);
   --brand-strong: oklch(0.55 0.2 260);
 }
 
@@ -145,6 +147,8 @@
   --sidebar-ring: oklch(0.55 0.2 260);
   /* Ambient accents consumed by the dashboard */
   --brand-soft: oklch(0.95 0.035 254);
+  --brand-wash: oklch(0.91 0.06 254);   /* Visible blue pool */
+  --brand-glow: oklch(0.93 0.04 240);   /* Deeper blue accent */
   --brand-strong: oklch(0.55 0.2 260);
 }
 
@@ -157,16 +161,27 @@
   --sidebar-ring: oklch(0.62 0.16 142);
   /* Ambient accents consumed by the dashboard */
   --brand-soft: oklch(0.95 0.05 150);
+  --brand-wash: oklch(0.90 0.07 150);   /* Visible green pool */
+  --brand-glow: oklch(0.93 0.04 180);   /* Subtle teal/cyan warmth */
   --brand-strong: oklch(0.62 0.16 142);
 }
 
-/* Ambient themed background wash for the main dashboard scroll area.
-   The gradient shifts hue with the active brand for an obvious cue. */
+/* Ambient themed background — multi-layer mesh gradient.
+   Uses --brand-wash (visible pools) and --brand-glow (complement hue)
+   to create depth with varied saturation across the page. */
 .ambient-bg {
   background-color: var(--background);
   background-image:
-    radial-gradient(1100px 460px at 100% -5%, var(--brand-soft), transparent 62%),
-    radial-gradient(900px 520px at -10% 108%, var(--brand-soft), transparent 58%);
+    /* 1 · Strong brand wash — top-left corner, most visible hotspot */
+    radial-gradient(ellipse 800px 450px at -2% -2%, var(--brand-wash), transparent 58%),
+    /* 2 · Complement glow — bottom-right, shifted hue for color depth */
+    radial-gradient(ellipse 650px 500px at 100% 95%, var(--brand-glow), transparent 52%),
+    /* 3 · Soft center fill — gentle accent in the middle of the content */
+    radial-gradient(ellipse 500px 350px at 50% 50%, var(--brand-soft), transparent 65%),
+    /* 4 · Faint mid-right edge accent */
+    radial-gradient(ellipse 300px 600px at 97% 40%, var(--brand-soft), transparent 50%),
+    /* 5 · Faint secondary wash — top-right for balance */
+    radial-gradient(ellipse 400px 300px at 90% 8%, var(--brand-glow), transparent 55%);
   background-attachment: local;
   transition: background-color 0.5s ease, background-image 0.5s ease;
 }
