@@ -174,9 +174,10 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   if (loading || !stats) {
     return (
-      <Card className={cn("border-border bg-card border-t-2 shadow-sm", borderColor)}>
+      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70" : "border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70")}>
+        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
-          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
+          <CardTitle className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5">
               <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
                 <Workflow className="h-4 w-4" />
@@ -187,7 +188,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
             <Skeleton className="sm:ml-auto h-6 w-24 rounded-full bg-muted-foreground/10" />
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
               const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
@@ -260,9 +261,10 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   return (
     <>
-      <Card className={cn("border-border bg-card border-t-2 shadow-sm", borderColor)}>
+      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70" : "border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70")}>
+        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
-          <CardTitle className="flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
+          <CardTitle className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5">
               <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
                 <Workflow className="h-4 w-4" />
@@ -270,10 +272,10 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
               {currentLot && <span className="text-sm font-medium text-muted-foreground">| {currentLot}</span>}
             </div>
-            <span className="sm:ml-auto text-[11px] font-semibold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">{todayLabel}</span>
+            <span className={cn("sm:ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-r from-emerald-500 to-green-600" : "bg-gradient-to-r from-blue-500 to-indigo-600")}>{todayLabel}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           {/* Desktop: card layout */}
           <div className="hidden lg:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {

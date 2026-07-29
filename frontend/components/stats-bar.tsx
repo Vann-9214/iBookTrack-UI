@@ -83,6 +83,10 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [loadingDailyOutput, setLoadingDailyOutput] = useState(false)
   const dailyOutputPagination = usePagination({ totalItems: totalDailyOutput, defaultPageSize: 50 })
 
+  const [flagsClosing, setFlagsClosing] = useState(false)
+  const [liveLotsClosing, setLiveLotsClosing] = useState(false)
+  const [dailyOutputClosing, setDailyOutputClosing] = useState(false)
+
   const fetchLiveLots = async (background = false) => {
     if (!background) setLoadingLiveLots(true)
     try {
@@ -207,6 +211,24 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     fetchDailyOutput(dailyOutputPagination.currentPage)
   }, [dailyOutputPagination.currentPage])
 
+  const dismissFlags = () => {
+    if (flagsClosing) return
+    setFlagsClosing(true)
+    setTimeout(() => { setFlagsOpen(false); setFlagsClosing(false) }, 340)
+  }
+
+  const dismissLiveLots = () => {
+    if (liveLotsClosing) return
+    setLiveLotsClosing(true)
+    setTimeout(() => { setLiveLotsOpen(false); setSelectedLot(null); setLiveLotsClosing(false) }, 340)
+  }
+
+  const dismissDailyOutput = () => {
+    if (dailyOutputClosing) return
+    setDailyOutputClosing(true)
+    setTimeout(() => { setDailyOutputOpen(false); setDailyOutputClosing(false) }, 340)
+  }
+
   const ISSUE_LABELS: Record<string, string> = {
     'bent-page': 'Bent Page', 'torn-page': 'Torn Page', 'missing-page': 'Missing Page',
     'water-damage': 'Water Damage', 'wrong-isbn': 'Wrong ISBN', 'duplicate': 'Duplicate',
@@ -225,7 +247,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const TONE = {
     theme: isJaguar
       ? {
-          card: "bg-gradient-to-br from-emerald-50 to-emerald-100/40 border-emerald-200/70 ring-emerald-100/60",
+          card: "bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70",
           icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
           value: "text-emerald-700",
           title: "text-emerald-950/70",
@@ -233,7 +255,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           hover: "hover:shadow-emerald-200/60",
         }
       : {
-          card: "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-blue-200/70 ring-blue-100/60",
+          card: "bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70",
           icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
           value: "text-blue-700",
           title: "text-blue-950/70",
@@ -241,7 +263,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           hover: "hover:shadow-blue-200/60",
         },
     red: {
-      card: "bg-gradient-to-br from-red-50 to-rose-100/40 border-red-200/70 ring-red-100/60",
+      card: "bg-gradient-to-br from-red-50 via-card to-rose-100/60 border-2 border-red-200/80 ring-red-100/70",
       icon: "bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/25",
       value: "text-red-600",
       title: "text-red-950/70",
@@ -251,7 +273,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     /* Bold theme variant for the headline "Total Books" card */
     solid: isJaguar
       ? {
-          card: "bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-600/40 ring-emerald-300/30 text-white",
+          card: "bg-gradient-to-br from-emerald-500 via-emerald-500 to-green-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white",
           icon: "bg-white/20 shadow-black/10",
           value: "text-white",
           title: "text-white/90",
@@ -259,7 +281,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           hover: "hover:shadow-emerald-500/40",
         }
       : {
-          card: "bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600/40 ring-blue-300/30 text-white",
+          card: "bg-gradient-to-br from-blue-500 via-blue-500 to-indigo-600 border-2 border-blue-600/40 ring-blue-300/30 text-white",
           icon: "bg-white/20 shadow-black/10",
           value: "text-white",
           title: "text-white/90",
@@ -383,6 +405,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
             {stats.map((stat) => (
               <div
                 key={stat.title}
+                role={stat.onClick ? "button" : undefined}
                 onClick={stat.onClick}
                 className={cn(
                   "rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97] overflow-hidden",
@@ -406,6 +429,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
             {stats.map((stat) => (
               <div
                 key={stat.title}
+                role={stat.onClick ? "button" : undefined}
                 onClick={stat.onClick}
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
@@ -431,8 +455,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
 
       {/* QC Flagged Books Modal */}
       {flagsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setFlagsOpen(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-origin ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
+        <div className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", flagsClosing ? 'animate-overlay-out' : 'animate-overlay-in')} onClick={dismissFlags}>
+          <div className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", flagsClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')} data-modal-origin-surface onClick={e => e.stopPropagation()}>
 
             {/* Red header */}
             <div className="px-6 py-5 flex items-center justify-between bg-gradient-to-r from-red-50 to-rose-50">
@@ -449,7 +473,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 </div>
               </div>
               <button
-                onClick={() => setFlagsOpen(false)}
+                onClick={dismissFlags}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
               >
                 <X className="h-4 w-4" />
@@ -464,8 +488,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : flags.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100">
-                  <CheckCircle2 className="h-7 w-7" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
+                  <AlertTriangle className="h-7 w-7" />
                 </div>
                 <span className="text-sm font-semibold text-gray-600">No flagged books</span>
                 <span className="text-xs text-gray-400">Everything looks clean for today</span>
@@ -545,11 +569,12 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       {/* Live Lots modal */}
       {liveLotsOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in"
-          onClick={() => setLiveLotsOpen(false)}
+          className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", liveLotsClosing ? 'animate-overlay-out' : 'animate-overlay-in')}
+          onClick={dismissLiveLots}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-origin ring-1 ring-black/5"
+            className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", liveLotsClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')}
+            data-modal-origin-surface
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -581,7 +606,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 </div>
               </div>
               <button
-                onClick={() => setLiveLotsOpen(false)}
+                onClick={dismissLiveLots}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
               >
                 <X className="h-4 w-4" />
@@ -635,8 +660,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : liveLots.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-2">
-                <div className={cn("h-12 w-12 rounded-full flex items-center justify-center", M.track, M.soft)}>
-                  <Package className="h-6 w-6" />
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg", M.iconBg)}>
+                  <Activity className="h-7 w-7" />
                 </div>
                 <span className="text-sm font-medium text-gray-500">No open lots currently</span>
               </div>
@@ -688,11 +713,12 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       {/* Daily Output Modal */}
       {dailyOutputOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in"
-          onClick={() => setDailyOutputOpen(false)}
+          className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", dailyOutputClosing ? 'animate-overlay-out' : 'animate-overlay-in')}
+          onClick={dismissDailyOutput}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-origin ring-1 ring-black/5"
+            className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", dailyOutputClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')}
+            data-modal-origin-surface
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -710,7 +736,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 </div>
               </div>
               <button
-                onClick={() => setDailyOutputOpen(false)}
+                onClick={dismissDailyOutput}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
               >
                 <X className="h-4 w-4" />
@@ -743,7 +769,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : dailyOutputRows.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl ring-1", M.track, M.soft, M.border)}>
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg", M.iconBg)}>
                   <FileOutput className="h-7 w-7" />
                 </div>
                 <span className="text-sm font-semibold text-gray-600">No books transmitted today</span>

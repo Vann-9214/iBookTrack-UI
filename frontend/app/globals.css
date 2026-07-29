@@ -34,6 +34,13 @@
 .animate-overlay-in {
   animation: overlayIn 0.2s ease both;
 }
+@keyframes overlayOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.animate-overlay-out {
+  animation: overlayOut 0.28s ease both;
+}
 .animate-modal-in {
   animation: modalIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

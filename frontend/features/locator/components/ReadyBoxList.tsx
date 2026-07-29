@@ -61,7 +61,7 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
             </div>
           ) : filteredReadyBoxes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
-              <Package className="h-7 w-7 opacity-30" />
+              <Package className={cn("h-7 w-7", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
               <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
               <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
             </div>

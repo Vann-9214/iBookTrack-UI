@@ -120,6 +120,7 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
 
           {(l.showLotPicker || !l.lotSummary) && (
             <LotSelector
+              brand={brand}
               lotSearchQuery={l.lotSearchQuery}
               setLotSearchQuery={l.setLotSearchQuery}
               handleLotSearchChange={l.handleLotSearchChange}
@@ -156,6 +157,7 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
                 setShowLotPicker={l.setShowLotPicker}
               />
               <TransmissionBookTable
+                brand={brand}
                 filteredLotIsbns={l.filteredLotIsbns}
                 paginatedLotIsbns={l.paginatedLotIsbns}
                 lotIsbnSearch={l.lotIsbnSearch}
