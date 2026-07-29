@@ -25,7 +25,7 @@ export const validateRequest = (schema) => {
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({
-          error: 'Invalid request data',
+          error: error.errors[0]?.message || 'Invalid request data',
           details: error.errors
         });
       }
