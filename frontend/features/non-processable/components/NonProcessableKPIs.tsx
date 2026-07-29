@@ -22,7 +22,7 @@ export function NonProcessableKPIs({
 }: NonProcessableKPIsProps) {
   const TONE = getTone(isJaguar)
   const dynamicTone = TONE.theme
-  const redTone = TONE.redSolid
+  const redTone = TONE.red
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">

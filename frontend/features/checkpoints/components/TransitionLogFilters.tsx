@@ -54,8 +54,8 @@ export function TransitionLogFilters({
           <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
             Search
           </label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
             <Input
               placeholder="Search box or lot (Press Enter)"
               value={searchInput}
@@ -63,7 +63,7 @@ export function TransitionLogFilters({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onSearchApply()
               }}
-              className="pl-9 h-10 bg-background border-border/50 focus-visible:border-primary focus-visible:ring-1 hover:border-border transition-colors rounded-xl shadow-sm"
+              className="w-full sm:w-64 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:border-primary/50"
             />
           </div>
         </div>

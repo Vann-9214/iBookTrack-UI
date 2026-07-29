@@ -69,17 +69,18 @@ export function TransmissionMetrics({
       <div className="hidden sm:grid grid-cols-3 gap-4">
         <div
           className={cn(
-            'rounded-2xl border p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]',
+            'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
             brand === 'jaguar'
-              ? 'border-emerald-300 bg-emerald-100/60 hover:bg-emerald-100'
-              : 'border-blue-300 bg-blue-100/60 hover:bg-blue-100'
+              ? 'bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60'
+              : 'bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70 hover:shadow-blue-200/60'
           )}
         >
-          <div className="flex items-start justify-between mb-3">
+          <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+          <div className="relative flex items-start justify-between mb-3">
             <div
               className={cn(
-                'flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm',
-                brand === 'jaguar' ? 'bg-emerald-500' : 'bg-blue-500'
+                'flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110',
+                brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25' : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
               )}
             >
               <FileUp className="h-6 w-6" />
@@ -97,36 +98,37 @@ export function TransmissionMetrics({
           </div>
           <div
             className={cn(
-              'text-3xl font-black mb-0.5',
-              brand === 'jaguar' ? 'text-emerald-600' : 'text-blue-600'
+              'relative text-4xl font-black mb-0.5 tracking-tight tabular-nums',
+              brand === 'jaguar' ? 'text-emerald-700' : 'text-blue-700'
             )}
           >
             {loading ? '…' : totalTransmitted.toLocaleString()}
           </div>
-          <div className="text-sm font-semibold text-gray-700 mb-0.5">Transmitted Today</div>
-          <div className={cn('text-xs', brand === 'jaguar' ? 'text-emerald-500' : 'text-blue-500')}>
+          <div className={cn("relative text-sm font-semibold mb-0.5", brand === 'jaguar' ? 'text-emerald-950/70' : 'text-blue-950/70')}>Transmitted Today</div>
+          <div className={cn('relative text-xs font-medium', brand === 'jaguar' ? 'text-emerald-600/80' : 'text-blue-600/80')}>
             books sent to archive
           </div>
         </div>
-        <div className="rounded-2xl border border-green-300 bg-green-100/60 hover:bg-green-100 p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:scale-[1.02]">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500 text-white shadow-sm">
+        <div className="group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60">
+          <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+          <div className="relative flex items-start justify-between mb-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25">
               <CheckCircle2 className="h-6 w-6" />
             </div>
             {failedTransmissions > 0 && (
               <span className="text-[11px] font-semibold text-red-500">{failedTransmissions} failed</span>
             )}
           </div>
-          <div className="text-3xl font-black text-green-600 mb-0.5">{loading ? '…' : `${passRate}%`}</div>
-          <div className="text-sm font-semibold text-gray-700 mb-0.5">Pass Rate</div>
-          <div className="text-xs text-green-500">transmission success rate</div>
+          <div className="relative text-4xl font-black mb-0.5 tracking-tight tabular-nums text-emerald-700">{loading ? '…' : `${passRate}%`}</div>
+          <div className="relative text-sm font-semibold mb-0.5 text-emerald-950/70">Pass Rate</div>
+          <div className="relative text-xs font-medium text-emerald-600/80">transmission success rate</div>
         </div>
         <div
           className={cn(
             'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
             brand === 'jaguar'
-              ? 'bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-600/40 ring-emerald-300/30 text-white hover:shadow-emerald-500/40'
-              : 'bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600/40 ring-blue-300/30 text-white hover:shadow-blue-500/40'
+              ? 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-green-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white hover:shadow-emerald-500/40'
+              : 'bg-gradient-to-br from-blue-500 via-blue-500 to-indigo-600 border-2 border-blue-600/40 ring-blue-300/30 text-white hover:shadow-blue-500/40'
           )}
         >
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
