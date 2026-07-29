@@ -228,11 +228,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               <span className="h-2.5 w-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200 ring-offset-1" />
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sent</span>
             </div>
-            <div className="w-px h-5 bg-slate-200 mx-1" />
-            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-50 to-amber-50/80 border border-orange-200/60 px-3 py-1.5 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-orange-200 ring-offset-1 animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-orange-500">Delayed</span>
-            </div>
           </div>
 
           <div className="flex flex-col gap-3 lg:hidden">
@@ -294,14 +289,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                     <div className="pointer-events-none absolute inset-x-0 -top-6 h-12 bg-white/25 blur-lg" />
                     <span className="relative text-xs font-bold text-slate-500 uppercase tracking-wider">{step.label}</span>
                     <div className="relative">{renderFormattedCounts(step, cfg.countColor, brand)}</div>
-                    {step.delayed > 0 && (
-                      <div className="relative flex items-center gap-1 bg-gradient-to-r from-orange-100/60 to-amber-100/40 px-2 py-0.5 rounded-full border border-orange-200/50 shadow-sm" title={`${step.delayed} ${step.isBookStage ? 'books' : 'boxes'} delayed > 1 day`}>
-                        <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-                        <span className="text-[10px] font-bold leading-none text-orange-600">
-                          {step.delayed} delayed
-                        </span>
-                      </div>
-                    )}
                     <div className={cn("relative h-[3px] w-full rounded-full my-1", cfg.bar)} />
                     <div className="relative flex items-center gap-1.5">
                       <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
@@ -335,11 +322,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               <span className="h-2.5 w-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200 ring-offset-1" />
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sent</span>
             </div>
-            <div className="w-px h-5 bg-slate-200 mx-1" />
-            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-50 to-amber-50/80 border border-orange-200/60 px-3 py-1.5 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-orange-400 ring-2 ring-orange-200 ring-offset-1 animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-orange-500">Delayed</span>
-            </div>
           </div>
 
           {/* Mobile: vertical */}
@@ -358,9 +340,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                       {renderFormattedCounts(step, cfg.countColor, brand)}
                       <span className="font-medium">{step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
                     </div>
-                    {step.delayed > 0 && (
-                      <span className="text-xs text-orange-600 font-semibold">{step.delayed} delayed</span>
-                    )}
                   </div>
                   <div className="ml-auto flex items-center gap-1.5">
                     <span className={cn("h-2 w-2 rounded-full", cfg.dot)} />
