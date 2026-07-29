@@ -8,6 +8,9 @@ export function InventoryBoxRow({
   onToggle,
   badge,
   date,
+  sender,
+  completedBy,
+  receivedBy,
   action,
   lotFallback = '—',
   children,
@@ -18,6 +21,9 @@ export function InventoryBoxRow({
   onToggle: () => void
   badge?: React.ReactNode
   date?: Date | null
+  sender?: string | null
+  completedBy?: string | null
+  receivedBy?: string | null
   action?: React.ReactNode
   lotFallback?: string
   children?: React.ReactNode
@@ -59,10 +65,23 @@ export function InventoryBoxRow({
             </p>
           </div>
         </div>
-        {date && (
+        {(date || sender || completedBy || receivedBy) && (
           <div className="shrink-0 hidden sm:block text-right mr-2">
-            <p className={cn('text-xs', expanded ? 'text-white/80' : 'text-muted-foreground')}>{date.toLocaleDateString()}</p>
-            <p className={cn('text-[10px]', expanded ? 'text-white/70' : 'text-muted-foreground/80')}>{date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+            {sender && (
+              <p className={cn('text-[11px] font-medium mb-0.5', expanded ? 'text-white/90' : 'text-foreground/80')}>Sent by: {sender}</p>
+            )}
+            {completedBy && (
+              <p className={cn('text-[11px] font-medium mb-0.5', expanded ? 'text-white/90' : 'text-foreground/80')}>Completed by: {completedBy}</p>
+            )}
+            {receivedBy && (
+              <p className={cn('text-[11px] font-medium mb-0.5', expanded ? 'text-white/90' : 'text-foreground/80')}>Received by: {receivedBy}</p>
+            )}
+            {date && (
+              <>
+                <p className={cn('text-xs', expanded ? 'text-white/80' : 'text-muted-foreground')}>{date.toLocaleDateString()}</p>
+                <p className={cn('text-[10px]', expanded ? 'text-white/70' : 'text-muted-foreground/80')}>{date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+              </>
+            )}
           </div>
         )}
         {action}

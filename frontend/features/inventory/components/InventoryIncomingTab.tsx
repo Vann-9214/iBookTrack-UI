@@ -46,6 +46,7 @@ export function InventoryIncomingTab({ inventory, actions }: { inventory: Return
           const warehouseTime = box.box_sessions?.[0]?.warehouse_time_received
           return warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
         }}
+        renderSender={(box: InventoryBox) => box.box_sessions?.[0]?.warehouse_received_profile?.name || null}
         renderBooks={(box, books) => <InventoryBookList books={books} box={box} loading={inventory.loadingBooks === box.id} />}
       />
     </div>

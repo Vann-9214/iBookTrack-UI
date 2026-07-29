@@ -16,6 +16,9 @@ export function InventoryBoxList({
   renderBadge,
   renderAction,
   renderDate,
+  renderSender,
+  renderCompletedBy,
+  renderReceivedBy,
   renderBooks,
   showEmpty = true,
   emptyText = 'No boxes found.',
@@ -35,6 +38,9 @@ export function InventoryBoxList({
   renderBadge?: (box: InventoryBox, expanded: boolean) => React.ReactNode
   renderAction?: (box: InventoryBox, expanded: boolean) => React.ReactNode
   renderDate?: (box: InventoryBox) => Date | null
+  renderSender?: (box: InventoryBox) => string | null
+  renderCompletedBy?: (box: InventoryBox) => string | null
+  renderReceivedBy?: (box: InventoryBox) => string | null
   renderBooks: (box: InventoryBox, books: BookInBox[]) => React.ReactNode
   showEmpty?: boolean
   emptyText?: string
@@ -100,6 +106,9 @@ export function InventoryBoxList({
                   badge={renderBadge?.(box, expanded)}
                   action={renderAction?.(box, expanded)}
                   date={renderDate?.(box)}
+                  sender={renderSender?.(box)}
+                  completedBy={renderCompletedBy?.(box)}
+                  receivedBy={renderReceivedBy?.(box)}
                   lotFallback={lotFallback}
                 >
                   {expanded && renderBooks(box, books)}

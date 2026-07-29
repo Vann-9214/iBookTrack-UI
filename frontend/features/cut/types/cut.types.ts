@@ -13,7 +13,10 @@ export interface BookInBox {
 export interface BoxSession {
   status: string
   inventory_time_send?: string
+  inventory_send_profile?: { name: string }
   cut_time_received?: string
+  cut_received_profile?: { name: string }
+  cut_send_profile?: { name: string }
   total_scanned_books?: number
 }
 

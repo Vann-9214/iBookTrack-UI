@@ -107,6 +107,9 @@ export function InspectionBoxList({
           const receivedTime = box.box_sessions?.[0]?.endorsement_time_received
           return receivedTime ? new Date(receivedTime) : null
         }}
+        renderReceivedBy={(box: BoxEntry) => {
+          return box.box_sessions?.[0]?.endorsement_received_profile?.name || 'Unknown'
+        }}
         renderBooks={(box, books) => <EndorsementBookList books={books} loading={loadingInspRowBooks === box.id} />}
       />
     </div>

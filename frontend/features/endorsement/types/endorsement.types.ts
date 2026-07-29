@@ -7,7 +7,10 @@ export interface BoxEntry {
   box_sessions?: {
     warehouse_time_received?: string
     cut_time_send?: string
+    cut_send_profile?: { name: string }
     endorsement_time_received?: string
+    endorsement_user_received?: string
+    endorsement_received_profile?: { name: string }
     status?: string
     total_scanned_books?: number
     updated_at?: string

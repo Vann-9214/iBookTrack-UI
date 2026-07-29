@@ -66,6 +66,7 @@ export function IncomingBoxes({
           const cutTime = box.box_sessions?.[0]?.cut_time_send
           return cutTime ? new Date(cutTime) : null
         }}
+        renderSender={(box: BoxEntry) => box.box_sessions?.[0]?.cut_send_profile?.name || null}
         renderBooks={(box, books) => <EndorsementBookList books={books} loading={loadingBoxBooks === box.id} />}
       />
     </div>

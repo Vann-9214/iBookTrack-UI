@@ -79,6 +79,7 @@ export function IncomingCutBoxList({
                 isProcessing={receivingBoxId === box.id}
                 books={boxBooks[box.id] || []}
                 isLoadingBooks={loadingBoxBooksId === box.id}
+                sender={box.box_sessions?.[0]?.inventory_send_profile?.name}
               />
             ))}
           </div>

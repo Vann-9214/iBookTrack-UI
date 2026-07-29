@@ -10,6 +10,9 @@ export function EndorsementBoxRow({
   date,
   action,
   lotFallback = '—',
+  sender,
+  receivedBy,
+  completedBy,
   children,
   className,
 }: {
@@ -20,6 +23,9 @@ export function EndorsementBoxRow({
   date?: Date | null
   action?: React.ReactNode
   lotFallback?: string
+  sender?: string | null
+  receivedBy?: string | null
+  completedBy?: string | null
   children?: React.ReactNode
   className?: string
 }) {
@@ -59,6 +65,30 @@ export function EndorsementBoxRow({
             </p>
           </div>
         </div>
+        {sender && (
+          <div className="shrink-0 hidden sm:flex flex-col items-end mr-4">
+            <span className={cn('text-[10px] font-semibold uppercase tracking-wider', expanded ? 'text-white/60' : 'text-muted-foreground')}>Sent By</span>
+            <span className={cn('text-xs font-medium', expanded ? 'text-white' : 'text-foreground')}>
+              {sender}
+            </span>
+          </div>
+        )}
+        {receivedBy && (
+          <div className="shrink-0 hidden sm:flex flex-col items-end mr-4">
+            <span className={cn('text-[10px] font-semibold uppercase tracking-wider', expanded ? 'text-white/60' : 'text-muted-foreground')}>Received By</span>
+            <span className={cn('text-xs font-medium', expanded ? 'text-white' : 'text-foreground')}>
+              {receivedBy}
+            </span>
+          </div>
+        )}
+        {completedBy && (
+          <div className="shrink-0 hidden sm:flex flex-col items-end mr-4">
+            <span className={cn('text-[10px] font-semibold uppercase tracking-wider', expanded ? 'text-white/60' : 'text-muted-foreground')}>Completed By</span>
+            <span className={cn('text-xs font-medium', expanded ? 'text-white' : 'text-foreground')}>
+              {completedBy}
+            </span>
+          </div>
+        )}
         {date && (
           <div className="shrink-0 hidden sm:block text-right mr-2">
             <p className={cn('text-xs', expanded ? 'text-white/80' : 'text-muted-foreground')}>{date.toLocaleDateString()}</p>
