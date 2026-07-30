@@ -147,22 +147,15 @@ export function NonProcessableCharts({
               {(() => {
                 const top5Lots = structuredLots.slice(0, 5);
                 
-                // Dynamically arrange based on how many items exist
-                const getPodiumOrder = (length: number) => {
-                  switch (length) {
-                    case 0: return [];
-                    case 1: return [0];
-                    case 2: return [1, 0];
-                    case 3: return [1, 0, 2];
-                    case 4: return [3, 1, 0, 2];
-                    default: return [3, 1, 0, 2, 4];
-                  }
-                };
-                
-                const podiumOrder = getPodiumOrder(top5Lots.length);
+                // Fixed podium order to maintain placeholder positions
+                const podiumOrder = [3, 1, 0, 2, 4];
                 const arrangedLots = podiumOrder.map(i => ({ lot: top5Lots[i], originalIndex: i }));
 
                 return arrangedLots.map(({ lot, originalIndex: index }) => {
+                  if (!lot) {
+                    return <div key={`empty-${index}`} className="w-full h-full" />
+                  }
+                  
                   const maxFlags = Math.max(1, ...top5Lots.map(l => l.totalFlags));
                   const percent = Math.max(Math.round((lot.totalFlags / maxFlags) * 100), 8); // Minimum 8% height so it's visible
                 
