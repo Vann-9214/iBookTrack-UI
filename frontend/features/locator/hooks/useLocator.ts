@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { StorageLocation, ReadyBox, PendingAssignment } from "../types/locator.types"
 import { locatorService } from "../services/locator.service"
 import { getSuggestedLocation } from "../utils/locator.helpers"

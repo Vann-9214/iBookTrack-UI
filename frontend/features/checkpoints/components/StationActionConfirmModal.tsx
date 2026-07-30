@@ -20,16 +20,14 @@ export function StationActionConfirmModal({
       ? STAGE_META[STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) - 1]]
       : STAGE_META[confirmBox.current_stage]
 
+  const nextStage = confirmBox.current_stage === 'scan'
+    ? 'storage'
+    : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]
+
   const toMeta =
     confirmActionType === 'receive'
       ? STAGE_META[confirmBox.current_stage]
-      : confirmActionType === 'send_forward'
-      ? { color: 'bg-blue-50 text-blue-700 border-blue-300', label: 'Sent' }
-      : STAGE_META[
-          confirmBox.current_stage === 'scan'
-            ? 'storage'
-            : STAGE_ORDER[STAGE_ORDER.indexOf(confirmBox.current_stage) + 1]
-        ]
+      : STAGE_META[nextStage as Stage]
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40">
