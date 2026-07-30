@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { LotStatusRow, FilterStatus, SortKey, SortDir } from '../types/reports.types'
 import { reportsService } from '../services/reports.service'
 import { filterAndSortLots } from '../utils/reports.helpers'
@@ -33,8 +33,8 @@ export function useReports(brand: string) {
     setBoxPageByLot(p => ({ ...p, [lotId]: page }))
   }
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setLoading(true)
     setError(null)
     try {
       const fetchedLots = await reportsService.fetchLotStatus(brand)
@@ -45,13 +45,29 @@ export function useReports(brand: string) {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
-      setLoading(false)
+      if (isBackground !== true) setLoading(false)
     }
   }, [brand])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  const fetchDataRef = useRef(fetchData)
+  useEffect(() => {
+    fetchDataRef.current = fetchData
+  }, [fetchData])
+
+  useEffect(() => {
+    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
+      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const handleUpdate = () => fetchDataRef.current(true)
+      es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+      es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+      es.onerror = () => console.warn('Reports SSE error - reconnecting')
+      return () => es.close()
+    })
+  }, [])
 
   const counts = useMemo(() => ({
     all: lots.length,

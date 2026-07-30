@@ -63,16 +63,37 @@ export function CompleteInspectionModal({
                 </div>
               )}
 
-              {/* Flagged Books */}
-              {inspScannedBooks.filter((b) => b.scan_status === 'non_processable').length > 0 && (
+              {/* Previously Flagged Books */}
+              {inspScannedBooks.filter((b) => b.scan_status === 'non_processable' && !b.flag_issue).length > 0 && (
+                <div>
+                  <label className="text-[11px] font-bold text-orange-600 mb-1 block uppercase tracking-wider">Previously Flagged Books</label>
+                  <p className="text-[10px] text-muted-foreground mb-2">These books were flagged as non-processable in a previous stage.</p>
+                  <div className="max-h-60 overflow-y-auto border border-orange-200 rounded-lg bg-orange-50/50 divide-y divide-orange-100">
+                    {inspScannedBooks
+                      .filter((b) => b.scan_status === 'non_processable' && !b.flag_issue)
+                      .map((book, idx) => (
+                        <div key={`old-flag-${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2">
+                          <span className="text-xs font-semibold w-24 shrink-0 text-orange-900">{book.isbn}</span>
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[11px] break-words text-orange-900 font-medium">{book.title}</span>
+                          </div>
+                          <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-orange-100 text-orange-700 shrink-0">Previously Flagged</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Newly Flagged Books */}
+              {inspScannedBooks.filter((b) => b.scan_status === 'non_processable' && !!b.flag_issue).length > 0 && (
                 <div>
                   <label className="text-[11px] font-bold text-red-600 mb-1 block uppercase tracking-wider">Newly Flagged Books</label>
-                  <p className="text-[10px] text-muted-foreground mb-2">These books here are the ones you newly flagged.</p>
+                  <p className="text-[10px] text-muted-foreground mb-2">These books were newly flagged during this inspection session.</p>
                   <div className="max-h-60 overflow-y-auto border border-red-200 rounded-lg bg-red-50/50 divide-y divide-red-100">
                     {inspScannedBooks
-                      .filter((b) => b.scan_status === 'non_processable')
+                      .filter((b) => b.scan_status === 'non_processable' && !!b.flag_issue)
                       .map((book, idx) => (
-                        <div key={`flag-${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2">
+                        <div key={`new-flag-${book.id}-${idx}`} className="flex items-center gap-3 px-3 py-2">
                           <span className="text-xs font-semibold w-24 shrink-0 text-red-900">{book.isbn}</span>
                           <div className="flex flex-col flex-1 min-w-0">
                             <span className="text-[11px] break-words text-red-900 font-medium">{book.title}</span>
@@ -82,7 +103,7 @@ export function CompleteInspectionModal({
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-red-100 text-red-700 shrink-0">Flagged</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded font-medium bg-red-100 text-red-700 shrink-0">Newly Flagged</span>
                         </div>
                       ))}
                   </div>

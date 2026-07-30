@@ -35,7 +35,7 @@ export function useCheckpointBoxDetails(brand: string) {
       const books: ScannedBook[] = data.box?.books || []
       setScannedBox({ box, books })
 
-      if (box.current_stage === 'scan' && books.length > 0) {
+      if (['scan', 'transmit', 'storage'].includes(box.current_stage) && books.length > 0) {
         setLoadingBoxDetailsSimflex(true)
         const isbns = [...new Set(books.filter((b) => b.scan_status === 'processable').map((b) => b.isbn))]
         if (isbns.length > 0) {
@@ -107,13 +107,16 @@ export function useCheckpointBoxDetails(brand: string) {
       const books: ScannedBook[] = data.box?.books || []
       const details: StageBoxDetail = { books, simflex: {}, loading: false, loadingSimflex: false }
 
-      if (box.current_stage === 'scan' && books.length > 0) {
+      if (['scan', 'transmit', 'storage'].includes(box.current_stage) && books.length > 0) {
         const isbns = [...new Set(books.filter((b) => b.scan_status === 'processable').map((b) => b.isbn))]
         if (isbns.length > 0) {
           details.loadingSimflex = true
           setStageBoxDetails((prev) => ({ ...prev, [box.id]: { ...details, loadingSimflex: true } }))
           try {
-            // Disabled Simflex check for now based on request
+            const simData = await fetchSimflexStatus(isbns, brand)
+            if (simData.success && simData.statuses) {
+              details.simflex = simData.statuses
+            }
           } catch {
             // Simflex status is optional
           }

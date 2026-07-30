@@ -8,6 +8,7 @@ import {
 } from '../services/checkpoints.service'
 import { hasDataChanged, STAGE_ORDER } from '../utils/checkpoints.helpers'
 import type { BoxItem, Stage } from '../types/checkpoints.types'
+import { getApiBaseUrl } from '@/lib/auth-api'
 
 export function useCheckpointBoxes(brand: string) {
   const [boxes, setBoxes] = useState<BoxItem[]>([])
@@ -20,8 +21,8 @@ export function useCheckpointBoxes(brand: string) {
   const [scanEligibleBoxNums, setScanEligibleBoxNums] = useState<Set<string> | null>(null)
   const [transmitEligibleBoxNums, setTransmitEligibleBoxNums] = useState<Set<string> | null>(null)
 
-  const fetchData = useCallback(async () => {
-    setTopLoading(true)
+  const fetchData = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setTopLoading(true)
     try {
       const [boxData, liveData, scanRowsData, transmitRowsData] = await Promise.all([
         fetchBoxes(brand),
@@ -83,13 +84,36 @@ export function useCheckpointBoxes(brand: string) {
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
-      setTopLoading(false)
+      if (isBackground !== true) setTopLoading(false)
     }
   }, [brand])
 
   useEffect(() => {
     fetchData()
   }, [fetchData, brand])
+
+  const fetchDataRef = useRef(fetchData)
+  useEffect(() => {
+    fetchDataRef.current = fetchData
+  }, [fetchData])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      fetchDataRef.current(true)
+    }
+
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Checkpoint SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
 
   const boxesByStage = useMemo(() => {
     return STAGE_ORDER.reduce<Record<Stage, BoxItem[]>>((acc, stage) => {

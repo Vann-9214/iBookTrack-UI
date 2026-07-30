@@ -199,13 +199,15 @@ export function NonProcessableList({
                                      </span>
                                      <div className="flex items-center gap-2">
                                        <span className="text-[8.5px] font-bold uppercase tracking-wider text-slate-400">by {f.flagged_by_name || 'System'}</span>
-                                       <button 
-                                         onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
-                                         disabled={resolvingId === f.scan_id}
-                                         className="text-[8.5px] text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ring-1 ring-emerald-200/50 shadow-sm"
-                                       >
-                                         {resolvingId === f.scan_id ? 'Resolving...' : 'Resolve'}
-                                       </button>
+                                       {!(['missing', 'mismatched-book'].includes((f.issue || '').toLowerCase().trim())) && (
+                                         <button 
+                                           onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
+                                           disabled={resolvingId === f.scan_id}
+                                           className="text-[8.5px] text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ring-1 ring-emerald-200/50 shadow-sm"
+                                         >
+                                           {resolvingId === f.scan_id ? 'Resolving...' : 'Resolve'}
+                                         </button>
+                                       )}
                                      </div>
                                    </div>
                                  </div>

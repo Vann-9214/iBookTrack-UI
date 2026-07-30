@@ -3,6 +3,7 @@ import { usePagination } from '@/hooks/usePagination'
 import { fetchPipelineTransitions } from '../services/checkpoints.service'
 import { hasDataChanged } from '../utils/checkpoints.helpers'
 import type { Transition, Stage } from '../types/checkpoints.types'
+import { getApiBaseUrl } from '@/lib/auth-api'
 
 export function usePipelineTransitions(brand: string) {
   const [transitions, setTransitions] = useState<Transition[]>([])
@@ -34,8 +35,8 @@ export function usePipelineTransitions(brand: string) {
   useEffect(() => { transitionOffsetRef.current = transitionsPagination.offset }, [transitionsPagination.offset])
   useEffect(() => { brandRef.current = brand }, [brand])
 
-  const refresh = useCallback(async () => {
-    setTransitionsLoading(true)
+  const refresh = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setTransitionsLoading(true)
     try {
       const data = await fetchPipelineTransitions(brandRef.current, {
         offset: transitionOffsetRef.current,
@@ -62,13 +63,36 @@ export function usePipelineTransitions(brand: string) {
     } catch (e) {
       console.error('Failed to fetch pipeline transitions:', e)
     } finally {
-      setTransitionsLoading(false)
+      if (isBackground !== true) setTransitionsLoading(false)
     }
   }, [])
 
   useEffect(() => {
     refresh()
   }, [refresh, brand, transitionStageFilter, transitionSearch, transitionDateFrom, transitionDateTo, transitionsPagination.offset])
+
+  const refreshRef = useRef(refresh)
+  useEffect(() => {
+    refreshRef.current = refresh
+  }, [refresh])
+
+  useEffect(() => {
+    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+
+    const handleUpdate = () => {
+      refreshRef.current(true)
+    }
+
+    es.addEventListener('BOX_UPDATED', handleUpdate)
+    es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+    es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+
+    es.onerror = () => {
+      console.warn('Pipeline SSE error - reconnecting')
+    }
+
+    return () => es.close()
+  }, [])
 
   const applySearch = useCallback(() => {
     setTransitionSearch(transitionSearchInput)

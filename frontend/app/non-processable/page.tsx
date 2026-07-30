@@ -34,7 +34,7 @@ export default function NonProcessablePage() {
     fetchCounts,
     resolveFlag,
     filteredLots,
-    exportToCsv,
+
     displayFlags,
   } = useNonProcessable(brand)
 
@@ -53,8 +53,7 @@ export default function NonProcessablePage() {
               setSelectedMonth={setSelectedMonth}
               selectedWeek={selectedWeek}
               setSelectedWeek={setSelectedWeek}
-              exportToCsv={exportToCsv}
-              isExportDisabled={filteredLots.length === 0}
+
               loading={loading}
               lastUpdated={lastUpdated}
               fetchCounts={fetchCounts}

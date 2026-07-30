@@ -94,8 +94,12 @@ export const getLotByNumberOrLatest = async (lot_number, lotType) => {
 };
 
 export const getLotBoxes = async (lot_id) => {
-  const { rows } = await db.query('SELECT id FROM boxes WHERE lot_id = $1', [lot_id]);
+  const { rows } = await db.query('SELECT id, total_transmitted_books FROM boxes WHERE lot_id = $1', [lot_id]);
   return rows;
+};
+
+export const updateBoxTransmittedCount = async (id, count) => {
+  await db.query('UPDATE boxes SET total_transmitted_books = $1 WHERE id = $2', [count, id]);
 };
 
 export const getBookActivitiesForBoxes = async (boxIds) => {

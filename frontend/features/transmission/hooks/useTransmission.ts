@@ -60,10 +60,14 @@ export function useTransmission() {
   }, [])
 
   const fetchLiveData = useCallback(
-    async (fromOverride?: string, toOverride?: string) => {
-      setLoading(true)
+    async (fromOverride?: string | boolean, toOverride?: string, isBackground?: boolean) => {
+      // If fromOverride is a boolean, it means it's called from the SSE event listener where the first arg is true
+      const _isBackground = typeof fromOverride === 'boolean' ? fromOverride : isBackground;
+      const _fromOverride = typeof fromOverride === 'string' ? fromOverride : undefined;
+      
+      if (_isBackground !== true) setLoading(true)
       try {
-        const f = fromOverride || fromDate
+        const f = _fromOverride || fromDate
         const t = toOverride || toDate
         const data = await fetchLiveTransmissionData({
           from: f,
@@ -83,7 +87,7 @@ export function useTransmission() {
       } catch (e) {
         console.error('Failed to fetch live scanning data:', e)
       } finally {
-        setLoading(false)
+        if (_isBackground !== true) setLoading(false)
       }
     },
     [fromDate, toDate, brand, newProcessOnly]
@@ -92,6 +96,23 @@ export function useTransmission() {
   useEffect(() => {
     fetchLiveData()
   }, [fetchLiveData])
+
+  const fetchLiveDataRef = useRef(fetchLiveData)
+  useEffect(() => {
+    fetchLiveDataRef.current = fetchLiveData
+  }, [fetchLiveData])
+
+  useEffect(() => {
+    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
+      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const handleUpdate = () => fetchLiveDataRef.current(true)
+      es.addEventListener('SCAN_UPDATED', handleUpdate)
+      es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+      es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+      es.onerror = () => console.warn('Transmission SSE error - reconnecting')
+      return () => es.close()
+    })
+  }, [])
 
   // Ranking
   const [showRanking, setShowRanking] = useState(false)

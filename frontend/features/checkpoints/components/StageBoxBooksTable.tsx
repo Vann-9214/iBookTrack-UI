@@ -8,7 +8,7 @@ interface StageBoxBooksTableProps {
   simflex: Record<string, SimflexStatusResult>
 }
 
-export function StageBoxBooksTable({ books, brand }: StageBoxBooksTableProps) {
+export function StageBoxBooksTable({ books, brand, selectedStage, simflex }: StageBoxBooksTableProps) {
   const typeText = brand ? brand.charAt(0).toUpperCase() + brand.slice(1).toLowerCase() : '—'
 
   return (
@@ -22,6 +22,7 @@ export function StageBoxBooksTable({ books, brand }: StageBoxBooksTableProps) {
         const status = book.scan_status
         const isProcessable = status === 'processable'
         const statusLabel = isProcessable ? 'Processable' : status === 'non_processable' ? 'Non-Processable' : status
+        const simflexStatus = simflex?.[book.isbn]
 
         return (
           <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
@@ -43,6 +44,11 @@ export function StageBoxBooksTable({ books, brand }: StageBoxBooksTableProps) {
               </span>
               {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
                 <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">{book.flag.issue}</span>
+              )}
+              {isProcessable && simflexStatus && (
+                <span className="text-[9px] font-semibold text-blue-500/80 leading-none capitalize mt-0.5">
+                  In Simflex: {simflexStatus.transmissionCompleted ? 'Transmission Completed' : simflexStatus.latestStatus || 'Pending'}
+                </span>
               )}
             </div>
           </div>

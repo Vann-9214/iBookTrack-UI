@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { StorageLocation, ReadyBox, PendingAssignment } from "../types/locator.types"
 import { locatorService } from "../services/locator.service"
 import { getSuggestedLocation } from "../utils/locator.helpers"
@@ -29,8 +29,8 @@ export function useLocator(brand: string) {
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
   const [selectedRemoveAssignments, setSelectedRemoveAssignments] = useState<Set<string>>(new Set())
 
-  const fetchLocations = useCallback(async () => {
-    setLoadingLocations(true)
+  const fetchLocations = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setLoadingLocations(true)
     setError(null)
     try {
       const data = await locatorService.fetchLocations()
@@ -39,32 +39,32 @@ export function useLocator(brand: string) {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
-      setLoadingLocations(false)
+      if (isBackground !== true) setLoadingLocations(false)
     }
   }, [])
 
-  const fetchReadyBoxes = useCallback(async () => {
-    setLoadingReady(true)
+  const fetchReadyBoxes = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setLoadingReady(true)
     try {
       const data = await locatorService.fetchReadyBoxes(brand)
       setReadyBoxes(data)
     } finally {
-      setLoadingReady(false)
+      if (isBackground !== true) setLoadingReady(false)
     }
   }, [brand])
 
-  const fetchPendingAssignments = useCallback(async () => {
-    setLoadingPending(true)
+  const fetchPendingAssignments = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setLoadingPending(true)
     try {
       const data = await locatorService.fetchPendingAssignments(brand)
       setPendingAssignments(data)
     } finally {
-      setLoadingPending(false)
+      if (isBackground !== true) setLoadingPending(false)
     }
   }, [brand])
 
-  const refreshLocator = useCallback(async () => {
-    await Promise.all([fetchLocations(), fetchReadyBoxes(), fetchPendingAssignments()])
+  const refreshLocator = useCallback(async (isBackground?: boolean) => {
+    await Promise.all([fetchLocations(isBackground), fetchReadyBoxes(isBackground), fetchPendingAssignments(isBackground)])
   }, [fetchLocations, fetchReadyBoxes, fetchPendingAssignments])
 
   useEffect(() => { fetchLocations() }, [fetchLocations])
@@ -79,6 +79,24 @@ export function useLocator(brand: string) {
     fetchReadyBoxes()
     fetchPendingAssignments()
   }, [brand, fetchReadyBoxes, fetchPendingAssignments])
+
+  const refreshLocatorRef = useRef(refreshLocator)
+  useEffect(() => {
+    refreshLocatorRef.current = refreshLocator
+  }, [refreshLocator])
+
+  useEffect(() => {
+    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
+      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const handleUpdate = () => refreshLocatorRef.current(true)
+      es.addEventListener('BOX_UPDATED', handleUpdate)
+      es.addEventListener('PIPELINE_UPDATED', handleUpdate)
+      es.addEventListener('STORAGE_UPDATED', handleUpdate)
+      es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+      es.onerror = () => console.warn('Locator SSE error - reconnecting')
+      return () => es.close()
+    })
+  }, [])
 
   // Keep detailSlot in sync after location refresh
   useEffect(() => {
