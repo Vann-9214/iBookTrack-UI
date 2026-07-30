@@ -235,37 +235,7 @@ export function useNonProcessable(brand: string) {
     return null
   }).filter(Boolean) as LotGroup[]
 
-  const exportToCsv = () => {
-    const csvRows = [
-      ['ISBN', 'Title', 'Lot Number', 'Box Number', 'Issue', 'Remarks', 'Flagged By', 'Flagged At']
-    ];
-    
-    filteredLots.forEach((lot: any) => {
-      Object.values(lot.boxes).forEach((box: any) => {
-        box.flags.forEach((f: any) => {
-          csvRows.push([
-            f.isbn || 'Unknown',
-            `"${(f.title || '').replace(/"/g, '""')}"`,
-            lot.lot_number,
-            box.box_number,
-            ISSUE_LABELS[f.issue] || f.issue,
-            `"${(f.remarks || '').replace(/"/g, '""')}"`,
-            `"${(f.flagged_by_name || '').replace(/"/g, '""')}"`,
-            f.flagged_at ? new Date(f.flagged_at).toLocaleString() : ''
-          ]);
-        });
-      });
-    });
-    
-    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `non-processable-${brand}-all-time-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+
 
   const displayFlags = selectedCategory === 'Total' ? flags :
                        selectedCategory === 'Damage' ? flags.filter(f => {
@@ -311,7 +281,7 @@ export function useNonProcessable(brand: string) {
     fetchCounts,
     resolveFlag,
     filteredLots,
-    exportToCsv,
+
     displayFlags,
   }
 }

@@ -8,6 +8,7 @@
 
 import * as lotsRepo from '../../repositories/inventory/lots.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
+import { broadcastEvent } from '../../utils/sse.js';
 
 const VALID_LOT_TYPES = ['Mustang', 'Jaguar'];
 
@@ -114,6 +115,28 @@ export const getLotTransmissionSummaryService = async (req, res) => {
       else if (s.startsWith('Tif2PDF')) wip.pdf_conversion++;
       else if (s.startsWith('Validate')) wip.validation++;
     }
+  }
+
+  // Sync back to DB if there are changes
+  const boxTransmittedCounts = {};
+  for (const r of isbnRows) {
+    if (r.transmission_completed && r.assigned_box_id) {
+      boxTransmittedCounts[r.assigned_box_id] = (boxTransmittedCounts[r.assigned_box_id] || 0) + 1;
+    }
+  }
+
+  let dbChanged = false;
+  for (const box of boxes) {
+    const doneCount = boxTransmittedCounts[box.id] || 0;
+    if (box.total_transmitted_books !== doneCount) {
+      await lotsRepo.updateBoxTransmittedCount(box.id, doneCount);
+      dbChanged = true;
+    }
+  }
+
+  if (dbChanged) {
+    broadcastEvent('BOX_UPDATED', { message: `Boxes in lot ${lot.lot_number} updated from Simflex sync` });
+    broadcastEvent('PIPELINE_UPDATED', { message: `Boxes in lot ${lot.lot_number} updated from Simflex sync` });
   }
 
   return {
