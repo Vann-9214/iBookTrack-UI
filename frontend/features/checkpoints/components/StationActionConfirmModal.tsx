@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { STAGE_ORDER, STAGE_META } from '../utils/checkpoints.helpers'
-import type { BoxItem, ConfirmActionType } from '../types/checkpoints.types'
+import type { BoxItem, ConfirmActionType, Stage } from '../types/checkpoints.types'
 
 interface StationActionConfirmModalProps {
   confirmBox: BoxItem

@@ -132,7 +132,17 @@ export const getOpenLots = async (brand) => {
     SELECT l.id, l.lot_number, l.type, 
       (SELECT json_agg(json_build_object(
         'id', bx.id, 'current_stage', bx.current_stage, 
-        'total_expected_books', bx.total_expected_books, 'total_transmitted_books', bx.total_transmitted_books
+        'total_expected_books', bx.total_expected_books, 'total_transmitted_books', bx.total_transmitted_books,
+        'session_status', (SELECT status FROM box_sessions bs WHERE bs.box_id = bx.id ORDER BY bs.updated_at DESC LIMIT 1),
+        'book_activities', (
+          SELECT json_agg(json_build_object(
+            'scan_status', ba.scan_status, 
+            'transmission_status', ba.transmission_status
+          ))
+          FROM book_activity ba
+          JOIN books b ON b.id = ba.book_id
+          WHERE b.box_id = bx.id
+        )
       )) FROM boxes bx WHERE bx.lot_id = l.id) as boxes 
     FROM lots l
   `;

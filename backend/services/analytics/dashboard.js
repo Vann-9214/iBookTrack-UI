@@ -105,7 +105,7 @@ export const getOpenLotsService = async (req) => {
       
       let baseProgress = 0;
       const stage = box.current_stage || '';
-      const sessionStatus = box.box_sessions && box.box_sessions.length > 0 ? box.box_sessions[0].status : 'received';
+      const sessionStatus = box.session_status || 'received';
 
       if (stage === 'warehouse') {
         baseProgress = sessionStatus === 'received' ? 0 : (sessionStatus === 'completed' ? 10 : 5);
@@ -115,13 +115,41 @@ export const getOpenLotsService = async (req) => {
         baseProgress = sessionStatus === 'received' ? 30 : (sessionStatus === 'completed' ? 35 : 40);
       } else if (stage === 'endorsement') {
         baseProgress = sessionStatus === 'received' ? 43 : (sessionStatus === 'completed' ? 46 : 48);
-      } else if (stage === 'scan' || stage === 'transmit') {
+      } else if (stage === 'scan' || stage === 'transmit' || stage === 'storage') {
         baseProgress = 50;
-      } else if (stage === 'storage') {
-        baseProgress = 100;
       }
-      
-      lotBoxProgressSum += baseProgress;
+
+      let bookAverage = 0;
+      const activities = box.book_activities || [];
+      const proc = activities.filter(a => a && a.scan_status === 'processable');
+
+      if (proc.length > 0) {
+        let totalBookScore = 0;
+        for (const scan of proc) {
+          const status = (scan.transmission_status || '').toUpperCase();
+          let score = 0;
+          if (status.includes('SCANNING ONGOING')) score = 10;
+          else if (status.includes('SCANNING COMPLETED')) score = 20;
+          else if (status.includes('VALIDATE ONGOING')) score = 30;
+          else if (status.includes('VALIDATE COMPLETED')) score = 40;
+          else if (status.includes('TIF2PDF ONGOING') || status.includes('PDF CONVERSION ONGOING')) score = 50;
+          else if (status.includes('TIF2PDF COMPLETED') || status.includes('PDF CONVERSION COMPLETED')) score = 60;
+          else if (status.includes('PREVAL ONGOING')) score = 70;
+          else if (status.includes('PREVAL COMPLETED')) score = 80;
+          else if (status.includes('ARCHIVE ONGOING') || status.includes('TRANSMIT ONGOING') || status.includes('TRANSMISSION_ARCHIVE ONGOING')) score = 90;
+          else if (status.includes('COMPLETE') || status.includes('RECEIVED') || status.includes('SENT') || stage === 'storage') score = 100;
+          
+          totalBookScore += score;
+        }
+        if (baseProgress === 50) {
+          bookAverage = totalBookScore / proc.length;
+        }
+      } else if (stage === 'storage') {
+        bookAverage = 100;
+      }
+
+      const progress = Math.round(baseProgress + (bookAverage / 2));
+      lotBoxProgressSum += progress;
     });
 
     const completionProgress = totalBoxes > 0 ? Math.round(lotBoxProgressSum / totalBoxes) : 0;
