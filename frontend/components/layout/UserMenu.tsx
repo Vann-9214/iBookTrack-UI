@@ -69,8 +69,8 @@ function SessionOngoingTooltip({
 }
 
 const BRAND_GRADIENTS: Record<Brand, { from: string; to: string }> = {
-  mustang: { from: '#1658EB', to: '#6366f1' },
-  jaguar: { from: '#16a34a', to: '#22d3ee' },
+  mustang: { from: '#2563eb', to: '#2563eb' },
+  jaguar: { from: '#059669', to: '#059669' },
 }
 
 export interface UserMenuProps {

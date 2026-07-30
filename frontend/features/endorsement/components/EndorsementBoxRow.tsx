@@ -12,6 +12,7 @@ export function EndorsementBoxRow({
   lotFallback = '—',
   sender,
   receivedBy,
+  receivedByLabel,
   completedBy,
   children,
   className,

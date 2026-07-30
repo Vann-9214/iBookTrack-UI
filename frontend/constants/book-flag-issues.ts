@@ -20,6 +20,11 @@ export const BOOK_FLAG_ISSUES = [
   { value: 'stamp-mark', label: 'Stamp mark on page' },
   { value: 'thick-cardboard', label: 'Thick or cardboard pages' },
   { value: 'torn-pages', label: 'Torn pages' },
+  { value: 'missing-from-warehouse', label: 'Missing from warehouse' },
+  { value: 'missing-from-inventory', label: 'Missing from inventory' },
+  { value: 'missing-from-endorsement', label: 'Missing from endorsement' },
+  { value: 'mismatched-book', label: 'Mismatched book (Title/ISBN mismatch)' },
+  { value: 'extra-book', label: 'Extra book not in lot' },
 ] as const
 
 export const FLAG_ISSUES = BOOK_FLAG_ISSUES

@@ -35,8 +35,8 @@ export function NonProcessableList({
     ? 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/20 border-emerald-200/50 ring-emerald-100/50'
     : 'bg-gradient-to-br from-blue-50/50 to-indigo-100/20 border-blue-200/50 ring-blue-100/50'
   const iconTheme = isJaguar
-    ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25'
-    : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+    ? 'bg-emerald-600 shadow-emerald-500/25'
+    : 'bg-blue-600 shadow-blue-500/25'
   const headerTextTheme = isJaguar ? 'text-emerald-950/80' : 'text-blue-950/80'
   const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
 
@@ -228,7 +228,7 @@ export function NonProcessableList({
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-in ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
             <div className={cn("px-6 py-5 flex items-center justify-between", isJaguar ? "bg-emerald-50 border-b border-emerald-100" : "bg-blue-50 border-b border-blue-100")}>
               <div className="flex items-center gap-3">
-                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg", isJaguar ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
+                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg", isJaguar ? "bg-emerald-600" : "bg-blue-600")}>
                   <MessageSquare className="h-5 w-5" />
                 </div>
                 <div>

@@ -18,19 +18,19 @@ const getBrandColor = (brand: string, type: 'nodeRing' | 'nodeFill' | 'count' | 
   if (brand === 'jaguar') {
     return {
       nodeRing: 'border-emerald-400 text-emerald-500',
-      nodeFill: 'bg-gradient-to-br from-emerald-500 to-green-600 border-transparent text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/20',
+      nodeFill: 'bg-emerald-600 border-transparent text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/20',
       count: 'text-emerald-600',
-      bar: 'bg-gradient-to-r from-emerald-400 via-emerald-400/60 to-emerald-300/20',
-      cardBg: 'bg-gradient-to-b from-emerald-50/90 via-white/80 to-emerald-100/40 border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
+      bar: 'bg-emerald-400',
+      cardBg: 'bg-emerald-50 border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
       dot: 'bg-emerald-500',
     }[type]
   }
   return {
     nodeRing: 'border-blue-400 text-blue-500',
-    nodeFill: 'bg-gradient-to-br from-blue-500 to-indigo-600 border-transparent text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/20',
+    nodeFill: 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/20',
     count: 'text-blue-600',
-    bar: 'bg-gradient-to-r from-blue-400 via-blue-400/60 to-indigo-300/20',
-    cardBg: 'bg-gradient-to-b from-blue-50/90 via-white/80 to-indigo-100/40 border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
+    bar: 'bg-blue-400',
+    cardBg: 'bg-blue-50 border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
     dot: 'bg-blue-500',
   }[type]
 }
@@ -174,12 +174,12 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   if (loading || !stats) {
     return (
-      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70" : "border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70")}>
+      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
         <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5">
-              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
+              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
                 <Workflow className="h-4 w-4" />
               </span>
               <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
@@ -258,18 +258,18 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   return (
     <>
-      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70" : "border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70")}>
+      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
         <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5">
-              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
+              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
                 <Workflow className="h-4 w-4" />
               </span>
               <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
               {currentLot && <span className="text-sm font-medium text-muted-foreground">| {currentLot}</span>}
             </div>
-            <span className={cn("sm:ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-r from-emerald-500 to-green-600" : "bg-gradient-to-r from-blue-500 to-indigo-600")}>{todayLabel}</span>
+            <span className={cn("sm:ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>{todayLabel}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">

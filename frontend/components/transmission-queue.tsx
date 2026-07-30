@@ -140,12 +140,12 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
-    <Card className={cn("relative flex flex-col gap-0 overflow-hidden p-0 h-full rounded-2xl border-2 shadow-sm ring-1", brand === 'jaguar' ? "border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 ring-emerald-100/70" : "border-blue-200/80 bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 ring-blue-100/70")}>
+    <Card className={cn("relative flex flex-col gap-0 overflow-hidden p-0 h-full rounded-2xl border-2 shadow-sm ring-1", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
       {/* Header - sticky */}
-      <div className={cn("relative z-10 flex items-center justify-between px-5 py-4 border-b border-emerald-200/60 shrink-0", brand === 'jaguar' ? "bg-gradient-to-r from-emerald-50/60 via-transparent to-emerald-50/60 border-emerald-200/60" : "bg-gradient-to-r from-blue-50/60 via-transparent to-indigo-50/60 border-blue-200/60")}>
+      <div className={cn("relative z-10 flex items-center justify-between px-5 py-4 border-b border-emerald-200/60 shrink-0", brand === 'jaguar' ? "bg-emerald-50 border-emerald-200/60" : "bg-blue-50 border-blue-200/60")}>
         <div className="flex items-center gap-3">
-          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-500 to-green-600" : "bg-gradient-to-br from-blue-500 to-indigo-600")}>
+          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
             <Activity className="h-4 w-4" />
           </div>
           <div>
@@ -162,7 +162,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           {propLoading || loading ? (
             <Skeleton className="h-6 w-16 rounded-full bg-muted-foreground/20" />
           ) : (
-            <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-r from-emerald-500 to-green-600" : "bg-gradient-to-r from-blue-500 to-indigo-600")}>
+            <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
               {`${scans.length} books`}
             </span>
           )}

@@ -61,7 +61,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                 <span className="text-center">Time</span>
               </div>
             </div>
-            <div className={cn('divide-y divide-border pr-1', scannedBooks.length > 5 ? 'h-[220px] overflow-y-scroll' : 'max-h-[220px] overflow-y-auto')}>
+            <div className={cn('divide-y divide-border pr-1 custom-scrollbar', scannedBooks.length > 5 ? 'h-[240px] overflow-y-scroll' : 'max-h-[240px] overflow-y-auto')}>
               {scannedBooks.map((book, idx) => (
                 <div
                   key={`${book.id}-${idx}`}
@@ -82,7 +82,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   <div className="flex w-[200px] shrink-0 items-center justify-center gap-2 sm:w-[220px] sm:gap-3">
                     {book.scan_status === 'processable' ? (
                       <>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">
                           <CircleCheck className="h-3.5 w-3.5" />
                           Processable
                         </span>

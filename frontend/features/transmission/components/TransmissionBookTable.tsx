@@ -81,8 +81,8 @@ export function TransmissionBookTable({
                       <div className={cn(
                         "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
                         brand === 'jaguar' 
-                          ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
-                          : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+                          ? "bg-emerald-600 shadow-emerald-500/25"
+                          : "bg-blue-600 shadow-blue-500/25"
                       )}>
                         <BookOpen className="h-6 w-6" />
                       </div>

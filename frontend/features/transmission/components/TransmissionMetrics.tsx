@@ -54,8 +54,8 @@ export function TransmissionMetrics({
           className={cn(
             'relative overflow-hidden rounded-2xl border p-2.5 flex flex-col items-center justify-center shadow-sm ring-1 active:scale-[0.97] transition-all text-center',
             brand === 'jaguar'
-              ? 'bg-gradient-to-br from-emerald-500 to-green-600 border-emerald-600/40 ring-emerald-300/30 text-white'
-              : 'bg-gradient-to-br from-blue-500 to-indigo-600 border-blue-600/40 ring-blue-300/30 text-white'
+              ? 'bg-emerald-600 border-emerald-600/40 ring-emerald-300/30 text-white'
+              : 'bg-blue-600 border-blue-600/40 ring-blue-300/30 text-white'
           )}
         >
           <div className="relative text-lg font-black leading-none text-white">
@@ -71,8 +71,8 @@ export function TransmissionMetrics({
           className={cn(
             'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
             brand === 'jaguar'
-              ? 'bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60'
-              : 'bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70 hover:shadow-blue-200/60'
+              ? 'bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60'
+              : 'bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70 hover:shadow-blue-200/60'
           )}
         >
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
@@ -80,7 +80,7 @@ export function TransmissionMetrics({
             <div
               className={cn(
                 'flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110',
-                brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25' : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25'
+                brand === 'jaguar' ? 'bg-emerald-600 shadow-emerald-500/25' : 'bg-blue-600 shadow-blue-500/25'
               )}
             >
               <FileUp className="h-6 w-6" />
@@ -109,10 +109,10 @@ export function TransmissionMetrics({
             books sent to archive
           </div>
         </div>
-        <div className="group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60">
+        <div className="group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60">
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
           <div className="relative flex items-start justify-between mb-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-emerald-600 shadow-emerald-500/25">
               <CheckCircle2 className="h-6 w-6" />
             </div>
             {failedTransmissions > 0 && (
@@ -127,8 +127,8 @@ export function TransmissionMetrics({
           className={cn(
             'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
             brand === 'jaguar'
-              ? 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-green-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white hover:shadow-emerald-500/40'
-              : 'bg-gradient-to-br from-blue-500 via-blue-500 to-indigo-600 border-2 border-blue-600/40 ring-blue-300/30 text-white hover:shadow-blue-500/40'
+              ? 'bg-emerald-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white hover:shadow-emerald-500/40'
+              : 'bg-blue-600 border-2 border-blue-600/40 ring-blue-300/30 text-white hover:shadow-blue-500/40'
           )}
         >
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />

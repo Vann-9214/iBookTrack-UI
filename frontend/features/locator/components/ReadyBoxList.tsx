@@ -34,13 +34,13 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
         : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
       )}>
         <CardHeader className={cn("flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b", brand === 'jaguar'
-          ? "bg-gradient-to-br from-emerald-50 to-green-100/40 border-b-emerald-200/70"
+          ? "bg-emerald-600/40 border-b-emerald-200/70"
           : "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-b-blue-200/70"
         )}>
           <div className="flex items-center gap-3">
             <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg", brand === 'jaguar'
-              ? "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25"
-              : "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25"
+              ? "bg-emerald-600 shadow-emerald-500/25"
+              : "bg-blue-600 shadow-blue-500/25"
             )}>
               <Inbox className="h-5 w-5" />
             </div>

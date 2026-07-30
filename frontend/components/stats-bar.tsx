@@ -241,24 +241,24 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const TONE = {
     theme: isJaguar
       ? {
-          card: "bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70",
-          icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
+          card: "bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70",
+          icon: "bg-emerald-600 shadow-emerald-500/25",
           value: "text-emerald-700",
           title: "text-emerald-950/70",
           sub: "text-emerald-600/80",
           hover: "hover:shadow-emerald-200/60",
         }
       : {
-          card: "bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70",
-          icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
+          card: "bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70",
+          icon: "bg-blue-600 shadow-blue-500/25",
           value: "text-blue-700",
           title: "text-blue-950/70",
           sub: "text-blue-600/80",
           hover: "hover:shadow-blue-200/60",
         },
     red: {
-      card: "bg-gradient-to-br from-red-50 via-card to-rose-100/60 border-2 border-red-200/80 ring-red-100/70",
-      icon: "bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/25",
+      card: "bg-red-50 border-2 border-red-200/80 ring-red-100/70",
+      icon: "bg-red-600 shadow-red-500/25",
       value: "text-red-600",
       title: "text-red-950/70",
       sub: "text-red-500/80",
@@ -267,7 +267,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     /* Bold theme variant for the headline "Total Books" card */
     solid: isJaguar
       ? {
-          card: "bg-gradient-to-br from-emerald-500 via-emerald-500 to-green-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white",
+          card: "bg-emerald-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white",
           icon: "bg-white/20 shadow-black/10",
           value: "text-white",
           title: "text-white/90",
@@ -275,7 +275,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           hover: "hover:shadow-emerald-500/40",
         }
       : {
-          card: "bg-gradient-to-br from-blue-500 via-blue-500 to-indigo-600 border-2 border-blue-600/40 ring-blue-300/30 text-white",
+          card: "bg-blue-600 border-2 border-blue-600/40 ring-blue-300/30 text-white",
           icon: "bg-white/20 shadow-black/10",
           value: "text-white",
           title: "text-white/90",
@@ -287,8 +287,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   /* Theme-aware palette for the brand-colored modals (Live Lots, Daily Output) */
   const M = isJaguar
     ? {
-        headerBg: "bg-gradient-to-r from-emerald-50 to-green-50",
-        iconBg: "bg-gradient-to-br from-emerald-500 to-green-600",
+        headerBg: "bg-emerald-50",
+        iconBg: "bg-emerald-600",
         dot: "bg-emerald-500",
         accent: "text-emerald-600",
         soft: "text-emerald-500",
@@ -300,8 +300,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         chip: "bg-emerald-100 text-emerald-700",
       }
     : {
-        headerBg: "bg-gradient-to-r from-blue-50 to-indigo-50",
-        iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600",
+        headerBg: "bg-blue-50",
+        iconBg: "bg-blue-600",
         dot: "bg-blue-500",
         accent: "text-blue-600",
         soft: "text-blue-500",
@@ -453,9 +453,9 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           <div className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", flagsClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')} data-modal-origin-surface onClick={e => e.stopPropagation()}>
 
             {/* Red header */}
-            <div className="px-6 py-5 flex items-center justify-between bg-gradient-to-r from-red-50 to-rose-50">
+            <div className="px-6 py-5 flex items-center justify-between bg-red-50">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 text-white shadow-lg shadow-red-500/25">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 <div>
@@ -482,7 +482,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
             ) : flags.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-600 text-white shadow-lg shadow-red-500/25">
                   <AlertTriangle className="h-7 w-7" />
                 </div>
                 <span className="text-sm font-semibold text-gray-600">No flagged books</span>

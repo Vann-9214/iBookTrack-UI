@@ -11,8 +11,8 @@ const BRAND_ICONS: Record<Brand, typeof Zap> = {
 }
 
 const BRAND_GRADIENTS: Record<Brand, { from: string; to: string }> = {
-  mustang: { from: '#1658EB', to: '#6366f1' },
-  jaguar: { from: '#16a34a', to: '#22d3ee' },
+  mustang: { from: '#2563eb', to: '#2563eb' },
+  jaguar: { from: '#059669', to: '#059669' },
 }
 
 function SessionOngoingTooltip({
@@ -54,7 +54,8 @@ export function BrandSwitcher({ disableBrandToggle }: BrandSwitcherProps) {
         style={{
           width: 'calc(50% - 3px)',
           left: brand === 'mustang' ? '2px' : 'calc(50% + 1px)',
-          backgroundImage: `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`,
+          backgroundImage: 'none',
+          backgroundColor: gradient.from,
         }}
       />
 

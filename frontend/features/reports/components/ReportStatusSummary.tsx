@@ -21,8 +21,8 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
   const TONE = {
     theme: isJaguar
       ? {
-          card: 'bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70',
-          icon: 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25',
+          card: 'bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70',
+          icon: 'bg-emerald-600 shadow-emerald-500/25',
           value: 'text-emerald-700',
           title: 'text-emerald-950/70',
           sub: 'text-emerald-600/80',
@@ -30,8 +30,8 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
           activeRing: 'ring-2 ring-emerald-500/50 border-emerald-400 shadow-md',
         }
       : {
-          card: 'bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70',
-          icon: 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25',
+          card: 'bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70',
+          icon: 'bg-blue-600 shadow-blue-500/25',
           value: 'text-blue-700',
           title: 'text-blue-950/70',
           sub: 'text-blue-600/80',
@@ -39,8 +39,8 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
           activeRing: 'ring-2 ring-blue-500/50 border-blue-400 shadow-md',
         },
     emerald: {
-      card: 'bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70',
-      icon: 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25',
+      card: 'bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70',
+      icon: 'bg-emerald-600 shadow-emerald-500/25',
       value: 'text-emerald-700',
       title: 'text-emerald-950/70',
       sub: 'text-emerald-600/80',
@@ -49,7 +49,7 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
     },
     amber: {
       card: 'bg-gradient-to-br from-amber-50 via-card to-orange-100/60 border-2 border-amber-200/80 ring-amber-100/70',
-      icon: 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-amber-500/25',
+      icon: 'bg-amber-600 shadow-amber-500/25',
       value: 'text-amber-700',
       title: 'text-amber-950/70',
       sub: 'text-amber-600/80',
@@ -57,8 +57,8 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
       activeRing: 'ring-2 ring-amber-500/50 border-amber-400 shadow-md',
     },
     blue: {
-      card: 'bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70',
-      icon: 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25',
+      card: 'bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70',
+      icon: 'bg-blue-600 shadow-blue-500/25',
       value: 'text-blue-700',
       title: 'text-blue-950/70',
       sub: 'text-blue-600/80',
@@ -67,7 +67,7 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
     },
     solid: isJaguar
       ? {
-          card: 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-green-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white',
+          card: 'bg-emerald-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white',
           icon: 'bg-white/20 shadow-black/10',
           value: 'text-white',
           title: 'text-white/90',
@@ -76,7 +76,7 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
           activeRing: 'ring-2 ring-white/50 shadow-lg',
         }
       : {
-          card: 'bg-gradient-to-br from-blue-500 via-blue-500 to-indigo-600 border-2 border-blue-600/40 ring-blue-300/30 text-white',
+          card: 'bg-blue-600 border-2 border-blue-600/40 ring-blue-300/30 text-white',
           icon: 'bg-white/20 shadow-black/10',
           value: 'text-white',
           title: 'text-white/90',

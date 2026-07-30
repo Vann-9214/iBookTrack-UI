@@ -1,8 +1,12 @@
 -- ============================================================
--- Migration 013: Consolidate Session Status (Real-Time Locking)
+-- Migration 011: Inventory Session Updates
 -- ============================================================
--- Combines previous 012 migrations so both inventory and endorsement
--- sessions can use 'in_progress' and 'delayed' status.
+
+ALTER TABLE public.box_sessions
+  ADD COLUMN IF NOT EXISTS inventory_printed_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS inventory_printed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS inventory_session_started_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS inventory_session_started_at TIMESTAMPTZ;
 
 CREATE OR REPLACE FUNCTION validate_pipeline_stage_status()
 RETURNS TRIGGER AS $$
@@ -25,8 +29,8 @@ BEGIN
                 RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, in_progress, delayed, completed, sent', v_status, v_stage;
             ELSIF v_stage = 'cut' AND v_status NOT IN ('received', 'sent') THEN
                 RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, sent', v_status, v_stage;
-            ELSIF v_stage = 'endorsement' AND v_status NOT IN ('received', 'in_progress', 'delayed', 'completed', 'sent') THEN
-                RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, in_progress, delayed, completed, sent', v_status, v_stage;
+            ELSIF v_stage = 'endorsement' AND v_status NOT IN ('received', 'completed', 'sent') THEN
+                RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, completed, sent', v_status, v_stage;
             ELSIF v_stage = 'scan' AND v_status NOT IN ('received') THEN
                 RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received', v_status, v_stage;
             ELSIF v_stage = 'storage' AND v_status NOT IN ('received') THEN
@@ -46,8 +50,8 @@ BEGIN
             RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, in_progress, delayed, completed, sent', v_status, v_stage;
         ELSIF v_stage = 'cut' AND v_status NOT IN ('received', 'sent') THEN
             RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, sent', v_status, v_stage;
-        ELSIF v_stage = 'endorsement' AND v_status NOT IN ('received', 'in_progress', 'delayed', 'completed', 'sent') THEN
-            RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, in_progress, delayed, completed, sent', v_status, v_stage;
+        ELSIF v_stage = 'endorsement' AND v_status NOT IN ('received', 'completed', 'sent') THEN
+            RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received, completed, sent', v_status, v_stage;
         ELSIF v_stage = 'scan' AND v_status NOT IN ('received') THEN
             RAISE EXCEPTION 'Constraint Violation: Invalid session status "%" for stage "%". Allowed: received', v_status, v_stage;
         ELSIF v_stage = 'storage' AND v_status NOT IN ('received') THEN

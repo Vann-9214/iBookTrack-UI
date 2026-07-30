@@ -50,8 +50,8 @@ export function NonProcessableHeader({
           className={cn(
             'p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5',
             brand === 'jaguar'
-              ? 'bg-gradient-to-br from-emerald-400 to-green-600'
-              : 'bg-gradient-to-br from-indigo-400 to-blue-600'
+              ? 'bg-emerald-600'
+              : 'bg-blue-600'
           )}
         >
           <AlertOctagon className="h-7 w-7" />
@@ -66,8 +66,8 @@ export function NonProcessableHeader({
               className={cn(
                 'inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
                 brand === 'jaguar'
-                  ? 'bg-gradient-to-r from-emerald-500 to-green-600'
-                  : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                  ? 'bg-emerald-600'
+                  : 'bg-blue-600'
               )}
             >
               {brand}
