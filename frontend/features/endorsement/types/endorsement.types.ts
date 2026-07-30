@@ -12,6 +12,7 @@ export interface BoxEntry {
     endorsement_user_received?: string
     endorsement_received_profile?: { name: string }
     endorsement_session_started_by?: string
+    endorsement_session_started_at?: string
     endorsement_started_profile?: { name: string }
     endorsement_complete_profile?: { name: string }
     endorsement_send_profile?: { name: string }

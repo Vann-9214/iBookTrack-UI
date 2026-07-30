@@ -104,8 +104,12 @@ export function InspectionBoxList({
           )
         }}
         renderDate={(box: BoxEntry) => {
-          const receivedTime = box.box_sessions?.[0]?.endorsement_time_received
-          return receivedTime ? new Date(receivedTime) : null
+          const session = box.box_sessions?.[0]
+          const isVerifying = session?.status === 'in_progress' || session?.status === 'delayed'
+          const displayTime = isVerifying && session?.endorsement_session_started_at
+            ? session.endorsement_session_started_at
+            : session?.endorsement_time_received
+          return displayTime ? new Date(displayTime) : null
         }}
         renderReceivedByLabel={(box: BoxEntry) => {
           const session = box.box_sessions?.[0]
