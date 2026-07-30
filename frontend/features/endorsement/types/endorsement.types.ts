@@ -13,6 +13,8 @@ export interface BoxEntry {
     endorsement_received_profile?: { name: string }
     endorsement_session_started_by?: string
     endorsement_started_profile?: { name: string }
+    endorsement_complete_profile?: { name: string }
+    endorsement_send_profile?: { name: string }
     status?: string
     total_scanned_books?: number
     updated_at?: string

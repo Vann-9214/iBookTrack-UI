@@ -48,9 +48,11 @@ export function TransitionLogRow({
       if (t.inventory_send_name) {
         statusText = 'Sent'
         statusColor = 'bg-indigo-100 text-indigo-700'
+        holderName = t.inventory_send_name || holderName
       } else if (t.inventory_scan_name) {
         statusText = 'Completed'
         statusColor = 'bg-green-100 text-green-700'
+        holderName = t.inventory_scan_name || holderName
       } else if (t.inventory_time_received) {
         statusText = 'Received'
         statusColor = 'bg-yellow-100 text-yellow-700'
@@ -63,6 +65,7 @@ export function TransitionLogRow({
       if (t.cut_send_name) {
         statusText = 'Sent'
         statusColor = 'bg-indigo-100 text-indigo-700'
+        holderName = t.cut_send_name || holderName
       } else if (t.cut_time_received) {
         statusText = 'Received'
         statusColor = 'bg-yellow-100 text-yellow-700'
@@ -75,9 +78,11 @@ export function TransitionLogRow({
       if (t.endorsement_send_name) {
         statusText = 'Sent'
         statusColor = 'bg-indigo-100 text-indigo-700'
+        holderName = t.endorsement_send_name || holderName
       } else if (t.endorsement_scan_name) {
         statusText = 'Completed'
         statusColor = 'bg-green-100 text-green-700'
+        holderName = t.endorsement_scan_name || holderName
       } else if (t.endorsement_time_received) {
         statusText = 'Received'
         statusColor = 'bg-yellow-100 text-yellow-700'

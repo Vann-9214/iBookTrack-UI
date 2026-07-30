@@ -2,8 +2,6 @@ import { FLAG_ISSUES } from '@/constants/flag-issues'
 
 export const WAREHOUSE_FLAG_ISSUES = [
   ...FLAG_ISSUES,
-  { value: 'mismatched-book', label: 'Mismatched Book' },
-  { value: 'extra-book', label: 'Extra Book' },
 ] as const
 
 export type WarehouseFlagIssue = (typeof WAREHOUSE_FLAG_ISSUES)[number]['value']
