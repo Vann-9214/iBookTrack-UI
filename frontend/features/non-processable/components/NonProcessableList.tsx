@@ -111,30 +111,30 @@ export function NonProcessableList({
             </p>
           </div>
         ) : (
-          <Accordion type="multiple" className="w-full space-y-2 px-1 py-1">
+          <Accordion type="single" collapsible className="w-full space-y-2 px-1 py-1">
             {filteredLots.map((lot) => (
               <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border border-slate-200/60 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-                <AccordionTrigger className="w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden">
+                <AccordionTrigger className={cn("w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden transition-all duration-300", isJaguar ? "data-[state=open]:bg-emerald-500 data-[state=open]:shadow-lg" : "data-[state=open]:bg-blue-600 data-[state=open]:shadow-lg")}>
                    {/* Icon */}
                    <div className="col-span-1">
-                     <div className={cn("flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 group-hover:scale-105 shadow-sm ring-1 ring-black/5", isJaguar ? "bg-emerald-50 text-emerald-600 group-data-[state=open]:bg-emerald-500 group-data-[state=open]:text-white" : "bg-blue-50 text-blue-600 group-data-[state=open]:bg-blue-500 group-data-[state=open]:text-white")}>
+                     <div className={cn("flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 group-hover:scale-105 shadow-sm ring-1 ring-black/5", isJaguar ? "bg-emerald-50 text-emerald-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent" : "bg-blue-50 text-blue-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent")}>
                        <Package className="h-4 w-4" />
                      </div>
                    </div>
 
                    {/* Lot name */}
                    <div className="col-span-5 sm:col-span-4 min-w-0">
-                     <span className="text-[13px] font-black text-slate-800 truncate block tracking-tight">
+                     <span className="text-[13px] font-black text-slate-800 truncate block tracking-tight group-data-[state=open]:text-white transition-colors">
                        {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
                      </span>
-                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 block">
+                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5 block group-data-[state=open]:text-white/80 transition-colors">
                        Warehouse Entry
                      </span>
                    </div>
 
                    {/* Box count */}
                    <div className="col-span-3 sm:col-span-4 flex justify-center">
-                     <Badge variant="outline" className={cn("border-transparent px-2.5 py-0.5 text-[9px] font-black shadow-sm uppercase tracking-wider ring-1", isJaguar ? "bg-emerald-50 text-emerald-700 ring-emerald-200/50" : "bg-blue-50 text-blue-700 ring-blue-200/50")}>
+                     <Badge variant="outline" className={cn("border-transparent px-2.5 py-0.5 text-[9px] font-black shadow-sm uppercase tracking-wider ring-1 transition-colors", isJaguar ? "bg-emerald-50 text-emerald-700 ring-emerald-200/50 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent" : "bg-blue-50 text-blue-700 ring-blue-200/50 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent")}>
                        {lot.totalFlags} items
                      </Badge>
                    </div>
@@ -142,9 +142,9 @@ export function NonProcessableList({
                    {/* Expand chevron */}
                    <div className="col-span-3 flex justify-end items-center gap-2 pr-1">
                      <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 hidden sm:inline group-data-[state=open]:hidden">Expand</span>
-                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 hidden sm:inline group-data-[state=closed]:hidden">Collapse</span>
-                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors">
-                       <ChevronRight className="h-3.5 w-3.5 text-slate-500 transition-transform duration-300 group-data-[state=open]:rotate-90" />
+                     <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline group-data-[state=closed]:hidden group-data-[state=open]:text-white/80 transition-colors">Collapse</span>
+                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors group-data-[state=open]:bg-white/20">
+                       <ChevronRight className="h-3.5 w-3.5 text-slate-500 transition-transform duration-300 group-data-[state=open]:rotate-90 group-data-[state=open]:text-white" />
                      </div>
                    </div>
                 </AccordionTrigger>
