@@ -23,8 +23,8 @@ export const BOOK_FLAG_ISSUES = [
   { value: 'missing-from-warehouse', label: 'Missing from warehouse' },
   { value: 'missing-from-inventory', label: 'Missing from inventory' },
   { value: 'missing-from-endorsement', label: 'Missing from endorsement' },
-  { value: 'mismatched-book', label: 'Mismatched book (Title/ISBN mismatch)' },
-  { value: 'extra-book', label: 'Extra book not in lot' },
+  { value: 'mismatched-book', label: 'Mismatch Book from ilms (Title)' },
+  { value: 'extra-book', label: 'Extra Book from Packing Lists' },
 ] as const
 
 export const FLAG_ISSUES = BOOK_FLAG_ISSUES

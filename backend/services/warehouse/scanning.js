@@ -250,7 +250,10 @@ export const getSimflexStatusService = async (req) => {
 
   const statuses = {};
   for (const r of result.data) {
-    statuses[r.isbn] = r.latestStatus || 'Pending';
+    statuses[r.isbn] = {
+      latestStatus: r.latestStatus,
+      transmissionCompleted: r.transmissionCompleted
+    };
   }
 
   if (Object.keys(statuses).length > 0) {
@@ -258,9 +261,10 @@ export const getSimflexStatusService = async (req) => {
       
     if (booksData && booksData.length > 0) {
       const updatePromises = booksData.map(book => {
-        const stat = statuses[book.isbn];
-        if (stat) {
-          return scanningRepo.updateBookActivityTransmissionStatus(book.id, stat);
+        const statObj = statuses[book.isbn];
+        if (statObj) {
+          const statusStr = statObj.transmissionCompleted ? 'Transmission Completed' : (statObj.latestStatus || 'Pending');
+          return scanningRepo.updateBookActivityTransmissionStatus(book.id, statusStr);
         }
         return null;
       }).filter(Boolean);

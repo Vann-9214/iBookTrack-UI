@@ -270,13 +270,29 @@ export const getBooksByIsbnsWithLots = async (isbns) => {
 export const resolveQcFlag = async (id) => {
   try {
     await db.query('BEGIN');
-    const { rows } = await db.query('DELETE FROM user_flags WHERE id = $1 RETURNING book_activity_id', [id]);
+    const { rows } = await db.query('DELETE FROM user_flags WHERE id = $1 RETURNING book_activity_id, rejection_reason', [id]);
     if (rows.length === 0) {
       await db.query('ROLLBACK');
       return { success: false, error: { status: 404, message: 'Flag not found' } };
     }
-    const bookActivityId = rows[0].book_activity_id;
-    await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2', ['processable', bookActivityId]);
+    const { book_activity_id, rejection_reason } = rows[0];
+    
+    const { rows: actRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING session_id, book_id', ['processable', book_activity_id]);
+    const session_id = actRows[0]?.session_id;
+    const book_id = actRows[0]?.book_id;
+
+    if (session_id) {
+      await db.query(
+        'UPDATE box_sessions SET total_processable_books = total_processable_books + 1, total_nonprocessable_books = GREATEST(0, total_nonprocessable_books - 1) WHERE id = $1',
+        [session_id]
+      );
+    }
+
+    const reasonStr = (rejection_reason || '').toLowerCase().trim();
+    if (reasonStr === 'extra-book' || reasonStr === 'extra') {
+      await db.query('UPDATE books SET is_extra = false WHERE id = $1', [book_id]);
+    }
+
     await db.query('COMMIT');
     return { success: true, error: null };
   } catch (error) {

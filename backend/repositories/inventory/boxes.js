@@ -38,7 +38,7 @@ export const getBookActivityForSync = async (boxId) => {
 export const updateTransmissionStatus = async (bookId, status) => {
   try {
     const { rows } = await db.query(
-      'UPDATE book_activity SET transmission_status = $1 WHERE book_id = $2 RETURNING *',
+      'UPDATE book_activity SET transmission_status = $1 WHERE book_id = $2 AND transmission_status IS DISTINCT FROM $1 RETURNING *',
       [status, bookId]
     );
     return { data: rows, error: null };
