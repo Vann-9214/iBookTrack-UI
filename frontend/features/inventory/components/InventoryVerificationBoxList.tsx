@@ -127,9 +127,13 @@ export function InventoryVerificationBoxList({
                     </div>
                     {!sessionOngoing && (
                       <div className="shrink-0 hidden sm:flex flex-col items-end mr-4">
-                        <span className={cn('text-[10px] font-semibold uppercase tracking-wider', isExpanded ? 'text-white/60' : 'text-muted-foreground')}>Received By</span>
+                        <span className={cn('text-[10px] font-semibold uppercase tracking-wider', isExpanded ? 'text-white/60' : 'text-muted-foreground')}>
+                          {(box.box_sessions?.[0]?.status === 'in_progress' || box.box_sessions?.[0]?.status === 'delayed') ? 'In Progress By' : 'Received By'}
+                        </span>
                         <span className={cn('text-xs font-medium', isExpanded ? 'text-white' : 'text-foreground')}>
-                          {box.box_sessions?.[0]?.inventory_received_profile?.name || 'Unknown'}
+                          {(box.box_sessions?.[0]?.status === 'in_progress' || box.box_sessions?.[0]?.status === 'delayed')
+                            ? (box.box_sessions?.[0]?.inventory_started_profile?.name || 'Unknown')
+                            : (box.box_sessions?.[0]?.inventory_received_profile?.name || 'Unknown')}
                         </span>
                       </div>
                     )}
@@ -142,13 +146,13 @@ export function InventoryVerificationBoxList({
                   </div>
                   {!sessionOngoing && !isMobile && (
                     box.box_sessions?.[0]?.status === 'in_progress' || box.box_sessions?.[0]?.status === 'delayed' ? (
-                      box.box_sessions[0].inventory_user_received !== currentUserId ? (
+                      box.box_sessions[0].inventory_session_started_by !== currentUserId ? (
                         <div className="flex flex-col items-end shrink-0 ml-2">
                           <span className={cn('text-[10px] font-bold uppercase tracking-wider', box.box_sessions[0].status === 'delayed' ? 'text-amber-500' : 'text-red-500')}>
                             {box.box_sessions[0].status === 'delayed' ? 'Delayed' : 'Locked'}
                           </span>
                           <span className={cn('text-[10px]', isExpanded ? 'text-white/80' : 'text-muted-foreground')}>
-                            by {box.box_sessions[0].inventory_received_profile?.name || 'another user'}
+                            by {box.box_sessions[0].inventory_started_profile?.name || 'another user'}
                           </span>
                         </div>
                       ) : (

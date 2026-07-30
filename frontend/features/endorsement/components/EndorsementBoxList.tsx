@@ -18,6 +18,7 @@ export function EndorsementBoxList({
   renderDate,
   renderSender,
   renderReceivedBy,
+  renderReceivedByLabel,
   renderCompletedBy,
   renderBooks,
   showEmpty = true,
@@ -40,6 +41,7 @@ export function EndorsementBoxList({
   renderDate?: (box: BoxEntry) => Date | null
   renderSender?: (box: BoxEntry) => string | null
   renderReceivedBy?: (box: BoxEntry) => string | null
+  renderReceivedByLabel?: (box: BoxEntry) => string | null
   renderCompletedBy?: (box: BoxEntry) => string | null
   renderBooks: (box: BoxEntry, books: BoxBookEntry[]) => React.ReactNode
   showEmpty?: boolean
@@ -108,6 +110,7 @@ export function EndorsementBoxList({
                   date={renderDate?.(box)}
                   sender={renderSender?.(box)}
                   receivedBy={renderReceivedBy?.(box)}
+                  receivedByLabel={renderReceivedByLabel?.(box) ?? undefined}
                   completedBy={renderCompletedBy?.(box)}
                   lotFallback={lotFallback}
                 >

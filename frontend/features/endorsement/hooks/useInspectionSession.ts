@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { fetchUserProfile } from '@/lib/auth-api'
+import { useBrand } from '@/hooks/use-brand'
 import { BoxEntry, InspScannedBook, WarehouseBook, InspSession } from '../types/endorsement.types'
 import { endorsementService } from '../services/endorsement.service'
 
 export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuccess: () => void) {
+  const { brand } = useBrand()
   const [inspSessionActive, setInspSessionActive] = useState(false)
   const [inspBox, setInspBox] = useState<BoxEntry | null>(null)
   const [inspUserName, setInspUserName] = useState('')
@@ -114,12 +116,10 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
       if (data.success && data.data && !data.data.Message) {
         addInspBookLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, prevStatus)
       } else {
-        addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, prevStatus)
-        toast.warning('ISBN not found in iLMS — added to log anyway.')
+        toast.error(`ISBN ${isbn} not found in ${brand.toUpperCase()} records.`)
       }
     } catch {
-      addInspBookLocal({ isbn, title: `Book ${inspBookCounter + 1}`, author: '' }, prevStatus)
-      toast.error('API error — added to log anyway.')
+      toast.error('Failed to fetch book details. Cannot verify ISBN.')
     } finally {
       setLoadingInspSession(false)
     }

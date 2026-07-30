@@ -26,8 +26,8 @@ export const LocatorHeader: React.FC<LocatorHeaderProps> = ({
           <span className={cn(
             "inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none",
             brand === 'jaguar'
-              ? 'bg-gradient-to-r from-emerald-500 to-green-600'
-              : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+              ? 'bg-emerald-600'
+              : 'bg-blue-600'
           )}>
             {brand}
           </span>

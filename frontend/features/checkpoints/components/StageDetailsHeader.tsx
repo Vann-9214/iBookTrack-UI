@@ -25,13 +25,13 @@ export function StageDetailsHeader({
 
   const M = brand === 'jaguar'
     ? {
-        headerBg: 'bg-gradient-to-r from-emerald-50 to-green-50',
-        iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
+        headerBg: 'bg-emerald-600',
+        iconBg: 'bg-emerald-600',
         dot: 'bg-emerald-500',
       }
     : {
-        headerBg: 'bg-gradient-to-r from-blue-50 to-indigo-50',
-        iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+        headerBg: 'bg-blue-50',
+        iconBg: 'bg-blue-600',
         dot: 'bg-blue-500',
       }
 

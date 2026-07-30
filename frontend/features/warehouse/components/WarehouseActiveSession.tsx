@@ -1,8 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Loader2, Package, Warehouse, X, CircleCheck } from 'lucide-react'
+import { Loader2, Package, Warehouse, X, CircleCheck, BookOpen } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { IsbnConverterModal } from '@/components/isbn-converter-modal'
 import type { ScannedBook, WarehouseSession } from '../types/warehouse.types'
 
 interface WarehouseActiveSessionProps {
@@ -34,6 +36,7 @@ export function WarehouseActiveSession({
   handleCloseSession,
   children,
 }: WarehouseActiveSessionProps) {
+  const [showIsbnModal, setShowIsbnModal] = useState(false)
   const labelTheme = 'text-primary/75'
   const valueTheme = 'text-primary'
   const iconTheme = 'premium-gradient-ui-card--solid'
@@ -117,6 +120,12 @@ export function WarehouseActiveSession({
         </div>
 
         <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+          <button onClick={() => setShowIsbnModal(true)}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs font-semibold text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/10 sm:flex-none">
+            <BookOpen className="h-4 w-4" />
+            Convert ISBN
+          </button>
+          
           <button onClick={handleResetSession}
             className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200/80 bg-white/80 px-4 py-3 text-xs font-semibold text-red-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:shadow-red-200/40 sm:flex-none">
             <X className="h-4 w-4" />
@@ -135,6 +144,12 @@ export function WarehouseActiveSession({
       </div>
 
       {children}
+      
+      <IsbnConverterModal 
+        open={showIsbnModal} 
+        onClose={() => setShowIsbnModal(false)} 
+        brand={brand}
+      />
     </div>
   )
 }

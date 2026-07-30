@@ -24,9 +24,11 @@ export interface InventoryBoxSession {
   inventory_time_received?: string
   inventory_time_send?: string
   inventory_printed_by?: string
+  inventory_session_started_by?: string
   inventory_printed_at?: string
   warehouse_received_profile?: { name: string }
   inventory_received_profile?: { name: string }
+  inventory_started_profile?: { name: string }
   inventory_send_profile?: { name: string }
   cut_received_profile?: { name: string }
   cut_send_profile?: { name: string }

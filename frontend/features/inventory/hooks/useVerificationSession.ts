@@ -110,12 +110,14 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     setLoadingVerifBooks(true)
     try {
       const data = await searchIlmsBook(isbn)
-      const details = data.success && data.data && !data.data.Message ? { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || `Author ${verifBookCounter + 1}` } : { isbn, title: `Book ${verifBookCounter + 1}`, author: `Author ${verifBookCounter + 1}` }
+      if (!data.success || !data.data || data.data.Message) {
+        toast({ title: 'Book Not Found', description: `ISBN not found in ${brand.toUpperCase()} records.`, variant: 'destructive' })
+        return
+      }
+      const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || `Author ${verifBookCounter + 1}` }
       saveVerifBookToLocal(details, warehouse?.scan_status || 'processable', null, null)
-      if (!data.success || !data.data || data.data.Message) toast({ title: 'Book Not Found', description: 'ISBN not found in iLMS. Added to verification log anyway.', variant: 'destructive' })
     } catch {
-      saveVerifBookToLocal({ isbn, title: `Book ${verifBookCounter + 1}`, author: `Author ${verifBookCounter + 1}` }, warehouse?.scan_status || 'processable', null, null)
-      toast({ title: 'API Error', description: 'Failed to fetch book details. Added to verification log anyway.', variant: 'destructive' })
+      toast({ title: 'API Error', description: 'Failed to fetch book details. Cannot verify ISBN.', variant: 'destructive' })
     } finally { setLoadingVerifBooks(false) }
   }, [saveVerifBookToLocal, toast, verifBookCounter, verifCurrentSession, verifScannedBooks, warehouseBooks])
 

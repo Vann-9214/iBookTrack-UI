@@ -17,12 +17,12 @@ export function WarehouseIlmsMismatchModal({
   const [isClosing, setIsClosing] = useState(false)
   const theme = {
     border: 'border-amber-200/80',
-    header: 'border-amber-100 bg-gradient-to-r from-amber-50 via-card to-amber-50/60',
+    header: 'border-amber-100 bg-amber-50',
     hover: 'hover:bg-amber-100/70',
-    surface: 'border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-amber-100/50',
+    surface: 'border-amber-200/80 bg-amber-50',
     surfaceLabel: 'text-amber-800',
     detail: 'border-amber-200/70 bg-white/80',
-    footer: 'border-amber-100 bg-gradient-to-r from-amber-50/60 via-card to-amber-50/60',
+    footer: 'border-amber-100 bg-amber-50',
   }
   const close = (onClosed?: () => void) => {
     if (isClosing) return
@@ -98,7 +98,7 @@ export function WarehouseIlmsMismatchModal({
           <button onClick={() => close()} className="rounded-xl border border-amber-200/80 bg-white/80 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-amber-50 hover:text-foreground">
             Cancel
           </button>
-          <button onClick={() => close(ilmsMismatchModal.onConfirm)} className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600">
+          <button onClick={() => close(ilmsMismatchModal.onConfirm)} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600">
             Confirm book
           </button>
         </div>

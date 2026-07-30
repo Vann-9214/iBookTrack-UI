@@ -48,6 +48,7 @@ export function InspectionSession({
         inspScannedBooksLength={inspScannedBooks.length}
         handleResetInspSession={handleResetInspSession}
         handleOpenInspComplete={handleOpenInspComplete}
+        brand={brand}
       />
 
       <InspectionStats inspCurrentSession={inspCurrentSession} />

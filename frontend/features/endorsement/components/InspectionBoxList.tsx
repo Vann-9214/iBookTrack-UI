@@ -65,14 +65,14 @@ export function InspectionBoxList({
         renderAction={(box: BoxEntry, expanded) => {
           const session = box.box_sessions?.[0]
           if (session && (session.status === 'in_progress' || session.status === 'delayed')) {
-            if (session.endorsement_user_received !== currentUserId) {
+            if (session.endorsement_session_started_by !== currentUserId) {
               return (
                 <div className="flex flex-col items-end shrink-0 ml-2">
                   <span className={cn('text-[10px] font-bold uppercase tracking-wider', session.status === 'delayed' ? 'text-amber-500' : 'text-red-500')}>
                     {session.status === 'delayed' ? 'Delayed' : 'Locked'}
                   </span>
                   <span className={cn('text-[10px]', expanded ? 'text-white/80' : 'text-muted-foreground')}>
-                    by {session.endorsement_received_profile?.name || 'another user'}
+                    by {session.endorsement_started_profile?.name || 'another user'}
                   </span>
                 </div>
               )
@@ -107,8 +107,19 @@ export function InspectionBoxList({
           const receivedTime = box.box_sessions?.[0]?.endorsement_time_received
           return receivedTime ? new Date(receivedTime) : null
         }}
+        renderReceivedByLabel={(box: BoxEntry) => {
+          const session = box.box_sessions?.[0]
+          if (session && (session.status === 'in_progress' || session.status === 'delayed')) {
+            return 'In Progress By'
+          }
+          return 'Received By'
+        }}
         renderReceivedBy={(box: BoxEntry) => {
-          return box.box_sessions?.[0]?.endorsement_received_profile?.name || 'Unknown'
+          const session = box.box_sessions?.[0]
+          if (session && (session.status === 'in_progress' || session.status === 'delayed')) {
+            return session.endorsement_started_profile?.name || 'Unknown'
+          }
+          return session?.endorsement_received_profile?.name || 'Unknown'
         }}
         renderBooks={(box, books) => <EndorsementBookList books={books} loading={loadingInspRowBooks === box.id} />}
       />

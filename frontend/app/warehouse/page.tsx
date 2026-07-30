@@ -30,10 +30,10 @@ export default function WarehousePage() {
   return (
     <div className={cn('flex h-dvh overflow-hidden bg-background', `theme-${brand}`)}>
       <DashboardSidebar navigationLocked={wh.sessionActive} />
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden overflow-x-hidden">
         <DashboardNavbar disableBrandToggle={wh.sessionActive} navigationLocked={wh.sessionActive} />
-        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
-          <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-4 sm:gap-6 px-4 pb-4 pt-2 sm:px-6 sm:pb-6 sm:pt-4 lg:px-8 lg:pb-8 lg:pt-6 pb-safe-6">
             {/* Modals */}
             <WarehouseCompleteSessionModal
               confirmCompleteOpen={wh.confirmCompleteOpen}
@@ -78,7 +78,7 @@ export default function WarehousePage() {
                   <div className="flex items-start gap-3 sm:gap-4">
                     <div className={cn(
                       'p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0',
-                      brand === 'jaguar' ? 'bg-gradient-to-br from-emerald-400 to-green-600' : 'bg-gradient-to-br from-indigo-400 to-blue-600'
+                      brand === 'jaguar' ? 'bg-emerald-600' : 'bg-blue-600'
                     )}>
                       <Warehouse className="h-6 w-6 sm:h-7 sm:w-7" />
                     </div>
@@ -90,7 +90,7 @@ export default function WarehousePage() {
                             Manage incoming lots and scanning sessions for
                             <span className={cn(
                               'inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
-                              brand === 'jaguar' ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                              brand === 'jaguar' ? 'bg-emerald-600' : 'bg-blue-600'
                             )}>
                               {brand}
                             </span>

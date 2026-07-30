@@ -68,7 +68,7 @@ export default function InventoryPage() {
         <DashboardSidebar navigationLocked={verification.verifSessionActive} />
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           <DashboardNavbar disableBrandToggle={verification.verifSessionActive} navigationLocked={verification.verifSessionActive} />
-          <main className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+          <main className="ambient-bg flex-1 h-0 min-h-0 overflow-hidden">
             <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
               <InventoryHeader
                 brand={brand}

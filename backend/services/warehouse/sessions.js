@@ -450,8 +450,8 @@ export const resumeSessionService = async (req, res) => {
     const session = sessionRows[0];
 
     if (box.current_stage === 'inventory') {
-      if (session && ['in_progress', 'delayed'].includes(session.status) && session.inventory_user_received !== req.user.id) {
-        const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1', [session.inventory_user_received]);
+      if (session && ['in_progress', 'delayed'].includes(session.status) && session.inventory_session_started_by !== req.user.id && session.inventory_session_started_by !== null) {
+        const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1', [session.inventory_session_started_by]);
         return res.status(403).json({
           error: 'BoxInProcess',
           message: `Box is currently in process by ${userRows[0]?.name || 'another user'}.`,
@@ -461,7 +461,7 @@ export const resumeSessionService = async (req, res) => {
       let updatedSession;
       if (session) {
         const { rows: updSess } = await db.query(
-          "UPDATE box_sessions SET status = 'in_progress', inventory_user_received = $2, inventory_time_received = NOW() WHERE id = $1 RETURNING *",
+          "UPDATE box_sessions SET status = 'in_progress', inventory_session_started_by = $2, inventory_session_started_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING *",
           [session.id, req.user.id]
         );
         updatedSession = updSess[0];
@@ -488,8 +488,8 @@ export const resumeSessionService = async (req, res) => {
     }
 
     if (box.current_stage === 'endorsement' || box.current_stage === 'qa') {
-      if (session && ['in_progress', 'delayed'].includes(session.status) && session.endorsement_user_received !== req.user.id && session.endorsement_user_received !== null) {
-        const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1', [session.endorsement_user_received]);
+      if (session && ['in_progress', 'delayed'].includes(session.status) && session.endorsement_session_started_by !== req.user.id && session.endorsement_session_started_by !== null) {
+        const { rows: userRows } = await db.query('SELECT name FROM users WHERE id = $1', [session.endorsement_session_started_by]);
         return res.status(403).json({
           error: 'BoxInProcess',
           message: `Box is currently in process by ${userRows[0]?.name || 'another user'}.`,
@@ -499,7 +499,7 @@ export const resumeSessionService = async (req, res) => {
       let updatedSession;
       if (session) {
         const { rows: updSess } = await db.query(
-          "UPDATE box_sessions SET status = 'in_progress', endorsement_user_received = COALESCE(endorsement_user_received, $2), endorsement_time_received = COALESCE(endorsement_time_received, NOW()), updated_at = NOW() WHERE id = $1 RETURNING *",
+          "UPDATE box_sessions SET status = 'in_progress', endorsement_session_started_by = $2, endorsement_session_started_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING *",
           [session.id, req.user.id]
         );
         updatedSession = updSess[0];
@@ -546,7 +546,7 @@ export const cancelSessionService = async (req, res) => {
     
     if (!sessionRows[0]) return res.json({ success: true, message: 'No session to cancel' });
 
-    const { rows: updSess } = await db.query("UPDATE box_sessions SET status = 'received' WHERE id = $1 RETURNING *", [sessionRows[0].id]);
+    const { rows: updSess } = await db.query("UPDATE box_sessions SET status = 'received', inventory_session_started_by = NULL, endorsement_session_started_by = NULL WHERE id = $1 RETURNING *", [sessionRows[0].id]);
     const lockPayload = await getBoxLockPayload(box_id);
     broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
     broadcastEvent('INVENTORY_UNLOCKED', lockPayload);
@@ -562,11 +562,11 @@ export const cancelSessionService = async (req, res) => {
 export const deleteSessionService = async (req, res) => {
   try {
     const { session_id } = req.params
-    const { rows: sessionRows } = await db.query('SELECT box_id, warehouse_user_received, inventory_user_received, endorsement_user_received FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
+    const { rows: sessionRows } = await db.query('SELECT box_id, warehouse_user_received, inventory_session_started_by, endorsement_session_started_by FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
     
     if (sessionRows[0]) {
       // Non-supervisors may only delete/reset their own sessions
-      const sessionOwner = sessionRows[0].warehouse_user_received || sessionRows[0].inventory_user_received || sessionRows[0].endorsement_user_received;
+      const sessionOwner = sessionRows[0].warehouse_user_received || sessionRows[0].inventory_session_started_by || sessionRows[0].endorsement_session_started_by;
       if (req.user.role !== 'supervisor' && sessionOwner !== req.user.id) {
         return res.status(403).json({ error: 'You can only cancel your own sessions.' })
       }

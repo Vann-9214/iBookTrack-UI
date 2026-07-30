@@ -81,10 +81,12 @@ export const getBoxesBaseQuery = async (lot_id, box_type, current_stage, box_num
           'inventory_printed_at', bs.inventory_printed_at,
           'warehouse_received_profile', (SELECT json_build_object('name', u1.name) FROM users u1 WHERE u1.id = bs.warehouse_user_received),
           'inventory_received_profile', (SELECT json_build_object('name', u2.name) FROM users u2 WHERE u2.id = bs.inventory_user_received),
+          'inventory_started_profile', (SELECT json_build_object('name', us1.name) FROM users us1 WHERE us1.id = bs.inventory_session_started_by),
           'inventory_send_profile', (SELECT json_build_object('name', u3.name) FROM users u3 WHERE u3.id = bs.inventory_user_send),
           'cut_received_profile', (SELECT json_build_object('name', u4.name) FROM users u4 WHERE u4.id = bs.cut_user_received),
           'cut_send_profile', (SELECT json_build_object('name', u5.name) FROM users u5 WHERE u5.id = bs.cut_user_send),
           'endorsement_received_profile', (SELECT json_build_object('name', u6.name) FROM users u6 WHERE u6.id = bs.endorsement_user_received),
+          'endorsement_started_profile', (SELECT json_build_object('name', us2.name) FROM users us2 WHERE us2.id = bs.endorsement_session_started_by),
           'endorsement_send_profile', (SELECT json_build_object('name', u7.name) FROM users u7 WHERE u7.id = bs.endorsement_user_send),
           'scan_received_profile', (SELECT json_build_object('name', u8.name) FROM users u8 WHERE u8.id = bs.scan_user_received)
         ))

@@ -37,12 +37,12 @@ export function WarehouseFlagModal({
   const [isClosing, setIsClosing] = useState(false)
   const theme = {
     border: 'border-rose-200/80',
-    header: 'border-rose-100 bg-gradient-to-r from-rose-50 via-card to-rose-50/60',
-    surface: 'border-rose-200/80 bg-gradient-to-br from-rose-50/80 via-white to-red-100/50',
+    header: 'border-rose-100 bg-red-50',
+    surface: 'border-rose-200/80 bg-red-50',
     detail: 'border-rose-200/70 bg-white/80',
     text: 'text-rose-700',
     hover: 'hover:bg-rose-100/70',
-    footer: 'border-rose-100 bg-gradient-to-r from-rose-50/60 via-card to-red-50/60',
+    footer: 'border-rose-100 bg-red-50',
   }
   const close = (onClosed?: () => void) => {
     if (isClosing) return
@@ -177,7 +177,7 @@ export function WarehouseFlagModal({
           <button
             onClick={() => close(saveFlagFromLog)}
             disabled={!flagIssue || !flagRemarks.trim() || flagSaving}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
           >
             <AlertTriangle className="h-4 w-4" />
             {flagSaving ? 'Saving...' : 'Confirm Flag'}

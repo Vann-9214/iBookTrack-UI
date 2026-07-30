@@ -14,25 +14,25 @@ export const ISSUE_LABELS: Record<string, string> = {
 export const getTone = (isJaguar: boolean) => ({
   theme: isJaguar
     ? {
-        card: "bg-gradient-to-br from-emerald-50 via-card to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70",
-        icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
+        card: "bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70",
+        icon: "bg-emerald-600 shadow-emerald-500/25",
         value: "text-emerald-700",
         title: "text-emerald-950/70",
         sub: "text-emerald-600/80",
         hover: "hover:shadow-emerald-200/60 cursor-pointer",
-        modalBg: "bg-gradient-to-r from-emerald-50 to-green-50",
-        modalIcon: "bg-gradient-to-br from-emerald-500 to-green-600",
+        modalBg: "bg-emerald-600",
+        modalIcon: "bg-emerald-600",
         modalDot: "bg-emerald-500",
       }
     : {
-        card: "bg-gradient-to-br from-blue-50 via-card to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70",
-        icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
+        card: "bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70",
+        icon: "bg-blue-600 shadow-blue-500/25",
         value: "text-blue-700",
         title: "text-blue-950/70",
         sub: "text-blue-600/80",
         hover: "hover:shadow-blue-200/60 cursor-pointer",
-        modalBg: "bg-gradient-to-r from-blue-50 to-indigo-50",
-        modalIcon: "bg-gradient-to-br from-blue-500 to-indigo-600",
+        modalBg: "bg-blue-50",
+        modalIcon: "bg-blue-600",
         modalDot: "bg-blue-500",
       },
   red: {
@@ -42,8 +42,8 @@ export const getTone = (isJaguar: boolean) => ({
     title: "text-white/90",
     sub: "text-white/70",
     hover: "hover:shadow-red-500/40 cursor-pointer",
-    modalBg: "bg-gradient-to-r from-red-50 to-rose-50",
-    modalIcon: "bg-gradient-to-br from-red-500 to-rose-600",
+    modalBg: "bg-red-50",
+    modalIcon: "bg-red-600",
     modalDot: "bg-red-500",
   }
 })

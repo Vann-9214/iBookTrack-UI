@@ -52,23 +52,23 @@ export function WarehouseCompleteSessionModal({
   const theme = isJaguar
     ? {
         border: 'border-emerald-200/80',
-        header: 'border-emerald-100 bg-gradient-to-r from-emerald-50 via-card to-card',
-        surface: 'border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-emerald-100/50',
+        header: 'border-emerald-100 bg-emerald-50',
+        surface: 'border-emerald-200/80 bg-emerald-50',
         detail: 'border-emerald-200/70 bg-white/80',
         text: 'text-emerald-700',
         hover: 'hover:bg-emerald-100/70',
         footer: 'border-emerald-100 bg-gradient-to-r from-emerald-50/60 via-card to-emerald-50/60',
-        button: 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700',
+        button: 'bg-emerald-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700',
       }
     : {
         border: 'border-blue-200/80',
-        header: 'border-blue-100 bg-gradient-to-r from-blue-50 via-card to-indigo-50/60',
-        surface: 'border-blue-200/80 bg-gradient-to-br from-blue-50/80 via-white to-indigo-100/50',
+        header: 'border-blue-100 bg-blue-50',
+        surface: 'border-blue-200/80 bg-blue-50',
         detail: 'border-blue-200/70 bg-white/80',
         text: 'text-blue-700',
         hover: 'hover:bg-blue-100/70',
         footer: 'border-blue-100 bg-gradient-to-r from-blue-50/60 via-card to-indigo-50/60',
-        button: 'bg-gradient-to-r from-blue-500 to-indigo-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700',
+        button: 'bg-blue-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700',
       }
 
   useEffect(() => {
@@ -140,7 +140,7 @@ export function WarehouseCompleteSessionModal({
               className={cn('h-11 w-full rounded-xl border bg-white/85 px-3 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2', isJaguar ? 'border-emerald-200/80 focus:ring-emerald-500/20' : 'border-blue-200/80 focus:ring-blue-500/20')}
             />
           </div>
-          <div className="space-y-4 border-b border-rose-200/80 bg-gradient-to-br from-rose-50/80 via-white to-red-100/50 px-6 py-5">
+          <div className="space-y-4 border-b border-rose-200/80 bg-red-50 px-6 py-5">
             <div className="flex items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-200/80 bg-white/70 text-rose-700 shadow-sm">
                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -165,7 +165,7 @@ export function WarehouseCompleteSessionModal({
                   onClick={handleAddIssue}
                   disabled={!issueIsbn.trim() || fetchingIssueBook}
                   aria-label={issueType === 'missing' ? 'Add missing book' : 'Add book'}
-                  className="h-11 shrink-0 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-4 text-xs font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                  className="h-11 shrink-0 rounded-xl bg-red-600 px-4 text-xs font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
                   {fetchingIssueBook ? 'Adding...' : 'Add Book'}
                 </button>

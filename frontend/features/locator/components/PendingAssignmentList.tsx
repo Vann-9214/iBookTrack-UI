@@ -40,9 +40,9 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
 
   return (
     <Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition-all duration-300 hover:shadow-amber-200/50">
-      <CardHeader className="flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b border-b-amber-200/70 bg-gradient-to-br from-amber-50 to-orange-100/40">
+      <CardHeader className="flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b border-b-amber-200/70 bg-amber-600/40">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-500/25">
             <Clock className="h-5 w-5" />
           </div>
           <CardTitle className="text-base">Pending Assignment</CardTitle>
