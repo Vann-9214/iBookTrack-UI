@@ -21,8 +21,8 @@ export function useCheckpointBoxes(brand: string) {
   const [scanEligibleBoxNums, setScanEligibleBoxNums] = useState<Set<string> | null>(null)
   const [transmitEligibleBoxNums, setTransmitEligibleBoxNums] = useState<Set<string> | null>(null)
 
-  const fetchData = useCallback(async () => {
-    setTopLoading(true)
+  const fetchData = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setTopLoading(true)
     try {
       const [boxData, liveData, scanRowsData, transmitRowsData] = await Promise.all([
         fetchBoxes(brand),
@@ -84,7 +84,7 @@ export function useCheckpointBoxes(brand: string) {
     } catch (e) {
       console.error('Failed to fetch checkpoint data:', e)
     } finally {
-      setTopLoading(false)
+      if (isBackground !== true) setTopLoading(false)
     }
   }, [brand])
 
@@ -101,7 +101,7 @@ export function useCheckpointBoxes(brand: string) {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
-      fetchDataRef.current()
+      fetchDataRef.current(true)
     }
 
     es.addEventListener('BOX_UPDATED', handleUpdate)

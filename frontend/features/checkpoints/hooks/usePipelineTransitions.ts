@@ -35,8 +35,8 @@ export function usePipelineTransitions(brand: string) {
   useEffect(() => { transitionOffsetRef.current = transitionsPagination.offset }, [transitionsPagination.offset])
   useEffect(() => { brandRef.current = brand }, [brand])
 
-  const refresh = useCallback(async () => {
-    setTransitionsLoading(true)
+  const refresh = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setTransitionsLoading(true)
     try {
       const data = await fetchPipelineTransitions(brandRef.current, {
         offset: transitionOffsetRef.current,
@@ -63,7 +63,7 @@ export function usePipelineTransitions(brand: string) {
     } catch (e) {
       console.error('Failed to fetch pipeline transitions:', e)
     } finally {
-      setTransitionsLoading(false)
+      if (isBackground !== true) setTransitionsLoading(false)
     }
   }, [])
 
@@ -80,7 +80,7 @@ export function usePipelineTransitions(brand: string) {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
-      refreshRef.current()
+      refreshRef.current(true)
     }
 
     es.addEventListener('BOX_UPDATED', handleUpdate)

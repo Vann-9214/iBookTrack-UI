@@ -192,8 +192,7 @@ export function BoxActionButton({
       return <SlideAction badgeLabel="Sent" buttonLabel="Receive" badgeClass="border-indigo-300 text-indigo-700 bg-indigo-50" buttonClass="border-yellow-400 text-yellow-700 bg-yellow-50 hover:bg-yellow-100" variant="outline" loading={isReceiving} onClick={confirm('receive')} />
     }
     if (status === 'completed') {
-      if (!hasAccess) return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
-      return <SlideAction badgeLabel="Complete" buttonLabel="Send" badgeClass="border-emerald-300 text-emerald-700 bg-emerald-50" loading={isSending} onClick={confirm('send_forward')} />
+      return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">Complete</ActionBadge>
     }
     return <ActionBadge className="border-emerald-300 text-emerald-700 bg-emerald-50">{status}</ActionBadge>
   }
