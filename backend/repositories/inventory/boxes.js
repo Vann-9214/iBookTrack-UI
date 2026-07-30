@@ -77,6 +77,7 @@ export const getBoxesBaseQuery = async (lot_id, box_type, current_stage, box_num
           'endorsement_time_received', bs.endorsement_time_received,
           'endorsement_time_send', bs.endorsement_time_send,
           'scan_time_received', bs.scan_time_received,
+          'inventory_session_started_at', bs.inventory_session_started_at,
           'inventory_printed_by', bs.inventory_printed_by,
           'inventory_printed_at', bs.inventory_printed_at,
           'warehouse_received_profile', (SELECT json_build_object('name', u1.name) FROM users u1 WHERE u1.id = bs.warehouse_user_received),

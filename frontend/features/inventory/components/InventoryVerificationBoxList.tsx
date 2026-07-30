@@ -86,8 +86,13 @@ export function InventoryVerificationBoxList({
             const rowBooks = booksByBox[box.id] || []
             const isLoadingBooks = loadingBoxId === box.id
             const bookCount = box.box_sessions?.[0]?.total_scanned_books ?? box.total_expected_books ?? 0
-            const warehouseTime = sessionOngoing ? undefined : box.box_sessions?.[0]?.inventory_time_received
-            const created = warehouseTime ? new Date(warehouseTime) : (box.created_at ? new Date(box.created_at) : null)
+            const isVerifying = box.box_sessions?.[0]?.status === 'in_progress' || box.box_sessions?.[0]?.status === 'delayed'
+            const displayTime = sessionOngoing 
+              ? undefined 
+              : (isVerifying && box.box_sessions?.[0]?.inventory_session_started_at)
+                ? box.box_sessions?.[0]?.inventory_session_started_at
+                : box.box_sessions?.[0]?.inventory_time_received
+            const created = displayTime ? new Date(displayTime) : (box.created_at ? new Date(box.created_at) : null)
             return (
               <div
                 key={box.id}
