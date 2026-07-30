@@ -66,7 +66,7 @@ export function OutgoingBoxes({
           const verifiedTime = box.latest_endorsement_scan_at || box.box_sessions?.[0]?.updated_at
           return verifiedTime ? new Date(verifiedTime) : null
         }}
-        renderCompletedBy={(box: BoxEntry) => box.box_sessions?.[0]?.endorsement_received_profile?.name || null}
+        renderCompletedBy={(box: BoxEntry) => box.box_sessions?.[0]?.endorsement_complete_profile?.name || box.box_sessions?.[0]?.endorsement_received_profile?.name || null}
         renderBooks={(box, books) => <EndorsementBookList books={books} loading={loadingBoxBooks === box.id} />}
       />
     </div>

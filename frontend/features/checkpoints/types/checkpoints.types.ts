@@ -21,10 +21,14 @@ export interface BoxSession {
   warehouse_time_received?: string
   inventory_time_received?: string
   inventory_time_send?: string
+  inventory_complete_at?: string
+  inventory_session_started_at?: string
   cut_time_received?: string
   cut_time_send?: string
   endorsement_time_received?: string
   endorsement_time_send?: string
+  endorsement_complete_at?: string
+  endorsement_session_started_at?: string
   scan_time_received?: string
   updated_at?: string
   status?: string
@@ -33,10 +37,14 @@ export interface BoxSession {
 
   warehouse_received_profile?: BoxSessionProfile
   inventory_received_profile?: BoxSessionProfile
+  inventory_started_profile?: BoxSessionProfile
+  inventory_complete_profile?: BoxSessionProfile
   inventory_send_profile?: BoxSessionProfile
   cut_received_profile?: BoxSessionProfile
   cut_send_profile?: BoxSessionProfile
   endorsement_received_profile?: BoxSessionProfile
+  endorsement_started_profile?: BoxSessionProfile
+  endorsement_complete_profile?: BoxSessionProfile
   endorsement_send_profile?: BoxSessionProfile
   scan_received_profile?: BoxSessionProfile
 }

@@ -39,7 +39,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
           const verifiedTime = box.latest_inventory_scan_at
           return verifiedTime ? new Date(verifiedTime) : (box.created_at ? new Date(box.created_at) : null)
         }}
-        renderCompletedBy={(box) => box.box_sessions?.[0]?.inventory_received_profile?.name || null}
+        renderCompletedBy={(box) => box.box_sessions?.[0]?.inventory_complete_profile?.name || box.box_sessions?.[0]?.inventory_received_profile?.name || null}
         renderAction={(box: InventoryBox, expanded) => {
           const boxLabelPrinted = actions.printedBoxLabels.has(box.id) || !!box.box_sessions?.[0]?.inventory_printed_by
           const allPrinted = boxLabelPrinted

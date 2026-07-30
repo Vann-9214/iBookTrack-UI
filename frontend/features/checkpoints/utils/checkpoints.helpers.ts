@@ -234,8 +234,8 @@ export function getStageBoxRowInfo(
   } else if (selectedStage === 'inventory') {
     if (sessionStatus === 'completed') {
       actionLabel = 'Processed'
-      byName = session?.inventory_send_profile?.name || byName
-      timeStr = session?.inventory_time_send || timeStr
+      byName = session?.inventory_complete_profile?.name || session?.inventory_send_profile?.name || byName
+      timeStr = session?.inventory_complete_at || session?.inventory_time_send || timeStr
     } else if (sessionStatus === 'received') {
       actionLabel = 'Received'
       byName = session?.inventory_received_profile?.name || byName
@@ -244,6 +244,10 @@ export function getStageBoxRowInfo(
       actionLabel = 'Sent'
       byName = session?.inventory_send_profile?.name || byName
       timeStr = session?.inventory_time_send || timeStr
+    } else if (sessionStatus === 'in_progress' || sessionStatus === 'delayed') {
+      actionLabel = 'Processing'
+      byName = session?.inventory_started_profile?.name || session?.inventory_received_profile?.name || byName
+      timeStr = session?.inventory_session_started_at || session?.inventory_time_received || timeStr
     }
     if (byName === 'N/A' && box.latest_inventory_scan_by_name) {
       byName = box.latest_inventory_scan_by_name
@@ -266,8 +270,8 @@ export function getStageBoxRowInfo(
   } else if (selectedStage === 'endorsement') {
     if (sessionStatus === 'completed') {
       actionLabel = 'Processed'
-      byName = session?.endorsement_send_profile?.name || byName
-      timeStr = session?.endorsement_time_send || timeStr
+      byName = session?.endorsement_complete_profile?.name || session?.endorsement_send_profile?.name || byName
+      timeStr = session?.endorsement_complete_at || session?.endorsement_time_send || timeStr
     } else if (sessionStatus === 'received') {
       actionLabel = 'Received'
       byName = session?.endorsement_received_profile?.name || byName
@@ -276,6 +280,10 @@ export function getStageBoxRowInfo(
       actionLabel = 'Sent'
       byName = session?.endorsement_send_profile?.name || byName
       timeStr = session?.endorsement_time_send || timeStr
+    } else if (sessionStatus === 'in_progress' || sessionStatus === 'delayed') {
+      actionLabel = 'Processing'
+      byName = session?.endorsement_started_profile?.name || session?.endorsement_received_profile?.name || byName
+      timeStr = session?.endorsement_session_started_at || session?.endorsement_time_received || timeStr
     }
     if (byName === 'N/A' && box.latest_endorsement_scan_by_name) {
       byName = box.latest_endorsement_scan_by_name
