@@ -36,10 +36,10 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
     !warehouseBooks.filter((wb) => wb.rejection_reason !== 'missing').every((wb) => verifScannedBooks.some((vb) => vb.isbn === wb.isbn))
 
   const isJaguar = brand === 'jaguar'
-  const cardTheme = isJaguar ? 'bg-orange-50/40 border-orange-200/60 ring-1 ring-orange-100' : 'bg-white/60 border-primary/10 ring-1 ring-primary/5'
+  const cardTheme = 'bg-white/68 border-primary/15 ring-1 ring-primary/10'
   const iconTheme = 'premium-gradient-ui-card--solid'
-  const labelTheme = isJaguar ? 'text-orange-600/70' : 'text-primary/70'
-  const valueTheme = isJaguar ? 'text-orange-900' : 'text-primary'
+  const labelTheme = 'text-primary/75'
+  const valueTheme = 'text-primary'
 
   const stats = [
     {

@@ -165,10 +165,9 @@ export function CompleteInspectionModal({
                     <div key={`prev-${book.id}-${idx}`} className="flex items-center gap-3 px-5 py-2.5 bg-white/60 hover:bg-white/90 transition-colors">
                       <span className="text-[11px] font-bold font-mono text-orange-900 w-28 shrink-0">{book.isbn}</span>
                       <span className="text-[11px] font-semibold text-orange-800 truncate flex-1">{book.title}</span>
-                      {(book.flag_issue || book.flag_remarks) && (
+                      {book.flag_issue && (
                         <span className="text-[10px] font-medium text-orange-700/80 truncate w-40 shrink-0 hidden sm:block">
-                          {book.flag_issue ? issueLabel(book.flag_issue) : ''}
-                          {book.flag_remarks ? ` — ${book.flag_remarks}` : ''}
+                          {issueLabel(book.flag_issue)}
                         </span>
                       )}
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-orange-100 text-orange-700 border border-orange-200/60 shrink-0">Previously Flagged</span>
@@ -196,10 +195,9 @@ export function CompleteInspectionModal({
                     <div key={`new-${book.id}-${idx}`} className="flex items-center gap-3 px-5 py-2.5 bg-white/60 hover:bg-white/90 transition-colors">
                       <span className="text-[11px] font-bold font-mono text-rose-900 w-28 shrink-0">{book.isbn}</span>
                       <span className="text-[11px] font-semibold text-rose-800 truncate flex-1">{book.title}</span>
-                      {(book.flag_issue || book.flag_remarks) && (
+                      {book.flag_issue && (
                         <span className="text-[10px] font-medium text-rose-700/80 truncate w-40 shrink-0 hidden sm:block">
-                          {book.flag_issue ? issueLabel(book.flag_issue) : ''}
-                          {book.flag_remarks ? ` — ${book.flag_remarks}` : ''}
+                          {issueLabel(book.flag_issue)}
                         </span>
                       )}
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 border border-rose-200/60 shrink-0">Newly Flagged</span>
