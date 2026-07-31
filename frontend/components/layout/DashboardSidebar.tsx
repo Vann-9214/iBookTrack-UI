@@ -164,7 +164,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
       <div className="hidden md:block shrink-0 w-[76px] h-dvh" />
 
       <aside
-        className="group/sidebar hidden md:flex fixed left-0 top-0 z-30 h-dvh flex-col w-[76px] hover:w-[240px] transition-[width] duration-300 ease-in-out overflow-hidden shadow-xl shadow-black/20"
+        className="peer/sidebar group/sidebar hidden md:flex fixed left-0 top-0 z-40 h-dvh flex-col w-[76px] hover:w-[240px] transition-[width] duration-300 ease-in-out overflow-hidden shadow-xl shadow-black/20"
         style={{ background: sidebarBg, '--active-item-color': colors.sidebar } as React.CSSProperties}
         onMouseLeave={() => setWarehouseOpen(false)}
       >
@@ -356,6 +356,9 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
         <div className="mx-3 h-px bg-white/10 mb-2" />
         <div className="px-[10px] pb-4" />
       </aside>
+
+      {/* Desktop Backdrop */}
+      <div className="hidden md:block fixed inset-0 z-30 bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 peer-hover/sidebar:opacity-100" />
 
       <button
         className="md:hidden fixed top-3 left-3 z-50 flex items-center justify-center w-9 h-9 rounded-xl shadow-lg text-white"
