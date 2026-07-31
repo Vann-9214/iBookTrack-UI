@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { usePagination } from '@/hooks/usePagination'
 import {
   fetchLotTransmissionSummary,
@@ -199,9 +200,10 @@ export function useTransmissionLot(brand: TransmissionBrand) {
     })
   }, [lotIsbns, lotIsbnSearch, lotBoxFilter, lotIsbnFilter])
 
+  const isMobile = useIsMobile()
   const lotIsbnPagination = usePagination({
     totalItems: filteredLotIsbns.length,
-    defaultPageSize: 50,
+    defaultPageSize: isMobile ? 10 : 50,
   })
   const paginatedLotIsbns = useMemo(
     () => filteredLotIsbns.slice(lotIsbnPagination.offset, lotIsbnPagination.offset + lotIsbnPagination.limit),
