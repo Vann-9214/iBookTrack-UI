@@ -15,6 +15,9 @@ export function useReports(brand: string) {
   const [search, setSearch] = useState('')
   const [expandedLots, setExpandedLots] = useState<Set<string>>(new Set())
   const [boxPageByLot, setBoxPageByLot] = useState<Record<string, number>>({})
+  const [page, setPage] = useState(1)
+
+  const LOTS_PER_PAGE = 10
 
   const toggleLot = (lotId: string) => {
     setExpandedLots(prev => {
@@ -85,9 +88,28 @@ export function useReports(brand: string) {
     return filterAndSortLots(lots, filter, search, sortKey, sortDir)
   }, [lots, filter, search, sortKey, sortDir])
 
+  const totalPages = Math.max(1, Math.ceil(filteredLots.length / LOTS_PER_PAGE))
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter, search, sortKey, sortDir])
+
+  useEffect(() => {
+    setPage(p => Math.min(p, totalPages))
+  }, [totalPages])
+
+  const paginatedLots = useMemo(() => {
+    const start = (page - 1) * LOTS_PER_PAGE
+    return filteredLots.slice(start, start + LOTS_PER_PAGE)
+  }, [filteredLots, page])
+
   return {
     lots,
     filteredLots,
+    paginatedLots,
+    page,
+    setPage,
+    totalPages,
     loading,
     error,
     timestamp,

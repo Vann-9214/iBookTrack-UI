@@ -1,13 +1,18 @@
 import React from 'react'
-import { Loader2, Package, BookOpen, ChevronUp, ChevronDown } from 'lucide-react'
+import { Loader2, Package, BookOpen, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { LotStatusRow as LotStatusRowType, SortKey, SortDir } from '../types/reports.types'
 import { LotStatusRowComponent } from './LotStatusRow'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 interface LotStatusTableProps {
   brand: string
   lots: LotStatusRowType[]
   filteredLots: LotStatusRowType[]
+  paginatedLots: LotStatusRowType[]
+  page: number
+  totalPages: number
+  onPageChangeLots: (page: number) => void
   loading: boolean
   error: string | null
   sortKey: SortKey
@@ -23,6 +28,10 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
   brand,
   lots,
   filteredLots,
+  paginatedLots,
+  page,
+  totalPages,
+  onPageChangeLots,
   loading,
   error,
   sortKey,
@@ -40,7 +49,7 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
 
   const thCls = (k: SortKey) =>
     cn(
-      'px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors',
+      'px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer select-none hover:text-foreground transition-colors whitespace-nowrap',
       sortKey === k && 'text-foreground'
     )
 
@@ -78,7 +87,7 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
       )}
     >
       <div className="overflow-x-auto overflow-y-auto max-h-[36rem]">
-        <table className="w-full text-sm relative">
+        <table className="w-full min-w-[880px] text-sm relative">
           <thead
             className={cn(
               'border-b sticky top-0 z-10 shadow-sm',
@@ -127,7 +136,7 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
             </tr>
           </thead>
           <tbody className={cn('divide-y', brand === 'jaguar' ? 'divide-green-100' : 'divide-blue-100')}>
-            {filteredLots.map(lot => (
+            {paginatedLots.map(lot => (
               <LotStatusRowComponent
                 key={lot.lot_id}
                 brand={brand}
@@ -141,8 +150,38 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
           </tbody>
         </table>
       </div>
-      <div className="px-4 py-2.5 border-t border-border bg-muted/20 text-xs text-muted-foreground">
-        Showing {filteredLots.length} of {lots.length} lots
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-2.5 border-t border-border bg-muted/20">
+        <span className="text-xs text-muted-foreground">
+          Showing {paginatedLots.length === 0 ? 0 : (page - 1) * 10 + 1}
+          –{Math.min(page * 10, filteredLots.length)} of {filteredLots.length} lots
+        </span>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2 gap-1"
+              disabled={page === 1}
+              onClick={() => onPageChangeLots(page - 1)}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Prev
+            </Button>
+            <span className="text-xs font-medium text-muted-foreground px-1">
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2 gap-1"
+              disabled={page === totalPages}
+              onClick={() => onPageChangeLots(page + 1)}
+            >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
