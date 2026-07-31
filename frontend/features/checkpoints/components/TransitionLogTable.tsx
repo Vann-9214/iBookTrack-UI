@@ -37,26 +37,26 @@ export function TransitionLogTable({
       ) : (
         <div className="flex flex-col border-t border-border/50 max-h-[600px] overflow-y-auto overflow-x-auto relative">
           <div className="min-w-max">
-            <div className="flex items-center gap-4 px-6 py-3 bg-card border-b border-border/50 text-[10px] font-bold text-muted-foreground uppercase tracking-wider sticky top-0 z-20 shadow-sm">
-              <div className="w-[220px] shrink-0 flex items-center">
-                <div className="w-[80px] shrink-0 mr-2">Box & Lot</div>
-                <div className="w-[130px] shrink-0">Stage</div>
+            <div className="flex items-center gap-4 px-6 py-3.5 bg-card border-b border-border/50 text-[11px] font-bold text-muted-foreground uppercase tracking-wider sticky top-0 z-20 shadow-xs">
+              <div className="w-[260px] shrink-0 flex items-center">
+                <div className="w-[110px] shrink-0 mr-2">Box & Lot</div>
+                <div className="w-[140px] shrink-0">Stage</div>
               </div>
               <div className="w-[180px] shrink-0">Status</div>
-              <div className="w-[130px] shrink-0">
+              <div className="w-[140px] shrink-0">
                 Books
-                <div className="text-[8px] opacity-75 font-medium mt-0.5 normal-case tracking-normal">
+                <div className="text-[9px] opacity-75 font-medium mt-0.5 normal-case tracking-normal">
                   (Processable / Expected)
                 </div>
               </div>
-              <div className="w-[110px] shrink-0">
+              <div className="w-[140px] shrink-0">
                 Transmitted
-                <div className="text-[8px] opacity-75 font-medium mt-0.5 normal-case tracking-normal">
+                <div className="text-[9px] opacity-75 font-medium mt-0.5 normal-case tracking-normal">
                   (Transmitted / Processable)
                 </div>
               </div>
-              <div className="w-[150px] shrink-0 min-w-0">Holder</div>
-              <div className="w-[100px] shrink-0 ml-auto pr-4 text-right">Updated / Created</div>
+              <div className="w-[160px] shrink-0 min-w-0">Holder</div>
+              <div className="w-[120px] shrink-0 ml-auto pr-4 text-right">Updated / Created</div>
               <div className="w-4 shrink-0"></div>
             </div>
 
