@@ -481,6 +481,11 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
             <BarChart3 className="h-5 w-5 shrink-0" />
             Reports
           </button>
+
+          <button onClick={() => navigate('/non-processable')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/non-processable'))}>
+            <AlertOctagon className="h-5 w-5 shrink-0" />
+            Non-Processable
+          </button>
         </nav>
 
         <div className="mx-4 h-px bg-white/10 mb-3" />
