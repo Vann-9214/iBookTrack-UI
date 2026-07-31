@@ -281,7 +281,7 @@ export const getBoxScansService = async (req, res) => {
 
     const { rows: scans } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.warehouse_scan_at,
-             uf.rejection_reason,
+             uf.rejection_reason, uf.notes,
              b.isbn, b.title, bx.box_number, l.lot_number
       FROM book_activity ba
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
@@ -301,6 +301,7 @@ export const getBoxScansService = async (req, res) => {
           title: scan.title,
           scan_status: scan.scan_status,
           rejection_reason: scan.rejection_reason || null,
+          notes: scan.notes || null,
           warehouse_scan_at: scan.warehouse_scan_at
         });
       }

@@ -68,7 +68,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
     }
   }
 
-  const addInspBookLocal = (bookData: { isbn: string; title: string; author: string }, scan_status: 'processable' | 'non_processable', flag_issue: string | null = null) => {
+  const addInspBookLocal = (bookData: { isbn: string; title: string; author: string }, scan_status: 'processable' | 'non_processable', flag_issue: string | null = null, flag_remarks: string | null = null) => {
     if (!inspCurrentSession) return
     setInspCurrentBoxBooks((p) => p + 1)
     setInspBookCounter((p) => p + 1)
@@ -79,6 +79,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
       author: bookData.author,
       scan_status,
       flag_issue: flag_issue || undefined,
+      flag_remarks: flag_remarks || undefined,
       timestamp: new Date(),
     }
     setInspScannedBooks((prev) => [newBook, ...prev])
@@ -115,7 +116,12 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
     try {
       const data = await endorsementService.searchIlms(isbn)
       if (data.success && data.data && !data.data.Message) {
-        addInspBookLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, prevStatus, warehouseBook?.rejection_reason || null)
+        addInspBookLocal(
+          { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, 
+          prevStatus, 
+          warehouseBook?.rejection_reason || null,
+          warehouseBook?.notes || null
+        )
       } else {
         toast.error(`ISBN ${isbn} not found in ${brand.toUpperCase()} records.`)
       }

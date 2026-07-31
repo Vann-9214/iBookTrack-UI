@@ -80,6 +80,7 @@ export interface WarehouseBook {
   title: string
   scan_status: 'processable' | 'non_processable'
   rejection_reason?: string
+  notes?: string
   scanned_at: string
   scanned_by_name: string
 }
