@@ -56,6 +56,6 @@ export const getPipelineStatsSchema = {
 
 export const resolveQcFlagSchema = {
   params: z.object({
-    id: z.string().regex(/^\d+$/)
+    id: z.string().min(1)
   })
 };

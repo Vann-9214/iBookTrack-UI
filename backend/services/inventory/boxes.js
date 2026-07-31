@@ -10,7 +10,7 @@ import { generateLotCandidates } from '../../utils/lotUtils.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 import { broadcastEvent } from '../../utils/sse.js';
 
-const syncBoxTransmissionStatus = async (boxId, location) => {
+export const syncBoxTransmissionStatus = async (boxId, location) => {
   try {
     const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
 
