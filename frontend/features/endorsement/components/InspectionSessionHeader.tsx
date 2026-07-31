@@ -12,6 +12,7 @@ interface InspectionSessionHeaderProps {
   inspUserName: string
   loadingInspSession: boolean
   inspScannedBooksLength: number
+  expectedBooksLength: number
   handleResetInspSession: () => void
   handleOpenInspComplete: () => void
   brand: string
@@ -23,6 +24,7 @@ export function InspectionSessionHeader({
   inspUserName,
   loadingInspSession,
   inspScannedBooksLength,
+  expectedBooksLength,
   handleResetInspSession,
   handleOpenInspComplete,
   brand,
@@ -56,7 +58,7 @@ export function InspectionSessionHeader({
                 <div className="hidden h-7 w-px sm:block bg-primary/10" />
                 <div className="min-w-[52px]">
                   <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Box</span>
-                  <span className={cn('mt-0.5 block text-sm font-semibold tracking-tight', valueTheme)}>{inspBox.box_number} ({inspCurrentBoxBooks})</span>
+                  <span className={cn('mt-0.5 block text-sm font-semibold tracking-tight', valueTheme)}>{inspBox.box_number}</span>
                 </div>
               </>
             )}
@@ -82,14 +84,22 @@ export function InspectionSessionHeader({
             Reset
           </button>
           
-          <button
-            onClick={handleOpenInspComplete}
-            disabled={loadingInspSession || inspScannedBooksLength === 0}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid"
-          >
-            <Package className="h-4 w-4" />
-            Complete Session
-          </button>
+          <div className="relative group flex flex-1 sm:flex-none">
+            <button
+              onClick={handleOpenInspComplete}
+              disabled={loadingInspSession || inspScannedBooksLength === 0 || inspScannedBooksLength < expectedBooksLength}
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 w-full premium-gradient-ui-card--solid"
+            >
+              <Package className="h-4 w-4" />
+              Complete Session
+            </button>
+            {inspScannedBooksLength < expectedBooksLength && (
+              <div className="pointer-events-none absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-800 px-3 py-2 text-[10px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 z-50">
+                Not all books are scanned yet
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

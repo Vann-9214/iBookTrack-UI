@@ -33,30 +33,30 @@ export function InventoryVerificationTables({ verification }: { verification: Re
           <p className="text-sm text-muted-foreground py-6 text-center">No warehouse scans found for this box.</p>
         ) : (
           <div className="flex flex-col">
-            <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
+            <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
               <div className="col-span-5 sm:col-span-6">Book Title</div>
-              <div className="col-span-4 sm:col-span-4 text-right pr-[56px]">Status</div>
+              <div className="col-span-4 sm:col-span-4 text-right">Status</div>
             </div>
             <div className="space-y-1.5 overflow-y-auto overflow-x-hidden max-h-[240px] pr-1.5 custom-scrollbar">
               {warehouseBooks
                 .map((book) => {
                   const inventoryBook = verifScannedBooks.find((ib) => ib.isbn === book.isbn)
                   const isMissing = book.rejection_reason === 'missing'
-                  const isMatch = isMissing || (inventoryBook && inventoryBook.scan_status === book.scan_status)
-                  return { book, isMatch, isMissing }
+                  const isScanned = !!inventoryBook
+                  return { book, isMissing, isScanned }
                 })
                 .sort((a, b) => {
                   if (a.isMissing && !b.isMissing) return 1
                   if (!a.isMissing && b.isMissing) return -1
-                  return a.isMatch === b.isMatch ? 0 : a.isMatch ? 1 : -1
+                  return a.isScanned === b.isScanned ? 0 : a.isScanned ? 1 : -1
                 })
-                .map(({ book, isMatch, isMissing }, i) => (
+                .map(({ book, isMissing, isScanned }, i) => (
                   <div
                     key={i}
                     className={cn(
                       'grid grid-cols-12 gap-2 px-3 py-2 rounded-lg border transition-colors items-center',
-                      isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isMatch ? 'border-primary/20 bg-gradient-to-br from-primary/5 via-white/50 to-primary/10 shadow-sm shadow-primary/5' : 'border-rose-200/80 bg-gradient-to-br from-rose-50 via-white to-red-50 shadow-sm shadow-rose-950/5'
+                      isMissing ? 'bg-gray-100 border-gray-300 opacity-60' : isScanned ? 'border-primary/20 bg-gradient-to-br from-primary/5 via-white/50 to-primary/10 shadow-sm shadow-primary/5' : 'border-rose-200/80 bg-gradient-to-br from-rose-50 via-white to-red-50 shadow-sm shadow-rose-950/5'
                     )}
                   >
                     <div className="col-span-3 sm:col-span-2 min-w-0">
@@ -66,16 +66,23 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex items-center justify-end min-w-0">
-                      <span className={cn(
-                        'px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap',
-                        book.scan_status === 'processable' ? 'border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5' : 'border border-rose-200 bg-gradient-to-br from-rose-50 via-rose-100/50 to-rose-100 text-rose-700 shadow-sm shadow-rose-950/5'
-                      )}>
-                        {book.scan_status === 'processable'
-                          ? 'Processable'
-                          : (book.rejection_reason === 'missing' || book.rejection_reason === 'extra')
-                            ? `Non-Processable (${book.rejection_reason.charAt(0).toUpperCase() + book.rejection_reason.slice(1)})`
-                            : 'Non-Processable'}
-                      </span>
+                      {book.scan_status === 'processable' ? (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5">
+                          Processable
+                        </span>
+                      ) : (
+                        <div className="flex flex-col items-end justify-center">
+                          {book.rejection_reason && (
+                            <span className="text-right text-[8.5px] font-bold text-destructive/90 max-w-[150px] leading-none mb-0.5 truncate capitalize">
+                              {issueLabel(book.rejection_reason)}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-[1px] text-[8.5px] font-bold text-destructive whitespace-nowrap uppercase tracking-wider">
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            Non-Processable
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -98,10 +105,10 @@ export function InventoryVerificationTables({ verification }: { verification: Re
           <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
         ) : (
           <div className="flex flex-col">
-            <div className="grid grid-cols-12 gap-2 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
+            <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
               <div className="col-span-4 sm:col-span-5">Book Title</div>
-              <div className="col-span-4 sm:col-span-4 text-right pr-[90px]">Status</div>
+              <div className="col-span-4 sm:col-span-4 text-right">Status</div>
               <div className="col-span-1 text-right"></div>
             </div>
             <div className="space-y-1.5 overflow-y-auto overflow-x-hidden max-h-[240px] pr-1.5 custom-scrollbar">
@@ -109,10 +116,10 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                 .map((book) => {
                   const warehouseBook = warehouseBooks.find((wb) => wb.isbn === book.isbn)
                   const isMatch = warehouseBook && warehouseBook.scan_status === book.scan_status
-                  return { book, isMatch }
+                  return { book, warehouseBook, isMatch }
                 })
                 .sort((a, b) => b.book.timestamp.getTime() - a.book.timestamp.getTime())
-                .map(({ book, isMatch }, i) => (
+                .map(({ book, warehouseBook, isMatch }, i) => (
                   <div
                     key={`${book.id}-${i}`}
                     className={cn(
@@ -123,14 +130,8 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                     <div className="col-span-3 sm:col-span-2 min-w-0">
                       <p className="text-xs font-mono text-muted-foreground truncate">{book.isbn}</p>
                     </div>
-                    <div className="col-span-4 sm:col-span-5 min-w-0">
+                    <div className="col-span-4 sm:col-span-5 min-w-0 flex items-center">
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
-                      {book.flag_issue && (
-                        <p className="text-[10px] text-red-600 mt-0.5 truncate">
-                          {issueLabel(book.flag_issue)}
-                          {book.flag_remarks ? ` — ${book.flag_remarks}` : ''}
-                        </p>
-                      )}
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex items-center justify-end gap-1.5 min-w-0">
                       {book.scan_status === 'processable' ? (
@@ -144,9 +145,17 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                           </button>
                         </>
                       ) : (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border border-rose-200 bg-gradient-to-br from-rose-50 via-rose-100/50 to-rose-100 text-rose-700 shadow-sm shadow-rose-950/5 whitespace-nowrap">
-                          <AlertTriangle className="h-2.5 w-2.5" /> Non-Processable
-                        </span>
+                        <div className="flex flex-col items-end justify-center">
+                          {(book.flag_issue || warehouseBook?.rejection_reason) && (
+                            <span className="text-right text-[8.5px] font-bold text-destructive/90 max-w-[150px] leading-none mb-0.5 truncate capitalize">
+                              {issueLabel(book.flag_issue || warehouseBook!.rejection_reason!)}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-[1px] text-[8.5px] font-bold text-destructive whitespace-nowrap uppercase tracking-wider">
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            Non-Processable
+                          </span>
+                        </div>
                       )}
                     </div>
                     <div className="col-span-1 flex items-center justify-end">

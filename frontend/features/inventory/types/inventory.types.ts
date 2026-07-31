@@ -15,6 +15,7 @@ export interface BookInBox {
 export interface InventoryBoxSession {
   id?: string
   status: string
+  updated_at?: string
   warehouse_user_received?: string
   inventory_user_received?: string
   endorsement_user_received?: string
