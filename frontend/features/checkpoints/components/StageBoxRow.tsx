@@ -94,8 +94,8 @@ export function StageBoxRow({
             </span>
             {showMeta && (
               <>
-                <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-                <span className="truncate max-w-[120px]" title={byName}>
+                <span className="hidden sm:inline-block h-1 w-1 rounded-full bg-muted-foreground/40" />
+                <span className="hidden sm:inline-block truncate max-w-[120px]" title={byName}>
                   <span className="text-[10px] uppercase font-bold">{actionLabel} By</span> {byName}
                 </span>
               </>
@@ -150,6 +150,22 @@ export function StageBoxRow({
 
       {isExpanded && (
         <div className="border-t border-border bg-muted/30">
+          {showMeta && (
+            <div className="sm:hidden px-4 pt-3 pb-2 border-b border-border/50 bg-background/50 flex flex-col gap-1 text-xs text-muted-foreground">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground">{actionLabel} By: </span>
+                <span className="font-medium text-foreground">{byName}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground">{actionLabel} At: </span>
+                <span className="font-medium text-foreground">
+                  {timeStr
+                    ? new Date(timeStr).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                    : 'N/A'}
+                </span>
+              </div>
+            </div>
+          )}
           {!details || details.loading ? (
             <p className="text-xs text-muted-foreground py-4 px-4">Loading contents...</p>
           ) : details.books.length === 0 ? (

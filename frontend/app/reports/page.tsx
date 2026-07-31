@@ -18,6 +18,10 @@ export default function ReportsPage() {
   const {
     lots,
     filteredLots,
+    paginatedLots,
+    page,
+    setPage,
+    totalPages,
     loading,
     error,
     timestamp,
@@ -42,7 +46,8 @@ export default function ReportsPage() {
       <DashboardSidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardNavbar />
-        <div className="ambient-bg flex-1 min-h-0 overflow-auto flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
+        <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
           <ReportsHeader
             brand={brand}
             timestamp={timestamp}
@@ -71,6 +76,10 @@ export default function ReportsPage() {
             brand={brand}
             lots={lots}
             filteredLots={filteredLots}
+            paginatedLots={paginatedLots}
+            page={page}
+            totalPages={totalPages}
+            onPageChangeLots={setPage}
             loading={loading}
             error={error}
             sortKey={sortKey}
@@ -81,6 +90,7 @@ export default function ReportsPage() {
             boxPageByLot={boxPageByLot}
             onPageChange={setBoxPage}
           />
+        </div>
         </div>
       </main>
     </div>

@@ -114,8 +114,8 @@ export function TransitionLogRow({
         className="flex items-center px-6 py-4 cursor-pointer gap-4"
         onClick={onToggle}
       >
-        <div className="w-[220px] shrink-0 flex items-center">
-          <div className="w-[80px] shrink-0 flex flex-col mr-2">
+        <div className="w-[260px] shrink-0 flex items-center">
+          <div className="w-[110px] shrink-0 flex flex-col mr-2">
             <span className="font-bold text-foreground text-sm truncate">{box.box_number}</span>
             {box.lot?.lot_number && (
               <span className="text-[10px] text-muted-foreground font-semibold truncate">
@@ -123,7 +123,7 @@ export function TransitionLogRow({
               </span>
             )}
           </div>
-          <div className="flex flex-col gap-1 w-[130px]">
+          <div className="flex flex-col gap-1 w-[140px]">
             <div className="flex items-center gap-1.5">
               {PIPELINE_STAGES.map((s, i) => {
                 let dotColor = 'bg-muted-foreground/30'
@@ -144,26 +144,26 @@ export function TransitionLogRow({
           </span>
         </div>
 
-        <div className="w-[130px] shrink-0 flex flex-col">
+        <div className="w-[140px] shrink-0 flex flex-col">
           <span className="text-sm font-semibold text-foreground">
             {t.total_processable_books ?? 0} / {box.total_expected_books ?? 0}
           </span>
         </div>
 
-        <div className="w-[110px] shrink-0 flex flex-col">
+        <div className="w-[140px] shrink-0 flex flex-col">
           <span className="text-sm font-semibold text-foreground">
             {box.total_transmitted_books ?? 0} / {t.total_processable_books ?? 0}
           </span>
         </div>
 
-        <div className="w-[150px] shrink-0 flex flex-col min-w-0">
+        <div className="w-[160px] shrink-0 flex flex-col min-w-0">
           <span className="text-sm font-semibold text-foreground truncate" title={holderName}>
             {holderName}
           </span>
           <span className="text-[11px] text-muted-foreground">{holderStage}</span>
         </div>
 
-        <div className="w-[100px] shrink-0 flex flex-col items-end justify-center ml-auto pr-4">
+        <div className="w-[120px] shrink-0 flex flex-col items-end justify-center ml-auto pr-4">
           <span className="text-xs text-muted-foreground">
             {t.updated_at ? formatTime(t.updated_at) : '—'}
           </span>

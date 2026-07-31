@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useBrand } from '@/hooks/use-brand'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { usePagination } from '@/hooks/usePagination'
 import {
   fetchLiveTransmissionData,
@@ -22,6 +23,7 @@ import { formatPipelineStage, parseStatus, todayStr } from '../utils/transmissio
 
 export function useTransmission() {
   const { brand } = useBrand()
+  const isMobile = useIsMobile()
 
   // Date & process filters
   const [fromDate, setFromDate] = useState(todayStr())
@@ -188,7 +190,7 @@ export function useTransmission() {
 
   const recentScansPagination = usePagination({
     totalItems: filteredScans.length,
-    defaultPageSize: 50,
+    defaultPageSize: isMobile ? 8 : 50,
   })
   const paginatedRecentScans = useMemo(
     () => filteredScans.slice(recentScansPagination.offset, recentScansPagination.offset + recentScansPagination.limit),
