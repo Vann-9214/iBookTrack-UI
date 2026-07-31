@@ -29,6 +29,8 @@ export function NonProcessableModals({
   resolvingId
 }: NonProcessableModalsProps) {
   const [modalPage, setModalPage] = useState(1)
+  const [isClosing, setIsClosing] = useState(false)
+  const [isResolvingClosing, setIsResolvingClosing] = useState(false)
 
   useEffect(() => {
     setModalPage(1)
@@ -37,12 +39,30 @@ export function NonProcessableModals({
   const TONE = getTone(isJaguar)
   const activeTone = selectedCategory === 'Total' ? TONE.red : TONE.theme
 
+  const dismissModal = () => {
+    if (isClosing) return
+    setIsClosing(true)
+    setTimeout(() => {
+      setSelectedCategory(null)
+      setIsClosing(false)
+    }, 340)
+  }
+
+  const dismissResolveModal = () => {
+    if (isResolvingClosing) return
+    setIsResolvingClosing(true)
+    setTimeout(() => {
+      setFlagToResolve(null)
+      setIsResolvingClosing(false)
+    }, 340)
+  }
+
   return (
     <>
       {/* QC Flagged Books Modal */}
       {selectedCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setSelectedCategory(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden animate-modal-in ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
+        <div className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", isClosing ? 'animate-overlay-out' : 'animate-overlay-in')} onClick={dismissModal}>
+          <div className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", isClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')} data-modal-origin-surface onClick={e => e.stopPropagation()}>
 
             {/* Modal Header */}
             <div className={cn("px-6 py-5 flex items-center justify-between", activeTone.modalBg)}>
@@ -64,7 +84,7 @@ export function NonProcessableModals({
                 </div>
               </div>
               <button
-                onClick={() => setSelectedCategory(null)}
+                onClick={dismissModal}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
               >
                 <X className="h-4 w-4" />
@@ -177,8 +197,8 @@ export function NonProcessableModals({
 
       {/* Resolve Confirmation Modal */}
       {flagToResolve && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in" onClick={() => setFlagToResolve(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-in" onClick={e => e.stopPropagation()}>
+        <div className={cn("fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", isResolvingClosing ? 'animate-overlay-out' : 'animate-overlay-in')} onClick={dismissResolveModal}>
+          <div className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden", isResolvingClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')} data-modal-origin-surface onClick={e => e.stopPropagation()}>
             <div className={cn("px-6 py-5 flex items-center gap-3", activeTone.modalBg)}>
               <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg", activeTone.modalIcon)}>
                 <CheckCircle2 className="h-5 w-5" />
@@ -204,9 +224,9 @@ export function NonProcessableModals({
               </div>
               
               <div className="flex items-center justify-end gap-3">
-                <Button variant="outline" onClick={() => setFlagToResolve(null)} className="h-10 px-5 rounded-xl text-gray-600 hover:text-gray-800 font-semibold" disabled={resolvingId === flagToResolve.scan_id}>
+                <button onClick={dismissResolveModal} className="h-10 px-5 rounded-xl text-gray-600 hover:text-gray-800 font-semibold border" disabled={resolvingId === flagToResolve.scan_id}>
                   Cancel
-                </Button>
+                </button>
                 <Button 
                   onClick={resolveFlag} 
                   disabled={resolvingId === flagToResolve.scan_id}

@@ -18,10 +18,10 @@ export function EndorsementHeader({ brand, refreshing, onRefresh, lastUpdated }:
         </div>
         <div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
-            Book Inspection
+            Endorsement
           </h1>
           <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-            Receive boxes from Cut, inspect books, then send to Scan for{' '}
+            Receive boxes from Cut, scan books again, then send to Scan for{' '}
             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none premium-gradient-ui-card--solid">
               {brand}
             </span>

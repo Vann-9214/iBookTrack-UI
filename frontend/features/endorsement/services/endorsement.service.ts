@@ -22,7 +22,7 @@ export const endorsementService = {
   async receiveBox(boxId: string): Promise<void> {
     const res = await authFetch(`${API_URL}/api/boxes/${boxId}/advance`, {
       method: 'POST',
-      body: JSON.stringify({ notes: 'Received at Book Inspection & Endorsement', expected_stage: 'cut' }),
+      body: JSON.stringify({ notes: 'Received at Endorsement', expected_stage: 'cut' }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to receive box')
@@ -48,7 +48,7 @@ export const endorsementService = {
   async sendToScan(boxId: string): Promise<void> {
     const res = await authFetch(`${API_URL}/api/boxes/${boxId}/send-forward`, {
       method: 'POST',
-      body: JSON.stringify({ notes: 'Sent from Book Inspection & Endorsement' }),
+      body: JSON.stringify({ notes: 'Sent from Endorsement' }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Failed to send to scan')

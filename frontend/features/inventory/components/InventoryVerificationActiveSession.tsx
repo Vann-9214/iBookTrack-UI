@@ -92,7 +92,7 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
                 <div className="hidden h-7 w-px sm:block bg-primary/10" />
                 <div className="min-w-[52px]">
                   <span className={cn('block text-[9px] font-semibold uppercase tracking-[0.1em]', labelTheme)}>Box</span>
-                  <span className={cn('mt-0.5 block text-sm font-semibold tracking-tight', valueTheme)}>{verifBox.box_number} ({verifCurrentBoxBooks})</span>
+                  <span className={cn('mt-0.5 block text-sm font-semibold tracking-tight', valueTheme)}>{verifBox.box_number}</span>
                 </div>
               </>
             )}

@@ -38,14 +38,17 @@ export function InspectionSession({
   handleRemoveInspBook,
   brand,
 }: InspectionSessionProps) {
+  const expectedBooksLength = warehouseBooks.filter((wb) => wb.rejection_reason !== 'missing').length
+
   return (
-    <div className="flex flex-col gap-4 sm:gap-6">
+    <div className="flex flex-col gap-3">
       <InspectionSessionHeader
         inspBox={inspBox}
         inspCurrentBoxBooks={inspCurrentBoxBooks}
         inspUserName={inspUserName}
         loadingInspSession={loadingInspSession}
         inspScannedBooksLength={inspScannedBooks.length}
+        expectedBooksLength={expectedBooksLength}
         handleResetInspSession={handleResetInspSession}
         handleOpenInspComplete={handleOpenInspComplete}
         brand={brand}
@@ -62,6 +65,24 @@ export function InspectionSession({
         openInspFlagModal={openInspFlagModal}
         handleRemoveInspBook={handleRemoveInspBook}
       />
+
+      {/* Legend */}
+      <div className="premium-gradient-ui-card premium-gradient-ui-card--static border rounded-2xl p-3">
+        <div className="flex items-center justify-center gap-6 text-xs flex-wrap">
+          <span className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+            <span className="text-muted-foreground">Match (Inventory = Endorsement)</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+            <span className="text-muted-foreground">Mismatch (Different status)</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-gray-100 border border-gray-300 rounded"></div>
+            <span className="text-muted-foreground">Missing (Not Required)</span>
+          </span>
+        </div>
+      </div>
     </div>
   )
 }
