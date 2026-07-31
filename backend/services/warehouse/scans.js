@@ -12,6 +12,10 @@ export const scanBookService = async (req, res) => {
     if (!isbn) return res.status(400).json({ error: 'ISBN is required' })
     if (!scan_status) return res.status(400).json({ error: 'scan_status is required' })
 
+    if (scan_status === 'non_processable' && (!notes || String(notes).trim() === '')) {
+      return res.status(400).json({ error: 'Notes/remarks are required when flagging a book' });
+    }
+
     const { rows: sessionRows } = await db.query('SELECT * FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
     const session = sessionRows[0] || null;
 
@@ -102,16 +106,34 @@ export const scanBookService = async (req, res) => {
     }
 
     if (rejection_reason || notes) {
-      const flagInsert = { book_activity_id: scanLog.id, rejection_reason: rejection_reason || null, notes: notes || null };
+      const flagInsert = { rejection_reason: rejection_reason || null, notes: notes || null };
       if (stage === 'inventory') { flagInsert.inventory_flag_by = req.user.id; flagInsert.inventory_flag_at = new Date().toISOString(); }
       else if (stage === 'qa' || stage === 'endorsement') { flagInsert.endorsement_flag_by = req.user.id; flagInsert.endorsement_flag_at = new Date().toISOString(); }
       else if (stage === 'scan') { flagInsert.scan_flag_by = req.user.id; flagInsert.scan_flag_at = new Date().toISOString(); }
       else { flagInsert.warehouse_flag_by = req.user.id; flagInsert.warehouse_flag_at = new Date().toISOString(); }
 
-      await db.query(
-        `INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`,
-        Object.values(flagInsert)
-      );
+      const { rows: existingFlags } = await db.query('SELECT id FROM user_flags WHERE book_activity_id = $1 ORDER BY id ASC', [scanLog.id]);
+      if (existingFlags.length > 0) {
+        const flagId = existingFlags[0].id;
+        if (existingFlags.length > 1) {
+          await db.query('DELETE FROM user_flags WHERE book_activity_id = $1 AND id != $2', [scanLog.id, flagId]);
+        }
+        const updateCols = [];
+        const updateVals = [];
+        let pIdx = 1;
+        for (const [k, v] of Object.entries(flagInsert)) {
+          updateCols.push(`${k} = $${pIdx++}`);
+          updateVals.push(v);
+        }
+        updateVals.push(flagId);
+        await db.query(`UPDATE user_flags SET ${updateCols.join(', ')} WHERE id = $${pIdx}`, updateVals);
+      } else {
+        flagInsert.book_activity_id = scanLog.id;
+        await db.query(
+          `INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`,
+          Object.values(flagInsert)
+        );
+      }
 
       if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [bookId]);
       if (rejection_reason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
@@ -133,6 +155,7 @@ export const flagScanService = async (req, res) => {
     const { rejection_reason, notes } = req.body
 
     if (!rejection_reason) return res.status(400).json({ error: 'rejection_reason is required' })
+    if (!notes || String(notes).trim() === '') return res.status(400).json({ error: 'Notes/remarks are required' })
 
     const { rows: scanRows } = await db.query('SELECT id, scan_status, session_id, book_id FROM book_activity WHERE id = $1 LIMIT 1', [scan_id]);
     const existingScan = scanRows[0];
@@ -145,13 +168,31 @@ export const flagScanService = async (req, res) => {
       if (boxRows[0]?.current_stage) stage = boxRows[0].current_stage;
     }
 
-    const flagInsert = { book_activity_id: existingScan.id, rejection_reason, notes: notes || null };
+    const flagInsert = { rejection_reason, notes };
     if (stage === 'inventory') { flagInsert.inventory_flag_by = req.user.id; flagInsert.inventory_flag_at = new Date().toISOString(); }
     else if (stage === 'qa' || stage === 'endorsement') { flagInsert.endorsement_flag_by = req.user.id; flagInsert.endorsement_flag_at = new Date().toISOString(); }
     else if (stage === 'scan') { flagInsert.scan_flag_by = req.user.id; flagInsert.scan_flag_at = new Date().toISOString(); }
     else { flagInsert.warehouse_flag_by = req.user.id; flagInsert.warehouse_flag_at = new Date().toISOString(); }
 
-    await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
+    const { rows: existingFlags } = await db.query('SELECT id FROM user_flags WHERE book_activity_id = $1 ORDER BY id ASC', [existingScan.id]);
+    if (existingFlags.length > 0) {
+      const flagId = existingFlags[0].id;
+      if (existingFlags.length > 1) {
+        await db.query('DELETE FROM user_flags WHERE book_activity_id = $1 AND id != $2', [existingScan.id, flagId]);
+      }
+      const updateCols = [];
+      const updateVals = [];
+      let pIdx = 1;
+      for (const [k, v] of Object.entries(flagInsert)) {
+        updateCols.push(`${k} = $${pIdx++}`);
+        updateVals.push(v);
+      }
+      updateVals.push(flagId);
+      await db.query(`UPDATE user_flags SET ${updateCols.join(', ')} WHERE id = $${pIdx}`, updateVals);
+    } else {
+      flagInsert.book_activity_id = existingScan.id;
+      await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
+    }
 
     if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existingScan.book_id]);
     if (rejection_reason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existingScan.book_id]);
