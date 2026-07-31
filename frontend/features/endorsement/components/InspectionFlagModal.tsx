@@ -52,9 +52,12 @@ export function InspectionFlagModal({
     }, 360)
   }
 
-  const filteredIssues = FLAG_ISSUES.filter(i => i.value !== 'missing-from-warehouse' && i.value !== 'missing-from-endorsement')
-  const inventoryIssues = filteredIssues.filter((i) => i.value === 'mismatched-book' || i.value === 'extra-book')
-  const standardIssues = filteredIssues.filter((i) => i.value !== 'mismatched-book' && i.value !== 'extra-book')
+  const filteredIssues = FLAG_ISSUES.filter(i => 
+    i.value !== 'missing-from-warehouse' && 
+    i.value !== 'missing-from-endorsement' &&
+    i.value !== 'mismatched-book' &&
+    i.value !== 'extra-book'
+  )
 
   if (!inspFlagModalBook) return null
 
@@ -119,23 +122,8 @@ export function InspectionFlagModal({
                   <CommandInput placeholder="Search issue..." />
                   <CommandList className="max-h-48">
                     <CommandEmpty>No issue found.</CommandEmpty>
-                    {inventoryIssues.length > 0 && (
-                      <CommandGroup heading="Mismatch & extra book">
-                        {inventoryIssues.map(i => (
-                          <CommandItem
-                            key={i.value}
-                            value={i.label}
-                            onSelect={() => { setInspFlagIssue(i.value); setFlagOpen(false) }}
-                            className="flex w-full items-center justify-between"
-                          >
-                            <span>{i.label}</span>
-                            <Check className={cn('h-4 w-4 text-primary', inspFlagIssue === i.value ? 'opacity-100' : 'opacity-0')} />
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    )}
                     <CommandGroup heading="General rejection reasons">
-                      {standardIssues.map(i => (
+                      {filteredIssues.map(i => (
                         <CommandItem
                           key={i.value}
                           value={i.label}

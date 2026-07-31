@@ -159,7 +159,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                     const capacity = loc.capacity ?? 20
                     const pendingCount = loc.assignments.filter(a => a.status === 'pending').length ?? 0
                     const pct = capacity > 0 ? Math.round((used / capacity) * 100) : 0
-                    const isSuggested = suggestedLocation?.id === loc.id
+                    const isSuggested = !!suggestedLocation && suggestedLocation.id === loc.id
                     const isHighlighted = highlightedCells.has(`${loc.rack}-${loc.level}`)
                     const canFitSelected = capacity - used - pendingCount >= selectedReadyBoxIds.size
 
@@ -271,7 +271,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                     {sectionRacks.map(rack => {
                       const loc = getLocation(rack, level)
                       const isHighlighted = highlightedCells.has(`${rack}-${level}`)
-                      const isSuggested = suggestedLocation?.id === loc?.id
+                      const isSuggested = !!suggestedLocation && !!loc && suggestedLocation.id === loc.id
                       const used = loc?.used ?? 0
                       const capacity = loc?.capacity ?? 20
                       const pendingCount = loc?.assignments.filter(a => a.status === 'pending').length ?? 0

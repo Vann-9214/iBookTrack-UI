@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import { getApiBaseUrl, authFetch } from '@/lib/auth-api'
 import { QCFlag, LotGroup, SelectedCategory } from '../types'
@@ -51,8 +51,8 @@ export function useNonProcessable(brand: string) {
   const [selectedCategory, setSelectedCategory] = useState<SelectedCategory>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  const fetchCounts = async () => {
-    setLoading(true)
+  const fetchCounts = useCallback(async (isBackground?: boolean) => {
+    if (isBackground !== true) setLoading(true)
     try {
       const res = await authFetch(`${getApiBaseUrl()}/api/dashboard/qc-flags?page=1&limit=1000&box_type=${brand}`)
       if (res.ok) {
@@ -158,13 +158,29 @@ export function useNonProcessable(brand: string) {
     } catch (err) {
       console.error('Failed to fetch counts:', err)
     } finally {
-      setLoading(false)
+      if (isBackground !== true) setLoading(false)
     }
-  }
+  }, [brand, computedFromDate, computedToDate])
 
   useEffect(() => {
     fetchCounts()
-  }, [brand, computedFromDate, computedToDate])
+  }, [fetchCounts])
+
+  const fetchCountsRef = useRef(fetchCounts)
+  useEffect(() => {
+    fetchCountsRef.current = fetchCounts
+  }, [fetchCounts])
+
+  useEffect(() => {
+    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
+      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const handleUpdate = () => fetchCountsRef.current(true)
+      es.addEventListener('FLAG_UPDATED', handleUpdate)
+      es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
+      es.onerror = () => console.warn('NonProcessable SSE error - reconnecting')
+      return () => es.close()
+    })
+  }, [])
 
   const resolveFlag = async () => {
     if (!flagToResolve) return;
@@ -219,37 +235,7 @@ export function useNonProcessable(brand: string) {
     return null
   }).filter(Boolean) as LotGroup[]
 
-  const exportToCsv = () => {
-    const csvRows = [
-      ['ISBN', 'Title', 'Lot Number', 'Box Number', 'Issue', 'Remarks', 'Flagged By', 'Flagged At']
-    ];
-    
-    filteredLots.forEach((lot: any) => {
-      Object.values(lot.boxes).forEach((box: any) => {
-        box.flags.forEach((f: any) => {
-          csvRows.push([
-            f.isbn || 'Unknown',
-            `"${(f.title || '').replace(/"/g, '""')}"`,
-            lot.lot_number,
-            box.box_number,
-            ISSUE_LABELS[f.issue] || f.issue,
-            `"${(f.remarks || '').replace(/"/g, '""')}"`,
-            `"${(f.flagged_by_name || '').replace(/"/g, '""')}"`,
-            f.flagged_at ? new Date(f.flagged_at).toLocaleString() : ''
-          ]);
-        });
-      });
-    });
-    
-    const csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `non-processable-${brand}-all-time-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+
 
   const displayFlags = selectedCategory === 'Total' ? flags :
                        selectedCategory === 'Damage' ? flags.filter(f => {
@@ -295,7 +281,7 @@ export function useNonProcessable(brand: string) {
     fetchCounts,
     resolveFlag,
     filteredLots,
-    exportToCsv,
+
     displayFlags,
   }
 }

@@ -95,7 +95,7 @@ export function BoxDetailsModal({
                   <th className="pb-2 text-left font-medium pr-3">Title</th>
                   <th className="pb-2 text-left font-medium pr-3">Status</th>
                   <th className="pb-2 text-left font-medium pr-3">Stage</th>
-                  {(box?.current_stage === 'scan' || box?.current_stage === 'transmit') && (
+                  {(['scan', 'transmit', 'storage'].includes(box?.current_stage || '')) && (
                     <th className="pb-2 text-left font-medium">Simflex</th>
                   )}
                 </tr>
@@ -132,7 +132,7 @@ export function BoxDetailsModal({
                           {box?.current_stage || '—'}
                         </span>
                       </td>
-                      {(box?.current_stage === 'scan' || box?.current_stage === 'transmit') && (
+                      {(['scan', 'transmit', 'storage'].includes(box?.current_stage || '')) && (
                         <td className="py-1.5">
                           {book.scan_status !== 'processable' ? (
                             <span className="text-[10px] text-muted-foreground">—</span>

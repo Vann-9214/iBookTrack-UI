@@ -14,8 +14,7 @@ interface NonProcessableHeaderProps {
   setSelectedMonth: (m: number) => void
   selectedWeek: number
   setSelectedWeek: (w: number) => void
-  exportToCsv: () => void
-  isExportDisabled: boolean
+
   loading: boolean
   lastUpdated: Date | null
   fetchCounts: () => void
@@ -29,8 +28,7 @@ export function NonProcessableHeader({
   setSelectedMonth,
   selectedWeek,
   setSelectedWeek,
-  exportToCsv,
-  isExportDisabled,
+
   loading,
   lastUpdated,
   fetchCounts
@@ -115,16 +113,7 @@ export function NonProcessableHeader({
           </SelectContent>
         </Select>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={exportToCsv} 
-          disabled={isExportDisabled} 
-          className="gap-1.5 h-8"
-        >
-          <Download className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
+
 
         <RefreshControl
           onRefresh={fetchCounts}

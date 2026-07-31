@@ -49,7 +49,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                 .sort((a, b) => {
                   if (a.isMissing && !b.isMissing) return 1
                   if (!a.isMissing && b.isMissing) return -1
-                  return a.isMatch === b.isMatch ? 0 : a.isMatch ? -1 : 1
+                  return a.isMatch === b.isMatch ? 0 : a.isMatch ? 1 : -1
                 })
                 .map(({ book, isMatch, isMissing }, i) => (
                   <div

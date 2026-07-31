@@ -48,7 +48,11 @@ const syncBoxTransmissionStatus = async (boxId, location) => {
     }
 
     if (updates.length > 0) {
-      await Promise.all(updates);
+      const results = await Promise.all(updates);
+      const hasChanges = results.some(res => res.data && res.data.length > 0);
+      if (hasChanges) {
+        broadcastEvent('PIPELINE_UPDATED', { boxId });
+      }
     }
   } catch (err) {
     logger.error('Error syncing transmission_status:', err);
@@ -148,10 +152,10 @@ export const getBoxesService = async (req) => {
         const activities = groupedByBox[boxId];
         const b = boxes.find(bx => bx.id === boxId);
         let isCompleted = false;
-        if (activities.length > 0 && activities.length >= (b.total_expected_books || 0)) {
+        if (activities.length > 0 && activities.length >= (b.total_processable_books || 0)) {
           isCompleted = activities.every(a => {
              const stat = String(a.transmission_status || '').trim().toUpperCase();
-             return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED';
+             return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED' || stat === 'TRANSMISSION COMPLETED';
           });
         }
         scanCompletionMap[boxId] = isCompleted;
@@ -358,7 +362,29 @@ export const receiveBoxService = async (req) => {
   const { data: updatedBox, error: updateError } = await boxesRepo.updateBoxReceived(id);
   if (updateError) throw updateError;
 
+  const { data: session } = await boxesRepo.getSessionForAdvance(id);
+  if (session && session.status === 'sent') {
+    let updates = { status: 'received' };
+    if (box.current_stage === 'warehouse') {
+      // Actually warehouse doesn't have a specific receive column, but we update status
+    } else if (box.current_stage === 'inventory') {
+      updates.inventory_user_received = req.user.id;
+      updates.inventory_time_received = new Date().toISOString();
+    } else if (box.current_stage === 'cut') {
+      updates.cut_user_received = req.user.id;
+      updates.cut_time_received = new Date().toISOString();
+    } else if (box.current_stage === 'endorsement' || box.current_stage === 'qa') {
+      updates.endorsement_user_received = req.user.id;
+      updates.endorsement_time_received = new Date().toISOString();
+    } else if (box.current_stage === 'scan') {
+      updates.scan_user_received = req.user.id;
+      updates.scan_time_received = new Date().toISOString();
+    }
+    await boxesRepo.updateSession(session.id, updates);
+  }
+
   broadcastEvent('BOX_UPDATED', { boxId: id, type: 'receive' });
+  broadcastEvent('PIPELINE_UPDATED', { boxId: id });
   broadcastEvent('DASHBOARD_REFRESH', { source: 'inventory_receive' });
 
   return { success: true, box: updatedBox };
@@ -602,6 +628,8 @@ export const checkSimflexService = async (req) => {
   }
 
   const syncResult = await syncBoxWithSimflex(box);
+
+  broadcastEvent('PIPELINE_UPDATED', { boxId: id });
 
   return {
     success: true,
