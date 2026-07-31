@@ -154,16 +154,16 @@ export function LiveScanFeed({
       )}
       <CardContent className="p-0">
         <div className="overflow-x-auto overflow-y-auto max-h-[500px]">
-          <table className="w-full text-sm min-w-[600px]">
+          <table className="w-full text-sm min-w-[750px]">
             <thead className="bg-white sticky top-0 z-10">
               <tr className="border-b border-gray-100">
-                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">ISBN</th>
-                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Box</th>
-                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Lot</th>
-                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Status</th>
-                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">Machine</th>
-                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left">User</th>
-                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right">Date</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left whitespace-nowrap">ISBN</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left whitespace-nowrap">Box</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left whitespace-nowrap">Lot</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left whitespace-nowrap">Status</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left whitespace-nowrap">Machine</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-left whitespace-nowrap">User</th>
+                <th className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3 text-right whitespace-nowrap">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -199,22 +199,22 @@ export function LiveScanFeed({
                     : 'border-b border-gray-50 hover:bg-gray-50'
                   return (
                     <tr key={i} className={`${rowCls} transition-colors`}>
-                      <td className="font-mono text-xs text-gray-800 px-4 py-3">{item.ISBN}</td>
-                      <td className="text-xs text-gray-600 px-4 py-3">
+                      <td className="font-mono text-xs text-gray-800 px-4 py-3 whitespace-nowrap">{item.ISBN}</td>
+                      <td className="text-xs text-gray-600 px-4 py-3 whitespace-nowrap">
                         {enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—'
                           ? enrichedData[item.ISBN].box
                           : item.BoxNumber || '—'}
                       </td>
-                      <td className="text-xs text-gray-600 px-4 py-3">
+                      <td className="text-xs text-gray-600 px-4 py-3 whitespace-nowrap">
                         {enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—'
                           ? enrichedData[item.ISBN].lot
                           : item.LotNumber || '—'}
                       </td>
-                      <td className="px-4 py-3">{getPipelineStatusBadge(item.Status || '')}</td>
-                      <td className="text-xs text-gray-500 px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">{getPipelineStatusBadge(item.Status || '')}</td>
+                      <td className="text-xs text-gray-500 px-4 py-3 whitespace-nowrap">
                         {item.ScanMachineName || item.MachineName || '—'}
                       </td>
-                      <td className="text-xs text-gray-600 px-4 py-3">{item.ScanUser || '—'}</td>
+                      <td className="text-xs text-gray-600 px-4 py-3 whitespace-nowrap">{item.ScanUser || '—'}</td>
                       <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
                         {item.Updated
                           ? format(new Date(item.Updated), 'MMM d, HH:mm')

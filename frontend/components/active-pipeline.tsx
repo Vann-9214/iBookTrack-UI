@@ -177,15 +177,15 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
       <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
         <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
-          <CardTitle className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
-            <div className="flex items-center gap-2.5">
+          <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
+            <div className="flex items-center gap-2.5 min-w-0">
               <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
                 <Workflow className="h-4 w-4" />
               </span>
               <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
               <Skeleton className="h-4 w-12 rounded bg-muted-foreground/10" />
             </div>
-            <Skeleton className="sm:ml-auto h-6 w-24 rounded-full bg-muted-foreground/10" />
+            <Skeleton className="ml-auto h-6 w-24 rounded-full bg-muted-foreground/10" />
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
@@ -261,15 +261,18 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
       <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
         <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
-          <CardTitle className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
-            <div className="flex items-center gap-2.5">
+          <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
+            <div className="flex items-center gap-2.5 min-w-0">
               <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
                 <Workflow className="h-4 w-4" />
               </span>
               <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
-              {currentLot && <span className="text-sm font-medium text-muted-foreground">| {currentLot}</span>}
+              {currentLot && <span className="text-sm font-medium text-muted-foreground truncate inline-block max-w-full">| {currentLot}</span>}
             </div>
-            <span className={cn("sm:ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>{todayLabel}</span>
+            <span className={cn("ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm whitespace-nowrap", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
+              <span className="sm:hidden">Today</span>
+              <span className="hidden sm:inline">{todayLabel}</span>
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">

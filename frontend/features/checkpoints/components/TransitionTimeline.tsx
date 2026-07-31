@@ -16,15 +16,15 @@ export function TransitionTimeline({
   isCompleted,
 }: TransitionTimelineProps) {
   return (
-    <div className="px-6 py-4 bg-muted/20 border-t border-border overflow-x-auto">
-      <div className="flex items-start justify-between relative px-2 min-w-[600px]">
+    <div className="px-4 sm:px-6 py-4 bg-muted/20 border-t border-border overflow-x-auto">
+      <div className="flex items-start justify-between relative px-4 min-w-[900px] gap-4">
         {/* Connecting background line */}
-        <div className="absolute top-3 left-10 right-10 h-[2px] bg-border z-0" />
+        <div className="absolute top-3 left-14 right-14 h-[2px] bg-border z-0" />
         {/* Progress line */}
         <div
-          className="absolute top-3 left-10 h-[2px] bg-green-500 z-0 transition-all duration-500"
+          className="absolute top-3 left-14 h-[2px] bg-green-500 z-0 transition-all duration-500"
           style={{
-            width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 80px)`,
+            width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 112px)`,
           }}
         />
 
@@ -89,22 +89,22 @@ export function TransitionTimeline({
           const anyTime = recvTime || scanTime || sendTime
 
           return (
-            <div key={s} className="flex flex-col items-center flex-1 z-10 relative">
+            <div key={s} className="flex flex-col items-center flex-1 z-10 relative px-1 min-w-[120px]">
               {icon}
               <span
                 className={cn(
-                  'text-[11px] font-bold mt-2 capitalize',
+                  'text-[11px] font-bold mt-2 capitalize text-center',
                   isPast || isCurrent ? 'text-foreground' : 'text-muted-foreground'
                 )}
               >
                 {s}
               </span>
-              <div className="mt-1 flex flex-col items-center text-[10px] text-muted-foreground text-center">
+              <div className="mt-1 flex flex-col items-center text-[10px] text-muted-foreground text-center w-full">
                 {!anyTime && <span className="opacity-50">not logged</span>}
-                <div className="flex flex-col text-[10px] text-muted-foreground">
+                <div className="flex flex-col text-[10px] text-muted-foreground w-full items-center gap-0.5">
                   {s === 'warehouse' ? (
                     anyTime && (
-                      <span className="whitespace-nowrap">
+                      <span className="whitespace-nowrap text-[10px] text-center">
                         ↓ ✓ ↑ {(scanUser || recvUser)?.split(' ')[0] || 'System'},{' '}
                         {new Date(scanTime || recvTime || '').toLocaleTimeString([], {
                           hour: 'numeric',
@@ -115,7 +115,7 @@ export function TransitionTimeline({
                   ) : (
                     <>
                       {recvTime && (
-                        <span className="whitespace-nowrap">
+                        <span className="whitespace-nowrap text-[10px] text-center">
                           ↓ {recvUser?.split(' ')[0] || 'System'},{' '}
                           {new Date(recvTime).toLocaleTimeString([], {
                             hour: 'numeric',
@@ -124,7 +124,7 @@ export function TransitionTimeline({
                         </span>
                       )}
                       {scanTime && (
-                        <span className="whitespace-nowrap mt-0.5">
+                        <span className="whitespace-nowrap text-[10px] text-center mt-0.5">
                           ✓ {scanUser?.split(' ')[0] || 'System'},{' '}
                           {new Date(scanTime).toLocaleTimeString([], {
                             hour: 'numeric',
@@ -133,7 +133,7 @@ export function TransitionTimeline({
                         </span>
                       )}
                       {sendTime && (
-                        <span className="whitespace-nowrap mt-0.5">
+                        <span className="whitespace-nowrap text-[10px] text-center mt-0.5">
                           ↑ {sendUser?.split(' ')[0] || 'System'},{' '}
                           {new Date(sendTime).toLocaleTimeString([], {
                             hour: 'numeric',

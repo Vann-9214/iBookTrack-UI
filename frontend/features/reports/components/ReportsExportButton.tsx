@@ -38,7 +38,7 @@ export const ReportsExportButton: React.FC<ReportsExportButtonProps> = ({
       className="gap-1.5 h-8"
     >
       {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-      <span className="hidden sm:inline">{exporting ? 'Exporting…' : 'Export'}</span>
+      <span>{exporting ? 'Exporting…' : 'Export'}</span>
     </Button>
   )
 }

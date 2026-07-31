@@ -23,7 +23,7 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
   lots,
 }) => {
   return (
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 flex-wrap">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
       <div className="flex items-center gap-4">
         <div
           className={cn(
@@ -55,7 +55,7 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-end sm:justify-end gap-2 w-full sm:w-auto">
         <ReportsExportButton brand={brand} lots={lots} disabled={loading} />
         <RefreshControl
           onRefresh={onRefresh}

@@ -86,22 +86,53 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
         },
   } as const
 
+  const cards = (['all', 'closed', 'open', 'in-progress'] as FilterStatus[]).map(s => {
+    const meta = s === 'all' ? null : STATUS_META[s]
+    const Icon = meta?.icon || Package
+    const count = counts[s]
+    const active = filter === s
+
+    let tone
+    if (s === 'all') tone = TONE.solid
+    else if (s === 'closed') tone = TONE.emerald
+    else if (s === 'open') tone = TONE.amber
+    else if (s === 'in-progress') tone = TONE.blue
+    else tone = TONE.theme
+
+    return { s, Icon, count, active, tone }
+  })
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {(['all', 'closed', 'open', 'in-progress'] as FilterStatus[]).map(s => {
-        const meta = s === 'all' ? null : STATUS_META[s]
-        const Icon = meta?.icon || Package
-        const count = counts[s]
-        const active = filter === s
+    <>
+      {/* Mobile: compact 2×2 grid, matching dashboard KPI cards */}
+      <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+        {cards.map(({ s, Icon, count, active, tone }) => (
+          <div
+            key={s}
+            onClick={() => setFilter(s)}
+            role="button"
+            className={cn(
+              'rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97] overflow-hidden cursor-pointer',
+              tone.card,
+              active && tone.activeRing
+            )}
+          >
+            <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0', tone.icon)}>
+              <Icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className={cn('text-lg font-black leading-none tracking-tight truncate', tone.value)}>{count}</div>
+              <div className={cn('text-[11px] font-semibold truncate mt-1', tone.title)}>
+                {s === 'all' ? 'All Lots' : STATUS_META[s].label}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
-        let tone
-        if (s === 'all') tone = TONE.solid
-        else if (s === 'closed') tone = TONE.emerald
-        else if (s === 'open') tone = TONE.amber
-        else if (s === 'in-progress') tone = TONE.blue
-        else tone = TONE.theme
-
-        return (
+      {/* Desktop: full cards */}
+      <div className="hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {cards.map(({ s, Icon, count, active, tone }) => (
           <div
             key={s}
             onClick={() => setFilter(s)}
@@ -133,8 +164,8 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
               {active ? 'Currently filtered' : 'Click to filter'}
             </div>
           </div>
-        )
-      })}
-    </div>
+        ))}
+      </div>
+    </>
   )
 }
