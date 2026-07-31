@@ -41,7 +41,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
         )}
       </div>
       {scannedBooks.length === 0 ? (
-        <div className="relative flex min-h-[400px] flex-col items-center justify-center gap-4 py-12 text-center">
+        <div className="relative flex min-h-[314px] flex-col items-center justify-center gap-4 py-12 text-center">
           <div className="flex items-center justify-center w-14 h-14 rounded-full text-white shadow-sm premium-gradient-ui-card--solid">
             <ScanBarcode className="h-7 w-7" />
           </div>
@@ -56,14 +56,14 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
             <div className={cn('flex min-w-[520px] gap-2 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:px-5 sm:text-[11px]', surfaceTheme, 'border-primary/10')}>
               <div className="w-[110px] shrink-0">ISBN</div>
               <div className="min-w-0 flex-1">Title</div>
-              <div className="w-[200px] shrink-0 text-center sm:w-[220px]">Status</div>
+              <div className="w-[200px] shrink-0 text-right sm:w-[220px]">Status</div>
               <div className="grid w-[90px] shrink-0 grid-cols-[1fr_28px] gap-1.5">
                 <span className="text-center">Time</span>
               </div>
-              {/* Spacer to compensate for data row scrollbar (6px) + pr-1 (4px) */}
-              <div className="w-[10px] shrink-0" />
+              {/* Spacer to compensate for data row scrollbar (6px) */}
+              <div className="w-[6px] shrink-0" />
             </div>
-            <div className={cn('divide-y divide-border pr-1 custom-scrollbar', scannedBooks.length > 9 ? 'h-[400px] overflow-y-scroll' : 'max-h-[314px] overflow-y-auto')}>
+            <div className={cn('divide-y divide-border custom-scrollbar', scannedBooks.length > 9 ? 'h-[400px] overflow-y-scroll' : 'max-h-[314px] overflow-y-auto')}>
               {scannedBooks.map((book, idx) => (
                 <div
                   key={`${book.id}-${idx}`}
@@ -80,7 +80,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   <div className="flex-1 min-w-0 pr-2">
                     <p className="text-[11px] sm:text-xs text-foreground font-semibold truncate leading-snug">{book.title}</p>
                   </div>
-                  <div className="flex w-[200px] shrink-0 items-center justify-center gap-2 sm:w-[220px] sm:gap-3">
+                  <div className="flex w-[200px] shrink-0 items-center justify-end gap-2 sm:w-[220px] sm:gap-3 pr-2">
                     {book.scan_status === 'processable' ? (
                       <>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">
@@ -95,9 +95,9 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                         </button>
                       </>
                     ) : (
-                      <div className="flex flex-col items-center justify-center">
+                      <div className="flex flex-col items-end justify-center">
                         {book.flag_issue && (
-                          <span className="text-center text-[8.5px] font-bold text-destructive/90 max-w-[190px] leading-none mb-0.5">
+                          <span className="text-right text-[8.5px] font-bold text-destructive/90 max-w-[190px] leading-none mb-0.5">
                             {issueLabel(book.flag_issue)}
                           </span>
                         )}
