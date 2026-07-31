@@ -39,7 +39,7 @@ export function OutgoingBoxes({
         loading={loadingEndorsement ?? false}
         onToggle={(id) => toggleBox(id)}
         emptyText="No outgoing boxes yet"
-        emptySubtext="Complete an inspection session in the Book Inspection tab to add boxes here."
+        emptySubtext="Complete an inspection session in the Endorsement tab to add boxes here."
         emptyIcon={<Send className="h-5 w-5" />}
         renderBadge={(_, expanded) => (
           <span className={cn(

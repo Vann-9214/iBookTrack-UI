@@ -61,13 +61,13 @@ export function EndorsementActionConfirmModal({
         confirmModal.action === 'receive'
           ? {
               from: 'Cut',
-              to: 'Book Inspection',
+              to: 'Endorsement',
               fromColor: 'bg-orange-100 text-orange-700 border-orange-300',
               toColor: 'bg-purple-100 text-purple-700 border-purple-300',
             }
           : confirmModal.action === 'send_to_scan'
           ? {
-              from: 'Book Inspection',
+              from: 'Endorsement',
               to: 'Scan',
               fromColor: 'bg-purple-100 text-purple-700 border-purple-300',
               toColor: 'bg-green-100 text-green-700 border-green-300',

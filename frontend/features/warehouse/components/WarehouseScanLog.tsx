@@ -41,7 +41,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
         )}
       </div>
       {scannedBooks.length === 0 ? (
-        <div className="relative flex min-h-[240px] flex-col items-center justify-center gap-4 py-12 text-center">
+        <div className="relative flex min-h-[400px] flex-col items-center justify-center gap-4 py-12 text-center">
           <div className="flex items-center justify-center w-14 h-14 rounded-full text-white shadow-sm premium-gradient-ui-card--solid">
             <ScanBarcode className="h-7 w-7" />
           </div>
@@ -60,17 +60,18 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
               <div className="grid w-[90px] shrink-0 grid-cols-[1fr_28px] gap-1.5">
                 <span className="text-center">Time</span>
               </div>
+              {/* Spacer to compensate for data row scrollbar (6px) + pr-1 (4px) */}
+              <div className="w-[10px] shrink-0" />
             </div>
-            <div className={cn('divide-y divide-border pr-1 custom-scrollbar', scannedBooks.length > 5 ? 'h-[240px] overflow-y-scroll' : 'max-h-[240px] overflow-y-auto')}>
+            <div className={cn('divide-y divide-border pr-1 custom-scrollbar', scannedBooks.length > 9 ? 'h-[400px] overflow-y-scroll' : 'max-h-[314px] overflow-y-auto')}>
               {scannedBooks.map((book, idx) => (
                 <div
                   key={`${book.id}-${idx}`}
                   className={cn(
                     'flex min-w-[520px] items-center gap-2 px-4 py-2 transition-colors sm:px-5',
-                    idx % 2 === 0 ? 'bg-white/75' : 'bg-primary/[0.03]',
-                    'hover:bg-primary/5',
-                    book.scan_status === 'processable' && 'hover:bg-gradient-to-r hover:from-white hover:via-primary/5 hover:to-primary/10',
-                    book.scan_status === 'non_processable' && 'bg-gradient-to-r from-white/80 via-rose-50/35 to-rose-100/50 hover:from-white hover:via-rose-50/60 hover:to-rose-100/70'
+                    idx % 2 === 0 ? 'bg-gradient-to-r' : 'bg-gradient-to-l',
+                    book.scan_status === 'processable' ? 'from-white/80 via-primary/5 to-primary/10 hover:from-white hover:via-primary/10 hover:to-primary/15' :
+                    book.scan_status === 'non_processable' ? 'from-white/80 via-rose-50/35 to-rose-100/50 hover:from-white hover:via-rose-50/60 hover:to-rose-100/70' : 'bg-white/75 hover:bg-primary/5'
                   )}
                 >
                   <div className="w-[110px] shrink-0">
@@ -94,17 +95,17 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                         </button>
                       </>
                     ) : (
-                      <>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-destructive/20 bg-destructive/10 px-2.5 py-1 text-[10px] font-semibold text-destructive whitespace-nowrap sm:text-[11px]">
-                          <CircleX className="h-3.5 w-3.5" />
-                          Non-Processable
-                        </span>
+                      <div className="flex flex-col items-center justify-center">
                         {book.flag_issue && (
-                          <span className="truncate text-[10px] font-semibold text-destructive/80 sm:text-[11px]">
+                          <span className="text-center text-[8.5px] font-bold text-destructive/90 max-w-[190px] leading-none mb-0.5">
                             {issueLabel(book.flag_issue)}
                           </span>
                         )}
-                      </>
+                        <span className="inline-flex items-center gap-1 rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-[1px] text-[8.5px] font-bold text-destructive whitespace-nowrap uppercase tracking-wider">
+                          <CircleX className="h-2.5 w-2.5" />
+                          Non-Processable
+                        </span>
+                      </div>
                     )}
                   </div>
                   <div className="grid w-[90px] shrink-0 grid-cols-[1fr_28px] items-center gap-1.5">
