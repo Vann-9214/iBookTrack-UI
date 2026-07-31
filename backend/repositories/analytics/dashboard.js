@@ -165,30 +165,31 @@ export const getOpenLots = async (brand) => {
 export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
   const offset = (page - 1) * limit;
   let query = `
-    SELECT 
-      uf.id, uf.book_activity_id, uf.rejection_reason, uf.notes,
-      uf.warehouse_flag_by, uf.warehouse_flag_at,
-      uf.inventory_flag_by, uf.inventory_flag_at,
-      uf.endorsement_flag_by, uf.endorsement_flag_at,
-      uf.scan_flag_by, uf.scan_flag_at,
-      wu.name as "warehouse_user.name",
-      iu.name as "inventory_user.name",
-      eu.name as "endorsement_user.name",
-      su.name as "scan_user.name",
-      ba.id as "book_activity.id",
-      b.isbn as "books.isbn", b.title as "books.title",
-      bx.box_number as "boxes.box_number", bx.box_type as "boxes.box_type",
-      l.lot_number as "lots.lot_number"
-    FROM user_flags uf
-    LEFT JOIN users wu ON uf.warehouse_flag_by = wu.id
-    LEFT JOIN users iu ON uf.inventory_flag_by = iu.id
-    LEFT JOIN users eu ON uf.endorsement_flag_by = eu.id
-    LEFT JOIN users su ON uf.scan_flag_by = su.id
-    JOIN book_activity ba ON uf.book_activity_id = ba.id
-    JOIN books b ON ba.book_id = b.id
-    JOIN boxes bx ON b.box_id = bx.id
-    LEFT JOIN lots l ON bx.lot_id = l.id
-    WHERE 1=1
+    SELECT * FROM (
+      SELECT DISTINCT ON (uf.book_activity_id)
+        uf.id, uf.book_activity_id, uf.rejection_reason, uf.notes,
+        uf.warehouse_flag_by, uf.warehouse_flag_at,
+        uf.inventory_flag_by, uf.inventory_flag_at,
+        uf.endorsement_flag_by, uf.endorsement_flag_at,
+        uf.scan_flag_by, uf.scan_flag_at,
+        wu.name as "warehouse_user.name",
+        iu.name as "inventory_user.name",
+        eu.name as "endorsement_user.name",
+        su.name as "scan_user.name",
+        ba.id as "book_activity.id",
+        b.isbn as "books.isbn", b.title as "books.title",
+        bx.box_number as "boxes.box_number", bx.box_type as "boxes.box_type",
+        l.lot_number as "lots.lot_number"
+      FROM user_flags uf
+      LEFT JOIN users wu ON uf.warehouse_flag_by = wu.id
+      LEFT JOIN users iu ON uf.inventory_flag_by = iu.id
+      LEFT JOIN users eu ON uf.endorsement_flag_by = eu.id
+      LEFT JOIN users su ON uf.scan_flag_by = su.id
+      JOIN book_activity ba ON uf.book_activity_id = ba.id
+      JOIN books b ON ba.book_id = b.id
+      JOIN boxes bx ON b.box_id = bx.id
+      LEFT JOIN lots l ON bx.lot_id = l.id
+      WHERE 1=1
   `;
   
   const params = [];
@@ -212,12 +213,12 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
     pIdx += 2;
   }
 
-  query += ` ORDER BY uf.warehouse_flag_at DESC LIMIT $${pIdx++} OFFSET $${pIdx++}`;
+  query += ` ORDER BY uf.book_activity_id, uf.warehouse_flag_at DESC ) as unique_flags ORDER BY unique_flags.warehouse_flag_at DESC LIMIT $${pIdx++} OFFSET $${pIdx++}`;
   params.push(limit, offset);
 
   // Get total count
   const countQuery = `
-    SELECT COUNT(*) as count FROM user_flags uf
+    SELECT COUNT(DISTINCT uf.book_activity_id) as count FROM user_flags uf
     JOIN book_activity ba ON uf.book_activity_id = ba.id
     JOIN books b ON ba.book_id = b.id
     JOIN boxes bx ON b.box_id = bx.id
