@@ -11,11 +11,7 @@ import jwt from 'jsonwebtoken';
 const isProd = process.env.NODE_ENV === 'production';
 const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'lax' };
 
-const getMillisecondsUntilMidnight = () => {
-  const now = new Date();
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-  return midnight.getTime() - now.getTime();
-};
+const TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const generateToken = (user, expiresInSeconds) => {
   return jwt.sign(
@@ -75,11 +71,10 @@ export const loginService = async (req, res) => {
   }
 
   // Generate JWT token
-  const msUntilMidnight = getMillisecondsUntilMidnight();
-  const token = generateToken(user, Math.floor(msUntilMidnight / 1000));
+  const token = generateToken(user, Math.floor(TOKEN_EXPIRY_MS / 1000));
 
   // Send token securely in HTTP-only cookie
-  res.cookie('access_token', token, { ...cookieOpts, maxAge: msUntilMidnight });
+  res.cookie('access_token', token, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
 
   return {
     message: 'Login successful.',
@@ -114,9 +109,8 @@ export const refreshService = async (req, res) => {
     // (token_version bumped by a password change or forced logout).
     if ((decoded.tv ?? 0) !== (user.token_version ?? 0)) throw new Error('token revoked');
 
-    const msUntilMidnight = getMillisecondsUntilMidnight();
-    const newToken = generateToken(user, Math.floor(msUntilMidnight / 1000));
-    res.cookie('access_token', newToken, { ...cookieOpts, maxAge: msUntilMidnight });
+    const newToken = generateToken(user, Math.floor(TOKEN_EXPIRY_MS / 1000));
+    res.cookie('access_token', newToken, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
 
     return { message: 'Session refreshed.' };
   } catch (err) {
@@ -142,12 +136,11 @@ export const passwordService = async (req, res) => {
   // Invalidate all tokens issued before this change, then reissue a fresh
   // cookie so the current device stays logged in while other sessions die.
   const newVersion = await authRepo.incrementTokenVersion(req.user.id);
-  const msUntilMidnight = getMillisecondsUntilMidnight();
   const refreshedToken = generateToken(
     { ...user, role: user.role, token_version: newVersion },
-    Math.floor(msUntilMidnight / 1000)
+    Math.floor(TOKEN_EXPIRY_MS / 1000)
   );
-  res.cookie('access_token', refreshedToken, { ...cookieOpts, maxAge: msUntilMidnight });
+  res.cookie('access_token', refreshedToken, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
 
   return { message: 'Password updated successfully.' };
 };
@@ -272,9 +265,8 @@ export const innodataCallbackService = async (req, res) => {
     }
 
     // 4. Generate token and set cookie
-    const msUntilMidnight = getMillisecondsUntilMidnight();
-    const token = generateToken(user, Math.floor(msUntilMidnight / 1000));
-    res.cookie('access_token', token, { ...cookieOpts, maxAge: msUntilMidnight });
+    const token = generateToken(user, Math.floor(TOKEN_EXPIRY_MS / 1000));
+    res.cookie('access_token', token, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
 
     // 5. Redirect to frontend
     const frontendUrl = process.env.FRONTEND_URL;
