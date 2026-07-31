@@ -144,6 +144,7 @@ export default function BookInspectionPage() {
                   <CompleteInspectionModal
                     inspConfirmComplete={inspConfirmComplete}
                     inspScannedBooks={inspScannedBooks}
+                    warehouseBooks={warehouseBooks}
                     loadingInspSession={loadingInspSession}
                     onClose={() => setInspConfirmComplete(false)}
                     onConfirm={handleCompleteInspSession}
