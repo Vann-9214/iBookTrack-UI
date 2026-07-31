@@ -14,11 +14,15 @@ export function PipelineLegend({ brand }: PipelineLegendProps) {
             brand === 'jaguar' ? 'bg-green-400' : 'bg-blue-400'
           )}
         />
-        <span className="text-xs text-muted-foreground">Active (Moving normally)</span>
+        <span className="text-xs text-muted-foreground">
+          Active <span className="hidden sm:inline">(Moving normally)</span>
+        </span>
       </div>
       <div className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-orange-500" />
-        <span className="text-xs text-muted-foreground">Delayed (Stuck &gt; 24h)</span>
+        <span className="text-xs text-muted-foreground">
+          Delayed <span className="hidden sm:inline">(Stuck &gt; 24h)</span>
+        </span>
       </div>
       <div className="flex items-center gap-1.5">
         <span className="h-2 w-2 rounded-full bg-gray-400" />
