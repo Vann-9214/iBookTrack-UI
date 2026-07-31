@@ -142,6 +142,9 @@ export function LoginForm() {
           </div>
         </div>
 
+        {/* The "Forgot password?" link was removed together with the
+            self-service reset flow: passwords are now reset only by an
+            administrator, so the page it pointed to no longer exists. */}
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
@@ -152,13 +155,6 @@ export function LoginForm() {
             />
             <span className="text-xs sm:text-sm text-gray-500">Remember me</span>
           </label>
-          <button
-            type="button"
-            onClick={() => router.push('/forgot-password')}
-            className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            Forgot password?
-          </button>
         </div>
 
         {error && (

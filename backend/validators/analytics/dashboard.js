@@ -22,14 +22,18 @@ export const getOpenLotsSchema = {
   })
 };
 
+// box_type and the date range reach the SQL layer of getQcFlags, so they are
+// restricted to the exact brands the app supports and to YYYY-MM-DD dates.
+// Anything else is rejected with a 400 rather than reaching the database or
+// throwing an invalid-date RangeError deeper in the service.
 export const getQcFlagsSchema = {
   query: z.object({
     page: z.string().regex(/^\d+$/).optional(),
     limit: z.string().regex(/^\d+$/).optional(),
     today: z.enum(['true', 'false']).optional(),
-    box_type: z.string().optional(),
-    from_date: z.string().optional(),
-    to_date: z.string().optional()
+    box_type: z.enum(['mustang', 'jaguar', 'Mustang', 'Jaguar']).optional(),
+    from_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'from_date must be in YYYY-MM-DD format.').optional(),
+    to_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'to_date must be in YYYY-MM-DD format.').optional()
   })
 };
 

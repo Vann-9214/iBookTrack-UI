@@ -14,8 +14,8 @@ const router = express.Router();
 
 router.get('/live', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getLiveScanning);
 router.get('/scan-rows', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getScanRows);
-router.get('/transmit-rows', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getTransmitRows);
-router.get('/machine-books', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getMachineBooks);
+router.get('/transmit-rows', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.locationOnlySchema), controller.getTransmitRows);
+router.get('/machine-books', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.machineBooksSchema), controller.getMachineBooks);
 router.get('/ranking', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getRanking);
 router.get('/export', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.baseQuerySchema), controller.getExport);
 router.get('/simflex-status', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.simflexStatusSchema), controller.getSimflexStatus);

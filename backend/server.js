@@ -144,7 +144,7 @@ logger.info(
 )
 
 // ── Global rate limiter ───────────────────────────────────────────────────────
-// Applies to every route. Limits each IP to 500 requests per 15 minutes.
+// Applies to every route. Limits each IP to 2000 requests per 15 minutes.
 // Individual sensitive routes (login, register) have tighter limits in auth.js.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minute window

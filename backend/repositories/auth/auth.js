@@ -47,10 +47,13 @@ export const createUser = async (name, email, passwordHash, role = null) => {
     return rows[0];
 };
 
-export const updateProfile = async (userId, name, email) => {
+// Updates only the display name. The email column is deliberately left out of
+// this statement so no code path can rewrite a user's login identity through
+// the profile screen.
+export const updateProfile = async (userId, name) => {
     const { rows } = await db.query(
-        'UPDATE users SET name = $1, email = $2, updated_at = NOW() WHERE id = $3 RETURNING id, name, email, role',
-        [name, email, userId]
+        'UPDATE users SET name = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, email, role',
+        [name, userId]
     );
     return { data: rows[0] || null, error: null };
 };

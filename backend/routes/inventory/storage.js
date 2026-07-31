@@ -19,11 +19,11 @@ router.get('/locations', requireAuth, requireRole(OPERATIONAL_ROLES), controller
 router.post('/locations/provision', requireAuth, requireSupervisor, validateRequest(schemas.provisionLocationsSchema), controller.provisionLocations);
 router.patch('/locations/:id', requireAuth, requireSupervisor, validateRequest(schemas.updateLocationSchema), controller.updateLocationCapacity);
 router.delete('/locations/:id', requireAuth, requireSupervisor, validateRequest(schemas.deleteLocationSchema), controller.deleteLocation);
-router.get('/ready-boxes', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getReadyBoxes);
+router.get('/ready-boxes', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.boxTypeFilterSchema), controller.getReadyBoxes);
 router.post('/assign/batch', requireAuth, requireStorageAction, validateRequest(schemas.assignBatchSchema), controller.assignBatch);
 router.delete('/assignments/batch', requireAuth, requireStorageAction, validateRequest(schemas.removeBatchSchema), controller.removeBatch);
 router.get('/search', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.searchStorageSchema), controller.searchStorage);
-router.get('/pending-assignments', requireAuth, requireRole(OPERATIONAL_ROLES), controller.getPendingAssignments);
+router.get('/pending-assignments', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.boxTypeFilterSchema), controller.getPendingAssignments);
 router.post('/assignments/:id/confirm', requireAuth, requireStorageAction, validateRequest(schemas.confirmAssignmentSchema), controller.confirmAssignment);
 
 export default router;

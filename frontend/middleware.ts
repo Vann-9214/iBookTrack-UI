@@ -16,7 +16,11 @@ const protectedPaths = [
   '/endorsement',
   '/scan',
   '/qr-scanner',
-  '/settings'
+  '/settings',
+  // Exposes flagged/non-processable book records, so it needs the same
+  // edge-level session check as the other data pages rather than relying only on
+  // the client-side ProtectedRoute guard.
+  '/non-processable'
 ]
 
 export function middleware(request: NextRequest) {
@@ -57,6 +61,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api|login|register|forgot-password|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api|login|register|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
