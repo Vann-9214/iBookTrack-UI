@@ -30,7 +30,7 @@ export function NonProcessableCharts({
             <h3 className="font-bold tracking-tight text-slate-800 flex items-center gap-2 mb-1">
               Timeline
             </h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Non-processable items flagged over time</p>
+            <p className={cn("text-[10px] font-bold uppercase tracking-widest", isJaguar ? "text-emerald-500" : "text-blue-500")}>Non-processable items flagged over time</p>
           </div>
           <div className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-full text-white shadow-sm transition-transform duration-300 group-hover/timeline:scale-105", 
@@ -117,7 +117,7 @@ export function NonProcessableCharts({
             <h3 className="font-bold tracking-tight text-gray-800 flex items-center gap-2 mb-1">
               Worst Lots
             </h3>
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Top 5 by flag count</p>
+            <p className={cn("text-[10px] font-bold uppercase tracking-widest", isJaguar ? "text-emerald-500" : "text-blue-500")}>Top 5 by flag count</p>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg bg-white shadow-sm text-red-700 ring-1 ring-red-200/50">
             Top 5

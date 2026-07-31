@@ -10,6 +10,8 @@ import scanManagerApi from '../scan_manager/api/index.js';
 import { ilmsApi } from '../ilms/api.js';
 import { generateLotCandidates } from '../../utils/lotUtils.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
+import { broadcastEvent } from '../../utils/sse.js';
+import { syncBoxTransmissionStatus } from '../inventory/boxes.js';
 
 export const getStatsService = async (req) => {
   await runWarehouseTimeoutSweep();
@@ -470,12 +472,18 @@ export const getPipelineStatsService = async (req) => {
 
 export const resolveQcFlagService = async (req) => {
   const { id } = req.params;
-  const { success, error } = await dashboardRepo.resolveQcFlag(id);
+  const { success, error, box_id } = await dashboardRepo.resolveQcFlag(id);
   if (!success) {
     if (error && error.status === 404) {
       throw { status: 404, message: 'Flag not found' };
     }
     throw error;
   }
+
+  if (box_id) {
+    syncBoxTransmissionStatus(box_id).catch(err => logger.error('Error syncing transmission on resolve:', err));
+    broadcastEvent('PIPELINE_UPDATED', { boxId: box_id });
+  }
+
   return { success: true };
 };

@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils'
-import { AlertOctagon, FileWarning, PackageX, CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertOctagon, FileWarning, PackageX, CheckCircle2 } from 'lucide-react'
 import { SelectedCategory } from '../types'
 import { getTone } from '../utils/constants'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface NonProcessableKPIsProps {
   totalCount: number
@@ -24,69 +25,137 @@ export function NonProcessableKPIs({
   const dynamicTone = TONE.theme
   const redTone = TONE.red
 
+  const stats = [
+    {
+      title: "Total Non-Processable",
+      value: totalCount.toLocaleString(),
+      subtext: "Needs review",
+      icon: AlertOctagon,
+      tone: redTone,
+      onClick: () => setSelectedCategory('Total'),
+      isSolid: true
+    },
+    {
+      title: "Physical Damage",
+      value: issueBreakdown.damage.toLocaleString(),
+      subtext: "Torn / Cut / Split",
+      icon: FileWarning,
+      tone: dynamicTone,
+      onClick: () => setSelectedCategory('Damage'),
+      isSolid: false
+    },
+    {
+      title: "Inventory Mismatch",
+      value: issueBreakdown.mismatch.toLocaleString(),
+      subtext: "Missing or Extra",
+      icon: PackageX,
+      tone: dynamicTone,
+      onClick: () => setSelectedCategory('Mismatch'),
+      isSolid: false
+    },
+    {
+      title: "Resolved",
+      value: resolvedCount.toLocaleString(),
+      subtext: "Flags resolved",
+      icon: CheckCircle2,
+      tone: dynamicTone,
+      onClick: () => setSelectedCategory('Resolved'),
+      isSolid: false
+    }
+  ]
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
-      
-      {/* Total Non-Processable (Always Red) */}
-      <div onClick={() => setSelectedCategory('Total')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", redTone.card, redTone.hover)}>
-        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
-        <div className="relative flex items-start justify-between mb-3">
-          <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", redTone.icon)}>
-            <AlertOctagon className="h-6 w-6" />
+    <>
+      {loading ? (
+        <>
+          {/* Mobile 2x2 skeleton */}
+          <div className="grid grid-cols-2 gap-2.5 sm:hidden shrink-0">
+            {stats.map((stat, i) => {
+              const skColor = stat.isSolid ? "bg-white/25" : "bg-muted-foreground/20"
+              return (
+                <div key={i} className={cn("rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 overflow-hidden", stat.tone.card)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl shadow-md shrink-0", stat.tone.icon)}>
+                    <Skeleton className={cn("h-4 w-4 rounded-sm", stat.isSolid ? "bg-white/30" : "bg-white/50")} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <Skeleton className={cn("h-4 w-12 mb-1.5 rounded", skColor)} />
+                    <Skeleton className={cn("h-2 w-16 rounded", skColor)} />
+                  </div>
+                </div>
+              )
+            })}
           </div>
-          <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", redTone.value)}>
-            {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2" /> : totalCount.toLocaleString()}
+          {/* Desktop skeleton */}
+          <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4 shrink-0">
+            {stats.map((stat, i) => {
+              const skColor = stat.isSolid ? "bg-white/30" : "bg-muted-foreground/15"
+              return (
+                <div key={i} className={cn("relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1", stat.tone.card)}>
+                  <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+                  <div className="relative flex items-start justify-between mb-3">
+                    <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg", stat.tone.icon)}>
+                      <Skeleton className={cn("h-6 w-6 rounded-md", stat.isSolid ? "bg-white/30" : "bg-white/50")} />
+                    </div>
+                    <Skeleton className={cn("h-8 w-20 rounded-md", skColor)} />
+                  </div>
+                  <Skeleton className={cn("h-4 w-28 mb-2 rounded relative z-10", skColor)} />
+                  <Skeleton className={cn("h-3 w-20 rounded relative z-10", skColor)} />
+                </div>
+              )
+            })}
           </div>
-        </div>
-        <div className={cn("relative text-sm font-semibold mb-0.5", redTone.title)}>Total Non-Processable</div>
-        <div className={cn("relative text-xs font-medium", redTone.sub)}>Needs review</div>
-      </div>
+        </>
+      ) : (
+        <>
+          {/* ── Mobile: compact 2×2 grid ── */}
+          <div className="grid grid-cols-2 gap-2.5 sm:hidden shrink-0">
+            {stats.map((stat) => (
+              <div
+                key={stat.title}
+                role="button"
+                onClick={stat.onClick}
+                className={cn(
+                  "rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97] overflow-hidden cursor-pointer",
+                  stat.tone.card
+                )}
+              >
+                <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", stat.tone.icon)}>
+                  <stat.icon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className={cn("text-lg font-black leading-none tracking-tight truncate", stat.tone.value)}>{stat.value}</div>
+                  <div className={cn("text-[11px] font-semibold truncate mt-1", stat.tone.title)}>{stat.title}</div>
+                </div>
+              </div>
+            ))}
+          </div>
 
-      {/* Physical Damage */}
-      <div onClick={() => setSelectedCategory('Damage')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
-        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
-        <div className="relative flex items-start justify-between mb-3">
-          <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", dynamicTone.icon)}>
-            <FileWarning className="h-6 w-6" />
+          {/* ── Desktop: full cards ── */}
+          <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4 shrink-0">
+            {stats.map((stat) => (
+              <div
+                key={stat.title}
+                role="button"
+                onClick={stat.onClick}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer",
+                  stat.tone.card, stat.tone.hover
+                )}
+              >
+                <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
+                <div className="relative flex items-start justify-between mb-3">
+                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", stat.tone.icon)}>
+                    <stat.icon className="h-6 w-6" />
+                  </div>
+                  <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", stat.tone.value)}>{stat.value}</div>
+                </div>
+                <div className={cn("relative text-sm font-semibold mb-0.5", stat.tone.title)}>{stat.title}</div>
+                <div className={cn("relative text-xs font-medium", stat.tone.sub)}>{stat.subtext}</div>
+              </div>
+            ))}
           </div>
-          <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", dynamicTone.value)}>
-            {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.damage.toLocaleString()}
-          </div>
-        </div>
-        <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Physical Damage</div>
-        <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Torn / Cut / Split</div>
-      </div>
-
-      {/* Inventory Mismatch */}
-      <div onClick={() => setSelectedCategory('Mismatch')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
-        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
-        <div className="relative flex items-start justify-between mb-3">
-          <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", dynamicTone.icon)}>
-            <PackageX className="h-6 w-6" />
-          </div>
-          <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", dynamicTone.value)}>
-            {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : issueBreakdown.mismatch.toLocaleString()}
-          </div>
-        </div>
-        <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Inventory Mismatch</div>
-        <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Missing or Extra</div>
-      </div>
-
-      {/* Resolved This Session */}
-      <div onClick={() => setSelectedCategory('Resolved')} className={cn("group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl", dynamicTone.card, dynamicTone.hover)}>
-        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
-        <div className="relative flex items-start justify-between mb-3">
-          <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", dynamicTone.icon)}>
-            <CheckCircle2 className="h-6 w-6" />
-          </div>
-          <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", dynamicTone.value)}>
-            {loading ? <Loader2 className="h-6 w-6 animate-spin mt-2 opacity-50" /> : resolvedCount.toLocaleString()}
-          </div>
-        </div>
-        <div className={cn("relative text-sm font-semibold mb-0.5", dynamicTone.title)}>Resolved</div>
-        <div className={cn("relative text-xs font-medium", dynamicTone.sub)}>Flags resolved</div>
-      </div>
-
-    </div>
+        </>
+      )}
+    </>
   )
 }

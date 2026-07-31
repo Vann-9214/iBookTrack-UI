@@ -303,8 +303,14 @@ export const resolveQcFlag = async (id) => {
       await db.query('UPDATE books SET is_extra = false WHERE id = $1', [book_id]);
     }
 
+    let box_id = null;
+    if (book_id) {
+      const { rows: bRows } = await db.query('SELECT box_id FROM books WHERE id = $1', [book_id]);
+      box_id = bRows[0]?.box_id;
+    }
+
     await db.query('COMMIT');
-    return { success: true, error: null };
+    return { success: true, box_id, error: null };
   } catch (error) {
     await db.query('ROLLBACK');
     return { success: false, error };
