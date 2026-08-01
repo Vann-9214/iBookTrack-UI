@@ -44,9 +44,10 @@ export function useSettings() {
     setMessage('')
 
     try {
+      // Only the name is submitted — the email shown on the form is read-only
+      // account information, not an editable field.
       const data = await updateProfile({
         name: profileData.name,
-        email: profileData.email,
       })
 
       if (typeof window !== 'undefined') {

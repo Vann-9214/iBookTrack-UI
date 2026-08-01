@@ -8,6 +8,7 @@
  *   router.get('/protected', requireAuth, handler)
  */
 import jwt from 'jsonwebtoken';
+import { logger } from '../utils/logger.js';
 
 export const OPERATIONAL_ROLES = ['supervisor', 'warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage'];
 
@@ -47,12 +48,19 @@ export const requireAuth = async (req, res, next) => {
         return res.status(401).json({ error: 'Session expired. Please log in again.' });
       }
     } catch (dbErr) {
-      // If migration 010 has not been applied yet the column won't exist
-      // (Postgres code 42703). Fail open for this specific config gap so the
-      // app is not bricked; all other DB errors are treated as auth failures.
-      if (dbErr?.code !== '42703') {
+      // A missing token_version column (Postgres 42703) means migration 010 has
+      // not been applied, so revocation cannot be checked. In production that
+      // silently disables logout-everywhere and password-change invalidation, so
+      // the request is refused; in development the tolerance is kept (with a
+      // loud warning) so an un-migrated local database is not bricked.
+      const isMissingTokenVersionColumn = dbErr?.code === '42703';
+      if (!isMissingTokenVersionColumn || process.env.NODE_ENV === 'production') {
+        if (isMissingTokenVersionColumn) {
+          logger.error('[AUTH] users.token_version is missing — apply migration 010. Refusing requests until then.');
+        }
         return res.status(401).json({ error: 'Invalid or expired token.' });
       }
+      logger.warn('[AUTH] users.token_version is missing — token revocation is NOT enforced. Apply migration 010.');
     }
 
     // Attach the verified user to the request so downstream handlers can use it

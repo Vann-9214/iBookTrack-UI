@@ -1,5 +1,3 @@
-export type AuthStep = 'email' | 'reset'
-
 export interface AuthUser {
   id: string
   name: string

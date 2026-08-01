@@ -12,9 +12,11 @@ export interface PasswordData {
 
 export type SettingsTab = 'profile' | 'password'
 
+// Only the display name is sent to the backend. The email address is the
+// login identity and is display-only in Settings; the API rejects/ignores any
+// attempt to modify it.
 export interface ProfileUpdatePayload {
   name: string
-  email: string
 }
 
 export interface PasswordUpdatePayload {

@@ -222,8 +222,13 @@ export const getExportService = async (req, res) => {
   const csv = [
     headers.join(','),
     ...rows.map(r => headers.map(h => {
-      const v = r[h] ?? '';
-      return `"${String(v).replace(/"/g, '""')}"`;
+      const v = String(r[h] ?? '');
+      // Spreadsheet applications treat a cell starting with = + - @ (or a
+      // leading tab/CR) as a formula and will execute it when the export is
+      // opened. Values come from Scan Manager, so a leading apostrophe is added
+      // to keep them as literal text instead of executable content.
+      const safeValue = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+      return `"${safeValue.replace(/"/g, '""')}"`;
     }).join(','))
   ].join('\r\n');
   

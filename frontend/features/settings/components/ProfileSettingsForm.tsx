@@ -45,7 +45,9 @@ export function ProfileSettingsForm({
           />
         </div>
 
-        {/* Email */}
+        {/* Email — shown for reference only. The address is the account's login
+            identity, so it is rendered read-only instead of as an editable
+            input; changing it would require administrator involvement. */}
         <div>
           <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
             Email Address
@@ -54,10 +56,13 @@ export function ProfileSettingsForm({
             id="email"
             type="email"
             value={profileData.email}
-            onChange={(e) => onProfileDataChange((prev) => ({ ...prev, email: e.target.value }))}
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-            required
+            readOnly
+            disabled
+            className="w-full rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground outline-none cursor-not-allowed"
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Your email is used to sign in and cannot be changed here. Contact your supervisor if it needs updating.
+          </p>
         </div>
 
         {/* Submit Button */}

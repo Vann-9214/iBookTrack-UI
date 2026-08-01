@@ -9,7 +9,7 @@ import { PrimaryButton } from "./PrimaryButton";
 import { useSmoothScroll } from "./SmoothScrollProvider";
 
 const resolveActiveLabel = (pathname: string, hash: string) => {
-  if (pathname === "/login" || pathname === "/forgot-password") return "Login";
+  if (pathname === "/login") return "Login";
   if (pathname === "/landing-page" && hash === "#about") return "About us";
   if (pathname === "/landing-page") return "Home";
   return "";
