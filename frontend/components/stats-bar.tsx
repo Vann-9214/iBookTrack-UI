@@ -21,8 +21,8 @@ import { Pagination } from "@/components/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/use-brand"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
+
 
 interface QCFlag {
   scan_id: string
@@ -404,13 +404,16 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   stat.tone.card
                 )}
               >
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-1.5">
                   <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", stat.tone.icon)}>
                     <stat.icon className="h-4 w-4" />
                   </div>
                   <div className={cn("text-xl font-black leading-none tracking-tight tabular-nums", stat.tone.value)}>{stat.value}</div>
                 </div>
-                <div className={cn("text-[11px] font-semibold truncate", stat.tone.title)}>{stat.title}</div>
+                <div className="flex flex-col min-w-0 mt-auto">
+                  <div className={cn("text-[11px] font-semibold truncate leading-tight", stat.tone.title)}>{stat.title}</div>
+                  <div className={cn("text-[9px] font-medium truncate opacity-90", stat.tone.sub)}>{stat.subtext}</div>
+                </div>
               </div>
             ))}
           </div>

@@ -2,8 +2,8 @@ import { authFetch } from "@/lib/auth-api"
 import { BoxEntry, BookInBox, SearchType } from "../types/scan.types"
 import { isIncomingBox } from "../utils/scan.helpers"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
+
 
 export async function fetchIncomingBoxes(brand: string, searchQuery: string, searchType: SearchType): Promise<BoxEntry[]> {
   const params = new URLSearchParams()

@@ -125,8 +125,9 @@ export function NonProcessableKPIs({
                   </div>
                   <div className={cn("text-xl font-black leading-none tracking-tight truncate tabular-nums", stat.tone.value)}>{stat.value}</div>
                 </div>
-                <div className="min-w-0 w-full mt-0.5">
-                  <div className={cn("text-[11px] font-semibold truncate", stat.tone.title)}>{stat.title}</div>
+                <div className="flex flex-col min-w-0 mt-auto">
+                  <div className={cn("text-[11px] font-semibold truncate leading-tight", stat.tone.title)}>{stat.title}</div>
+                  <div className={cn("text-[9px] font-medium truncate opacity-90", stat.tone.sub)}>{stat.subtext}</div>
                 </div>
               </div>
             ))}

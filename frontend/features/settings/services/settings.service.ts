@@ -6,9 +6,7 @@ export async function getProfile() {
 }
 
 export async function updateProfile(payload: ProfileUpdatePayload): Promise<ApiResponse> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL
-  if (!apiUrl) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
-
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
   // The request body carries only the display name. Email is intentionally
   // omitted: it identifies the account and can no longer be changed from the
   // profile screen (the backend ignores it even if sent).
@@ -28,9 +26,7 @@ export async function updateProfile(payload: ProfileUpdatePayload): Promise<ApiR
 }
 
 export async function updatePassword(payload: PasswordUpdatePayload): Promise<ApiResponse> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL
-  if (!apiUrl) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
-
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
   const response = await authFetch(`${apiUrl}/api/auth/password`, {
     method: 'POST',
     body: JSON.stringify({

@@ -2,8 +2,8 @@ import { authFetch } from '@/lib/auth-api'
 import { BookInBox, BoxEntry, SearchType } from '../types/cut.types'
 import { buildCutBoxesUrl, isIncomingCutBox, isOutgoingCutBox } from '../utils/cut.helpers'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
+
 
 export const cutService = {
   async fetchBoxes(brand: string, searchQuery: string, searchType: SearchType): Promise<{ incoming: BoxEntry[]; outgoing: BoxEntry[] }> {

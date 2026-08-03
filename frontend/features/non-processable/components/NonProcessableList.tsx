@@ -85,9 +85,11 @@ export function NonProcessableList({
       {/* Table header */}
       <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center", isJaguar ? "bg-emerald-50/50 text-emerald-800/70" : "bg-blue-50/50 text-blue-800/70")}>
         <div className="col-span-2 sm:col-span-1 flex justify-start"><span className="hidden">#</span></div>
-        <div className="col-span-4">Lot Number</div>
-        <div className="col-span-3 sm:col-span-4 text-center">Items</div>
-        <div className="col-span-3 text-right pr-1">Actions</div>
+        <div className="col-span-5 sm:col-span-6">Lot Number</div>
+        <div className="col-span-5 sm:col-span-5 flex justify-end items-center gap-3">
+          <span>Items</span>
+          <div className="w-6 h-6 shrink-0" />
+        </div>
       </div>
 
       {/* Content */}
@@ -123,7 +125,7 @@ export function NonProcessableList({
                    </div>
 
                    {/* Lot name */}
-                   <div className="col-span-4 min-w-0">
+                   <div className="col-span-5 sm:col-span-6 min-w-0">
                      <span className="text-[13px] font-black text-slate-800 truncate block tracking-tight group-data-[state=open]:text-white transition-colors">
                        {String(lot.lot_number).toLowerCase().startsWith('lot') ? lot.lot_number : `Lot ${lot.lot_number}`}
                      </span>
@@ -132,18 +134,12 @@ export function NonProcessableList({
                      </span>
                    </div>
 
-                   {/* Box count */}
-                   <div className="col-span-3 sm:col-span-4 flex justify-center">
+                   {/* Box count and chevron */}
+                   <div className="col-span-5 sm:col-span-5 flex justify-end items-center gap-3">
                      <Badge variant="outline" className={cn("border-transparent px-2.5 py-0.5 text-[9px] font-black shadow-sm uppercase tracking-wider ring-1 transition-colors", isJaguar ? "bg-emerald-50 text-emerald-700 ring-emerald-200/50 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent" : "bg-blue-50 text-blue-700 ring-blue-200/50 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent")}>
                        {lot.totalFlags} items
                      </Badge>
-                   </div>
-
-                   {/* Expand chevron */}
-                   <div className="col-span-3 flex justify-end items-center gap-2 pr-1">
-                     <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 hidden sm:inline group-data-[state=open]:hidden">Expand</span>
-                     <span className="text-[9px] font-bold uppercase tracking-wider hidden sm:inline group-data-[state=closed]:hidden group-data-[state=open]:text-white/80 transition-colors">Collapse</span>
-                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors group-data-[state=open]:bg-white/20">
+                     <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-colors group-data-[state=open]:bg-white/20 shrink-0">
                        <ChevronRight className="h-3.5 w-3.5 text-slate-500 transition-transform duration-300 group-data-[state=open]:rotate-90 group-data-[state=open]:text-white" />
                      </div>
                    </div>
