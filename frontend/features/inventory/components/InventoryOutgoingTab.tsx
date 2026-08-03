@@ -44,33 +44,38 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
           const boxLabelPrinted = actions.printedBoxLabels.has(box.id) || !!box.box_sessions?.[0]?.inventory_printed_by
           const allPrinted = boxLabelPrinted
           return (
-            <div className="flex flex-col gap-1 sm:shrink-0" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={(e) => { e.stopPropagation(); actions.handlePrintLabel(box) }}
-                  disabled={actions.loadingPrint === box.id}
-                  className={cn(
-                    'flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors',
-                    expanded
-                      ? 'bg-white text-foreground shadow-sm hover:bg-white/90'
-                      : 'bg-white/60 border border-white/80 text-foreground hover:bg-white/80'
-                  )}
-                >
-                  {actions.loadingPrint === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
-                  {actions.loadingPrint === box.id ? 'Loading...' : 'Print Label'}
-                </button>
-                <input
-                  type="checkbox"
-                  checked={boxLabelPrinted}
-                  readOnly
-                  className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
-                  title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
-                />
+            <div className="flex flex-col gap-1 w-full sm:w-auto sm:shrink-0" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-2 sm:gap-2 justify-end w-full sm:w-auto">
+                {!isMobile && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); actions.handlePrintLabel(box) }}
+                    disabled={actions.loadingPrint === box.id}
+                    className={cn(
+                      'flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors',
+                      expanded
+                        ? 'bg-white text-foreground shadow-sm hover:bg-white/90'
+                        : 'bg-white/60 border border-white/80 text-foreground hover:bg-white/80'
+                    )}
+                  >
+                    {actions.loadingPrint === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                    {actions.loadingPrint === box.id ? 'Loading...' : 'Print Label'}
+                  </button>
+                )}
+                <label className="flex items-center gap-1.5 cursor-default shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={boxLabelPrinted}
+                    readOnly
+                    className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
+                    title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
+                  />
+                  {isMobile && <span className={cn("text-xs font-semibold", expanded ? "text-white/90" : "text-muted-foreground")}>Printed</span>}
+                </label>
                 <button
                   onClick={(e) => { e.stopPropagation(); actions.openConfirm('send_to_cut', box) }}
                   disabled={actions.sendingToCut === box.id || !allPrinted}
                   className={cn(
-                    'flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+                    'flex flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
                     expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
                   )}
                 >
@@ -78,8 +83,8 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
                   {actions.sendingToCut === box.id ? 'Sending...' : 'Send to Cut'}
                 </button>
               </div>
-              {!allPrinted && (
-                <p className={cn('text-[10px] font-medium text-right', expanded ? 'text-white/80' : 'text-amber-600')}>Print the box label first</p>
+              {!isMobile && !allPrinted && (
+                <p className={cn('text-[10px] font-medium w-full sm:w-auto text-center sm:text-right mt-1 sm:mt-0', expanded ? 'text-white/80' : 'text-amber-600')}>Print the box label first</p>
               )}
             </div>
           )
