@@ -64,3 +64,9 @@ export const resolveQcFlagSchema = {
     id: z.string().min(1)
   })
 };
+
+export const checkMissingIsbnSchema = {
+  params: z.object({
+    isbn: z.string().min(1)
+  })
+};

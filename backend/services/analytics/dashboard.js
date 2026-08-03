@@ -493,3 +493,12 @@ export const resolveQcFlagService = async (req) => {
 
   return { success: true };
 };
+
+export const checkMissingIsbnService = async (req) => {
+  const { isbn } = req.params;
+  const { box_id } = req.query; // the box where it is missing, to exclude if we want, or just get any processable box
+
+  const result = await dashboardRepo.findProcessableBookByIsbn(isbn, box_id);
+  
+  return { success: true, ...result };
+};

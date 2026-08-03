@@ -43,7 +43,7 @@ export const isbnStreamService = async (req, res) => {
 }
 
 export const queryIsbnStreamService = async (req, res) => {
-  const { isbn, type, allowExisting } = req.body
+  const { isbn, type, allowExisting, issueType } = req.body
 
   const cleaned = isbn.replace(/[^0-9a-zA-Z]/g, '').toUpperCase()
   if (cleaned.length !== 10 && cleaned.length !== 13) {
@@ -59,14 +59,12 @@ export const queryIsbnStreamService = async (req, res) => {
         FROM books b
         LEFT JOIN boxes bx ON b.box_id = bx.id
         LEFT JOIN lots l ON bx.lot_id = l.id
-        WHERE b.isbn = $1
+        WHERE b.isbn = $1 AND b.is_missing = false
       `;
       const params = [cleaned];
       if (type) {
-        query += ` AND b.book_type = $2`;
-        params.push(type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
-      } else {
-        query += ` AND b.book_type IS NULL`;
+        query += ` AND (LOWER(b.book_type) = LOWER($2) OR LOWER(bx.box_type) = LOWER($2) OR LOWER(l.type) = LOWER($2))`;
+        params.push(type);
       }
       
       const { rows: existingBooks } = await db.query(query + ' LIMIT 1', params);
@@ -79,9 +77,40 @@ export const queryIsbnStreamService = async (req, res) => {
           : `Lot ${rawLot}`
         const boxNumber = existingBook.box_number || 'unknown'
         const boxType = existingBook.box_type || 'unknown'
+
         return res.json({
           success: false,
           error: `Duplicate ISBN: ${cleaned} is already scanned in ${lotLabel}, Box ${boxNumber} (${boxType}).`
+        });
+      }
+    }
+
+    if (allowExisting && issueType === 'missing') {
+      let query = `
+        SELECT b.id, bx.box_number, bx.box_type, l.lot_number, l.type as lot_type
+        FROM books b
+        LEFT JOIN boxes bx ON b.box_id = bx.id
+        LEFT JOIN lots l ON bx.lot_id = l.id
+        WHERE b.isbn = $1 AND b.is_missing = true
+      `;
+      const params = [cleaned];
+      if (type) {
+        query += ` AND (LOWER(b.book_type) = LOWER($2) OR LOWER(bx.box_type) = LOWER($2) OR LOWER(l.type) = LOWER($2))`;
+        params.push(type);
+      }
+      
+      const { rows: existingMissings } = await db.query(query + ' LIMIT 1', params);
+      const existingMissing = existingMissings[0] || null;
+
+      if (existingMissing) {
+        const rawLot = existingMissing.lot_number || 'unknown'
+        const lotLabel = rawLot.toLowerCase().startsWith('lot')
+          ? rawLot.charAt(0).toUpperCase() + rawLot.slice(1)
+          : `Lot ${rawLot}`
+        const boxNumber = existingMissing.box_number || 'unknown'
+        return res.json({
+          success: false,
+          error: `Duplicate Missing Book: ISBN ${cleaned} is already marked as missing in ${lotLabel}, Box ${boxNumber}.`
         });
       }
     }

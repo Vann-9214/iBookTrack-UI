@@ -218,7 +218,7 @@ export function NonProcessableList({
                                        </span>
                                      </div>
                                      
-                                     {!(['missing', 'mismatched-book'].includes((f.issue || '').toLowerCase().trim())) && (
+                                     {!(['mismatched-book'].includes((f.issue || '').toLowerCase().trim())) && (
                                        <button 
                                          onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
                                          disabled={resolvingId === f.scan_id}

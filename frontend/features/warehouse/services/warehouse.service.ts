@@ -144,12 +144,13 @@ export interface IsbnQueryResponse {
 export async function queryIsbnStream(
   isbn: string,
   type?: string | null,
-  allowExisting?: boolean
+  allowExisting?: boolean,
+  issueType?: string
 ): Promise<IsbnQueryResponse> {
   const res = await authFetch(`${baseUrl}/api/warehouse/isbn-stream/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ isbn, type, allowExisting }),
+    body: JSON.stringify({ isbn, type, allowExisting, issueType }),
   })
   return (await res.json()) as IsbnQueryResponse
 }
