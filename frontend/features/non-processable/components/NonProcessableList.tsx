@@ -215,8 +215,7 @@ export function NonProcessableList({
                                        </span>
                                      </div>
                                      
-                                     {!(['missing', 'mismatched-book'].includes((f.issue || '').toLowerCase().trim())) && (
-                                       <button 
+                                     <button 
                                          onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
                                          disabled={resolvingId === f.scan_id}
                                          className={cn(
@@ -233,7 +232,6 @@ export function NonProcessableList({
                                          )}
                                          {resolvingId === f.scan_id ? 'Wait' : 'Resolve'}
                                        </button>
-                                     )}
                                    </div>
                                  </div>
                                ))}

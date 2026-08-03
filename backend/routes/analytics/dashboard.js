@@ -20,5 +20,6 @@ router.get('/lot-details/:lot_number', requireAuth, requireRole(OPERATIONAL_ROLE
 router.get('/pipeline-stats', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.getPipelineStatsSchema), controller.getPipelineStats);
 
 router.post('/qc-flags/:id/resolve', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.resolveQcFlagSchema), controller.resolveQcFlag);
+router.get('/check-missing-isbn/:isbn', requireAuth, requireRole(OPERATIONAL_ROLES), validateRequest(schemas.checkMissingIsbnSchema), controller.checkMissingIsbn);
 
 export default router;

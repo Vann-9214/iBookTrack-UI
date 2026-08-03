@@ -79,3 +79,13 @@ export const resolveQcFlag = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const checkMissingIsbn = async (req, res) => {
+  try {
+    const result = await dashboardService.checkMissingIsbnService(req);
+    res.json(result);
+  } catch (error) {
+    logger.error('Check missing ISBN error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
