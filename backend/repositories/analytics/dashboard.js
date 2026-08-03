@@ -380,6 +380,8 @@ export const resolveQcFlag = async (id) => {
       await db.query('UPDATE books SET is_extra = false WHERE id = $1', [book_id]);
     } else if (reasonStr === 'missing-book' || reasonStr === 'missing') {
       await db.query('UPDATE books SET is_missing = false WHERE id = $1', [book_id]);
+    } else if (reasonStr === 'mismatched-book' || reasonStr === 'mismatch') {
+      await db.query('UPDATE books SET is_mismatch = false WHERE id = $1', [book_id]);
     }
 
     let box_id = null;

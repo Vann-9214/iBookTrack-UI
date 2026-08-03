@@ -498,9 +498,18 @@ export const resumeSessionService = async (req, res) => {
     const { box_id } = req.params;
     
     // determine stage
-    const { rows: boxRows } = await db.query('SELECT lot_id, current_stage, box_number, box_type FROM boxes WHERE id = $1', [box_id]);
+    const { rows: boxRows } = await db.query('SELECT lot_id, current_stage, box_number, box_type, total_mismatch_books FROM boxes WHERE id = $1', [box_id]);
     if (!boxRows[0]) throw new Error('Box not found');
     const box = boxRows[0];
+
+    // Block session start if box has unresolved mismatched books
+    if ((box.total_mismatch_books || 0) > 0) {
+      return res.status(403).json({
+        error: `This box has ${box.total_mismatch_books} mismatched book(s). Please resolve all mismatched books in the Non-Processable section before starting a session.`,
+        code: 'BoxHasMismatchedBooks',
+        mismatch_count: box.total_mismatch_books
+      });
+    }
 
     const { rows: sessionRows } = await db.query('SELECT * FROM box_sessions WHERE box_id = $1 ORDER BY warehouse_time_received DESC LIMIT 1', [box_id]);
     const session = sessionRows[0];
