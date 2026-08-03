@@ -514,7 +514,7 @@ export const findProcessableBookByIsbn = async (isbn, currentBoxId) => {
       JOIN boxes bx ON b.box_id = bx.id
       JOIN lots l ON bx.lot_id = l.id
       JOIN book_activity ba ON ba.book_id = b.id
-      WHERE b.isbn = $1 AND ba.scan_status = 'processable'
+      WHERE b.isbn = $1
     `;
     const params = [isbn];
     if (currentBoxId) {
