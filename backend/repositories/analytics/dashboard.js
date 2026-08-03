@@ -216,20 +216,44 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
   query += ` ORDER BY uf.book_activity_id, uf.warehouse_flag_at DESC ) as unique_flags ORDER BY unique_flags.warehouse_flag_at DESC LIMIT $${pIdx++} OFFSET $${pIdx++}`;
   params.push(limit, offset);
 
-  // Get total count
-  const countQuery = `
+  // Get total count.
+  // The box type and the date bounds are bound as query parameters instead of
+  // being written into the SQL text. They originate from the request query
+  // string, and a parameter-less db.query() runs through Postgres' simple query
+  // protocol, which accepts several statements per call — so interpolating them
+  // would let a caller append their own statements.
+  const countParams = [];
+  let countIdx = 1;
+  let countQuery = `
     SELECT COUNT(DISTINCT uf.book_activity_id) as count FROM user_flags uf
     JOIN book_activity ba ON uf.book_activity_id = ba.id
     JOIN books b ON ba.book_id = b.id
     JOIN boxes bx ON b.box_id = bx.id
-    WHERE bx.box_type ${boxType ? `= '${boxType}'` : `IN ('Mustang', 'Jaguar')`}
-    ${(startIso && endIso) ? `AND ((uf.warehouse_flag_at >= '${startIso}' AND uf.warehouse_flag_at < '${endIso}') OR (uf.inventory_flag_at >= '${startIso}' AND uf.inventory_flag_at < '${endIso}') OR (uf.endorsement_flag_at >= '${startIso}' AND uf.endorsement_flag_at < '${endIso}') OR (uf.scan_flag_at >= '${startIso}' AND uf.scan_flag_at < '${endIso}'))` : ''}
+    WHERE 1=1
   `;
+
+  if (boxType) {
+    countQuery += ` AND bx.box_type = $${countIdx++}`;
+    countParams.push(boxType);
+  } else {
+    countQuery += ` AND bx.box_type IN ('Mustang', 'Jaguar')`;
+  }
+
+  if (startIso && endIso) {
+    countQuery += ` AND (
+      (uf.warehouse_flag_at >= $${countIdx} AND uf.warehouse_flag_at < $${countIdx + 1}) OR
+      (uf.inventory_flag_at >= $${countIdx} AND uf.inventory_flag_at < $${countIdx + 1}) OR
+      (uf.endorsement_flag_at >= $${countIdx} AND uf.endorsement_flag_at < $${countIdx + 1}) OR
+      (uf.scan_flag_at >= $${countIdx} AND uf.scan_flag_at < $${countIdx + 1})
+    )`;
+    countParams.push(startIso, endIso);
+    countIdx += 2;
+  }
 
   try {
     const [{ rows: dataRows }, { rows: countRows }] = await Promise.all([
       db.query(query, params),
-      db.query(countQuery)
+      db.query(countQuery, countParams)
     ]);
 
     const data = dataRows.map(r => ({

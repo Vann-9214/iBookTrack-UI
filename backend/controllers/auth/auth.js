@@ -61,17 +61,6 @@ export const password = async (req, res) => {
   }
 };
 
-export const resetPassword = async (req, res) => {
-  try {
-    const result = await authService.resetPasswordService(req, res);
-    res.json(result);
-  } catch (error) {
-    if (error.status) return res.status(error.status).json(error.payload);
-    logger.error('Password reset error:', error);
-    res.status(500).json({ error: 'Failed to reset password. Please try again later.' });
-  }
-};
-
 export const getProfile = async (req, res) => {
   try {
     const result = await authService.getProfileService(req, res);
@@ -100,7 +89,11 @@ export const innodata = async (req, res) => {
     res.redirect(url);
   } catch (error) {
     if (error.status) return res.status(error.status).json(error.payload || { error: error.message });
-    res.status(500).send(error.message);
+    // A failure here is a server/SSO configuration problem (missing or malformed
+    // OAUTH_* values). The detail is logged instead of being echoed to the
+    // browser, which would disclose internal configuration.
+    logger.error('SSO authorize error:', error);
+    res.status(500).send('Unable to start SSO sign-in.');
   }
 };
 

@@ -41,6 +41,14 @@ export const removeBatchSchema = {
   })
 };
 
+// The brand filter used by the locator screens. It is the only user-supplied
+// value these list endpoints read, and it previously arrived unvalidated.
+export const boxTypeFilterSchema = {
+  query: z.object({
+    box_type: z.string().trim().max(50).optional()
+  })
+};
+
 export const searchStorageSchema = {
   query: z.object({
     q: z.string().trim().min(1).max(100),

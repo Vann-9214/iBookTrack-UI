@@ -90,6 +90,81 @@ export const isbnStreamQuerySchema = {
   })
 };
 
+// ── Schemas for the read/flag endpoints ──────────────────────────────────────
+// These routes previously ran with no schema at all, so unchecked path and query
+// values were handed straight to the database and the iLMS lookups. Ids are
+// required to be UUIDs, the ISBN path segment is restricted to the ISBN
+// character set, and every free-text/numeric filter is length- or format-capped.
+export const deleteSessionSchema = {
+  params: z.object({
+    session_id: z.string().uuid()
+  })
+};
+
+export const listSessionsSchema = {
+  query: z.object({
+    status: z.string().trim().max(50).optional(),
+    limit: z.string().regex(/^\d+$/, 'limit must be a number').optional()
+  })
+};
+
+export const warehouseOverviewSchema = {
+  query: z.object({
+    page: z.string().regex(/^\d+$/, 'page must be a number').optional(),
+    limit: z.string().regex(/^\d+$/, 'limit must be a number').optional(),
+    type: z.string().trim().max(50).optional(),
+    search: z.string().trim().max(100).optional(),
+    status: z.string().trim().max(50).optional()
+  })
+};
+
+export const checkBoxExistsSchema = {
+  query: z.object({
+    lot_number: lotNumber,
+    box_number: boxNumber.min(1, 'box_number is required'),
+    type: z.string().trim().max(50).optional()
+  })
+};
+
+export const isbnStreamSchema = {
+  query: z.object({
+    isbn: isbn.optional(),
+    type: z.string().trim().max(50).optional()
+  })
+};
+
+// Scanned barcodes are stripped to alphanumerics by the scanner UI before they
+// reach this route, so the same alphanumeric/hyphen set is accepted here. That
+// keeps every real scan working while rejecting quotes, spaces and separators.
+export const searchIsbnSchema = {
+  params: z.object({
+    isbn: isbn.regex(/^[0-9A-Za-z-]+$/, 'ISBN may only contain letters, digits and hyphens')
+  })
+};
+
+export const rejectedBooksSchema = {
+  query: z.object({
+    limit: z.string().regex(/^\d+$/, 'limit must be a number').optional(),
+    today: z.enum(['true', 'false']).optional()
+  })
+};
+
+export const flagScanSchema = {
+  params: z.object({
+    scan_id: z.string().uuid()
+  }),
+  body: z.object({
+    rejection_reason: longText,
+    notes: longText
+  })
+};
+
+export const getBoxScansSchema = {
+  params: z.object({
+    box_id: z.string().uuid()
+  })
+};
+
 export const tagScanSchema = {
   params: z.object({
     scan_id: z.string().uuid()

@@ -43,18 +43,12 @@ export const passwordSchema = {
   })
 };
 
+// Profile edits only accept the display name. Email is intentionally absent:
+// the account email is the login identity and may not be changed through this
+// endpoint (zod strips any unrecognised keys, so an "email" field sent by an
+// older client is silently discarded rather than applied).
 export const profileSchema = {
   body: z.object({
-    name: z.string().trim().min(1, 'Name is required.').max(100, 'Name is too long.'),
-    email: z.string().trim().toLowerCase().email('Invalid email address.')
-  })
-};
-
-// DEV-ONLY simple reset: verify the email exists, then set a new password.
-// There is no ownership proof here, so the service refuses to run in production.
-export const resetPasswordSchema = {
-  body: z.object({
-    email: z.string().trim().toLowerCase().email('Invalid email address.'),
-    newPassword: strongPassword
+    name: z.string().trim().min(1, 'Name is required.').max(100, 'Name is too long.')
   })
 };

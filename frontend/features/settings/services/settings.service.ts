@@ -9,11 +9,13 @@ export async function updateProfile(payload: ProfileUpdatePayload): Promise<ApiR
   const apiUrl = process.env.NEXT_PUBLIC_API_URL
   if (!apiUrl) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
 
+  // The request body carries only the display name. Email is intentionally
+  // omitted: it identifies the account and can no longer be changed from the
+  // profile screen (the backend ignores it even if sent).
   const response = await authFetch(`${apiUrl}/api/auth/profile`, {
     method: 'PATCH',
     body: JSON.stringify({
       name: payload.name.trim(),
-      email: payload.email.trim().toLowerCase(),
     }),
   })
 

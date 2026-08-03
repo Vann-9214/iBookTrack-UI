@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useBrand } from '@/hooks/use-brand'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useUser } from '@/hooks/use-user'
 import { usePagination } from '@/hooks/usePagination'
 import {
   fetchLiveTransmissionData,
@@ -52,14 +53,12 @@ export function useTransmission() {
   const [enrichedData, setEnrichedData] = useState<Record<string, EnrichedData>>({})
   const fetchedIsbns = useRef<Set<string>>(new Set())
 
-  // Manager flag
-  const [isManager, setIsManager] = useState(false)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const role = localStorage.getItem('user_role')
-      setIsManager(role === 'manager' || role === 'admin')
-    }
-  }, [])
+  // Manager flag.
+  // The role is taken from the authenticated profile the backend returns
+  // (useUser → /api/auth/profile) rather than from localStorage, which the
+  // browser owner can edit freely to grant themselves elevated views.
+  const { user } = useUser()
+  const isManager = user?.role === 'supervisor'
 
   const fetchLiveData = useCallback(
     async (fromOverride?: string | boolean, toOverride?: string, isBackground?: boolean) => {

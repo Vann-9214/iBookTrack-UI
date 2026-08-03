@@ -33,8 +33,10 @@ const registerLimiter = rateLimit({
 // ── Routes ──────────────────────────────────────────────────
 router.post('/register', registerLimiter, validateRequest(schemas.registerSchema), controller.register);
 router.post('/login', loginLimiter, validateRequest(schemas.loginSchema), controller.login);
-// DEV-ONLY reset (blocked in production by the service). Rate-limited like login.
-router.post('/reset-password', loginLimiter, validateRequest(schemas.resetPasswordSchema), controller.resetPassword);
+// The former /reset-password endpoint was removed: it allowed setting a new
+// password with only an email address (no proof of account ownership), which
+// is an account-takeover vector. Password recovery is now handled by an
+// administrator/supervisor resetting the account directly.
 router.post('/logout', controller.logout);
 router.post('/refresh', validateRequest(schemas.refreshSchema), controller.refresh);
 router.post('/password', requireAuth, validateRequest(schemas.passwordSchema), controller.password);

@@ -7,11 +7,22 @@
 import * as authRepo from '../../repositories/auth/auth.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import { logger } from '../../utils/logger.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'lax' };
 
-const TOKEN_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// Name and lifetime of the one-time cookie that ties an SSO callback back to the
+// authorize request this server actually started (OAuth2 "state").
+const OAUTH_STATE_COOKIE = 'oauth_state';
+const OAUTH_STATE_MAX_AGE = 10 * 60 * 1000;
+
+const getMillisecondsUntilMidnight = () => {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+  return midnight.getTime() - now.getTime();
+};
 
 const generateToken = (user, expiresInSeconds) => {
   return jwt.sign(
@@ -71,10 +82,11 @@ export const loginService = async (req, res) => {
   }
 
   // Generate JWT token
-  const token = generateToken(user, Math.floor(TOKEN_EXPIRY_MS / 1000));
+  const msUntilMidnight = getMillisecondsUntilMidnight();
+  const token = generateToken(user, Math.floor(msUntilMidnight / 1000));
 
   // Send token securely in HTTP-only cookie
-  res.cookie('access_token', token, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
+  res.cookie('access_token', token, { ...cookieOpts, maxAge: msUntilMidnight });
 
   return {
     message: 'Login successful.',
@@ -88,8 +100,12 @@ export const loginService = async (req, res) => {
 };
 
 export const logoutService = async (req, res) => {
-  res.clearCookie('access_token');
-  res.clearCookie('refresh_token'); // Clear in case legacy token exists
+  // Browsers only drop a cookie when the clearing instruction carries the same
+  // attributes it was set with, so the session cookie is removed using the exact
+  // options from res.cookie(). Without this the access_token could survive
+  // logout in the browser jar.
+  res.clearCookie('access_token', cookieOpts);
+  res.clearCookie('refresh_token', cookieOpts); // Clear in case legacy token exists
   return { message: 'Logged out successfully.' };
 };
 
@@ -109,12 +125,15 @@ export const refreshService = async (req, res) => {
     // (token_version bumped by a password change or forced logout).
     if ((decoded.tv ?? 0) !== (user.token_version ?? 0)) throw new Error('token revoked');
 
-    const newToken = generateToken(user, Math.floor(TOKEN_EXPIRY_MS / 1000));
-    res.cookie('access_token', newToken, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
+    const msUntilMidnight = getMillisecondsUntilMidnight();
+    const newToken = generateToken(user, Math.floor(msUntilMidnight / 1000));
+    res.cookie('access_token', newToken, { ...cookieOpts, maxAge: msUntilMidnight });
 
     return { message: 'Session refreshed.' };
   } catch (err) {
-    res.clearCookie('access_token');
+    // Same attribute-matching requirement as logout: an unusable token must
+    // actually leave the browser instead of lingering as a stale cookie.
+    res.clearCookie('access_token', cookieOpts);
     throw { status: 401, payload: { error: 'Session expired. Please log in again.' } };
   }
 };
@@ -136,41 +155,14 @@ export const passwordService = async (req, res) => {
   // Invalidate all tokens issued before this change, then reissue a fresh
   // cookie so the current device stays logged in while other sessions die.
   const newVersion = await authRepo.incrementTokenVersion(req.user.id);
+  const msUntilMidnight = getMillisecondsUntilMidnight();
   const refreshedToken = generateToken(
     { ...user, role: user.role, token_version: newVersion },
-    Math.floor(TOKEN_EXPIRY_MS / 1000)
+    Math.floor(msUntilMidnight / 1000)
   );
-  res.cookie('access_token', refreshedToken, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
+  res.cookie('access_token', refreshedToken, { ...cookieOpts, maxAge: msUntilMidnight });
 
   return { message: 'Password updated successfully.' };
-};
-
-/**
- * DEV-ONLY password reset.
- *
- * ⚠️ SECURITY: This resets a password given ONLY an email + new password, with
- * NO proof that the requester owns the account. That is an account-takeover
- * risk, so it is HARD-DISABLED when NODE_ENV=production. Before going live,
- * replace this with a proper token-based reset (emailed single-use link).
- */
-export const resetPasswordService = async (req, res) => {
-  if (isProd) {
-    throw { status: 403, payload: { error: 'Password reset is disabled in production.' } };
-  }
-
-  const { email, newPassword } = req.body;
-
-  const user = await authRepo.getUserByEmail(email);
-  if (!user) {
-    throw { status: 404, payload: { error: 'No account found with that email.' } };
-  }
-
-  const newPasswordHash = await bcrypt.hash(newPassword, 10);
-  await authRepo.updatePassword(user.id, newPasswordHash);
-  // Invalidate any existing sessions for this account.
-  await authRepo.incrementTokenVersion(user.id);
-
-  return { message: 'Password reset successfully. You can now log in.' };
 };
 
 export const getProfileService = async (req, res) => {
@@ -186,16 +178,14 @@ export const getProfileService = async (req, res) => {
 };
 
 export const updateProfileService = async (req, res) => {
-  const { name, email } = req.body;
+  // Only the display name can be edited. The account email is the login
+  // identity: letting a live session swap it would turn temporary access to an
+  // unlocked workstation into a permanent account takeover (the real owner can
+  // no longer sign in or be recognised by that address), so email changes are
+  // not accepted here at all.
+  const { name } = req.body;
 
-  // Reject email changes that collide with another account, returning a clean
-  // 409 instead of surfacing a raw DB unique-constraint error as a 500.
-  const existing = await authRepo.getUserByEmail(email);
-  if (existing && existing.id !== req.user.id) {
-    throw { status: 409, payload: { error: 'That email address is already in use.' } };
-  }
-
-  const { data, error } = await authRepo.updateProfile(req.user.id, name, email);
+  const { data, error } = await authRepo.updateProfile(req.user.id, name);
 
   if (error || !data) throw { status: 500, payload: { error: 'Failed to update profile.' } };
 
@@ -209,12 +199,38 @@ export const innodataService = async (req, res) => {
   authUrl.searchParams.append('redirect_uri', process.env.OAUTH_REDIRECT_URI);
   authUrl.searchParams.append('response_type', 'code');
   authUrl.searchParams.append('scope', 'openid email profile');
+
+  // Unguessable value that links this authorize request to the callback that
+  // follows. It is kept in an HttpOnly cookie the browser cannot read and is
+  // compared in innodataCallbackService, so a callback triggered by someone else
+  // (with their own authorization code) cannot log this browser in.
+  const state = crypto.randomBytes(32).toString('hex');
+  res.cookie(OAUTH_STATE_COOKIE, state, { ...cookieOpts, maxAge: OAUTH_STATE_MAX_AGE });
+  authUrl.searchParams.append('state', state);
+
   return authUrl.toString();
 };
 
 export const innodataCallbackService = async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   if (!code) throw { status: 400, payload: { error: 'Authorization code is missing.' } };
+
+  // Verify the callback belongs to an authorize request this server issued.
+  // The cookie is single-use and cleared straight away so a captured state
+  // cannot be replayed.
+  const expectedState = req.cookies?.[OAUTH_STATE_COOKIE];
+  res.clearCookie(OAUTH_STATE_COOKIE, cookieOpts);
+
+  const stateMatches =
+    typeof state === 'string' &&
+    typeof expectedState === 'string' &&
+    state.length === expectedState.length &&
+    crypto.timingSafeEqual(Buffer.from(state), Buffer.from(expectedState));
+
+  if (!stateMatches) {
+    logger.error('SSO callback rejected: OAuth state missing or does not match the issued value.');
+    throw { status: 400, payload: { error: 'Invalid SSO request. Please start the sign-in again.' } };
+  }
 
   try {
     // 1. Exchange code for access token
@@ -265,17 +281,22 @@ export const innodataCallbackService = async (req, res) => {
     }
 
     // 4. Generate token and set cookie
-    const token = generateToken(user, Math.floor(TOKEN_EXPIRY_MS / 1000));
-    res.cookie('access_token', token, { ...cookieOpts, maxAge: TOKEN_EXPIRY_MS });
+    const msUntilMidnight = getMillisecondsUntilMidnight();
+    const token = generateToken(user, Math.floor(msUntilMidnight / 1000));
+    res.cookie('access_token', token, { ...cookieOpts, maxAge: msUntilMidnight });
 
     // 5. Redirect to frontend
     const frontendUrl = process.env.FRONTEND_URL;
     if (!frontendUrl) throw new Error('FRONTEND_URL environment variable is missing.');
     return frontendUrl;
   } catch (error) {
-    console.error('SSO error details:', error);
+    // The raw error carries the provider's token/userinfo response body, which
+    // can include client configuration and token material. It stays in the
+    // server log; the browser only receives an opaque code so nothing sensitive
+    // ends up in the URL bar, browser history or Referer header.
+    logger.error('SSO callback failed:', error);
     const frontendUrl = process.env.FRONTEND_URL;
     if (!frontendUrl) throw new Error('FRONTEND_URL environment variable is missing.');
-    return `${frontendUrl}/login?error=${encodeURIComponent('SSO Authentication failed: ' + error.message)}`;
+    return `${frontendUrl}/login?error=sso_failed`;
   }
 };
