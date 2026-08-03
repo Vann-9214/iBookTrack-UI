@@ -51,6 +51,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     const cleanIsbn = isbn.replace(/[^0-9a-zA-Z]/g, '').toUpperCase()
     if (!isValidIsbn(cleanIsbn)) { setSessionError('Scanned code is not a valid ISBN (must be 10 or 13 characters).'); return }
     if (scannedBooks.some((b) => b.isbn === cleanIsbn)) { setSessionError(`ISBN ${cleanIsbn} is already in your scan log. You cannot scan the same book twice before completing the session.`); return }
+    if (issues.some((i) => i.isbn === cleanIsbn)) { setSessionError(`ISBN ${cleanIsbn} is already marked as a discrepancy issue in this session. Remove it from your issues list first.`); return }
     setIsbnLoading(true)
     try {
       const ilmsData = await queryIsbnStream(cleanIsbn, currentSession.type)
@@ -127,7 +128,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     setFetchingIssueBook(true)
     setSessionError(null)
     try {
-      const data = await queryIsbnStream(cleanIsbn, currentSession?.type, true)
+      const data = await queryIsbnStream(cleanIsbn, currentSession?.type, true, issueType)
       if (!data.success) { setSessionError(data.error || `ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`); setIssueIsbn(''); return }
       setIssues((prev) => [...prev, { isbn: cleanIsbn, type: issueType, title: data.data?.Title || 'Unknown Title', author: data.data?.Author || 'Unknown Author' }])
       setIssueIsbn('')

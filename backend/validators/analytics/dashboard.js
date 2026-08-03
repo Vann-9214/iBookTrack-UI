@@ -41,7 +41,8 @@ export const getDailyOutputSchema = {
   query: z.object({
     page: z.string().regex(/^\d+$/).optional(),
     limit: z.string().regex(/^\d+$/).optional(),
-    brand: z.string().optional()
+    brand: z.string().optional(),
+    sort: z.enum(['asc', 'desc']).optional()
   })
 };
 
@@ -61,5 +62,11 @@ export const getPipelineStatsSchema = {
 export const resolveQcFlagSchema = {
   params: z.object({
     id: z.string().min(1)
+  })
+};
+
+export const checkMissingIsbnSchema = {
+  params: z.object({
+    isbn: z.string().min(1)
   })
 };

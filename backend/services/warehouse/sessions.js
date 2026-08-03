@@ -170,6 +170,43 @@ export const completeSessionService = async (req, res) => {
     const session = sessionRows[0];
     if (!session) throw new Error('Session not found');
 
+    let currentBrand = book_type;
+    if (!currentBrand && session.box_id) {
+      const { rows: brandRows } = await db.query(
+        'SELECT bx.box_type, l.type as lot_type FROM boxes bx JOIN lots l ON bx.lot_id = l.id WHERE bx.id = $1 LIMIT 1', 
+        [session.box_id]
+      );
+      if (brandRows.length > 0) {
+        let bt = brandRows[0].box_type;
+        let lt = brandRows[0].lot_type;
+        currentBrand = (bt && bt.toLowerCase() !== 'mixed') ? bt : lt;
+      }
+    }
+
+    if (issues && issues.length > 0) {
+      const missingIsbns = new Set();
+      for (const issue of issues) {
+        if (issue.type === 'missing') {
+          if (missingIsbns.has(issue.isbn)) {
+            return res.status(400).json({ error: `Duplicate Missing Book in request: ISBN ${issue.isbn} is listed multiple times.` });
+          }
+          missingIsbns.add(issue.isbn);
+
+          let query = 'SELECT b.id, bx.box_number, l.lot_number FROM books b LEFT JOIN boxes bx ON b.box_id = bx.id LEFT JOIN lots l ON bx.lot_id = l.id WHERE b.isbn = $1 AND b.is_missing = true';
+          let params = [issue.isbn];
+          if (currentBrand) {
+            query += ' AND (LOWER(b.book_type) = LOWER($2) OR LOWER(bx.box_type) = LOWER($2) OR LOWER(l.type) = LOWER($2))';
+            params.push(currentBrand);
+          }
+          const { rows: dupRows } = await db.query(query + ' LIMIT 1', params);
+          if (dupRows.length > 0) {
+            const dup = dupRows[0];
+            return res.status(400).json({ error: `Duplicate Missing Book: ISBN ${issue.isbn} is already marked as missing in Lot ${dup.lot_number || 'Unknown'}, Box ${dup.box_number || 'Unknown'}.` });
+          }
+        }
+      }
+    }
+
     if (session.box_id) {
       if (stage === 'inventory') {
         const { rows: booksInBox } = await db.query('SELECT id FROM books WHERE box_id = $1', [session.box_id]);
@@ -197,16 +234,11 @@ export const completeSessionService = async (req, res) => {
         let bookId = existingBookRows[0]?.id;
 
         if (!bookId) {
-          let { rows: globalBookRows } = await db.query('SELECT id FROM books WHERE isbn = $1 LIMIT 1', [issue.isbn]);
-          if (globalBookRows[0]) {
-            bookId = globalBookRows[0].id;
-          } else {
-            const { rows: newBookRows } = await db.query(
-              'INSERT INTO books (isbn, title, box_id, book_type) VALUES ($1, $2, $3, $4) RETURNING id',
-              [issue.isbn, issue.title || 'Unknown Title', session.box_id, book_type || null]
-            );
-            bookId = newBookRows[0].id;
-          }
+          const { rows: newBookRows } = await db.query(
+            'INSERT INTO books (isbn, title, box_id, book_type) VALUES ($1, $2, $3, $4) RETURNING id',
+            [issue.isbn, issue.title || 'Unknown Title', session.box_id, book_type || null]
+          );
+          bookId = newBookRows[0].id;
         }
 
         if (bookId) {
@@ -278,6 +310,30 @@ export const bulkSaveSessionService = async (req, res) => {
 
     // 1. Resolve Lot
     if (!book_type) book_type = 'Mustang';
+
+    if (issues && issues.length > 0) {
+      const missingIsbns = new Set();
+      for (const issue of issues) {
+        if (issue.type === 'missing') {
+          if (missingIsbns.has(issue.isbn)) {
+            return res.status(400).json({ error: `Duplicate Missing Book in request: ISBN ${issue.isbn} is listed multiple times.` });
+          }
+          missingIsbns.add(issue.isbn);
+
+          let query = 'SELECT b.id, bx.box_number, l.lot_number FROM books b LEFT JOIN boxes bx ON b.box_id = bx.id LEFT JOIN lots l ON bx.lot_id = l.id WHERE b.isbn = $1 AND b.is_missing = true';
+          let params = [issue.isbn];
+          if (book_type) {
+            query += ' AND (LOWER(b.book_type) = LOWER($2) OR LOWER(bx.box_type) = LOWER($2) OR LOWER(l.type) = LOWER($2))';
+            params.push(book_type);
+          }
+          const { rows: dupRows } = await db.query(query + ' LIMIT 1', params);
+          if (dupRows.length > 0) {
+            const dup = dupRows[0];
+            return res.status(400).json({ error: `Duplicate Missing Book: ISBN ${issue.isbn} is already marked as missing in Lot ${dup.lot_number || 'Unknown'}, Box ${dup.box_number || 'Unknown'}.` });
+          }
+        }
+      }
+    }
     let lotQuery = 'SELECT id, lot_number FROM lots WHERE lot_number = $1 AND type = $2';
     const lotParams = [lot_number, book_type];
     
@@ -348,9 +404,9 @@ export const bulkSaveSessionService = async (req, res) => {
 
     // 4. Save scanned books
     for (const b of (scanned_books || [])) {
-      let bQ = 'SELECT id FROM books WHERE isbn = $1';
-      const bP = [b.isbn];
-      if (book_type) { bQ += ' AND book_type = $2'; bP.push(book_type); }
+      let bQ = 'SELECT id FROM books WHERE isbn = $1 AND box_id = $2';
+      const bP = [b.isbn, assignedBoxId];
+      if (book_type) { bQ += ' AND book_type = $3'; bP.push(book_type); }
       else { bQ += ' AND book_type IS NULL'; }
       let { rows: bRows } = await db.query(bQ + ' LIMIT 1', bP);
       let bookId = bRows[0]?.id;
@@ -381,9 +437,9 @@ export const bulkSaveSessionService = async (req, res) => {
     // 5. Process issues
     if (issues && issues.length > 0) {
       for (const issue of issues) {
-        let isQ = 'SELECT id FROM books WHERE isbn = $1';
-        const isP = [issue.isbn];
-        if (book_type) { isQ += ' AND book_type = $2'; isP.push(book_type); }
+        let isQ = 'SELECT id FROM books WHERE isbn = $1 AND box_id = $2';
+        const isP = [issue.isbn, assignedBoxId];
+        if (book_type) { isQ += ' AND book_type = $3'; isP.push(book_type); }
         else { isQ += ' AND book_type IS NULL'; }
         let { rows: globalBookRows } = await db.query(isQ + ' LIMIT 1', isP);
         let bookId = globalBookRows[0]?.id;
@@ -442,9 +498,18 @@ export const resumeSessionService = async (req, res) => {
     const { box_id } = req.params;
     
     // determine stage
-    const { rows: boxRows } = await db.query('SELECT lot_id, current_stage, box_number, box_type FROM boxes WHERE id = $1', [box_id]);
+    const { rows: boxRows } = await db.query('SELECT lot_id, current_stage, box_number, box_type, total_mismatch_books FROM boxes WHERE id = $1', [box_id]);
     if (!boxRows[0]) throw new Error('Box not found');
     const box = boxRows[0];
+
+    // Block session start if box has unresolved mismatched books
+    if ((box.total_mismatch_books || 0) > 0) {
+      return res.status(403).json({
+        error: `This box has ${box.total_mismatch_books} mismatched book(s). Please resolve all mismatched books in the Non-Processable section before starting a session.`,
+        code: 'BoxHasMismatchedBooks',
+        mismatch_count: box.total_mismatch_books
+      });
+    }
 
     const { rows: sessionRows } = await db.query('SELECT * FROM box_sessions WHERE box_id = $1 ORDER BY warehouse_time_received DESC LIMIT 1', [box_id]);
     const session = sessionRows[0];

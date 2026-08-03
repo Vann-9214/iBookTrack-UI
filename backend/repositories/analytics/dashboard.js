@@ -312,20 +312,76 @@ export const resolveQcFlag = async (id) => {
     }
     const { book_activity_id, rejection_reason } = rows[0];
     
-    const { rows: actRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING session_id, book_id', ['processable', book_activity_id]);
-    const session_id = actRows[0]?.session_id;
-    const book_id = actRows[0]?.book_id;
+    const reasonStr = (rejection_reason || '').toLowerCase().trim();
+    const isMissing = reasonStr === 'missing-book' || reasonStr === 'missing';
 
-    if (session_id) {
-      await db.query(
-        'UPDATE box_sessions SET total_processable_books = total_processable_books + 1, total_nonprocessable_books = GREATEST(0, total_nonprocessable_books - 1) WHERE id = $1',
-        [session_id]
-      );
+    let session_id = null;
+    
+    // Get the book_id of the missing book
+    const { rows: actInfoRows } = await db.query('SELECT book_id FROM book_activity WHERE id = $1', [book_activity_id]);
+    let book_id = actInfoRows[0]?.book_id;
+
+    if (isMissing && book_id) {
+      // Find the processable book in another box
+      const foundQuery = `
+        SELECT ba.id as ba_id, ba.session_id, b.id as b_id, b.is_extra
+        FROM books b
+        JOIN book_activity ba ON ba.book_id = b.id
+        WHERE b.isbn = (SELECT isbn FROM books WHERE id = $1)
+          AND ba.scan_status = 'processable'
+          AND b.id != $1
+        LIMIT 1
+      `;
+      const { rows: foundRows } = await db.query(foundQuery, [book_id]);
+      
+      if (foundRows.length > 0) {
+        // We found the missing book in another box.
+        // The user wants to delete this missing record entirely from the current box.
+        const { rows: delRows } = await db.query('DELETE FROM book_activity WHERE id = $1 RETURNING session_id', [book_activity_id]);
+        session_id = delRows[0]?.session_id;
+
+        if (session_id) {
+          await db.query(
+            'UPDATE box_sessions SET total_nonprocessable_books = GREATEST(0, total_nonprocessable_books - 1), total_scanned_books = GREATEST(0, total_scanned_books - 1) WHERE id = $1',
+            [session_id]
+          );
+        }
+
+        // Delete the book from this box completely
+        await db.query('DELETE FROM books WHERE id = $1', [book_id]);
+        book_id = null; // Prevent further updates to this book_id
+      } else {
+        // If not found in another box, just make it processable (they physically found it in this box)
+        const { rows: actRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING session_id, book_id', ['processable', book_activity_id]);
+        session_id = actRows[0]?.session_id;
+        book_id = actRows[0]?.book_id;
+        
+        if (session_id) {
+          await db.query(
+            'UPDATE box_sessions SET total_processable_books = total_processable_books + 1, total_nonprocessable_books = GREATEST(0, total_nonprocessable_books - 1) WHERE id = $1',
+            [session_id]
+          );
+        }
+      }
+    } else {
+      const { rows: actRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING session_id, book_id', ['processable', book_activity_id]);
+      session_id = actRows[0]?.session_id;
+      book_id = actRows[0]?.book_id;
+
+      if (session_id) {
+        await db.query(
+          'UPDATE box_sessions SET total_processable_books = total_processable_books + 1, total_nonprocessable_books = GREATEST(0, total_nonprocessable_books - 1) WHERE id = $1',
+          [session_id]
+        );
+      }
     }
 
-    const reasonStr = (rejection_reason || '').toLowerCase().trim();
     if (reasonStr === 'extra-book' || reasonStr === 'extra') {
       await db.query('UPDATE books SET is_extra = false WHERE id = $1', [book_id]);
+    } else if (reasonStr === 'missing-book' || reasonStr === 'missing') {
+      await db.query('UPDATE books SET is_missing = false WHERE id = $1', [book_id]);
+    } else if (reasonStr === 'mismatched-book' || reasonStr === 'mismatch') {
+      await db.query('UPDATE books SET is_mismatch = false WHERE id = $1', [book_id]);
     }
 
     let box_id = null;
@@ -445,5 +501,35 @@ export const getProcessableBookActivitiesForBoxes = async (boxIds) => {
     return { data, error: null };
   } catch (error) {
     return { data: null, error };
+  }
+};
+
+export const findProcessableBookByIsbn = async (isbn, currentBoxId) => {
+  try {
+    // Find a book with this isbn that is processable
+    // optionally excluding the box where it is currently marked missing
+    let query = `
+      SELECT b.id, b.title, bx.box_number, l.lot_number
+      FROM books b
+      JOIN boxes bx ON b.box_id = bx.id
+      JOIN lots l ON bx.lot_id = l.id
+      JOIN book_activity ba ON ba.book_id = b.id
+      WHERE b.isbn = $1 AND ba.scan_status = 'processable'
+    `;
+    const params = [isbn];
+    if (currentBoxId) {
+      query += ` AND b.box_id != $2`;
+      params.push(currentBoxId);
+    }
+    query += ` LIMIT 1`;
+
+    const { rows } = await db.query(query, params);
+    
+    if (rows.length > 0) {
+      return { found: true, data: rows[0] };
+    }
+    return { found: false, data: null };
+  } catch (error) {
+    return { found: false, error };
   }
 };

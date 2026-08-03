@@ -66,7 +66,7 @@ export const getLiveScanningService = async (req) => {
 
   let processedAllBooks = allBooks.books || [];
   let processedRecentScans = Array.isArray(data.data) 
-    ? data.data.filter(s => !String(s.Status || '').toUpperCase().includes('COMPLETED')).slice(0, 200) 
+    ? data.data.filter(s => !String(s.Status || '').toUpperCase().startsWith('TRANSMISSION_ARCHIVE')).slice(0, 200) 
     : [];
   
   const allIsbns = new Set([

@@ -53,9 +53,40 @@ export function NonProcessableModals({
     setIsResolvingClosing(true)
     setTimeout(() => {
       setFlagToResolve(null)
+      setMissingStatus(null)
       setIsResolvingClosing(false)
     }, 340)
   }
+
+  const [missingStatus, setMissingStatus] = useState<{ loading: boolean, found: boolean, boxNumber?: string, lotNumber?: string, title?: string, error?: string } | null>(null)
+
+  useEffect(() => {
+    if (flagToResolve && (flagToResolve.issue || '').toLowerCase().trim().includes('missing')) {
+      setMissingStatus({ loading: true, found: false })
+      import('@/lib/auth-api').then(({ getApiBaseUrl, authFetch }) => {
+        authFetch(`${getApiBaseUrl()}/api/dashboard/check-missing-isbn/${flagToResolve.isbn}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success && data.found) {
+              setMissingStatus({ 
+                loading: false, 
+                found: true, 
+                boxNumber: data.data.box_number,
+                lotNumber: data.data.lot_number,
+                title: data.data.title
+              })
+            } else {
+              setMissingStatus({ loading: false, found: false })
+            }
+          })
+          .catch(err => {
+            setMissingStatus({ loading: false, found: false, error: 'Failed to check' })
+          })
+      })
+    } else {
+      setMissingStatus(null)
+    }
+  }, [flagToResolve])
 
   return (
     <>
@@ -215,21 +246,69 @@ export function NonProcessableModals({
               </p>
               
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
-                <div className="grid grid-cols-2 gap-y-2 text-sm">
+                <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
+                  <div className="text-gray-500">Title:</div>
+                  <div className="font-medium text-gray-800 text-right line-clamp-1">{flagToResolve.title || 'Unknown Title'}</div>
+                  
+                  <div className="text-gray-500">Lot Number:</div>
+                  <div className="font-medium text-gray-800 text-right">
+                    {flagToResolve.assigned_box?.lot?.lot_number 
+                      ? (flagToResolve.assigned_box.lot.lot_number.toLowerCase().startsWith('lot') 
+                          ? flagToResolve.assigned_box.lot.lot_number 
+                          : `Lot ${flagToResolve.assigned_box.lot.lot_number}`)
+                      : '-'}
+                  </div>
+
                   <div className="text-gray-500">Box Number:</div>
                   <div className="font-medium text-gray-800 text-right">{flagToResolve.assigned_box?.box_number || '-'}</div>
+                  
                   <div className="text-gray-500">Issue Type:</div>
                   <div className="font-medium text-gray-800 text-right">{ISSUE_LABELS[flagToResolve.issue] || flagToResolve.issue}</div>
                 </div>
               </div>
+
+              {missingStatus && (
+                <div className={cn("p-4 rounded-xl border mb-6 text-sm flex gap-3", 
+                  missingStatus.loading ? "bg-gray-50 border-gray-200 text-gray-600" :
+                  missingStatus.found ? "bg-emerald-50 border-emerald-200 text-emerald-800" :
+                  "bg-red-50 border-red-200 text-red-800"
+                )}>
+                  {missingStatus.loading ? (
+                    <Loader2 className="h-5 w-5 animate-spin shrink-0 text-gray-400" />
+                  ) : missingStatus.found ? (
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+                  ) : (
+                    <AlertOctagon className="h-5 w-5 shrink-0 text-red-600" />
+                  )}
+                  <div className="flex-1">
+                    <p className="font-semibold mb-0.5">
+                      {missingStatus.loading ? "Checking inventory..." :
+                       missingStatus.found ? "Book Found" : "Book Not Found"}
+                    </p>
+                    {missingStatus.loading ? (
+                      <p className="text-xs text-gray-500">Looking for this ISBN in other processed boxes.</p>
+                    ) : missingStatus.found ? (
+                      <div className="text-xs opacity-90 space-y-1 mt-1.5">
+                        <p>This missing ISBN was found successfully processed elsewhere. You can now safely resolve this issue.</p>
+                        <div className="bg-emerald-100/50 p-2 rounded-md border border-emerald-200/50 mt-2 space-y-1">
+                          <p><span className="font-semibold">Title:</span> {missingStatus.title || 'Unknown Title'}</p>
+                          <p><span className="font-semibold">Location:</span> {missingStatus.lotNumber ? (missingStatus.lotNumber.toLowerCase().startsWith('lot') ? missingStatus.lotNumber : `Lot ${missingStatus.lotNumber}`) : 'Unknown Lot'}, Box {missingStatus.boxNumber}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs opacity-90">We couldn't find this ISBN successfully processed in any other box. Please investigate before resolving.</p>
+                    )}
+                  </div>
+                </div>
+              )}
               
               <div className="flex items-center justify-end gap-3">
-                <button onClick={dismissResolveModal} className="h-10 px-5 rounded-xl text-gray-600 hover:text-gray-800 font-semibold border" disabled={resolvingId === flagToResolve.scan_id}>
+                <button onClick={dismissResolveModal} className="h-10 px-5 rounded-xl text-gray-600 hover:text-gray-800 font-semibold border" disabled={resolvingId === flagToResolve.scan_id || missingStatus?.loading}>
                   Cancel
                 </button>
                 <Button 
                   onClick={resolveFlag} 
-                  disabled={resolvingId === flagToResolve.scan_id}
+                  disabled={resolvingId === flagToResolve.scan_id || missingStatus?.loading || (missingStatus && !missingStatus.found)}
                   className={cn("h-10 px-6 rounded-xl text-white font-semibold shadow-sm transition-all", isJaguar ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700")}
                 >
                   {resolvingId === flagToResolve.scan_id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}

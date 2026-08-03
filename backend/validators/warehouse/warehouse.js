@@ -86,7 +86,8 @@ export const isbnStreamQuerySchema = {
   body: z.object({
     isbn,
     type: shortText,
-    allowExisting: z.boolean().optional()
+    allowExisting: z.boolean().optional(),
+    issueType: shortText
   })
 };
 
