@@ -245,7 +245,7 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
           <div className="col-span-5 sm:col-span-3">Lot Number</div>
           <div className="hidden sm:block sm:col-span-3">Created By</div>
           <div className="col-span-3 sm:col-span-2 text-center">Boxes</div>
-          <div className="col-span-3 text-right pr-1">Actions</div>
+          <div className="col-span-3 text-right pr-1"></div>
         </div>
       )}
 

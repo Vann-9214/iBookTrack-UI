@@ -81,7 +81,7 @@ export function InspectionBoxList({
               <button
                 onClick={(e) => { e.stopPropagation(); openConfirm('start_session', box) }}
                 className={cn(
-                  'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+                  'hidden sm:flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
                   expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
                 )}
               >
@@ -94,7 +94,7 @@ export function InspectionBoxList({
             <button
               onClick={(e) => { e.stopPropagation(); openConfirm('start_session', box) }}
               className={cn(
-                'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+                'hidden sm:flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
                 expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
               )}
             >

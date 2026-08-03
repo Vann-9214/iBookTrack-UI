@@ -178,7 +178,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
   if (loading || !stats) {
     return (
       <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
-        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -203,7 +202,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   </div>
                   {/* Card body */}
                   <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1", cfg.cardBg)}>
-                    <div className="pointer-events-none absolute inset-x-0 -top-6 h-12 bg-white/20 blur-lg" />
                     <span className="relative text-xs font-bold text-slate-500 uppercase tracking-wider">{step.label}</span>
                     <Skeleton className="relative h-7 w-8 rounded-lg bg-muted-foreground/10 my-0.5" />
                     <div className={cn("relative h-[3px] w-full rounded-full my-1", cfg.bar)} />
@@ -238,7 +236,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
               return (
                 <div key={i} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5", cfg.cardBg)}>
-                  <div className="pointer-events-none absolute inset-x-0 -top-4 h-8 bg-white/20 blur-md" />
                   <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold", cfg.nodeFill)}>
                     {i + 1}
                   </div>
@@ -262,7 +259,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
   return (
     <>
       <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
-        <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -292,7 +288,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                   </div>
                   {/* Card body */}
                   <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 transition-all duration-300 group-hover/step:shadow-lg group-hover/step:-translate-y-1", cfg.cardBg)}>
-                    <div className="pointer-events-none absolute inset-x-0 -top-6 h-12 bg-white/25 blur-lg" />
                     <span className="relative text-xs font-bold text-slate-500 uppercase tracking-wider">{step.label}</span>
                     <div className="relative">{renderFormattedCounts(step, cfg.countColor, brand)}</div>
                     <div className={cn("relative h-[3px] w-full rounded-full my-1", cfg.bar)} />
@@ -340,7 +335,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               )
               return (
                 <div key={step.label} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5 transition-all duration-200 active:scale-[0.98]", cfg.cardBg)}>
-                  <div className="pointer-events-none absolute inset-x-0 -top-4 h-8 bg-white/20 blur-md" />
                   {inner}
                 </div>
               )

@@ -83,12 +83,14 @@ export function NonProcessableList({
       </div>
 
       {/* Table header */}
-      <div className={cn("relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center", isJaguar ? "bg-emerald-50/50 text-emerald-800/70" : "bg-blue-50/50 text-blue-800/70")}>
-        <div className="col-span-2 sm:col-span-1 flex justify-start"><span className="hidden">#</span></div>
-        <div className="col-span-5 sm:col-span-6">Lot Number</div>
-        <div className="col-span-5 sm:col-span-5 flex justify-end items-center gap-3">
-          <span>Items</span>
-          <div className="w-6 h-6 shrink-0" />
+      <div className="px-1 sm:pr-[18px]">
+        <div className={cn("relative grid grid-cols-12 gap-4 px-4 sm:px-5 py-2 text-[10px] font-bold uppercase tracking-wider border-b border-black/5 items-center rounded-t-xl", isJaguar ? "bg-emerald-50/50 text-emerald-800/70" : "bg-blue-50/50 text-blue-800/70")}>
+          <div className="col-span-2 sm:col-span-1 flex justify-start"><span className="hidden">#</span></div>
+          <div className="col-span-5 sm:col-span-6">Lot Number</div>
+          <div className="col-span-5 sm:col-span-5 flex justify-end items-center gap-3">
+            <span className="mr-2.5">Items</span>
+            <div className="w-6 h-6 shrink-0" />
+          </div>
         </div>
       </div>
 
