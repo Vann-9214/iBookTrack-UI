@@ -73,13 +73,15 @@ export function NonProcessableKPIs({
             {stats.map((stat, i) => {
               const skColor = stat.isSolid ? "bg-white/25" : "bg-muted-foreground/20"
               return (
-                <div key={i} className={cn("rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 overflow-hidden", stat.tone.card)}>
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl shadow-md shrink-0", stat.tone.icon)}>
-                    <Skeleton className={cn("h-4 w-4 rounded-sm", stat.isSolid ? "bg-white/30" : "bg-white/50")} />
+                <div key={i} className={cn("rounded-2xl border p-3 flex flex-col gap-2 shadow-sm ring-1 overflow-hidden", stat.tone.card)}>
+                  <div className="flex items-start justify-between w-full">
+                    <div className={cn("flex h-8 w-8 items-center justify-center rounded-[10px] shadow-md shrink-0", stat.tone.icon)}>
+                      <Skeleton className={cn("h-4 w-4 rounded-sm", stat.isSolid ? "bg-white/30" : "bg-white/50")} />
+                    </div>
+                    <Skeleton className={cn("h-5 w-12 rounded mt-0.5", skColor)} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <Skeleton className={cn("h-4 w-12 mb-1.5 rounded", skColor)} />
-                    <Skeleton className={cn("h-2 w-16 rounded", skColor)} />
+                  <div className="min-w-0 w-full">
+                    <Skeleton className={cn("h-3 w-16 rounded", skColor)} />
                   </div>
                 </div>
               )
@@ -112,19 +114,19 @@ export function NonProcessableKPIs({
             {stats.map((stat) => (
               <div
                 key={stat.title}
-                role="button"
-                onClick={stat.onClick}
                 className={cn(
-                  "rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97] overflow-hidden cursor-pointer",
+                  "rounded-2xl border p-3 flex flex-col gap-2 shadow-sm ring-1 overflow-hidden",
                   stat.tone.card
                 )}
               >
-                <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", stat.tone.icon)}>
-                  <stat.icon className="h-4 w-4" />
+                <div className="flex items-start justify-between w-full">
+                  <div className={cn("flex h-8 w-8 items-center justify-center rounded-[10px] text-white shadow-md shrink-0", stat.tone.icon)}>
+                    <stat.icon className="h-4 w-4" />
+                  </div>
+                  <div className={cn("text-xl font-black leading-none tracking-tight truncate tabular-nums", stat.tone.value)}>{stat.value}</div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className={cn("text-lg font-black leading-none tracking-tight truncate", stat.tone.value)}>{stat.value}</div>
-                  <div className={cn("text-[11px] font-semibold truncate mt-1", stat.tone.title)}>{stat.title}</div>
+                <div className="min-w-0 w-full mt-0.5">
+                  <div className={cn("text-[11px] font-semibold truncate", stat.tone.title)}>{stat.title}</div>
                 </div>
               </div>
             ))}
@@ -135,11 +137,9 @@ export function NonProcessableKPIs({
             {stats.map((stat) => (
               <div
                 key={stat.title}
-                role="button"
-                onClick={stat.onClick}
                 className={cn(
-                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer",
-                  stat.tone.card, stat.tone.hover
+                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300",
+                  stat.tone.card
                 )}
               >
                 <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />

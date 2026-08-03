@@ -32,7 +32,7 @@ export default function WarehousePage() {
       <DashboardSidebar navigationLocked={wh.sessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden overflow-x-hidden">
         <DashboardNavbar disableBrandToggle={wh.sessionActive} navigationLocked={wh.sessionActive} />
-        <div className={cn("ambient-bg flex-1 h-0 min-h-0", wh.sessionActive ? "overflow-hidden" : "overflow-y-auto")}>
+        <div className={cn("ambient-bg flex-1 h-0 min-h-0", wh.sessionActive ? "overflow-y-auto sm:overflow-hidden" : "overflow-y-auto")}>
           <div className="flex flex-col gap-4 sm:gap-6 px-4 pb-4 pt-2 sm:px-6 sm:pb-6 sm:pt-4 lg:px-8 lg:pb-8 lg:pt-6 pb-safe-6">
             {/* Modals */}
             <WarehouseCompleteSessionModal
@@ -86,10 +86,10 @@ export default function WarehousePage() {
                       <div className="flex items-start justify-between">
                         <div className="min-w-0">
                           <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">Warehouse Receiving</h1>
-                          <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-                            Manage incoming lots and scanning sessions for
+                          <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground leading-snug">
+                            Manage incoming lots and scanning sessions for{' '}
                             <span className={cn(
-                              'inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
+                              'inline-block align-middle ml-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
                               brand === 'jaguar' ? 'bg-emerald-600' : 'bg-blue-600'
                             )}>
                               {brand}
@@ -119,7 +119,9 @@ export default function WarehousePage() {
                 </header>
 
                 {/* Session Setup Card */}
-                <WarehouseSessionSetup brand={brand} lots={wh.lots} lotsLoading={unifiedLoading} activeLot={wh.activeLot} setActiveLot={wh.setActiveLot} selectedBox={wh.selectedBox} setSelectedBox={wh.setSelectedBox} loading={wh.loading} handleNewSession={wh.handleNewSession} boxInputRef={wh.boxInputRef} setSessionError={wh.setSessionError} boxLockedBy={wh.boxLockedBy} />
+                <div className="hidden sm:block">
+                  <WarehouseSessionSetup brand={brand} lots={wh.lots} lotsLoading={unifiedLoading} activeLot={wh.activeLot} setActiveLot={wh.setActiveLot} selectedBox={wh.selectedBox} setSelectedBox={wh.setSelectedBox} loading={wh.loading} handleNewSession={wh.handleNewSession} boxInputRef={wh.boxInputRef} setSessionError={wh.setSessionError} boxLockedBy={wh.boxLockedBy} />
+                </div>
 
                 {/* Lots Overview Table */}
                 <WarehouseLotsOverview brand={brand} refreshKey={wh.lockedWarehouseBoxes} refreshTrigger={wh.refreshingStats} unifiedLoading={unifiedLoading} setOverviewLoading={setOverviewLoading} />

@@ -87,13 +87,6 @@ export default function CutPage() {
                     incomingCount={filteredIncoming.length}
                     outgoingCount={filteredOutgoing.length}
                   />
-                  <RefreshControl
-                    onRefresh={fetchBoxes}
-                    refreshing={loading}
-                    lastUpdated={lastUpdated}
-                    storageKey="cut"
-                    className="sm:ml-auto"
-                  />
                 </div>
               </div>
 

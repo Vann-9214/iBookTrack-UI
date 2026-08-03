@@ -182,8 +182,8 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
     <div className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden flex flex-col transition-all duration-300", cardTheme)}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
       {/* Header */}
-      <div className="relative flex items-center justify-between px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-[2px] gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-[2px] gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 min-w-0 w-full sm:w-auto">
           <div className={cn(
             'flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg shrink-0',
             iconTheme
@@ -198,41 +198,43 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
-            <TabsList className={cn("bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
-              <TabsTrigger disabled={displayLoading} value="all" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>All Lots</TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="in_progress" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
+        <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0 w-full sm:w-auto overflow-x-auto hide-scrollbar pb-1 sm:pb-0">
+          <Tabs value={activeTab} className="w-full sm:w-auto" onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
+            <TabsList className={cn("w-full flex bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
+              <TabsTrigger disabled={displayLoading} value="all" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>All Lots</TabsTrigger>
+              <TabsTrigger disabled={displayLoading} value="in_progress" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 In Progress
               </TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="delayed" className={cn("text-[11px] px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
+              <TabsTrigger disabled={displayLoading} value="delayed" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 Delayed
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="relative hidden sm:block group">
-            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
-            <Input 
-              placeholder="Search lots or boxes..." 
-              value={lotSearchInput} 
-              onChange={e => setLotSearchInput(e.target.value)}
-              disabled={displayLoading}
-              className={cn(
-                "w-56 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0 disabled:opacity-50",
-                brand === 'jaguar' ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
-              )}
-            />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative block group flex-1 sm:flex-none w-full sm:w-auto">
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+              <Input 
+                placeholder="Search lots or boxes..." 
+                value={lotSearchInput} 
+                onChange={e => setLotSearchInput(e.target.value)}
+                disabled={displayLoading}
+                className={cn(
+                  "w-full sm:w-56 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0 disabled:opacity-50",
+                  brand === 'jaguar' ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
+                )}
+              />
+            </div>
+            {displayLoading ? (
+              <Skeleton className="h-6 w-14 rounded-md bg-black/5 shrink-0" />
+            ) : (
+              <Badge variant="outline" className={cn(
+                'bg-white/85 text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap shadow-sm border-transparent shrink-0',
+                'text-primary ring-1 ring-primary/20'
+              )}>
+                {totalItems} lots
+              </Badge>
+            )}
           </div>
-          {displayLoading ? (
-            <Skeleton className="h-6 w-14 rounded-md bg-black/5" />
-          ) : (
-            <Badge variant="outline" className={cn(
-              'bg-white/85 text-[10px] font-bold px-2.5 py-0.5 whitespace-nowrap shadow-sm border-transparent',
-              'text-primary ring-1 ring-primary/20'
-            )}>
-              {totalItems} lots
-            </Badge>
-          )}
         </div>
       </div>
 

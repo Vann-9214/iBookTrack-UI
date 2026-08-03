@@ -1,5 +1,5 @@
 import React from 'react'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3, RefreshCw } from 'lucide-react'
 import { RefreshControl } from '@/components/refresh-control'
 import { cn } from '@/lib/utils'
 import { LotStatusRow } from '../types/reports.types'
@@ -23,47 +23,65 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
   lots,
 }) => {
   return (
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-      <div className="flex items-center gap-4">
-        <div
-          className={cn(
-            'p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5',
-            brand === 'jaguar'
-              ? 'bg-emerald-600'
-              : 'bg-blue-600'
-          )}
-        >
-          <BarChart3 className="h-7 w-7" />
+    <header className="relative z-10 shrink-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-wrap">
+        <div className="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
+          <div
+            className={cn(
+              'p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0',
+              brand === 'jaguar'
+                ? 'bg-emerald-600'
+                : 'bg-blue-600'
+            )}
+          >
+            <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">
+                  LOT Status Report
+                </h1>
+                <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground leading-snug">
+                  Real-time movement and completion status of all lots for{' '}
+                  <span
+                    className={cn(
+                      'inline-block align-middle ml-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
+                      brand === 'jaguar'
+                        ? 'bg-emerald-600'
+                        : 'bg-blue-600'
+                    )}
+                  >
+                    {brand}
+                  </span>
+                  {timestamp && <span className="ml-2 hidden sm:inline">· Updated {timestamp}</span>}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                <button
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+                  aria-label="Refresh"
+                >
+                  <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
-            LOT Status Report
-          </h1>
-          <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-            Real-time movement and completion status of all lots for{' '}
-            <span
-              className={cn(
-                'inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
-                brand === 'jaguar'
-                  ? 'bg-emerald-600'
-                  : 'bg-blue-600'
-              )}
-            >
-              {brand}
-            </span>
-            {timestamp && <span className="ml-2 hidden sm:inline">· Updated {timestamp}</span>}
-          </p>
+        <div className="flex items-center justify-end sm:justify-end gap-2 w-full sm:w-auto">
+          <div className="hidden sm:block">
+            <ReportsExportButton brand={brand} lots={lots} disabled={loading} />
+          </div>
+          <RefreshControl
+            onRefresh={onRefresh}
+            refreshing={loading}
+            lastUpdated={lastUpdated}
+            storageKey="reports"
+            className="hidden sm:flex"
+          />
         </div>
-      </div>
-      <div className="flex items-center justify-end sm:justify-end gap-2 w-full sm:w-auto">
-        <ReportsExportButton brand={brand} lots={lots} disabled={loading} />
-        <RefreshControl
-          onRefresh={onRefresh}
-          refreshing={loading}
-          lastUpdated={lastUpdated}
-          storageKey="reports"
-          className="hidden sm:flex"
-        />
       </div>
     </header>
   )
