@@ -47,16 +47,13 @@ export const getStatsService = async (req) => {
 
   let activeLots = 0;
   if (!lot_number && !lot_range_start) {
-    const { data: lotsWithBoxes } = await dashboardRepo.getAllLotsWithBoxes();
-    if (lotsWithBoxes) {
-      activeLots = lotsWithBoxes.filter(lot => {
-        if (box_type) {
-          const normalizedBrand = box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase();
-          if (lot.type !== normalizedBrand) return false;
-        }
-        if (!lot.boxes || lot.boxes.length === 0) return true;
-        return lot.boxes.some(b => b.current_stage !== 'storage');
-      }).length;
+    try {
+      const openLotsData = await getOpenLotsService({ query: { brand: box_type } });
+      if (openLotsData && openLotsData.lots) {
+        activeLots = openLotsData.lots.filter(lot => lot.status !== 'Completed' && lot.completion_progress !== 100).length;
+      }
+    } catch (err) {
+      console.warn('Failed to fetch open lots for activeLots count:', err);
     }
   } else {
     activeLots = lotIds ? lotIds.length : 0;
@@ -234,6 +231,7 @@ export const getQcFlagsService = async (req) => {
 export const getDailyOutputService = async (req) => {
   const requestedPage = parseInt(req.query.page || '1', 10);
   const requestedLimit = parseInt(req.query.limit || '50', 10);
+  const sortOrder = req.query.sort === 'asc' ? 'asc' : 'desc';
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 50;
 
@@ -243,6 +241,14 @@ export const getDailyOutputService = async (req) => {
   const { success, rows: simflexRows } = await scanManagerApi.getDailyOutputRows(undefined, location, true);
   if (!success) {
     throw { status: 502, message: 'Failed to fetch daily output from Scan Manager' };
+  }
+
+  if (simflexRows && simflexRows.length > 0) {
+    simflexRows.sort((a, b) => {
+      const dateA = new Date(a.updated).getTime();
+      const dateB = new Date(b.updated).getTime();
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    });
   }
 
   const total = (simflexRows || []).length;
