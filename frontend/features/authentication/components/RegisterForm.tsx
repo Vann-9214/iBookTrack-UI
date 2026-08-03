@@ -53,7 +53,7 @@ export function RegisterForm() {
   return (
     <div className="relative z-10 w-full max-w-[1100px] mx-auto transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)]">
       {/* Team selection */}
-      <div className={`w-full transition-all duration-700 absolute inset-x-0 ${selectedTeam ? '-translate-y-12 opacity-0 pointer-events-none scale-95' : 'translate-y-0 opacity-100 scale-100 relative'}`}>
+      <div className={`w-full transition-all duration-700 ${selectedTeam ? 'absolute inset-x-0 -translate-y-12 opacity-0 pointer-events-none scale-95' : 'translate-y-0 opacity-100 scale-100 relative'}`}>
         <RegisterTeamSelector onSelect={setSelectedTeam} />
       </div>
 

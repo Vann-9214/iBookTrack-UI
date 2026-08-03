@@ -65,6 +65,9 @@ export default function ReportsPage() {
           />
 
           <ReportFilters
+            brand={brand}
+            lots={lots}
+            loading={loading}
             search={search}
             setSearch={setSearch}
             filter={filter}

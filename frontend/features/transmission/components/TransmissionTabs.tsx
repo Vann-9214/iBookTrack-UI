@@ -23,20 +23,22 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
   const m = machine
   const l = lot
 
+  const tabActiveTheme = 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-[color-mix(in_oklch,var(--primary)_70%,black)] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-transparent'
+
   return (
     <Tabs defaultValue="queue" className="w-full">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="overflow-x-auto w-full sm:w-auto">
-          <TabsList className="flex w-max min-w-full sm:min-w-0 sm:w-auto">
-            <TabsTrigger value="queue" className="text-xs sm:text-sm px-2 sm:px-3">
+          <TabsList className={cn("w-full flex bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", t.loading && "opacity-50 pointer-events-none")}>
+            <TabsTrigger value="queue" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
               Live Scan Feed
             </TabsTrigger>
-            <TabsTrigger value="machine" className="text-xs sm:text-sm px-2 sm:px-3">
+            <TabsTrigger value="machine" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
               By Machine
             </TabsTrigger>
-            <TabsTrigger value="lot" className="text-xs sm:text-sm px-2 sm:px-3">
-              <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
-              LOT &amp; Box
+            <TabsTrigger value="lot" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap flex items-center justify-center", tabActiveTheme)}>
+              <Package className="h-3 w-3 mr-1.5" />
+              Lot & Box
             </TabsTrigger>
           </TabsList>
         </div>

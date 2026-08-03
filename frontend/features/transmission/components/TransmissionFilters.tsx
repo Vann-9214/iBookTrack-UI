@@ -70,16 +70,16 @@ export function TransmissionFilters({
 
   return (
     <>
-      {/* Mobile layout: left col = From/To, right col = icons + checkbox */}
-      <div className="flex gap-3 sm:hidden justify-between">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground w-7 shrink-0">From</span>
+      {/* Mobile layout */}
+      <div className="flex flex-col gap-3 sm:hidden w-full">
+        <div className="flex items-center gap-3 w-full">
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">From</span>
             <Popover open={fromDateOpenMobile} onOpenChange={setFromDateOpenMobile} modal>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  {fromDate ? format(new Date(fromDate), 'MMM dd, yyyy') : 'Pick date'}
+                <Button variant="outline" className="w-full h-9 justify-start text-left font-normal text-xs px-2 sm:px-3">
+                  <CalendarIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">{fromDate ? format(new Date(fromDate), 'MMM dd, yy') : 'Date'}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
@@ -95,13 +95,13 @@ export function TransmissionFilters({
               </PopoverContent>
             </Popover>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground w-7 shrink-0">To</span>
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">To</span>
             <Popover open={toDateOpenMobile} onOpenChange={setToDateOpenMobile} modal>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                  <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  {toDate ? format(new Date(toDate), 'MMM dd, yyyy') : 'Pick date'}
+                <Button variant="outline" className="w-full h-9 justify-start text-left font-normal text-xs px-2 sm:px-3">
+                  <CalendarIcon className="mr-1.5 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">{toDate ? format(new Date(toDate), 'MMM dd, yy') : 'Date'}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
@@ -118,22 +118,24 @@ export function TransmissionFilters({
             </Popover>
           </div>
         </div>
-        <div className="flex flex-col gap-1.5 items-end justify-between shrink-0">
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between w-full">
+          {NewProcessCheckbox}
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleExport}
               disabled={exporting}
-              className="h-8 w-8 p-0"
+              className="h-8 px-2.5 gap-1.5"
             >
               {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              <span className="text-[11px] font-semibold">Export</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleOpenRanking} className="h-8 w-8 p-0">
+            <Button variant="outline" size="sm" onClick={handleOpenRanking} className="h-8 px-2.5 gap-1.5">
               <Trophy className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-semibold">Rank</span>
             </Button>
           </div>
-          {NewProcessCheckbox}
         </div>
       </div>
 
