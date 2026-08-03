@@ -26,8 +26,8 @@ import { Pagination } from "@/components/pagination"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useBrand } from "@/hooks/use-brand"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
+
 
 interface QCFlag {
   scan_id: string
@@ -405,20 +405,20 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
             {stats.map((stat) => (
               <div
                 key={stat.title}
-                role={stat.onClick ? "button" : undefined}
-                onClick={stat.onClick}
                 className={cn(
-                  "rounded-2xl border p-3 flex items-center gap-2.5 shadow-sm ring-1 transition-all duration-200 active:scale-[0.97] overflow-hidden",
-                  stat.tone.card,
-                  stat.onClick ? "cursor-pointer" : "cursor-default"
+                  "rounded-2xl border p-3 flex flex-col shadow-sm ring-1 transition-all duration-200 overflow-hidden cursor-default",
+                  stat.tone.card
                 )}
               >
-                <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", stat.tone.icon)}>
-                  <stat.icon className="h-4 w-4" />
+                <div className="flex items-start justify-between mb-1.5">
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md shrink-0", stat.tone.icon)}>
+                    <stat.icon className="h-4 w-4" />
+                  </div>
+                  <div className={cn("text-xl font-black leading-none tracking-tight tabular-nums", stat.tone.value)}>{stat.value}</div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className={cn("text-lg font-black leading-none tracking-tight truncate", stat.tone.value)}>{stat.value}</div>
-                  <div className={cn("text-[11px] font-semibold truncate mt-1", stat.tone.title)}>{stat.title}</div>
+                <div className="flex flex-col min-w-0 mt-auto">
+                  <div className={cn("text-[11px] font-semibold truncate leading-tight", stat.tone.title)}>{stat.title}</div>
+                  <div className={cn("text-[9px] font-medium truncate opacity-90", stat.tone.sub)}>{stat.subtext}</div>
                 </div>
               </div>
             ))}

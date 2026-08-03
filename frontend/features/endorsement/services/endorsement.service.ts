@@ -1,8 +1,8 @@
 import { authFetch } from '@/lib/auth-api'
 import { BoxEntry, BoxBookEntry, WarehouseBook, InspScannedBook } from '../types/endorsement.types'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
-if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL is missing in environment variables.')
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
+
 
 export const endorsementService = {
   async fetchIncomingBoxes(brand: string, searchQuery: string, searchType: 'box' | 'lot' | 'isbn'): Promise<BoxEntry[]> {

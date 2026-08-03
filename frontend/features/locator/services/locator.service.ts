@@ -1,7 +1,7 @@
 import { authFetch } from "@/lib/auth-api"
 import { StorageLocation, ReadyBox, PendingAssignment, SearchResult } from "../types/locator.types"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
 export const locatorService = {
   async fetchLocations(): Promise<StorageLocation[]> {

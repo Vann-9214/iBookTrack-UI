@@ -1,4 +1,4 @@
-import { AlertOctagon, Download } from 'lucide-react'
+import { AlertOctagon, Download, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -42,86 +42,100 @@ export function NonProcessableHeader({
   const weeks = Array.from({ length: weeksInMonth }, (_, i) => i + 1)
 
   return (
-    <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4 flex-wrap">
-      <div className="flex items-center gap-4">
-        <div
-          className={cn(
-            'p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5',
-            brand === 'jaguar'
-              ? 'bg-emerald-600'
-              : 'bg-blue-600'
-          )}
-        >
-          <AlertOctagon className="h-7 w-7" />
+    <header className="relative z-10 shrink-0">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-wrap">
+        <div className="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
+          <div
+            className={cn(
+              'p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0',
+              brand === 'jaguar'
+                ? 'bg-emerald-600'
+                : 'bg-blue-600'
+            )}
+          >
+            <AlertOctagon className="h-6 w-6 sm:h-7 sm:w-7" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">
+                  Non-Processable
+                </h1>
+                <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground leading-snug">
+                  Overview of issues for{' '}
+                  <span
+                    className={cn(
+                      'inline-block align-middle ml-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
+                      brand === 'jaguar'
+                        ? 'bg-emerald-600'
+                        : 'bg-blue-600'
+                    )}
+                  >
+                    {brand}
+                  </span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 ml-3">
+                <button
+                  onClick={fetchCounts}
+                  disabled={loading}
+                  className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50 shrink-0"
+                  aria-label="Refresh"
+                >
+                  <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none flex items-center gap-2">
-            Non-Processable
-          </h1>
-          <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground flex flex-wrap items-center gap-1.5">
-            Overview of issues for{' '}
-            <span
-              className={cn(
-                'inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
-                brand === 'jaguar'
-                  ? 'bg-emerald-600'
-                  : 'bg-blue-600'
-              )}
-            >
-              {brand}
-            </span>
-          </p>
+        <div className="flex items-center gap-2 flex-wrap sm:mt-0 w-full sm:w-auto justify-end">
+          <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
+            <SelectTrigger className="h-8 w-[90px] text-xs font-semibold bg-white hover:bg-accent hover:text-accent-foreground transition-colors">
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(y => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
+            <SelectTrigger className="h-8 w-[110px] text-xs font-semibold bg-white hover:bg-accent hover:text-accent-foreground transition-colors">
+              <SelectValue placeholder="Month" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="-1">All Months</SelectItem>
+              {MONTHS.map((m, i) => (
+                <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={selectedWeek > weeksInMonth && selectedWeek !== 0 ? weeksInMonth.toString() : selectedWeek.toString()} 
+            onValueChange={(v) => setSelectedWeek(parseInt(v))}
+            disabled={selectedMonth === -1}
+          >
+            <SelectTrigger className="h-8 w-[105px] text-xs font-semibold bg-white hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50">
+              <SelectValue placeholder="Week" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">By Month</SelectItem>
+              {weeks.map(w => (
+                <SelectItem key={w} value={w.toString()}>Week {w}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <RefreshControl
+            onRefresh={fetchCounts}
+            refreshing={loading}
+            lastUpdated={lastUpdated}
+            storageKey={`non-processable-${brand}`}
+            className="hidden sm:flex shrink-0"
+          />
         </div>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap mt-3 sm:mt-0 w-full sm:w-auto justify-end">
-        <Select value={selectedYear.toString()} onValueChange={(v) => setSelectedYear(parseInt(v))}>
-          <SelectTrigger className="h-8 w-[90px] text-xs font-semibold bg-white hover:bg-accent hover:text-accent-foreground transition-colors">
-            <SelectValue placeholder="Year" />
-          </SelectTrigger>
-          <SelectContent>
-            {years.map(y => (
-              <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={selectedMonth.toString()} onValueChange={(v) => setSelectedMonth(parseInt(v))}>
-          <SelectTrigger className="h-8 w-[110px] text-xs font-semibold bg-white hover:bg-accent hover:text-accent-foreground transition-colors">
-            <SelectValue placeholder="Month" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="-1">All Months</SelectItem>
-            {MONTHS.map((m, i) => (
-              <SelectItem key={i} value={i.toString()}>{m}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select 
-          value={selectedWeek > weeksInMonth && selectedWeek !== 0 ? weeksInMonth.toString() : selectedWeek.toString()} 
-          onValueChange={(v) => setSelectedWeek(parseInt(v))}
-          disabled={selectedMonth === -1}
-        >
-          <SelectTrigger className="h-8 w-[105px] text-xs font-semibold bg-white hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50">
-            <SelectValue placeholder="Week" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">By Month</SelectItem>
-            {weeks.map(w => (
-              <SelectItem key={w} value={w.toString()}>Week {w}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-
-
-        <RefreshControl
-          onRefresh={fetchCounts}
-          refreshing={loading}
-          lastUpdated={lastUpdated}
-          storageKey={`non-processable-${brand}`}
-          className="hidden sm:flex"
-        />
       </div>
     </header>
   )

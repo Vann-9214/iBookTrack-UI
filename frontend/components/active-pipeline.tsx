@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
-import { Workflow } from "lucide-react"
+import { Workflow, ArrowDown, Check, ArrowUp } from "lucide-react"
 
 import { formatPipelineCounts } from "@/features/dashboard/utils/dashboard.helpers"
 
@@ -20,8 +20,8 @@ const getBrandColor = (brand: string, type: 'nodeRing' | 'nodeFill' | 'count' | 
       nodeRing: 'border-emerald-400 text-emerald-500',
       nodeFill: 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-transparent text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/20',
       count: 'text-emerald-600',
-      bar: 'bg-gradient-to-r from-emerald-400 to-emerald-500',
-      cardBg: 'bg-gradient-to-br from-emerald-50 to-white border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
+      bar: 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-transparent',
+      cardBg: 'bg-emerald-50 border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
       dot: 'bg-emerald-500',
     }[type]
   }
@@ -29,8 +29,8 @@ const getBrandColor = (brand: string, type: 'nodeRing' | 'nodeFill' | 'count' | 
     nodeRing: 'border-blue-400 text-blue-500',
     nodeFill: 'bg-gradient-to-br from-blue-400 to-blue-600 border-transparent text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/20',
     count: 'text-blue-600',
-    bar: 'bg-gradient-to-r from-blue-400 to-blue-500',
-    cardBg: 'bg-gradient-to-br from-blue-50 to-white border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
+    bar: 'bg-gradient-to-r from-blue-500 via-blue-400 to-transparent',
+    cardBg: 'bg-blue-50 border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
     dot: 'bg-blue-500',
   }[type]
 }
@@ -133,27 +133,30 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
       const style = getBadgeStyles('default', brandName, isZero)
       return (
         <span className={cn(
-          "inline-flex items-center justify-center min-w-[2rem] px-2.5 py-0.5 rounded-lg border text-sm font-extrabold leading-tight tabular-nums transition-all my-0.5",
+          "inline-flex items-center gap-1 justify-center min-w-[2rem] px-2.5 py-0.5 rounded-lg border text-sm font-extrabold leading-tight tabular-nums transition-all my-0.5",
           style
         )}>
-          {step.displayText}
+          {!isZero && <ArrowDown className="w-3.5 h-3.5" />} {step.displayText}
         </span>
       )
     }
 
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2 my-0.5">
+      <div className="flex flex-nowrap items-center justify-center gap-1 sm:gap-1.5 my-0.5">
         {parts.map((p, idx) => {
           const style = getBadgeStyles(p.type, brandName, false)
           return (
             <span
               key={idx}
               className={cn(
-                "inline-flex items-center justify-center min-w-[1.75rem] px-2 py-0.5 rounded-md border text-xs sm:text-sm font-extrabold leading-tight tabular-nums transition-all",
+                "inline-flex items-center gap-0.5 sm:gap-1 justify-center min-w-[1.5rem] px-1.5 sm:px-2 py-0.5 rounded-md border text-[11px] sm:text-sm font-extrabold leading-tight tabular-nums transition-all",
                 style
               )}
               title={`${p.label}: ${p.value}`}
             >
+              {p.type === 'received' && <ArrowDown className="w-3 h-3" />}
+              {p.type === 'completed' && <Check className="w-3 h-3" />}
+              {p.type === 'sent' && <ArrowUp className="w-3 h-3" />}
               {p.value}
             </span>
           )
@@ -217,16 +220,16 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Legend */}
           <div className="hidden lg:flex items-center gap-2 mt-5">
             <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
-              <span className={cn("h-2.5 w-2.5 rounded-full ring-2 ring-offset-1", brand === 'jaguar' ? "bg-emerald-500 ring-emerald-200" : "bg-blue-500 ring-blue-200")} />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Received</span>
+              <ArrowDown className={cn("w-3.5 h-3.5", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
+              <span className={cn("text-[11px] font-bold uppercase tracking-wider", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>Received</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 ring-offset-1" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Completed</span>
+              <Check className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">Completed</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200 ring-offset-1" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sent</span>
+              <ArrowUp className="w-3.5 h-3.5 text-purple-500" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600">Sent</span>
             </div>
           </div>
 
@@ -269,7 +272,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               <span className="text-lg font-bold tracking-tight whitespace-nowrap">Active Pipeline</span>
               {currentLot && <span className="text-sm font-medium text-muted-foreground truncate max-w-full">| {currentLot}</span>}
             </div>
-            <span className={cn("ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm whitespace-nowrap", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-400 to-emerald-600" : "bg-gradient-to-br from-blue-400 to-blue-600")}>
+            <span className={cn("ml-auto text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-white shadow-sm whitespace-nowrap", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
               <span className="sm:hidden">Today</span>
               <span className="hidden sm:inline">{todayLabel}</span>
             </span>
@@ -311,21 +314,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
             })}
           </div>
 
-          {/* Legend */}
-          <div className="hidden lg:flex items-center gap-2 mt-5">
-            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
-              <span className={cn("h-2.5 w-2.5 rounded-full ring-2 ring-offset-1", brand === 'jaguar' ? "bg-emerald-500 ring-emerald-200" : "bg-blue-500 ring-blue-200")} />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Received</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200 ring-offset-1" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Completed</span>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
-              <span className="h-2.5 w-2.5 rounded-full bg-purple-500 ring-2 ring-purple-200 ring-offset-1" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Sent</span>
-            </div>
-          </div>
+
 
           {/* Mobile: vertical */}
           <div className="flex flex-col gap-3 lg:hidden">
@@ -341,7 +330,6 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                     <span className="text-sm font-bold text-card-foreground">{step.label}</span>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       {renderFormattedCounts(step, cfg.countColor, brand)}
-                      <span className="font-medium">{step.isBookStage ? (step.active === 1 ? 'Book' : 'Books') : (step.active === 1 ? 'Box' : 'Boxes')}</span>
                     </div>
                   </div>
                   <div className="ml-auto flex items-center gap-1.5">
@@ -357,6 +345,22 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                 </div>
               )
             })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-nowrap items-center justify-center lg:justify-start gap-1.5 sm:gap-2 mt-5">
+            <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
+              <ArrowDown className={cn("w-3.5 h-3.5", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
+              <span className={cn("text-[9px] sm:text-[11px] font-bold uppercase tracking-wider", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>Received</span>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
+              <Check className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-emerald-600">Completed</span>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
+              <ArrowUp className="w-3.5 h-3.5 text-purple-500" />
+              <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-purple-600">Sent</span>
+            </div>
           </div>
         </CardContent>
       </Card>
