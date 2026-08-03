@@ -136,10 +136,11 @@ export function NonProcessableKPIs({
           {/* ── Desktop: full cards ── */}
           <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4 shrink-0">
             {stats.map((stat) => (
-              <div
+              <button
                 key={stat.title}
+                onClick={stat.onClick}
                 className={cn(
-                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300",
+                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 text-left w-full cursor-pointer hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   stat.tone.card
                 )}
               >
@@ -152,7 +153,7 @@ export function NonProcessableKPIs({
                 </div>
                 <div className={cn("relative text-sm font-semibold mb-0.5", stat.tone.title)}>{stat.title}</div>
                 <div className={cn("relative text-xs font-medium", stat.tone.sub)}>{stat.subtext}</div>
-              </div>
+              </button>
             ))}
           </div>
         </>
