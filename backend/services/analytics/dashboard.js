@@ -245,8 +245,8 @@ export const getDailyOutputService = async (req) => {
 
   if (simflexRows && simflexRows.length > 0) {
     simflexRows.sort((a, b) => {
-      const dateA = new Date(a.updated).getTime();
-      const dateB = new Date(b.updated).getTime();
+      const dateA = a.updated ? new Date(a.updated).getTime() : 0;
+      const dateB = b.updated ? new Date(b.updated).getTime() : 0;
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
   }

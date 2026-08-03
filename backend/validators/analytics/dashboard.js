@@ -41,7 +41,8 @@ export const getDailyOutputSchema = {
   query: z.object({
     page: z.string().regex(/^\d+$/).optional(),
     limit: z.string().regex(/^\d+$/).optional(),
-    brand: z.string().optional()
+    brand: z.string().optional(),
+    sort: z.enum(['asc', 'desc']).optional()
   })
 };
 

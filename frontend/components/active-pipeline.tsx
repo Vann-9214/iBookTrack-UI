@@ -18,19 +18,19 @@ const getBrandColor = (brand: string, type: 'nodeRing' | 'nodeFill' | 'count' | 
   if (brand === 'jaguar') {
     return {
       nodeRing: 'border-emerald-400 text-emerald-500',
-      nodeFill: 'bg-emerald-600 border-transparent text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/20',
+      nodeFill: 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-transparent text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/20',
       count: 'text-emerald-600',
-      bar: 'bg-emerald-400',
-      cardBg: 'bg-emerald-50 border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
+      bar: 'bg-gradient-to-r from-emerald-400 to-emerald-500',
+      cardBg: 'bg-gradient-to-br from-emerald-50 to-white border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
       dot: 'bg-emerald-500',
     }[type]
   }
   return {
     nodeRing: 'border-blue-400 text-blue-500',
-    nodeFill: 'bg-blue-600 border-transparent text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/20',
+    nodeFill: 'bg-gradient-to-br from-blue-400 to-blue-600 border-transparent text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/20',
     count: 'text-blue-600',
-    bar: 'bg-blue-400',
-    cardBg: 'bg-blue-50 border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
+    bar: 'bg-gradient-to-r from-blue-400 to-blue-500',
+    cardBg: 'bg-gradient-to-br from-blue-50 to-white border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
     dot: 'bg-blue-500',
   }[type]
 }
@@ -263,13 +263,13 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
+              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20" : "bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/20")}>
                 <Workflow className="h-4 w-4" />
               </span>
-              <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
-              {currentLot && <span className="text-sm font-medium text-muted-foreground truncate inline-block max-w-full">| {currentLot}</span>}
+              <span className="text-lg font-bold tracking-tight whitespace-nowrap">Active Pipeline</span>
+              {currentLot && <span className="text-sm font-medium text-muted-foreground truncate max-w-full">| {currentLot}</span>}
             </div>
-            <span className={cn("ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm whitespace-nowrap", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
+            <span className={cn("ml-auto text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm whitespace-nowrap", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-400 to-emerald-600" : "bg-gradient-to-br from-blue-400 to-blue-600")}>
               <span className="sm:hidden">Today</span>
               <span className="hidden sm:inline">{todayLabel}</span>
             </span>

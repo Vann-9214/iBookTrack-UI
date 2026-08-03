@@ -161,10 +161,10 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     await fetchFlags(1)
   }
 
-  const fetchDailyOutput = async (page = 1, background = false) => {
+  const fetchDailyOutput = async (page = 1, sort = dailyOutputSort, background = false) => {
     if (!background) setLoadingDailyOutput(true)
     try {
-      const res = await authFetch(`${API_URL}/api/dashboard/daily-output?page=${page}&limit=${dailyOutputPagination.pageSize}&brand=${brand}&sort=${dailyOutputSort}`)
+      const res = await authFetch(`${API_URL}/api/dashboard/daily-output?page=${page}&limit=${dailyOutputPagination.pageSize}&brand=${brand}&sort=${sort}`)
       const data = await res.json()
       setDailyOutputRows(data.rows || [])
       setTotalDailyOutput(data.total || 0)
@@ -180,7 +180,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     setDailyOutputOpen(true)
     dailyOutputPagination.goToPage(1)
     if (dailyOutputRows.length > 0) return
-    await fetchDailyOutput(1)
+    await fetchDailyOutput(1, 'desc')
   }
 
   useEffect(() => {
@@ -203,12 +203,12 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
 
   useEffect(() => {
     if (refreshKey === undefined || !dailyOutputOpen) return
-    fetchDailyOutput(dailyOutputPagination.currentPage, true)
+    fetchDailyOutput(dailyOutputPagination.currentPage, dailyOutputSort, true)
   }, [refreshKey, dailyOutputOpen])
 
   useEffect(() => {
     if (!dailyOutputOpen) return
-    fetchDailyOutput(dailyOutputPagination.currentPage)
+    fetchDailyOutput(dailyOutputPagination.currentPage, dailyOutputSort)
   }, [dailyOutputPagination.currentPage, dailyOutputSort])
 
   const dismissFlags = () => {
@@ -303,7 +303,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         bar: "bg-gradient-to-r from-emerald-400 to-emerald-600",
         track: "bg-emerald-100",
         rowHover: "hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-transparent",
-        chip: "bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-700",
+        chip: "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-sm ring-1 ring-emerald-500/20",
       }
     : {
         headerBg: "bg-gradient-to-r from-blue-50 to-white",
@@ -316,7 +316,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         bar: "bg-gradient-to-r from-blue-400 to-blue-600",
         track: "bg-blue-100",
         rowHover: "hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent",
-        chip: "bg-gradient-to-br from-blue-100 to-blue-50 text-blue-700",
+        chip: "bg-gradient-to-br from-blue-400 to-indigo-600 text-white shadow-sm ring-1 ring-blue-500/20",
       }
 
   const stats = [
@@ -456,27 +456,27 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       {/* QC Flagged Books Modal */}
       {flagsOpen && (
         <div className={cn("fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4", flagsClosing ? 'animate-overlay-out' : 'animate-overlay-in')} onClick={dismissFlags}>
-          <div className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", flagsClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')} data-modal-origin-surface onClick={e => e.stopPropagation()}>
+          <div className={cn("bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", flagsClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')} data-modal-origin-surface onClick={e => e.stopPropagation()}>
 
-            {/* Red header */}
-            <div className="px-6 py-5 flex items-center justify-between bg-gradient-to-r from-red-50 to-rose-50">
+            {/* Premium Gradient Header */}
+            <div className="px-6 py-5 flex items-center justify-between bg-gradient-to-r from-red-50 to-rose-100 border-b border-red-100/50">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white shadow-lg shadow-red-500/25">
-                  <AlertTriangle className="h-5 w-5" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 via-rose-500 to-rose-600 text-white shadow-lg shadow-red-500/30 ring-1 ring-white/20">
+                  <AlertTriangle className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold tracking-tight text-gray-800">Non-Processable Books</h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-xs text-gray-500">Needs review</span>
+                  <h2 className="text-xl font-bold bg-gradient-to-r from-red-950 to-red-800 bg-clip-text text-transparent tracking-tight">Non-Processable Books</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-gradient-to-r from-red-500 to-rose-500 shadow-sm shadow-red-500/50"></span>
+                    </span>
+                    <p className="text-sm font-medium text-red-700/80">Needs review before transmission</p>
                   </div>
                 </div>
               </div>
-              <button
-                onClick={dismissFlags}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
-              >
-                <X className="h-4 w-4" />
+              <button onClick={dismissFlags} className="rounded-full p-2.5 bg-white/50 hover:bg-white text-red-500 shadow-sm transition-all hover:shadow hover:scale-105">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
@@ -495,51 +495,52 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-xs text-gray-400">Everything looks clean for today</span>
               </div>
             ) : (
-              <div className="overflow-y-auto flex-1 px-3 pb-2">
-                <table className="w-full text-sm table-fixed border-separate border-spacing-y-1">
+              <div className="overflow-y-auto flex-1 px-6 pb-4">
+                <table className="w-full text-sm text-left border-collapse">
                   <colgroup>
-                    <col className="w-10" />
-                    <col className="w-36" />
-                    <col className="hidden sm:table-column" />
-                    <col className="w-28" />
-                    <col className="w-52" />
-                    <col className="w-36" />
+                    <col className="w-12" />
+                    <col className="w-32" />
+                    <col />
+                    <col className="w-32" />
+                    <col className="w-48" />
+                    <col className="w-40" />
                   </colgroup>
-                  <thead className="sticky top-0 bg-white z-10 shadow-[0_-12px_0_0_white]">
+                  <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
                     <tr>
-                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">#</th>
-                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">ISBN</th>
-                      <th className="hidden sm:table-cell text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Title</th>
-                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Lot &amp; Box</th>
-                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Issue</th>
-                      <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Flagged By</th>
+                      <th className="py-2 px-2 text-sm font-semibold text-gray-500">#</th>
+                      <th className="py-2 px-2 text-sm font-semibold text-gray-500">Isbn</th>
+                      <th className="hidden sm:table-cell py-2 px-2 text-sm font-semibold text-gray-500">Title</th>
+                      <th className="py-2 px-2 text-sm font-semibold text-gray-500 whitespace-nowrap">Lot &amp; box</th>
+                      <th className="py-2 px-2 text-sm font-semibold text-gray-500">Issue</th>
+                      <th className="py-2 px-2 text-sm font-semibold text-gray-500">Flagged by</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {flags.map((f, i) => (
-                      <tr key={f.scan_id} className="bg-gray-50/60 hover:bg-red-50/50 transition-colors align-middle [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl">
-                        <td className="py-2 px-3 text-xs font-medium text-gray-400 align-middle">{(flagsPagination.currentPage - 1) * flagsPagination.pageSize + i + 1}</td>
-                        <td className="py-2 px-3 font-mono text-xs font-semibold text-gray-800 truncate align-middle">{f.isbn}</td>
-                        <td className="hidden sm:table-cell py-2 px-3 text-gray-600 truncate align-middle">{f.title || '—'}</td>
-                        <td className="text-xs px-3 py-2 align-middle whitespace-nowrap">
-                          <span className="font-bold text-gray-800">{f.assigned_box?.lot?.lot_number || '—'}</span>
+                      <tr key={f.scan_id} className="hover:bg-gradient-to-r hover:from-red-50/50 hover:to-transparent transition-colors align-middle">
+                        <td className="py-2 px-2 text-sm font-medium text-gray-400">{(flagsPagination.currentPage - 1) * flagsPagination.pageSize + i + 1}</td>
+                        <td className="py-2 px-2 text-sm text-gray-600">{f.isbn}</td>
+                        <td className="hidden sm:table-cell py-2 px-2 text-sm font-bold text-gray-800">
+                          <span className="line-clamp-2 max-w-[500px]" title={f.title || ''}>{f.title || '—'}</span>
+                        </td>
+                        <td className="py-2 px-2 text-sm whitespace-nowrap">
+                          <span className="inline-flex items-center rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white px-2.5 py-0.5 text-xs font-semibold ring-1 ring-blue-500/20 shadow-sm">
+                            {f.assigned_box?.lot?.lot_number ? f.assigned_box.lot.lot_number : '—'}
+                          </span>
                           {f.assigned_box?.box_number && (
-                            <span className="ml-1.5 font-mono text-gray-400">{f.assigned_box.box_number}</span>
+                            <span className="ml-1.5 text-gray-400 font-medium">{f.assigned_box.box_number}</span>
                           )}
                         </td>
-                        <td className="py-2 px-3 align-middle">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700 whitespace-nowrap ring-1 ring-red-200/60">
+                        <td className="py-2 px-2">
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className="inline-flex items-center rounded-full bg-gradient-to-br from-red-400 to-rose-600 text-white px-2.5 py-1 text-xs font-semibold ring-1 ring-red-500/20 shadow-sm">
                               {ISSUE_LABELS[f.issue] || f.issue}
                             </span>
                           </div>
                         </td>
-                        <td className="py-2 px-3 align-middle">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-[10px] font-bold text-red-600 uppercase ring-1 ring-red-200/60">
-                              {(f.flagged_by_name || '—').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('') || '?'}
-                            </span>
-                            <span className="truncate text-gray-700 font-medium">{f.flagged_by_name || '—'}</span>
+                        <td className="py-2 px-2">
+                          <div className="flex items-center min-w-0">
+                            <span className="truncate text-gray-800 font-bold text-sm">{f.flagged_by_name || '—'}</span>
                           </div>
                         </td>
                       </tr>
@@ -727,43 +728,34 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     <button
                       key={lot.id}
                       onClick={() => setSelectedLot(lot)}
-                      className={cn("group/lot w-full flex items-center gap-4 rounded-xl border border-gray-100 bg-gray-50/60 px-4 py-3 text-left transition-all hover:shadow-sm hover:border-transparent", M.rowHover)}
+                      className={cn("group/lot w-full flex items-center gap-3 rounded-xl border border-transparent bg-gradient-to-r from-gray-50/80 to-white px-2 py-2 text-left transition-all hover:shadow-sm hover:from-white hover:to-gray-50", M.rowHover)}
                     >
-                      {/* Left Icon */}
-                      <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-sm", M.iconBg)}>
-                        <Package className="h-6 w-6" />
+                      <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md transition-transform group-hover/lot:scale-105 ring-1 ring-white/20", M.iconBg)}>
+                        <Package className="h-5 w-5" />
                       </div>
-
-                      {/* Middle Info */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-800 truncate">{lot.lot_number}</span>
-                          {isCompleted ? (
-                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700">
-                              Completed
-                            </span>
-                          ) : (
-                            <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", M.chip)}>
-                              {lot.status}
-                            </span>
-                          )}
+                      
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className={cn("text-[15px] font-bold truncate", M.accent)}>{lot.lot_number}</h4>
+                          <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap text-white shadow-sm", isCompleted ? "bg-gradient-to-r from-green-400 to-green-600" : M.bar)}>
+                            {isCompleted ? 'Completed' : lot.status}
+                          </span>
                         </div>
-                        <div className="mt-0.5 flex items-center gap-3 text-xs text-gray-500">
-                          <span>{lot.total_boxes.toLocaleString()} boxes</span>
-                          <span className="h-1 w-1 rounded-full bg-gray-300" />
-                          <span>{lot.total_books.toLocaleString()} books</span>
+                        <div className={cn("flex items-center gap-2.5 text-[12px] font-semibold", M.soft)}>
+                          <span>{lot.boxes_count || lot.total_boxes} boxes</span>
+                          <span className="text-gray-300">•</span>
+                          <span>{lot.books_count || lot.total_books} books</span>
                         </div>
                       </div>
 
-                      {/* Right Info */}
-                      <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex items-center gap-3 shrink-0 pr-1">
                         {isCompleted ? (
-                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 shadow-md shadow-green-500/20">
-                            <Check className="h-6 w-6 text-white" strokeWidth={3} />
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-green-600 shadow-sm shadow-green-500/20">
+                            <Check className="h-5 w-5 text-white" strokeWidth={3.5} />
                           </div>
                         ) : (
-                          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
-                            <svg className="absolute inset-0 h-12 w-12 -rotate-90" viewBox="0 0 48 48">
+                          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
+                            <svg className="absolute inset-0 h-10 w-10 -rotate-90 drop-shadow-sm" viewBox="0 0 40 40">
                               <defs>
                                 <linearGradient id={`listGrad-${lot.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
                                   {isJaguar ? (
@@ -781,29 +773,29 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                               </defs>
                               <circle
                                 className="text-gray-100"
-                                strokeWidth="4"
+                                strokeWidth="3.5"
                                 stroke="currentColor"
                                 fill="transparent"
-                                r="20"
-                                cx="24"
-                                cy="24"
+                                r="16"
+                                cx="20"
+                                cy="20"
                               />
                               <circle
-                                strokeWidth="4"
-                                strokeDasharray={125.66}
-                                strokeDashoffset={125.66 - (125.66 * lot.completion_progress) / 100}
+                                strokeWidth="3.5"
+                                strokeDasharray={100.53}
+                                strokeDashoffset={100.53 - (100.53 * (lot.completion_progress || 0)) / 100}
                                 strokeLinecap="round"
                                 stroke={`url(#listGrad-${lot.id})`}
                                 fill="transparent"
-                                r="20"
-                                cx="24"
-                                cy="24"
+                                r="16"
+                                cx="20"
+                                cy="20"
                               />
                             </svg>
-                            <span className={cn("text-[11px] font-bold", M.accent)}>{lot.completion_progress}%</span>
+                            <span className={cn("text-[10px] font-bold", M.accent)}>{lot.completion_progress || 0}%</span>
                           </div>
                         )}
-                        <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors group-hover/lot:bg-white", M.soft)}>
+                        <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white shadow-sm transition-transform group-hover/lot:scale-110", M.soft)}>
                           <ChevronRight className="h-4 w-4" />
                         </span>
                       </div>
@@ -823,25 +815,28 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           onClick={dismissDailyOutput}
         >
           <div
-            className={cn("bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", dailyOutputClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')}
+            className={cn("bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", dailyOutputClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')}
             data-modal-origin-surface
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className={cn("px-6 py-5 flex items-center justify-between", M.headerBg)}>
-              <div className="flex items-center gap-4">
-                <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg", M.iconBg)}>
-                  <Upload className="h-6 w-6" />
+            {/* Premium Gradient Header */}
+            <div className={cn("px-6 py-5 flex items-center justify-between border-b border-gray-100", M.headerBg)}>
+              <div className="flex items-center gap-3">
+                <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg ring-1 ring-white/20", M.iconBg)}>
+                  <FileOutput className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold tracking-tight text-gray-800">Daily output</h3>
-                  <div className="text-sm text-gray-500 mt-0.5">Books transmitted today</div>
+                  <h2 className={cn("text-xl font-bold tracking-tight bg-clip-text text-transparent", M.bar)}>Daily Output</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="relative flex h-2 w-2">
+                      <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", M.dot)}></span>
+                      <span className={cn("relative inline-flex rounded-full h-2 w-2 shadow-sm", M.dot)}></span>
+                    </span>
+                    <p className={cn("text-sm font-semibold", M.soft)}>{dailyOutput.toLocaleString()} books transmitted today</p>
+                  </div>
                 </div>
               </div>
-              <button
-                onClick={dismissDailyOutput}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
-              >
+              <button onClick={dismissDailyOutput} className={cn("rounded-full p-2.5 bg-white/50 shadow-sm hover:shadow hover:scale-105 hover:bg-white transition-all", M.soft)}>
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -887,11 +882,11 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-xs text-gray-400">Completed transmissions will appear here</span>
               </div>
             ) : (
-              <div className="overflow-auto flex-1">
-                <table className="min-w-[800px] w-full text-sm">
+              <div className="flex-1 w-full overflow-hidden">
+                <table className="w-full text-sm table-fixed">
                   <colgroup>
                     <col className="w-12" />
-                    <col className="w-36" />
+                    <col className="w-44" />
                     <col />
                     <col className="w-28" />
                     <col className="w-24" />
@@ -900,13 +895,13 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   </colgroup>
                   <thead className="sticky top-0 bg-white z-10 shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
                     <tr>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-500">#</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-500">Isbn</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-500">Title</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-500">Lot</th>
-                      <th className="text-left py-4 px-6 text-sm font-semibold text-gray-500">Box</th>
-                      <th className="text-right py-4 px-6 text-sm font-semibold text-gray-500">Pages</th>
-                      <th className="text-right py-4 px-6 text-sm font-semibold text-gray-500">
+                      <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">#</th>
+                      <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Isbn</th>
+                      <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Title</th>
+                      <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Lot</th>
+                      <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Box</th>
+                      <th className="text-right py-2 px-6 text-sm font-semibold text-gray-500">Pages</th>
+                      <th className="text-right py-2 px-6 text-sm font-semibold text-gray-500">
                         <button 
                           onClick={() => {
                             setDailyOutputSort(prev => prev === 'desc' ? 'asc' : 'desc');
@@ -923,16 +918,16 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   <tbody className="divide-y divide-gray-100">
                     {dailyOutputRows.map((row, i) => (
                       <tr key={row.isbn} className={cn("transition-colors", M.rowHover)}>
-                        <td className="py-4 px-6 text-sm font-medium text-gray-400">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
-                        <td className="py-4 px-6 text-sm font-semibold text-gray-800">{row.isbn}</td>
-                        <td className="py-4 px-6 text-sm font-bold text-gray-800 truncate max-w-[360px]">{row.title || '—'}</td>
-                        <td className="py-4 px-6">
-                          <span className={cn("inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold whitespace-nowrap", M.chip)}>{row.lot_number}</span>
+                        <td className="py-2 px-6 text-sm font-medium text-gray-400 truncate">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
+                        <td className="py-2 px-6 text-sm font-semibold text-gray-800 truncate">{row.isbn}</td>
+                        <td className="py-2 px-6 text-sm font-bold text-gray-800 truncate" title={row.title || ''}>{row.title || '—'}</td>
+                        <td className="py-2 px-6">
+                          <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ring-black/5 shadow-sm", M.chip)}>{row.lot_number}</span>
                         </td>
-                        <td className="py-4 px-6 font-mono text-sm font-bold text-gray-800 whitespace-nowrap">{row.box_number}</td>
-                        <td className="py-4 px-6 font-mono text-sm font-medium text-gray-600 text-right whitespace-nowrap">{row.page_count ? row.page_count.toLocaleString() : '—'}</td>
-                        <td className="py-4 px-6 text-sm text-gray-500 text-right whitespace-nowrap">
-                          {row.completed_at ? new Date(row.completed_at).toLocaleString([], { hour: 'numeric', minute: '2-digit' }) : '—'}
+                        <td className="py-2 px-6 font-mono text-sm font-bold text-gray-800 whitespace-nowrap">{row.box_number}</td>
+                        <td className="py-2 px-6 font-mono text-sm font-medium text-gray-600 text-right whitespace-nowrap">{row.page_count ? row.page_count.toLocaleString() : '—'}</td>
+                        <td className="py-2 px-6 text-sm text-gray-500 text-right whitespace-nowrap">
+                          {row.completed_at ? new Date(row.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
                         </td>
                       </tr>
                     ))}
