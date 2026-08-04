@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -30,6 +31,20 @@ export function Pagination({
   showPageInfo = true
 }: PaginationProps) {
   const options = pageSizeOptions
+  const [jumpValue, setJumpValue] = useState(String(currentPage))
+
+  useEffect(() => {
+    setJumpValue(String(currentPage))
+  }, [currentPage])
+
+  const commitJump = () => {
+    const page = parseInt(jumpValue, 10)
+    if (Number.isFinite(page)) {
+      onPageChange(Math.max(1, Math.min(page, totalPages || 1)))
+    } else {
+      setJumpValue(String(currentPage))
+    }
+  }
 
   return (
     <div className={cn('relative flex w-full items-center justify-center py-4 px-4 border-t border-border', className)}>
@@ -133,6 +148,28 @@ export function Pagination({
         >
           <ChevronRight className="h-4 w-4" />
         </Button>
+
+        {totalPages > 1 && (
+          <div className="hidden sm:flex items-center gap-1.5 ml-2 pl-2 border-l border-border">
+            <span className="text-xs text-muted-foreground">Go to:</span>
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={jumpValue}
+              onChange={(e) => setJumpValue(e.target.value)}
+              onBlur={commitJump}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  commitJump()
+                }
+              }}
+              className="h-8 w-14 rounded border border-border bg-background px-2 text-xs text-foreground text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
+              aria-label="Go to page"
+            />
+          </div>
+        )}
       </div>
 
       {showPageInfo && (

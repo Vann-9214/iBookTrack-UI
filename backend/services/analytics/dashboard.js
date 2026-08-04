@@ -268,6 +268,7 @@ export const getDailyOutputService = async (req) => {
       const lot = firstRel(box.lot) || {};
       booksByIsbn[b.isbn] = {
         title: b.title || null,
+        author: b.author || null,
         box_number: box.box_number || null,
         lot_number: lot.lot_number || null,
       };
@@ -284,6 +285,7 @@ export const getDailyOutputService = async (req) => {
           const isbn = missingIsbns[i];
           if (!booksByIsbn[isbn]) booksByIsbn[isbn] = {};
           booksByIsbn[isbn].title = booksByIsbn[isbn].title || res.data.Title || null;
+          booksByIsbn[isbn].author = booksByIsbn[isbn].author || res.data.Author || null;
           booksByIsbn[isbn].lot_number = booksByIsbn[isbn].lot_number || res.data.LotNo || null;
           booksByIsbn[isbn].box_number = booksByIsbn[isbn].box_number || res.data.BoxNo || null;
         }
@@ -296,6 +298,7 @@ export const getDailyOutputService = async (req) => {
     return {
       isbn: r.isbn,
       title: local.title || null,
+      author: local.author || null,
       box_number: local.box_number || r.box_number || '—',
       lot_number: local.lot_number || '—',
       scan_user: r.scan_user || '—',

@@ -5,6 +5,11 @@ import type { TransmissionBrand } from '../types/transmission.types'
 
 export const NONE_MACHINE = '__NONE__'
 
+// Full, canonical pipeline stage order (mirrors backend STAGE_ORDER).
+// Used to render a static, complete list of stage filter options instead
+// of only the stages that happen to be present in the currently loaded lot.
+export const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage']
+
 export function formatPipelineStage(stage: string) {
   if (!stage) return '—'
   if (stage === 'Tif2PDF') return 'PDF Conversion'

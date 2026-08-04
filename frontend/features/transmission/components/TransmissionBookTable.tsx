@@ -170,7 +170,7 @@ export function TransmissionBookTable({
                 <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[160px]">Author</th>
                 <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Scan</th>
                 <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Simflex</th>
-                <th className="text-left font-semibold text-muted-foreground px-3 py-2 w-[150px]">Transmitted</th>
+                <th className="text-left font-semibold text-muted-foreground px-3 py-2 w-[150px]">Date Updated</th>
                 <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[60px]"></th>
               </tr>
             </thead>
@@ -251,13 +251,11 @@ export function TransmissionBookTable({
                         {getSimflexBadge(r.simflex_status, !!r.transmission_completed, r.scan_status)}
                       </td>
                       <td className="px-3 py-2 align-middle whitespace-nowrap">
-                        {r.transmission_completed ? (
+                        {r.transmission_date ? (
                           <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                            <span className="text-emerald-700 font-medium">
-                              {r.transmission_date
-                                ? format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm')
-                                : '—'}
+                            {r.transmission_completed && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+                            <span className={r.transmission_completed ? 'text-emerald-700 font-medium' : 'text-foreground'}>
+                              {format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm')}
                             </span>
                           </div>
                         ) : (

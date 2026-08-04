@@ -11,6 +11,7 @@ import * as lotsRepo from '../../repositories/inventory/lots.js';
 import { syncBoxTransmissionStatus } from './boxes.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 import { broadcastEvent } from '../../utils/sse.js';
+import { isTransmissionArchiveCompleted } from '../../utils/transmissionStatus.js';
 
 const VALID_LOT_TYPES = ['Mustang', 'Jaguar'];
 
@@ -83,8 +84,14 @@ export const getLotTransmissionSummaryService = async (req, res) => {
     const showSimflex = stg === 'scan' || stg === 'storage';
 
     const dbStatus = showSimflex ? (s.transmission_status || null) : null;
-    const transmissionCompleted = !!dbStatus && /completed/i.test(dbStatus);
-    const transmissionDate = transmissionCompleted ? (s.transmission_updated_at || null) : null;
+    // Only "Transmission_Archive COMPLETED" counts as fully transmitted — an
+    // intermediate stage (e.g. "Validate COMPLETED", "Preval COMPLETED")
+    // must NOT be treated as transmitted.
+    const transmissionCompleted = isTransmissionArchiveCompleted(dbStatus);
+    // The "Updated" timestamp reflects the last time Scan Manager reported a
+    // status for this book — it is NOT tied to transmission completion, so
+    // it should show regardless of what stage the book is currently at.
+    const transmissionDate = s.transmission_updated_at || null;
 
     return {
       scan_id: s.id,

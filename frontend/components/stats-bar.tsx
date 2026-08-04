@@ -33,6 +33,7 @@ interface QCFlag {
   scan_id: string
   isbn: string
   title: string | null
+  author?: string | null
   issue: string
   remarks: string | null
   flagged_by_name: string | null
@@ -58,6 +59,7 @@ interface LiveLot {
 interface DailyOutputRow {
   isbn: string
   title: string | null
+  author?: string | null
   lot_number: string
   box_number: string
   scan_user: string
@@ -504,6 +506,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     <col className="w-12" />
                     <col className="w-32" />
                     <col />
+                    <col className="w-40" />
                     <col className="w-32" />
                     <col className="w-48" />
                     <col className="w-40" />
@@ -513,6 +516,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                       <th className="py-2 px-2 text-sm font-semibold text-gray-500">#</th>
                       <th className="py-2 px-2 text-sm font-semibold text-gray-500">Isbn</th>
                       <th className="hidden sm:table-cell py-2 px-2 text-sm font-semibold text-gray-500">Title</th>
+                      <th className="hidden sm:table-cell py-2 px-2 text-sm font-semibold text-gray-500">Author</th>
                       <th className="py-2 px-2 text-sm font-semibold text-gray-500 whitespace-nowrap">Lot &amp; box</th>
                       <th className="py-2 px-2 text-sm font-semibold text-gray-500">Issue</th>
                       <th className="py-2 px-2 text-sm font-semibold text-gray-500">Flagged by</th>
@@ -525,6 +529,9 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                         <td className="py-2 px-2 text-sm text-gray-600">{f.isbn}</td>
                         <td className="hidden sm:table-cell py-2 px-2 text-sm font-bold text-gray-800">
                           <span className="line-clamp-2 max-w-[500px]" title={f.title || ''}>{f.title || '—'}</span>
+                        </td>
+                        <td className="hidden sm:table-cell py-2 px-2 text-sm text-gray-600">
+                          <span className="line-clamp-2 max-w-[350px]" title={f.author || ''}>{f.author || '—'}</span>
                         </td>
                         <td className="py-2 px-2 text-sm whitespace-nowrap">
                           <span className="inline-flex items-center rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white px-2.5 py-0.5 text-xs font-semibold ring-1 ring-blue-500/20 shadow-sm">
@@ -885,12 +892,13 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 <span className="text-xs text-gray-400">Completed transmissions will appear here</span>
               </div>
             ) : (
-              <div className="flex-1 w-full overflow-hidden">
+              <div className="flex-1 w-full min-h-0 overflow-y-auto">
                 <table className="w-full text-sm table-fixed">
                   <colgroup>
                     <col className="w-12" />
                     <col className="w-44" />
                     <col />
+                    <col className="w-40" />
                     <col className="w-28" />
                     <col className="w-24" />
                     <col className="w-24" />
@@ -901,6 +909,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                       <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">#</th>
                       <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Isbn</th>
                       <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Title</th>
+                      <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Author</th>
                       <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Lot</th>
                       <th className="text-left py-2 px-6 text-sm font-semibold text-gray-500">Box</th>
                       <th className="text-right py-2 px-6 text-sm font-semibold text-gray-500">Pages</th>
@@ -924,6 +933,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                         <td className="py-2 px-6 text-sm font-medium text-gray-400 truncate">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
                         <td className="py-2 px-6 text-sm font-semibold text-gray-800 truncate">{row.isbn}</td>
                         <td className="py-2 px-6 text-sm font-bold text-gray-800 truncate" title={row.title || ''}>{row.title || '—'}</td>
+                        <td className="py-2 px-6 text-sm text-gray-600 truncate" title={row.author || ''}>{row.author || '—'}</td>
                         <td className="py-2 px-6">
                           <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ring-1 ring-black/5 shadow-sm", M.chip)}>{row.lot_number}</span>
                         </td>

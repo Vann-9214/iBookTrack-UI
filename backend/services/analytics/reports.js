@@ -6,6 +6,7 @@
 
 import * as reportsRepo from '../../repositories/analytics/reports.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
+import { isTransmissionArchiveCompleted } from '../../utils/transmissionStatus.js';
 
 export const getLotStatusService = async (req, res) => {
   await runWarehouseTimeoutSweep();
@@ -42,6 +43,13 @@ export const getLotStatusService = async (req, res) => {
 
   const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit'];
 
+  // A book only counts as "transmitted" once it has actually reached the
+  // Transmission_Archive COMPLETED stage (or an explicit RECEIVED/SENT
+  // status) — an intermediate stage like "Validate COMPLETED" or
+  // "Preval COMPLETED" must NOT be treated as transmitted.
+  const isTransmittedStatus = (status) =>
+    !!status && (isTransmissionArchiveCompleted(status) || /RECEIVED|SENT/i.test(status));
+
   const result = lots.map(lot => {
     const lotBoxes = boxesByLot[lot.id] || [];
     const lotScans = scansByLot[lot.id] || [];
@@ -52,16 +60,16 @@ export const getLotStatusService = async (req, res) => {
     const nonProcessableScans = lotScans.filter(s => s.scan_status !== 'processable');
 
     // "Transmitted" = processable book whose box reached storage OR explicitly complete/received/sent
-    const transmittedScans = processableScans.filter(s => s.boxStage === 'storage' || (s.transmission_status && /COMPLETE|RECEIVED|SENT/i.test(s.transmission_status)));
+    const transmittedScans = processableScans.filter(s => s.boxStage === 'storage' || isTransmittedStatus(s.transmission_status));
     // "Pending" = processable book still in pipeline and not explicitly complete/received/sent
-    const pendingScans = processableScans.filter(s => s.boxStage !== 'storage' && !(s.transmission_status && /COMPLETE|RECEIVED|SENT/i.test(s.transmission_status)));
+    const pendingScans = processableScans.filter(s => s.boxStage !== 'storage' && !isTransmittedStatus(s.transmission_status));
 
     const boxList = lotBoxes.map(b => {
       // Scans specifically for this box
       const bScans = lotScans.filter(s => s.books?.box_id === b.id);
       const proc = bScans.filter(s => s.scan_status === 'processable');
       const trans = proc.filter(s => 
-        (s.transmission_status && /COMPLETE|RECEIVED|SENT/i.test(s.transmission_status)) || 
+        isTransmittedStatus(s.transmission_status) || 
         b.current_stage === 'storage'
       );
       

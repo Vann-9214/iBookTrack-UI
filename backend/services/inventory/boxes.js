@@ -601,7 +601,10 @@ export const getBoxTransmissionService = async (req) => {
       warehouse_scan_at: s.warehouse_scan_at,
       simflex_status: sf.latestStatus || null,
       transmission_completed: sf.transmissionCompleted || false,
-      transmission_date: sf.transmissionCompleted ? (sf.latestUpdated || null) : null,
+      // Always show the last-updated timestamp regardless of completion —
+      // it reflects when Scan Manager last reported a status, not whether
+      // the book has finished the Transmission_Archive stage.
+      transmission_date: sf.latestUpdated || null,
       scan_user: sf.scanUser || null,
     };
   });

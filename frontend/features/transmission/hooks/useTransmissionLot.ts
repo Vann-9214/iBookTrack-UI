@@ -17,7 +17,7 @@ import type {
   LotTransmissionFilter,
   TransmissionBrand,
 } from '../types/transmission.types'
-import { lotTypeForBrand } from '../utils/transmission.helpers'
+import { lotTypeForBrand, PIPELINE_STAGES } from '../utils/transmission.helpers'
 
 export function useTransmissionLot(brand: TransmissionBrand) {
   const lotType = lotTypeForBrand(brand)
@@ -201,16 +201,10 @@ export function useTransmissionLot(brand: TransmissionBrand) {
   const visibleBoxGroups = matchedBoxGroups.slice(0, BOX_RENDER_CAP)
   const activeBoxGroup = lotBoxFilter !== 'all' ? lotBoxGroups.find((g) => g.box_number === lotBoxFilter) : null
 
-  // Unique stages present in this lot for the stage filter dropdown.
-  // Endorsement is always included as a selectable stage filter option.
-  const lotStages = useMemo(() => {
-    const stages = new Set<string>()
-    for (const r of lotIsbns) {
-      if (r.current_stage) stages.add(r.current_stage)
-    }
-    stages.add('endorsement')
-    return Array.from(stages).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-  }, [lotIsbns])
+  // Full, static list of pipeline stages for the stage filter dropdown.
+  // This always shows every stage a book can be in, not just the ones
+  // currently present in this lot's data.
+  const lotStages = PIPELINE_STAGES
 
   const filteredLotIsbns = useMemo(() => {
     return lotIsbns.filter((r) => {
