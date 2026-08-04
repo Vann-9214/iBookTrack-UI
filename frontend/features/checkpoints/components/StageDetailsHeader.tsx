@@ -55,7 +55,7 @@ export function StageDetailsHeader({
       </div>
       <button
         onClick={onClose}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
+        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition"
       >
         <X className="h-4 w-4" />
       </button>

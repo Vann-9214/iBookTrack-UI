@@ -122,7 +122,7 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
           <button
             type="button"
             aria-label="Account"
-            className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition-all duration-200 pointer-events-none opacity-50 cursor-not-allowed"
+            className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition duration-200 pointer-events-none opacity-50 cursor-not-allowed"
             disabled
             style={{
               border: `1px solid ${colors.accent}20`,
@@ -156,7 +156,7 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
           type="button"
           aria-label="Account"
           className={cn(
-            'group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition-all duration-200',
+            'group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 transition duration-200',
             'hover:shadow-md active:scale-[0.97]',
           )}
           style={{
@@ -234,7 +234,7 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
 
         <div className="p-1.5">
           <DropdownMenuItem
-            className="group gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
+            className="group gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition duration-200"
             onClick={() => router.push('/settings')}
           >
             <div
@@ -255,7 +255,7 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
           <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-1" />
 
           <DropdownMenuItem
-            className="group gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition-all duration-200"
+            className="group gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition duration-200"
             onClick={handleLogout}
             variant="destructive"
           >

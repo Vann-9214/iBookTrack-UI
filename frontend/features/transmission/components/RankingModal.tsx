@@ -39,7 +39,7 @@ export function RankingModal({ showRanking, setShowRanking, ranking, rankingLoad
           </div>
           <button
             onClick={() => setShowRanking(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-amber-200 text-gray-600 hover:bg-amber-100 hover:text-gray-900 transition-all font-semibold text-sm"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white border border-amber-200 text-gray-600 hover:bg-amber-100 hover:text-gray-900 transition font-semibold text-sm"
           >
             ✕
           </button>

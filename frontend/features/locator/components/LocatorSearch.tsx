@@ -39,7 +39,7 @@ export const LocatorSearch: React.FC<LocatorSearchProps> = ({
             className="pl-10 h-10 bg-card border-border rounded-xl shadow-sm focus-visible:ring-primary/20"
           />
         </div>
-        <Button onClick={handleSearch} disabled={searchLoading} className="h-10 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all shrink-0">
+        <Button onClick={handleSearch} disabled={searchLoading} className="h-10 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition shrink-0">
           {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
         </Button>
         {(highlightedCellsCount > 0 || searchDone) && (

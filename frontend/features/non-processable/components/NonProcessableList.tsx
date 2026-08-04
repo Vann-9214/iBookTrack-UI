@@ -41,7 +41,7 @@ export function NonProcessableList({
   const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
 
   return (
-    <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col mt-5 transition-all duration-300 min-h-[500px]", cardTheme)}>
+    <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col mt-5 transition duration-300 min-h-[500px]", cardTheme)}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/20 blur-2xl" />
       {/* Header */}
       <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-sm">
@@ -68,13 +68,13 @@ export function NonProcessableList({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={cn(
-                "w-[200px] sm:w-56 h-9 pl-9 pr-3 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0",
+                "w-[200px] sm:w-56 h-9 pl-9 pr-3 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0",
                 isJaguar ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
               )}
             />
           </div>
           <div className={cn(
-            'inline-flex items-center shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition-all whitespace-nowrap',
+            'inline-flex items-center shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap',
             isJaguar ? 'bg-emerald-50 text-emerald-700 ring-emerald-200/50' : 'bg-blue-50 text-blue-700 ring-blue-200/50'
           )}>
             {totalCount} flags
@@ -117,11 +117,11 @@ export function NonProcessableList({
         ) : (
           <Accordion type="single" collapsible className="w-full space-y-2 px-1 py-1">
             {filteredLots.map((lot) => (
-              <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border border-slate-200/60 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
-                <AccordionTrigger className={cn("w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden transition-all duration-300", isJaguar ? "data-[state=open]:bg-emerald-500 data-[state=open]:shadow-lg" : "data-[state=open]:bg-blue-600 data-[state=open]:shadow-lg")}>
+              <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border border-slate-200/60 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-300">
+                <AccordionTrigger className={cn("w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden transition duration-300", isJaguar ? "data-[state=open]:bg-emerald-500 data-[state=open]:shadow-lg" : "data-[state=open]:bg-blue-600 data-[state=open]:shadow-lg")}>
                    {/* Icon */}
                    <div className="col-span-2 sm:col-span-1">
-                     <div className={cn("flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 group-hover:scale-105 shadow-sm ring-1 ring-black/5", isJaguar ? "bg-emerald-50 text-emerald-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent" : "bg-blue-50 text-blue-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent")}>
+                     <div className={cn("flex items-center justify-center w-8 h-8 rounded-lg transition duration-300 group-hover:scale-105 shadow-sm ring-1 ring-black/5", isJaguar ? "bg-emerald-50 text-emerald-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent" : "bg-blue-50 text-blue-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent")}>
                        <Package className="h-4 w-4" />
                      </div>
                    </div>
@@ -159,11 +159,11 @@ export function NonProcessableList({
                    
                    <Accordion type="multiple" className="w-full space-y-1.5 relative z-10">
                       {Object.values(lot.boxes).map((box) => (
-                        <AccordionItem key={box.box_number} value={box.box_number} className="border-0 rounded-xl bg-white overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04] hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.1)] hover:ring-black/[0.08] transition-all duration-300 group/box">
-                          <AccordionTrigger className={cn("px-3 py-2 sm:px-4 hover:no-underline transition-all duration-300 [&>svg]:opacity-40 [&>svg]:transition-transform [&>svg]:duration-300", isJaguar ? "hover:bg-emerald-50/50 data-[state=open]:bg-emerald-50/80" : "hover:bg-blue-50/50 data-[state=open]:bg-blue-50/80")}>
+                        <AccordionItem key={box.box_number} value={box.box_number} className="border-0 rounded-xl bg-white overflow-hidden shadow-[0_2px_10px_-4px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.04] hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.1)] hover:ring-black/[0.08] transition duration-300 group/box">
+                          <AccordionTrigger className={cn("px-3 py-2 sm:px-4 hover:no-underline transition duration-300 [&>svg]:opacity-40 [&>svg]:transition-transform [&>svg]:duration-300", isJaguar ? "hover:bg-emerald-50/50 data-[state=open]:bg-emerald-50/80" : "hover:bg-blue-50/50 data-[state=open]:bg-blue-50/80")}>
                             <div className="flex justify-between items-center w-full pr-3">
                               <div className="flex items-center gap-2.5">
-                                <div className={cn("flex h-6 w-6 items-center justify-center rounded-lg shadow-sm transition-all duration-300 group-data-[state=open]/box:scale-105 group-data-[state=open]/box:shadow-md", isJaguar ? "bg-emerald-100 text-emerald-600 group-data-[state=open]/box:bg-emerald-600 group-data-[state=open]/box:text-white" : "bg-blue-100 text-blue-600 group-data-[state=open]/box:bg-blue-600 group-data-[state=open]/box:text-white")}>
+                                <div className={cn("flex h-6 w-6 items-center justify-center rounded-lg shadow-sm transition duration-300 group-data-[state=open]/box:scale-105 group-data-[state=open]/box:shadow-md", isJaguar ? "bg-emerald-100 text-emerald-600 group-data-[state=open]/box:bg-emerald-600 group-data-[state=open]/box:text-white" : "bg-blue-100 text-blue-600 group-data-[state=open]/box:bg-blue-600 group-data-[state=open]/box:text-white")}>
                                   <Inbox className="h-3 w-3" />
                                 </div>
                                 <div className="flex flex-col items-start leading-tight">
@@ -180,9 +180,9 @@ export function NonProcessableList({
                           <AccordionContent className="px-3 sm:px-4 py-2.5 bg-white/60 border-t border-black/[0.03]">
                             <div className="space-y-1.5">
                                {box.flags.map((f, i) => (
-                                 <div key={`${f.scan_id}-${i}`} className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-[0_1px_5px_-2px_rgba(0,0,0,0.04)] flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 relative overflow-hidden group/flag hover:border-red-200 hover:shadow-[0_2px_8px_-2px_rgba(239,68,68,0.15)] transition-all duration-300">
+                                 <div key={`${f.scan_id}-${i}`} className="bg-white p-2.5 rounded-xl border border-slate-200/60 shadow-[0_1px_5px_-2px_rgba(0,0,0,0.04)] flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 relative overflow-hidden group/flag hover:border-red-200 hover:shadow-[0_2px_8px_-2px_rgba(239,68,68,0.15)] transition duration-300">
                                    {/* Subtle status indicator */}
-                                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-400 to-red-500 opacity-80 group-hover:opacity-100 group-hover:w-1.5 transition-all duration-300" />
+                                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-400 to-red-500 opacity-80 group-hover:opacity-100 group-hover:w-1.5 transition duration-300" />
                                    
                                    <div className="pl-2 flex-1 min-w-0">
                                      <div className="flex items-center gap-1.5 mb-1">
@@ -219,7 +219,7 @@ export function NonProcessableList({
                                          onClick={(e) => { e.stopPropagation(); handleResolveClick(f); }} 
                                          disabled={resolvingId === f.scan_id}
                                          className={cn(
-                                           "relative overflow-hidden text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg transition-all duration-300 shadow-sm group/btn flex items-center gap-1",
+                                           "relative overflow-hidden text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg transition duration-300 shadow-sm group/btn flex items-center gap-1",
                                            resolvingId === f.scan_id 
                                              ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
                                              : "bg-emerald-50 text-emerald-600 border border-emerald-200/60 hover:bg-emerald-500 hover:text-white hover:border-transparent hover:shadow-sm hover:shadow-emerald-500/20"

@@ -42,6 +42,7 @@ export function IdleTimeout() {
     
     // Throttle the event listener so we aren't resetting the timer 
     // constantly on every single mousemove pixel.
+    let throttleTimeoutId: NodeJS.Timeout | null = null;
     let throttleTimer = false;
     const handleActivity = () => {
       if (throttleTimer) return;
@@ -49,7 +50,7 @@ export function IdleTimeout() {
       resetTimeout()
       
       throttleTimer = true;
-      setTimeout(() => {
+      throttleTimeoutId = setTimeout(() => {
         throttleTimer = false;
       }, 1000); // only reset the timer at most once per second
     }
@@ -60,6 +61,7 @@ export function IdleTimeout() {
 
     return () => {
       if (timeoutId.current) clearTimeout(timeoutId.current)
+      if (throttleTimeoutId) clearTimeout(throttleTimeoutId)
       events.forEach(event => {
         window.removeEventListener(event, handleActivity)
       })

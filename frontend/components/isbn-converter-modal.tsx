@@ -101,7 +101,7 @@ export function IsbnConverterModal({ open, onClose, brand = 'mustang' }: IsbnCon
                   setCopied(false)
                 }}
                 placeholder="e.g. 0306406152"
-                className={cn("w-full px-4 py-3 rounded-xl border backdrop-blur-sm text-sm ring-offset-background focus:outline-none focus:ring-2 transition-all shadow-sm", inputBgTheme)}
+                className={cn("w-full px-4 py-3 rounded-xl border backdrop-blur-sm text-sm ring-offset-background focus:outline-none focus:ring-2 transition shadow-sm", inputBgTheme)}
               />
             </div>
 
@@ -123,7 +123,7 @@ export function IsbnConverterModal({ open, onClose, brand = 'mustang' }: IsbnCon
                   value={isValid10 ? isbn13 : ''}
                   placeholder="Result will appear here"
                   className={cn(
-                    "w-full px-4 py-3 rounded-xl border text-sm font-semibold pr-12 shadow-sm transition-all",
+                    "w-full px-4 py-3 rounded-xl border text-sm font-semibold pr-12 shadow-sm transition",
                     !isValid10 && isbn10.length > 0 ? "border-destructive/50 text-destructive bg-destructive/5" : isValid10 ? cn(highlightTheme) : cn(inputBgTheme)
                   )}
                 />
@@ -147,7 +147,7 @@ export function IsbnConverterModal({ open, onClose, brand = 'mustang' }: IsbnCon
             <button
               onClick={close}
               className={cn(
-                "w-full px-4 py-3 text-sm rounded-xl font-bold shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0 mt-4 flex items-center justify-center",
+                "w-full px-4 py-3 text-sm rounded-xl font-bold shadow-md transition hover:-translate-y-0.5 active:translate-y-0 mt-4 flex items-center justify-center",
                 buttonTheme
               )}
             >

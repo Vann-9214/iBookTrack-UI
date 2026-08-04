@@ -89,7 +89,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                         </span>
                         <button
                           onClick={() => openFlagModal(book)}
-                          className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40"
+                          className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40"
                         >
                           Flag
                         </button>

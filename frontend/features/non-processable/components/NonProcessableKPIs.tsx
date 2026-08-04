@@ -140,7 +140,7 @@ export function NonProcessableKPIs({
                 key={stat.title}
                 onClick={stat.onClick}
                 className={cn(
-                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 text-left w-full cursor-pointer hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 text-left w-full cursor-pointer hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   stat.tone.card
                 )}
               >

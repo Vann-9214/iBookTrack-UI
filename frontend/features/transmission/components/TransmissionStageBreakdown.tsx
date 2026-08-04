@@ -49,7 +49,7 @@ export function TransmissionStageBreakdown({
               )
             }
             className={cn(
-              'cursor-pointer rounded-2xl border bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition-all duration-200 flex flex-col gap-1.5 sm:gap-3 relative overflow-hidden text-left',
+              'cursor-pointer rounded-2xl border bg-white shadow-sm p-2 sm:p-4 hover:shadow-md hover:scale-[1.02] transition duration-200 flex flex-col gap-1.5 sm:gap-3 relative overflow-hidden text-left',
               s.Stage === 'Transmission_Archive' && 'col-span-2 justify-self-center w-full max-w-[calc(50%-0.375rem)] sm:max-w-none sm:col-span-1',
               stageFilter?.stage === s.Stage && stageFilter?.category === 'ALL'
                 ? brand === 'jaguar'

@@ -86,7 +86,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
     locations.find(l => l.shelf === activeSection && l.rack === rack && l.level === level)
 
   return (
-    <Card className={cn("gap-0 rounded-2xl border shadow-sm ring-1 transition-all duration-300", brand === 'jaguar'
+    <Card className={cn("gap-0 rounded-2xl border shadow-sm ring-1 transition duration-300", brand === 'jaguar'
       ? "border-emerald-200/60 ring-emerald-100/50 hover:shadow-emerald-200/50"
       : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
     )}>
@@ -186,7 +186,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                           setDetailSlot(loc)
                         }}
                         className={cn(
-                          "w-full rounded-xl border p-3 text-left transition-all flex items-center justify-between gap-3",
+                          "w-full rounded-xl border p-3 text-left transition flex items-center justify-between gap-3",
                           isSuggested
                             ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/40"
                             : isHighlighted

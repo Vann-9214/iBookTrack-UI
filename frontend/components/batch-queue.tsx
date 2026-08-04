@@ -97,7 +97,7 @@ export function BatchQueue() {
               <div className="mb-3">
                 <div className="w-full h-2 bg-sidebar-border rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-primary rounded-full transition-all"
+                    className="h-full bg-primary rounded-full transition"
                     style={{ width: `${batch.progress}%` }}
                   />
                 </div>

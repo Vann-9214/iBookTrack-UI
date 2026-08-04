@@ -165,7 +165,7 @@ export function WarehouseCompleteSessionModal({
                   onClick={handleAddIssue}
                   disabled={!issueIsbn.trim() || fetchingIssueBook}
                   aria-label={issueType === 'missing' ? 'Add missing book' : 'Add book'}
-                  className="h-11 shrink-0 rounded-xl bg-red-600 px-4 text-xs font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                  className="h-11 shrink-0 rounded-xl bg-red-600 px-4 text-xs font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
                   {fetchingIssueBook ? 'Adding...' : 'Add Book'}
                 </button>
@@ -234,7 +234,7 @@ export function WarehouseCompleteSessionModal({
           </div>
           <div className="flex gap-2 sm:shrink-0">
             <button onClick={dismiss} className="flex-1 rounded-xl border border-border bg-white/80 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-white hover:text-foreground sm:flex-none">Cancel</button>
-            <button onClick={() => confirmCloseSession()} disabled={loading} className={cn('inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none', theme.button)}>
+            <button onClick={() => confirmCloseSession()} disabled={loading} className={cn('inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none', theme.button)}>
               <CircleCheck className="h-4 w-4" />
               {loading ? 'Completing...' : 'Confirm Complete'}
             </button>

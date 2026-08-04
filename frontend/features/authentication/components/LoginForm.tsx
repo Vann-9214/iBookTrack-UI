@@ -37,7 +37,7 @@ export function LoginForm() {
       }
       checkSsoUser()
     }
-  }, [router])
+  }, [router, refreshUser])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()

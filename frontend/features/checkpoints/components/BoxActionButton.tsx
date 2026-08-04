@@ -71,7 +71,7 @@ function SlideAction({
 }) {
   return (
     <div className="group/action relative flex items-center justify-end w-[76px] h-7 shrink-0 rounded-md cursor-pointer overflow-hidden">
-      <Badge variant="outline" className={cn('text-[10px] transition-all duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center', badgeClass)}>
+      <Badge variant="outline" className={cn('text-[10px] transition duration-300 group-hover/action:-translate-x-full group-hover/action:opacity-0 cursor-default flex items-center justify-center w-full h-full text-center', badgeClass)}>
         {badgeLabel}
       </Badge>
       <Button
@@ -79,7 +79,7 @@ function SlideAction({
         variant={variant}
         disabled={loading}
         onClick={onClick}
-        className={cn('absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition-all duration-300', buttonClass)}
+        className={cn('absolute inset-y-0 right-0 h-full w-full px-0 gap-1 text-xs opacity-0 translate-x-full group-hover/action:translate-x-0 group-hover/action:opacity-100 pointer-events-none group-hover/action:pointer-events-auto transition duration-300', buttonClass)}
       >
         {loading ? '...' : buttonLabel}
         {!loading && buttonLabel === 'Send' && <ArrowRight className="h-3 w-3" />}

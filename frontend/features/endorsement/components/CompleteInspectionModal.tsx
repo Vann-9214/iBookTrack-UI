@@ -82,7 +82,7 @@ export function CompleteInspectionModal({
         <div className="overflow-y-auto flex-1 p-6 space-y-6">
           {/* Stats Cards */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-sm ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg bg-white/68 border-primary/15 ring-primary/10 hover:shadow-primary/20">
+            <div className="relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-sm ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg bg-white/68 border-primary/15 ring-primary/10 hover:shadow-primary/20">
               <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full blur-xl bg-primary/20" />
               <div className="relative flex h-full items-center justify-between gap-3">
                 <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:flex premium-gradient-ui-card--solid">
@@ -94,7 +94,7 @@ export function CompleteInspectionModal({
                 </div>
               </div>
             </div>
-            <div className="relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-sm ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg border-emerald-200/80 bg-emerald-50 ring-emerald-100/70 hover:shadow-emerald-200/60">
+            <div className="relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-sm ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg border-emerald-200/80 bg-emerald-50 ring-emerald-100/70 hover:shadow-emerald-200/60">
               <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full blur-xl bg-emerald-400/20" />
               <div className="relative flex h-full items-center justify-between gap-3">
                 <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:flex bg-emerald-600 shadow-emerald-500/25">
@@ -106,7 +106,7 @@ export function CompleteInspectionModal({
                 </div>
               </div>
             </div>
-            <div className="relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-sm ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg border-rose-200/80 bg-red-50 ring-rose-100/70 hover:shadow-rose-200/60">
+            <div className="relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-sm ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg border-rose-200/80 bg-red-50 ring-rose-100/70 hover:shadow-rose-200/60">
               <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full blur-xl bg-red-400/20" />
               <div className="relative flex h-full items-center justify-between gap-3">
                 <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:flex bg-red-600 shadow-red-500/25">
@@ -224,7 +224,7 @@ export function CompleteInspectionModal({
             <button
               onClick={onConfirm}
               disabled={loadingInspSession}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid hover:shadow-xl"
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid hover:shadow-xl"
             >
               {loadingInspSession ? <Loader2 className="h-4 w-4 animate-spin" /> : <CircleCheck className="h-4 w-4" />}
               {loadingInspSession ? 'Completing...' : 'Confirm Complete'}

@@ -30,13 +30,13 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="overflow-x-auto w-full sm:w-auto">
           <TabsList className={cn("w-full flex bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", t.loading && "opacity-50 pointer-events-none")}>
-            <TabsTrigger value="queue" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
+            <TabsTrigger value="queue" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
               Live Scan Feed
             </TabsTrigger>
-            <TabsTrigger value="machine" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
+            <TabsTrigger value="machine" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
               By Machine
             </TabsTrigger>
-            <TabsTrigger value="lot" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap flex items-center justify-center", tabActiveTheme)}>
+            <TabsTrigger value="lot" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap flex items-center justify-center", tabActiveTheme)}>
               <Package className="h-3 w-3 mr-1.5" />
               Lot & Box
             </TabsTrigger>
@@ -47,7 +47,7 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
           <button
             onClick={() => t.setTableView('books')}
             className={cn(
-              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
+              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition duration-200',
               t.tableView === 'books' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             )}
           >
@@ -62,7 +62,7 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
           <button
             onClick={() => t.setTableView('wip')}
             className={cn(
-              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-200',
+              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition duration-200',
               t.tableView === 'wip' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
             )}
           >

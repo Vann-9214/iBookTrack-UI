@@ -29,7 +29,7 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
 
   return (
     <>
-      <Card className={cn("gap-0 h-fit max-h-[640px] rounded-2xl border shadow-sm ring-1 transition-all duration-300", brand === 'jaguar'
+      <Card className={cn("gap-0 h-fit max-h-[640px] rounded-2xl border shadow-sm ring-1 transition duration-300", brand === 'jaguar'
         ? "border-emerald-200/60 ring-emerald-100/50 hover:shadow-emerald-200/50"
         : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
       )}>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import {
   Activity,
@@ -51,6 +51,8 @@ interface LiveLot {
   total_books: number
   status: string
   completion_progress: number
+  boxes_count?: number
+  books_count?: number
 }
 
 interface DailyOutputRow {
@@ -93,7 +95,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   const [liveLotsClosing, setLiveLotsClosing] = useState(false)
   const [dailyOutputClosing, setDailyOutputClosing] = useState(false)
 
-  const fetchLiveLots = async (background = false) => {
+  const fetchLiveLots = useCallback(async (background = false) => {
     if (!background) setLoadingLiveLots(true)
     try {
       const res = await authFetch(`${API_URL}/api/dashboard/open-lots?brand=${brand}`)
@@ -110,16 +112,17 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         }
       })
       setLiveLots(mappedLots)
-      if (selectedLot) {
-        const updated = mappedLots.find((ml: any) => ml.id === selectedLot.id)
-        if (updated) setSelectedLot(updated)
-      }
+      setSelectedLot(prev => {
+        if (!prev) return prev;
+        const updated = mappedLots.find((ml: any) => ml.id === prev.id)
+        return updated || prev;
+      })
     } catch {
       setLiveLots([])
     } finally {
       setLoadingLiveLots(false)
     }
-  }
+  }, [brand])
 
   const openLiveLots = async () => {
     setLiveLotsOpen(true)
@@ -131,9 +134,9 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   useEffect(() => {
     if (refreshKey === undefined || !liveLotsOpen) return
     fetchLiveLots(true)
-  }, [refreshKey, liveLotsOpen])
+  }, [refreshKey, liveLotsOpen, fetchLiveLots])
 
-  const fetchFlags = async (page = 1, background = false) => {
+  const fetchFlags = useCallback(async (page = 1, background = false) => {
     if (!background) setLoadingFlags(true)
     try {
       const res = await authFetch(`${API_URL}/api/dashboard/qc-flags?page=${page}&limit=10&today=true&box_type=${brand}`)
@@ -152,7 +155,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     } finally {
       setLoadingFlags(false)
     }
-  }
+  }, [brand])
 
   const openFlags = async () => {
     setFlagsOpen(true)
@@ -161,7 +164,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     await fetchFlags(1)
   }
 
-  const fetchDailyOutput = async (page = 1, sort = dailyOutputSort, background = false) => {
+  const fetchDailyOutput = useCallback(async (page = 1, sort = dailyOutputSort, background = false) => {
     if (!background) setLoadingDailyOutput(true)
     try {
       const res = await authFetch(`${API_URL}/api/dashboard/daily-output?page=${page}&limit=${dailyOutputPagination.pageSize}&brand=${brand}&sort=${sort}`)
@@ -174,7 +177,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
     } finally {
       setLoadingDailyOutput(false)
     }
-  }
+  }, [brand, dailyOutputPagination.pageSize])
 
   const openDailyOutput = async () => {
     setDailyOutputOpen(true)
@@ -194,22 +197,22 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   useEffect(() => {
     if (refreshKey === undefined || !flagsOpen) return
     fetchFlags(flagsPagination.currentPage, true)
-  }, [refreshKey, flagsOpen])
+  }, [refreshKey, flagsOpen, flagsPagination.currentPage, fetchFlags])
 
   useEffect(() => {
     if (!flagsOpen) return
     fetchFlags(flagsPagination.currentPage)
-  }, [flagsPagination.currentPage])
+  }, [flagsPagination.currentPage, flagsOpen, fetchFlags])
 
   useEffect(() => {
     if (refreshKey === undefined || !dailyOutputOpen) return
     fetchDailyOutput(dailyOutputPagination.currentPage, dailyOutputSort, true)
-  }, [refreshKey, dailyOutputOpen])
+  }, [refreshKey, dailyOutputOpen, dailyOutputPagination.currentPage, dailyOutputSort, fetchDailyOutput])
 
   useEffect(() => {
     if (!dailyOutputOpen) return
     fetchDailyOutput(dailyOutputPagination.currentPage, dailyOutputSort)
-  }, [dailyOutputPagination.currentPage, dailyOutputSort])
+  }, [dailyOutputPagination.currentPage, dailyOutputSort, dailyOutputOpen, fetchDailyOutput])
 
   const dismissFlags = () => {
     if (flagsClosing) return
@@ -406,7 +409,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               <div
                 key={stat.title}
                 className={cn(
-                  "rounded-2xl border p-3 flex flex-col shadow-sm ring-1 transition-all duration-200 overflow-hidden cursor-default",
+                  "rounded-2xl border p-3 flex flex-col shadow-sm ring-1 transition duration-200 overflow-hidden cursor-default",
                   stat.tone.card
                 )}
               >
@@ -432,7 +435,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                 role={stat.onClick ? "button" : undefined}
                 onClick={stat.onClick}
                 className={cn(
-                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 hover:-translate-y-1 hover:shadow-xl",
                   stat.tone.card, stat.tone.hover,
                   stat.onClick ? "cursor-pointer" : "cursor-default"
                 )}
@@ -475,7 +478,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   </div>
                 </div>
               </div>
-              <button onClick={dismissFlags} className="rounded-full p-2.5 bg-white/50 hover:bg-white text-red-500 shadow-sm transition-all hover:shadow hover:scale-105">
+              <button onClick={dismissFlags} className="rounded-full p-2.5 bg-white/50 hover:bg-white text-red-500 shadow-sm transition hover:shadow hover:scale-105">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -616,7 +619,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
               </div>
               <button
                 onClick={dismissLiveLots}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -636,7 +639,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     { label: 'Total books', value: selectedLot.total_books.toLocaleString(), icon: BookOpen },
                     { label: 'Total boxes', value: selectedLot.total_boxes.toLocaleString(), icon: Package },
                   ].map(({ label, value, icon: Icon }) => (
-                    <div key={label} className={cn("rounded-2xl p-5 flex flex-col justify-between shadow-sm transition-all hover:shadow-md", TONE.theme.card)}>
+                    <div key={label} className={cn("rounded-2xl p-5 flex flex-col justify-between shadow-sm transition hover:shadow-md", TONE.theme.card)}>
                       <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl text-white mb-4", TONE.theme.icon)}>
                         <Icon className="h-6 w-6" />
                       </div>
@@ -647,7 +650,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     </div>
                   ))}
 
-                  <div className={cn("col-span-2 rounded-2xl p-6 shadow-sm flex items-center gap-6 transition-all hover:shadow-md", TONE.theme.card)}>
+                  <div className={cn("col-span-2 rounded-2xl p-6 shadow-sm flex items-center gap-6 transition hover:shadow-md", TONE.theme.card)}>
                     {(() => {
                       const isCompleted = selectedLot.status === 'Completed' || selectedLot.completion_progress === 100;
                       return (
@@ -728,7 +731,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     <button
                       key={lot.id}
                       onClick={() => setSelectedLot(lot)}
-                      className={cn("group/lot w-full flex items-center gap-3 rounded-xl border border-transparent bg-gradient-to-r from-gray-50/80 to-white px-2 py-2 text-left transition-all hover:shadow-sm hover:from-white hover:to-gray-50", M.rowHover)}
+                      className={cn("group/lot w-full flex items-center gap-3 rounded-xl border border-transparent bg-gradient-to-r from-gray-50/80 to-white px-2 py-2 text-left transition hover:shadow-sm hover:from-white hover:to-gray-50", M.rowHover)}
                     >
                       <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md transition-transform group-hover/lot:scale-105 ring-1 ring-white/20", M.iconBg)}>
                         <Package className="h-5 w-5" />
@@ -836,7 +839,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   </div>
                 </div>
               </div>
-              <button onClick={dismissDailyOutput} className={cn("rounded-full p-2.5 bg-white/50 shadow-sm hover:shadow hover:scale-105 hover:bg-white transition-all", M.soft)}>
+              <button onClick={dismissDailyOutput} className={cn("rounded-full p-2.5 bg-white/50 shadow-sm hover:shadow hover:scale-105 hover:bg-white transition", M.soft)}>
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -844,7 +847,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
             {/* Summary cards */}
             {!loadingDailyOutput && dailyOutputRows.length > 0 && (
               <div className="flex items-center gap-4 px-6 py-5 border-b border-gray-100 bg-gray-50/50">
-                <div className={cn("flex-1 flex items-center gap-4 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md", TONE.theme.card)}>
+                <div className={cn("flex-1 flex items-center gap-4 rounded-2xl p-5 shadow-sm transition hover:shadow-md", TONE.theme.card)}>
                   <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-md", TONE.theme.icon)}>
                     <BookOpen className="h-6 w-6" />
                   </div>
@@ -853,7 +856,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                     <span className={cn("text-3xl font-black tracking-tight tabular-nums", TONE.theme.value)}>{totalDailyOutput}</span>
                   </div>
                 </div>
-                <div className={cn("flex-1 flex items-center gap-4 rounded-2xl p-5 shadow-sm transition-all hover:shadow-md", TONE.theme.card)}>
+                <div className={cn("flex-1 flex items-center gap-4 rounded-2xl p-5 shadow-sm transition hover:shadow-md", TONE.theme.card)}>
                   <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-md", TONE.theme.icon)}>
                     <FileText className="h-6 w-6" />
                   </div>

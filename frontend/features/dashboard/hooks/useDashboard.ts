@@ -121,7 +121,7 @@ export function useDashboard() {
   useEffect(() => {
     setIsRefreshing(true)
     void fetchStats().finally(() => setIsRefreshing(false))
-  }, [brand])
+  }, [brand, fetchStats])
 
   const backgroundRefresh = useCallback(async () => {
     try {

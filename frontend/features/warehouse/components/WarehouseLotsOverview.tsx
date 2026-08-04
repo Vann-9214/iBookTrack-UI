@@ -179,7 +179,7 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
   const tabActiveTheme = 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-[color-mix(in_oklch,var(--primary)_70%,black)] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-transparent'
 
   return (
-    <div className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden flex flex-col transition-all duration-300", cardTheme)}>
+    <div className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden flex flex-col transition duration-300", cardTheme)}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
       {/* Header */}
       <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-[2px] gap-3 sm:gap-4">
@@ -201,11 +201,11 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
         <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0 w-full sm:w-auto overflow-x-auto hide-scrollbar pb-1 sm:pb-0">
           <Tabs value={activeTab} className="w-full sm:w-auto" onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
             <TabsList className={cn("w-full flex bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
-              <TabsTrigger disabled={displayLoading} value="all" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>All Lots</TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="in_progress" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
+              <TabsTrigger disabled={displayLoading} value="all" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition font-medium data-[state=active]:font-bold", tabActiveTheme)}>All Lots</TabsTrigger>
+              <TabsTrigger disabled={displayLoading} value="in_progress" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 In Progress
               </TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="delayed" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold", tabActiveTheme)}>
+              <TabsTrigger disabled={displayLoading} value="delayed" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition font-medium data-[state=active]:font-bold", tabActiveTheme)}>
                 Delayed
               </TabsTrigger>
             </TabsList>
@@ -219,7 +219,7 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                 onChange={e => setLotSearchInput(e.target.value)}
                 disabled={displayLoading}
                 className={cn(
-                  "w-full sm:w-56 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0 disabled:opacity-50",
+                  "w-full sm:w-56 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0 disabled:opacity-50",
                   brand === 'jaguar' ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
                 )}
               />
@@ -298,7 +298,7 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                   <button
                     onClick={() => toggleLot(lot.id)}
                     className={cn(
-                      'w-full grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5 text-left transition-all duration-150 group',
+                      'w-full grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5 text-left transition duration-150 group',
                       expanded
                         ? cn('text-white shadow-lg shadow-black/10', iconTheme)
                         : 'hover:bg-primary/5'
@@ -353,7 +353,7 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                         {expanded ? 'Collapse' : 'Expand'}
                       </span>
                       <ChevronRight className={cn(
-                        'h-3.5 w-3.5 transition-all duration-200',
+                        'h-3.5 w-3.5 transition duration-200',
                         expanded ? 'rotate-90 text-white' : 'text-muted-foreground/60'
                       )} />
                     </div>

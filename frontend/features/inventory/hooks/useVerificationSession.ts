@@ -119,7 +119,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     } catch {
       toast({ title: 'API Error', description: 'Failed to fetch book details. Cannot verify ISBN.', variant: 'destructive' })
     } finally { setLoadingVerifBooks(false) }
-  }, [saveVerifBookToLocal, toast, verifBookCounter, verifCurrentSession, verifScannedBooks, warehouseBooks])
+  }, [saveVerifBookToLocal, toast, verifBookCounter, verifCurrentSession, verifScannedBooks, warehouseBooks, brand])
 
   const handleVerifAddIssue = useCallback(async () => {
     const isbn = verifIssueIsbn.trim()

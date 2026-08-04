@@ -35,7 +35,7 @@ export function CutHeader({ brand, refreshing, onRefresh, lastUpdated }: CutHead
                   <button
                     onClick={onRefresh}
                     disabled={refreshing}
-                    className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+                    className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition disabled:opacity-50"
                     aria-label="Refresh"
                   >
                     <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />

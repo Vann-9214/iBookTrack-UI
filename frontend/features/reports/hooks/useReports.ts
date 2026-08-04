@@ -20,13 +20,17 @@ export function useReports(brand: string) {
   const LOTS_PER_PAGE = 10
 
   const toggleLot = (lotId: string) => {
+    // If the lot wasn't expanded yet, reset its page to 1
+    if (!expandedLots.has(lotId)) {
+      setBoxPageByLot(p => ({ ...p, [lotId]: 1 }))
+    }
+    
     setExpandedLots(prev => {
       const next = new Set(prev)
       if (next.has(lotId)) {
         next.delete(lotId)
       } else {
         next.add(lotId)
-        setBoxPageByLot(p => ({ ...p, [lotId]: 1 }))
       }
       return next
     })

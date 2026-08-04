@@ -49,7 +49,7 @@ export function StageBoxRow({
     <div
       id={`box-${box.id}`}
       className={cn(
-        'group rounded-xl border overflow-hidden transition-all',
+        'group rounded-xl border overflow-hidden transition',
         isDelayed
           ? 'border-orange-200 bg-orange-50/60 hover:border-orange-300'
           : 'border-gray-100 bg-gray-50/60 hover:border-transparent',

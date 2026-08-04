@@ -98,7 +98,7 @@ export function WarehouseIlmsMismatchModal({
           <button onClick={() => close()} className="rounded-xl border border-amber-200/80 bg-white/80 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-amber-50 hover:text-foreground">
             Cancel
           </button>
-          <button onClick={() => close(ilmsMismatchModal.onConfirm)} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600">
+          <button onClick={() => close(ilmsMismatchModal.onConfirm)} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600">
             Confirm book
           </button>
         </div>

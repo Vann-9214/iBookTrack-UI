@@ -84,12 +84,12 @@ function SectionLabel({ children, first = false }: { children: React.ReactNode; 
   return (
     <div className={cn('relative flex items-center h-5 mb-2', !first && 'mt-6')}>
       {/* Collapsed state: just a subtle glowing dot in the center */}
-      <div className="absolute inset-0 flex items-center justify-center transition-all duration-300 group-hover/sidebar:opacity-0 group-hover/sidebar:scale-50">
+      <div className="absolute inset-0 flex items-center justify-center transition duration-300 group-hover/sidebar:opacity-0 group-hover/sidebar:scale-50">
         <div className="w-[3px] h-[3px] rounded-full bg-white/40 shadow-[0_0_8px_rgba(255,255,255,0.6)]" />
       </div>
 
       {/* Expanded state: Text with a beautiful fading gradient line */}
-      <div className="absolute inset-0 flex items-center opacity-0 translate-x-[-10px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0 transition-all duration-300 overflow-hidden" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
+      <div className="absolute inset-0 flex items-center opacity-0 translate-x-[-10px] group-hover/sidebar:opacity-100 group-hover/sidebar:translate-x-0 transition duration-300 overflow-hidden" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
         <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-white/60 shrink-0 mr-3">
           {children}
         </p>
@@ -138,7 +138,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
   }
 
   const navItemCls = (active: boolean) => cn(
-    'group/item relative flex items-center gap-0 rounded-xl h-11 w-full transition-all duration-300 overflow-hidden',
+    'group/item relative flex items-center gap-0 rounded-xl h-11 w-full transition duration-300 overflow-hidden',
     navigationLocked && 'cursor-not-allowed opacity-50',
     active
       ? 'bg-gradient-to-r from-white/30 via-white/10 to-transparent text-white ring-1 ring-white/30 shadow-[0_8px_20px_rgba(255,255,255,0.15)] backdrop-blur-xl before:absolute before:left-0 before:top-[15%] before:bottom-[15%] before:w-[4px] before:rounded-r-full before:bg-white before:shadow-[0_0_15px_rgba(255,255,255,1)]'
@@ -148,7 +148,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
   )
 
   const mobileNavItemCls = (active: boolean) => cn(
-    'relative flex items-center gap-3 rounded-xl px-3 py-3 w-full text-sm transition-all duration-300 overflow-hidden',
+    'relative flex items-center gap-3 rounded-xl px-3 py-3 w-full text-sm transition duration-300 overflow-hidden',
     active
       ? 'bg-gradient-to-r from-white/30 via-white/10 to-transparent text-white ring-1 ring-white/30 shadow-[0_8px_20px_rgba(255,255,255,0.15)] backdrop-blur-xl before:absolute before:left-0 before:top-[15%] before:bottom-[15%] before:w-[4px] before:rounded-r-full before:bg-white before:shadow-[0_0_15px_rgba(255,255,255,1)] font-bold'
       : 'text-white/70 hover:bg-gradient-to-r hover:from-white/15 hover:via-white/5 hover:to-transparent hover:text-white hover:ring-1 hover:ring-white/10 hover:shadow-md hover:backdrop-blur-md font-semibold'

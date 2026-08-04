@@ -116,7 +116,7 @@ export function NonProcessableModals({
               </div>
               <button
                 onClick={dismissModal}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -308,8 +308,8 @@ export function NonProcessableModals({
                 </button>
                 <Button 
                   onClick={resolveFlag} 
-                  disabled={resolvingId === flagToResolve.scan_id || missingStatus?.loading || (missingStatus && !missingStatus.found)}
-                  className={cn("h-10 px-6 rounded-xl text-white font-semibold shadow-sm transition-all", isJaguar ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700")}
+                  disabled={Boolean(resolvingId === flagToResolve.scan_id || missingStatus?.loading || (missingStatus && !missingStatus.found))}
+                  className={cn("h-10 px-6 rounded-xl text-white font-semibold shadow-sm transition", isJaguar ? "bg-emerald-600 hover:bg-emerald-700" : "bg-blue-600 hover:bg-blue-700")}
                 >
                   {resolvingId === flagToResolve.scan_id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
                   {resolvingId === flagToResolve.scan_id ? 'Resolving...' : 'Confirm Resolve'}

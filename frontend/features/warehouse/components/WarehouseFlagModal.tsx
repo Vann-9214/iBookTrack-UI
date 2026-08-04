@@ -182,7 +182,7 @@ export function WarehouseFlagModal({
           <button
             onClick={() => close(saveFlagFromLog)}
             disabled={!flagIssue || !flagRemarks.trim() || flagSaving}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
           >
             <AlertTriangle className="h-4 w-4" />
             {flagSaving ? 'Saving...' : 'Confirm Flag'}

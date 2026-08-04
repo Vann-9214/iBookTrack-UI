@@ -58,7 +58,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
                   key={s}
                   onClick={() => { setActiveSection(s); setSectionDropdownOpen(false) }}
                   className={cn(
-                    "flex flex-col items-center justify-center gap-1 h-10 rounded-lg border text-xs font-semibold transition-all",
+                    "flex flex-col items-center justify-center gap-1 h-10 rounded-lg border text-xs font-semibold transition",
                     activeSection === s
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
                       : "bg-background text-foreground border-border hover:border-primary/60 hover:bg-muted/60"
