@@ -253,9 +253,11 @@ export const getSimflexStatusService = async (req) => {
     throw { status: 502, payload: { success: false, error: result.error || 'Scan Manager unavailable' } };
   }
 
+  const normalizeIsbn = (isbn) => String(isbn || '').replace(/-/g, '').trim().toLowerCase();
+
   const statuses = {};
   for (const r of result.data) {
-    statuses[r.isbn] = {
+    statuses[normalizeIsbn(r.isbn)] = {
       latestStatus: r.latestStatus,
       transmissionCompleted: r.transmissionCompleted
     };
@@ -263,17 +265,17 @@ export const getSimflexStatusService = async (req) => {
 
   if (Object.keys(statuses).length > 0) {
     const { data: booksData } = await scanningRepo.getBookIdsByIsbns(isbnList);
-      
+
     if (booksData && booksData.length > 0) {
       const updatePromises = booksData.map(book => {
-        const statObj = statuses[book.isbn];
+        const statObj = statuses[normalizeIsbn(book.isbn)];
         if (statObj) {
           const statusStr = statObj.transmissionCompleted ? 'Transmission Completed' : (statObj.latestStatus || 'Pending');
           return scanningRepo.updateBookActivityTransmissionStatus(book.id, statusStr);
         }
         return null;
       }).filter(Boolean);
-      
+
       await Promise.all(updatePromises);
     }
   }

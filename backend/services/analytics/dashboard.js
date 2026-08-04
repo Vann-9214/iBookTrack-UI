@@ -414,6 +414,8 @@ export const getPipelineStatsService = async (req) => {
       const isbns = [...new Set(activities.map(a => a.books?.isbn))];
       const location = selectedBrand || 'mustang';
       
+      const normalizeIsbn = (isbn) => String(isbn || '').replace(/-/g, '').trim().toLowerCase();
+
       const simflexResult = await getSimflexStatusForISBNs(isbns, location);
       const simflexData = simflexResult.success ? simflexResult.data : [];
 
@@ -423,8 +425,8 @@ export const getPipelineStatsService = async (req) => {
         if (!boxGroups[boxId]) boxGroups[boxId] = { isbns: [], completed: 0, transmitting: 0 };
         const isbn = a.books?.isbn;
         boxGroups[boxId].isbns.push(isbn);
-        
-        const simStatus = simflexData.find(s => s.isbn === isbn);
+
+        const simStatus = simflexData.find(s => normalizeIsbn(s.isbn) === normalizeIsbn(isbn));
         if (simStatus) {
           if (simStatus.transmissionCompleted) {
             boxGroups[boxId].completed++;

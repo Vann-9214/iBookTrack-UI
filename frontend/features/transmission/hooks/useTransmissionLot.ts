@@ -29,6 +29,8 @@ export function useTransmissionLot(brand: TransmissionBrand) {
 
   const [lotIsbnFilter, setLotIsbnFilter] = useState<LotIsbnFilter>('all')
   const [lotBoxFilter, setLotBoxFilter] = useState<string>('all')
+  const [lotStageFilter, setLotStageFilter] = useState<string>('all')
+  const [lotTransmissionFilter, setLotTransmissionFilter] = useState<'all' | 'transmitted' | 'not_transmitted'>('all')
   const [lotBoxSelectorOpen, setLotBoxSelectorOpen] = useState(false)
   const [lotBoxSearch, setLotBoxSearch] = useState('')
   const [lotIsbnSearch, setLotIsbnSearch] = useState('')
@@ -47,6 +49,22 @@ export function useTransmissionLot(brand: TransmissionBrand) {
     wip: true,
     non_processable: false,
   })
+
+  // Reset lot state when brand changes so the user starts back at the picker.
+  useEffect(() => {
+    setLotInput('')
+    setLotSummary(null)
+    setLotError(null)
+    setShowLotPicker(true)
+    setLotIsbnFilter('all')
+    setLotBoxFilter('all')
+    setLotStageFilter('all')
+    setLotTransmissionFilter('all')
+    setLotBoxSearch('')
+    setLotIsbnSearch('')
+    setLotBoxSelectorOpen(false)
+    if (lotSearchTimerRef.current) clearTimeout(lotSearchTimerRef.current)
+  }, [brand])
 
   // ISBN tagging state
   const [flagModalScan, setFlagModalScan] = useState<LotIsbn | null>(null)
@@ -182,6 +200,15 @@ export function useTransmissionLot(brand: TransmissionBrand) {
   const visibleBoxGroups = matchedBoxGroups.slice(0, BOX_RENDER_CAP)
   const activeBoxGroup = lotBoxFilter !== 'all' ? lotBoxGroups.find((g) => g.box_number === lotBoxFilter) : null
 
+  // Unique stages present in this lot for the stage filter dropdown.
+  const lotStages = useMemo(() => {
+    const stages = new Set<string>()
+    for (const r of lotIsbns) {
+      if (r.current_stage) stages.add(r.current_stage)
+    }
+    return Array.from(stages).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+  }, [lotIsbns])
+
   const filteredLotIsbns = useMemo(() => {
     return lotIsbns.filter((r) => {
       const matchesSearch =
@@ -192,13 +219,21 @@ export function useTransmissionLot(brand: TransmissionBrand) {
 
       if (lotBoxFilter !== 'all' && (r.box_number || '—') !== lotBoxFilter) return false
 
+      if (lotStageFilter !== 'all' && r.current_stage !== lotStageFilter) return false
+
+      if (lotTransmissionFilter === 'transmitted') {
+        if (!r.transmission_completed) return false
+      } else if (lotTransmissionFilter === 'not_transmitted') {
+        if (r.transmission_completed) return false
+      }
+
       if (lotIsbnFilter === 'processable') return r.scan_status === 'processable'
       if (lotIsbnFilter === 'transmitted') return r.transmission_completed
       if (lotIsbnFilter === 'wip') return r.scan_status === 'processable' && !r.transmission_completed
       if (lotIsbnFilter === 'non_processable') return r.scan_status === 'non_processable'
       return true
     })
-  }, [lotIsbns, lotIsbnSearch, lotBoxFilter, lotIsbnFilter])
+  }, [lotIsbns, lotIsbnSearch, lotBoxFilter, lotIsbnFilter, lotStageFilter, lotTransmissionFilter])
 
   const isMobile = useIsMobile()
   const lotIsbnPagination = usePagination({
@@ -212,7 +247,7 @@ export function useTransmissionLot(brand: TransmissionBrand) {
 
   useEffect(() => {
     lotIsbnPagination.goToPage(1)
-  }, [lotBoxFilter, lotIsbnFilter, lotIsbnSearch, lotIsbnPagination.goToPage])
+  }, [lotBoxFilter, lotIsbnFilter, lotIsbnSearch, lotStageFilter, lotTransmissionFilter, lotIsbnPagination.goToPage])
 
   return {
     lotInput,
@@ -224,6 +259,11 @@ export function useTransmissionLot(brand: TransmissionBrand) {
     setLotIsbnFilter,
     lotBoxFilter,
     setLotBoxFilter,
+    lotStageFilter,
+    setLotStageFilter,
+    lotTransmissionFilter,
+    setLotTransmissionFilter,
+    lotStages,
     lotBoxSelectorOpen,
     setLotBoxSelectorOpen,
     lotBoxSearch,

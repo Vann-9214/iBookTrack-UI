@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -118,30 +118,28 @@ export function LotTransmissionSummary({
   return (
     <div className="flex flex-col gap-3">
       <Card className="border-border bg-card py-0 gap-0 overflow-hidden">
-        <div className="px-5 py-3 border-b border-border bg-gradient-to-r from-indigo-50/80 to-white flex items-center justify-between">
+        <div className="px-5 py-3 border-b border-border bg-gradient-to-r from-indigo-50/80 to-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs px-2.5 gap-1 text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+              onClick={() => setShowLotPicker(true)}
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Change LOT
+            </Button>
             <div className="h-2.5 w-2.5 rounded-full bg-indigo-500 animate-pulse" />
             <p className="text-sm font-bold text-gray-800 tracking-tight">{lotSummary.lot_number}</p>
             <Badge variant="outline" className="text-[10px] border-indigo-200 bg-indigo-50 text-indigo-600 font-semibold">
               {lotSummary.total} {lotSummary.total === 1 ? 'book' : 'books'}
             </Badge>
           </div>
-          <div className="flex items-center gap-3">
-            {lotSummary.processable > 0 && (
-              <p className="text-xs text-muted-foreground">
-                {((lotSummary.transmitted / lotSummary.processable) * 100).toFixed(0)}% transmitted
-              </p>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2.5 gap-1 text-muted-foreground"
-              onClick={() => setShowLotPicker(true)}
-            >
-              <ChevronDown className="h-3 w-3" />
-              Change LOT
-            </Button>
-          </div>
+          {lotSummary.processable > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {((lotSummary.transmitted / lotSummary.processable) * 100).toFixed(0)}% transmitted
+            </p>
+          )}
         </div>
 
         <div className="p-4 space-y-4">

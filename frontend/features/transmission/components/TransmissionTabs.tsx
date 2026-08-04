@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Loader2, Package } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -22,11 +23,12 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
   const t = transmission
   const m = machine
   const l = lot
+  const [activeTab, setActiveTab] = useState('lot')
 
   const tabActiveTheme = 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-[color-mix(in_oklch,var(--primary)_70%,black)] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-transparent'
 
   return (
-    <Tabs defaultValue="queue" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="overflow-x-auto w-full sm:w-auto">
           <TabsList className={cn("w-full flex bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", t.loading && "opacity-50 pointer-events-none")}>
@@ -43,33 +45,35 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
           </TabsList>
         </div>
 
-        <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100 p-0.5">
-          <button
-            onClick={() => t.setTableView('books')}
-            className={cn(
-              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition duration-200',
-              t.tableView === 'books' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            )}
-          >
-            <span
+        {activeTab === 'queue' && (
+          <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-100 p-0.5">
+            <button
+              onClick={() => t.setTableView('books')}
               className={cn(
-                'h-1.5 w-1.5 rounded-full',
-                t.tableView === 'books' ? (brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500') : 'bg-gray-400'
+                'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition duration-200',
+                t.tableView === 'books' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               )}
-            />
-            {t.loading ? '…' : t.totalBooks} Books
-          </button>
-          <button
-            onClick={() => t.setTableView('wip')}
-            className={cn(
-              'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition duration-200',
-              t.tableView === 'wip' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            )}
-          >
-            <span className={cn('h-1.5 w-1.5 rounded-full', t.tableView === 'wip' ? 'bg-red-500' : 'bg-gray-400')} />
-            {t.loading ? '…' : t.wipCount} WIP
-          </button>
-        </div>
+            >
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-full',
+                  t.tableView === 'books' ? (brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500') : 'bg-gray-400'
+                )}
+              />
+              {t.loading ? '…' : t.totalBooks} Books
+            </button>
+            <button
+              onClick={() => t.setTableView('wip')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition duration-200',
+                t.tableView === 'wip' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              )}
+            >
+              <span className={cn('h-1.5 w-1.5 rounded-full', t.tableView === 'wip' ? 'bg-red-500' : 'bg-gray-400')} />
+              {t.loading ? '…' : t.wipCount} WIP
+            </button>
+          </div>
+        )}
       </div>
 
       <TabsContent value="queue" className="mt-4">
@@ -165,6 +169,11 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
                 lotIsbnSearch={l.lotIsbnSearch}
                 setLotIsbnSearch={l.setLotIsbnSearch}
                 lotBoxFilter={l.lotBoxFilter}
+                lotStages={l.lotStages}
+                lotStageFilter={l.lotStageFilter}
+                setLotStageFilter={l.setLotStageFilter}
+                lotTransmissionFilter={l.lotTransmissionFilter}
+                setLotTransmissionFilter={l.setLotTransmissionFilter}
                 lotIsbnPagination={l.lotIsbnPagination}
                 onFlag={(r) => {
                   l.setFlagModalScan(r)

@@ -167,7 +167,7 @@ export function LotSelector({
                           fetchLotSummary(lot.lot_number)
                         }}
                       >
-                        View →
+                        View books
                       </Button>
                     </td>
                   </tr>

@@ -6,7 +6,9 @@
  * summaries across boxes, and querying external services (Scan Manager).
  */
 
+import { logger } from '../../utils/logger.js';
 import * as lotsRepo from '../../repositories/inventory/lots.js';
+import { syncBoxTransmissionStatus } from './boxes.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 import { broadcastEvent } from '../../utils/sse.js';
 
@@ -58,35 +60,31 @@ export const getLotTransmissionSummaryService = async (req, res) => {
     };
   }
 
+  // Pull fresh Scan Manager (Simplex) status into our DB first, then read from the DB.
+  // The UI is supposed to show persisted DB state, not hit the external API directly.
+  const lotLocation = lot.type ? lot.type.toLowerCase() : 'mustang';
+  await Promise.all(
+    boxes.map(box =>
+      syncBoxTransmissionStatus(box.id, lotLocation).catch(err =>
+        logger.error(`[Lot Sync] Failed to sync box ${box.id} for lot ${lot.lot_number}:`, err.message)
+      )
+    )
+  );
+
   const allScans = await lotsRepo.getBookActivitiesForBoxes(boxIds);
   const processableScans = allScans.filter(s => s.scan_status === 'processable');
   const nonProcessableScans = allScans.filter(s => s.scan_status === 'non_processable');
 
-  const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
-  const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))];
-
-  let simflexMap = {};
-  if (uniqueIsbns.length > 0) {
-    const location = lot.type ? lot.type.toLowerCase() : 'mustang';
-    const result = await getSimflexStatusForISBNs(uniqueIsbns, location);
-    if (result.success) {
-      for (const r of result.data) {
-        simflexMap[r.isbn] = r;
-      }
-    }
-  }
-
   const isbnRows = allScans.map(s => {
     const isbn = s.books?.isbn;
-    const sf = simflexMap[isbn] || {};
-    
+
     const current_stage = s.books?.boxes?.current_stage || null;
     const stg = (current_stage || '').toLowerCase();
     const showSimflex = stg === 'scan' || stg === 'storage';
 
-    const latestStatus = showSimflex ? (sf.latestStatus || null) : null;
-    const transmissionCompleted = showSimflex ? (sf.transmissionCompleted || false) : false;
-    const transmissionDate = transmissionCompleted ? (sf.latestUpdated || null) : null;
+    const dbStatus = showSimflex ? (s.transmission_status || null) : null;
+    const transmissionCompleted = !!dbStatus && /completed/i.test(dbStatus);
+    const transmissionDate = transmissionCompleted ? (s.transmission_updated_at || null) : null;
 
     return {
       scan_id: s.id,
@@ -98,7 +96,7 @@ export const getLotTransmissionSummaryService = async (req, res) => {
       assigned_box_id: s.books?.box_id,
       box_number: s.books?.boxes?.box_number || null,
       current_stage: current_stage,
-      simflex_status: latestStatus,
+      simflex_status: dbStatus,
       transmission_completed: transmissionCompleted,
       transmission_date: transmissionDate,
     };
@@ -110,10 +108,10 @@ export const getLotTransmissionSummaryService = async (req, res) => {
   for (const r of isbnRows) {
     if (!r.transmission_completed && r.simflex_status) {
       const s = r.simflex_status;
-      if (s.startsWith('Scanning')) wip.done_scan++;
-      else if (s.startsWith('Preval')) wip.pre_validation++;
-      else if (s.startsWith('Tif2PDF')) wip.pdf_conversion++;
-      else if (s.startsWith('Validate')) wip.validation++;
+      if (s.includes('Validate')) wip.validation++;
+      else if (s.includes('Tif2PDF')) wip.pdf_conversion++;
+      else if (s.includes('Preval')) wip.pre_validation++;
+      else if (s.includes('Scanning')) wip.done_scan++;
     }
   }
 

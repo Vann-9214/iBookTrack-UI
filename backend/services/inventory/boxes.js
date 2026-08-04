@@ -32,19 +32,24 @@ export const syncBoxTransmissionStatus = async (boxId, location) => {
       return;
     }
 
+    const normalizeIsbn = (isbn) => String(isbn || '').replace(/-/g, '').trim().toLowerCase();
+
     const updates = [];
     for (const scan of scans) {
       const isbn = scan.books?.isbn;
       if (!isbn) continue;
-      
-      const cleanIsbn = String(isbn).trim().toLowerCase();
-      const sfRecord = simflexResult.data.find(r => String(r.isbn).trim().toLowerCase() === cleanIsbn);
-      
-      const statusToSave = (sfRecord && sfRecord.latestStatus) 
-        ? String(sfRecord.latestStatus).trim() 
-        : 'Pending';
 
-      updates.push(boxesRepo.updateTransmissionStatus(scan.book_id, statusToSave));
+      const cleanIsbn = normalizeIsbn(isbn);
+      const sfRecord = simflexResult.data.find(r => normalizeIsbn(r.isbn) === cleanIsbn);
+
+      const statusToSave = (sfRecord && sfRecord.latestStatus)
+        ? String(sfRecord.latestStatus).trim()
+        : 'Pending';
+      const updatedAtToSave = (sfRecord && sfRecord.latestUpdated)
+        ? new Date(sfRecord.latestUpdated)
+        : null;
+
+      updates.push(boxesRepo.updateTransmissionStatus(scan.book_id, statusToSave, updatedAtToSave));
     }
 
     if (updates.length > 0) {
@@ -575,16 +580,18 @@ export const getBoxTransmissionService = async (req) => {
   const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))];
   let simflexMap = {};
   
+  const normalizeIsbn = (isbn) => String(isbn || '').replace(/-/g, '').trim().toLowerCase();
+
   if (uniqueIsbns.length > 0) {
     const result = await getSimflexStatusForISBNs(uniqueIsbns);
     if (result.success) {
-      for (const r of result.data) simflexMap[r.isbn] = r;
+      for (const r of result.data) simflexMap[normalizeIsbn(r.isbn)] = r;
     }
   }
 
   const booksList = allScans.map(s => {
     const isbn = s.books?.isbn;
-    const sf = simflexMap[isbn] || {};
+    const sf = simflexMap[normalizeIsbn(isbn)] || {};
     return {
       scan_id: s.id,
       isbn: isbn,
