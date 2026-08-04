@@ -25,7 +25,6 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
     )
 
     const data = Array.isArray(rows) ? rows : []
-    logger.info(`[Simflex] Queried ${safeIsbnsNoHyphens.length} ISBNs, found ${data.length} status rows in zeusz_IsbnStatus`)
 
     // Group by normalized ISBN to build a per-ISBN summary
     const byIsbn = {}

@@ -52,8 +52,7 @@ export const getLiveScanningService = async (req) => {
   const scanStageResult = req.query.from && req.query.to
     ? await scanManagerApi.getScanStageBoxes(fromDate, toDate, location)
     : await scanManagerApi.getScanStageBoxes(undefined, undefined, location);
-    
-  logger.info('[/live] getScanStageBoxes result: count=', scanStageResult.count, 'rows=', scanStageResult.data?.length, 'success=', scanStageResult.success, 'error=', scanStageResult.error);
+
   const scanBooks = scanStageResult.count || 0;
 
   const SCAN_STAGES = ['Scanning', 'Jaguar Validate', 'Tif2PDF', 'Preval'];

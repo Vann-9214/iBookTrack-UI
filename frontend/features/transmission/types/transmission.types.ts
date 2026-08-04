@@ -155,6 +155,14 @@ export type TableView = 'books' | 'wip'
 
 export type LotIsbnFilter = 'all' | 'processable' | 'transmitted' | 'wip' | 'non_processable'
 
+export type LotTransmissionFilter =
+  | 'all'
+  | 'transmitted'
+  | 'scan'
+  | 'validate'
+  | 'pdf_conversion'
+  | 'preval'
+
 export interface BoxGroup {
   box_number: string
   total: number

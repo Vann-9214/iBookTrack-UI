@@ -47,8 +47,6 @@ export function usePipelineTransitions(brand: string) {
         dateTo: transitionDateToRef.current,
       })
 
-      console.log('[checkpoints] pipeline-transitions response:', data)
-
       if (data.success) {
         const newTransitions = data.transitions || []
         const newTotal = data.totalCount || 0

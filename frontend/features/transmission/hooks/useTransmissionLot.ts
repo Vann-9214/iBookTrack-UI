@@ -14,6 +14,7 @@ import type {
   LotIsbnFilter,
   LotSearchResult,
   LotSummary,
+  LotTransmissionFilter,
   TransmissionBrand,
 } from '../types/transmission.types'
 import { lotTypeForBrand } from '../utils/transmission.helpers'
@@ -30,7 +31,7 @@ export function useTransmissionLot(brand: TransmissionBrand) {
   const [lotIsbnFilter, setLotIsbnFilter] = useState<LotIsbnFilter>('all')
   const [lotBoxFilter, setLotBoxFilter] = useState<string>('all')
   const [lotStageFilter, setLotStageFilter] = useState<string>('all')
-  const [lotTransmissionFilter, setLotTransmissionFilter] = useState<'all' | 'transmitted' | 'not_transmitted'>('all')
+  const [lotTransmissionFilter, setLotTransmissionFilter] = useState<LotTransmissionFilter>('all')
   const [lotBoxSelectorOpen, setLotBoxSelectorOpen] = useState(false)
   const [lotBoxSearch, setLotBoxSearch] = useState('')
   const [lotIsbnSearch, setLotIsbnSearch] = useState('')
@@ -201,11 +202,13 @@ export function useTransmissionLot(brand: TransmissionBrand) {
   const activeBoxGroup = lotBoxFilter !== 'all' ? lotBoxGroups.find((g) => g.box_number === lotBoxFilter) : null
 
   // Unique stages present in this lot for the stage filter dropdown.
+  // Endorsement is always included as a selectable stage filter option.
   const lotStages = useMemo(() => {
     const stages = new Set<string>()
     for (const r of lotIsbns) {
       if (r.current_stage) stages.add(r.current_stage)
     }
+    stages.add('endorsement')
     return Array.from(stages).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
   }, [lotIsbns])
 
@@ -221,10 +224,16 @@ export function useTransmissionLot(brand: TransmissionBrand) {
 
       if (lotStageFilter !== 'all' && r.current_stage !== lotStageFilter) return false
 
-      if (lotTransmissionFilter === 'transmitted') {
-        if (!r.transmission_completed) return false
-      } else if (lotTransmissionFilter === 'not_transmitted') {
-        if (r.transmission_completed) return false
+      if (lotTransmissionFilter !== 'all') {
+        if (lotTransmissionFilter === 'transmitted') {
+          if (!r.transmission_completed) return false
+        } else {
+          const stage = (r.simflex_status || '').split(' ')[0].toLowerCase()
+          if (lotTransmissionFilter === 'scan' && stage !== 'scanning') return false
+          if (lotTransmissionFilter === 'validate' && stage !== 'validate') return false
+          if (lotTransmissionFilter === 'pdf_conversion' && stage !== 'tif2pdf') return false
+          if (lotTransmissionFilter === 'preval' && stage !== 'preval') return false
+        }
       }
 
       if (lotIsbnFilter === 'processable') return r.scan_status === 'processable'

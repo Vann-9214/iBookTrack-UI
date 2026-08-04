@@ -16,8 +16,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import type { LotIsbn, PaginationState } from '../types/transmission.types'
+import type { LotIsbn, LotTransmissionFilter, PaginationState } from '../types/transmission.types'
 import { getScanStatusBadge, getSimflexBadge } from '../utils/transmission.helpers'
+
+const TRANSMISSION_FILTER_LABELS: Record<LotTransmissionFilter, string> = {
+  all: 'All statuses',
+  transmitted: 'Transmitted',
+  scan: 'Scan',
+  validate: 'Validate',
+  pdf_conversion: 'PDF Conversion',
+  preval: 'Preval',
+}
 
 interface TransmissionBookTableProps {
   brand: 'mustang' | 'jaguar'
@@ -29,8 +38,8 @@ interface TransmissionBookTableProps {
   lotStages: string[]
   lotStageFilter: string
   setLotStageFilter: (value: string) => void
-  lotTransmissionFilter: 'all' | 'transmitted' | 'not_transmitted'
-  setLotTransmissionFilter: (value: 'all' | 'transmitted' | 'not_transmitted') => void
+  lotTransmissionFilter: LotTransmissionFilter
+  setLotTransmissionFilter: (value: LotTransmissionFilter) => void
   lotIsbnPagination: PaginationState
   onFlag: (scan: LotIsbn) => void
 }
@@ -120,14 +129,17 @@ export function TransmissionBookTable({
             </SelectContent>
           </Select>
 
-          <Select value={lotTransmissionFilter} onValueChange={(v) => setLotTransmissionFilter(v as 'all' | 'transmitted' | 'not_transmitted')}>
+          <Select value={lotTransmissionFilter} onValueChange={(v) => setLotTransmissionFilter(v as LotTransmissionFilter)}>
             <SelectTrigger size="sm" className="h-7 text-[11px] w-auto min-w-[140px] bg-white">
               <SelectValue placeholder="Transmission" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="transmitted">Transmitted</SelectItem>
-              <SelectItem value="not_transmitted">Not transmitted</SelectItem>
+              <SelectItem value="scan">Scan</SelectItem>
+              <SelectItem value="validate">Validate</SelectItem>
+              <SelectItem value="pdf_conversion">PDF Conversion</SelectItem>
+              <SelectItem value="preval">Preval</SelectItem>
             </SelectContent>
           </Select>
 
@@ -138,7 +150,7 @@ export function TransmissionBookTable({
           )}
           {lotTransmissionFilter !== 'all' && (
             <Badge variant="outline" className="text-[10px] gap-1 border-slate-200 bg-slate-50 text-slate-600">
-              {lotTransmissionFilter === 'transmitted' ? 'Transmitted only' : 'Not transmitted only'}
+              {TRANSMISSION_FILTER_LABELS[lotTransmissionFilter]} only
             </Badge>
           )}
         </div>

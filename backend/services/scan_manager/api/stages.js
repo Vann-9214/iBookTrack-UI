@@ -43,7 +43,6 @@ export async function getScanStageBoxes(startDate, endDate, location = 'mustang'
       data.push(row)
     }
 
-    logger.info('[getScanStageBoxes] count=', count, '| data=', data.length)
     return { success: true, count, data }
   } catch (error) {
     logger.error('Error fetching scan stage boxes:', error)
