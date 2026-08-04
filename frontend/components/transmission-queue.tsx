@@ -39,20 +39,29 @@ function getPipelineStatusBadge(status: string) {
   const formattedStage = formatPipelineStage(stage)
   const stateUpper = state.toUpperCase()
 
-  if (stateUpper === 'COMPLETED') return (
-    <Badge variant="outline" className="border-success/30 bg-success/10 text-success gap-1 text-[10px] uppercase font-semibold">
-      <CheckCircle2 className="h-3 w-3" /> {formattedStage} COMPLETED
-    </Badge>
-  )
-  if (stateUpper === 'FAILED') return (
-    <Badge variant="outline" className="border-destructive/30 bg-destructive/10 text-destructive gap-1 text-[10px] uppercase font-semibold">
-      <XCircle className="h-3 w-3" /> {formattedStage} FAILED
-    </Badge>
-  )
+  const renderBadge = () => {
+    if (stateUpper === 'COMPLETED') return (
+      <Badge variant="outline" className="px-1.5 py-0 h-4 border-success/30 bg-success/10 text-success gap-1 text-[8px] uppercase font-bold">
+        <CheckCircle2 className="h-2.5 w-2.5" /> COMPLETED
+      </Badge>
+    )
+    if (stateUpper === 'FAILED') return (
+      <Badge variant="outline" className="px-1.5 py-0 h-4 border-destructive/30 bg-destructive/10 text-destructive gap-1 text-[8px] uppercase font-bold">
+        <XCircle className="h-2.5 w-2.5" /> FAILED
+      </Badge>
+    )
+    return (
+      <Badge variant="outline" className="px-1.5 py-0 h-4 border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[8px] uppercase font-bold">
+        <Loader2 className="h-2.5 w-2.5 animate-spin" /> ONGOING
+      </Badge>
+    )
+  }
+
   return (
-    <Badge variant="outline" className="border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[10px] uppercase font-semibold">
-      <Loader2 className="h-3 w-3 animate-spin" /> {formattedStage} ONGOING
-    </Badge>
+    <div className="flex flex-col items-start gap-0.5">
+      <span className="text-[8px] font-bold text-muted-foreground uppercase leading-tight">{formattedStage}</span>
+      {renderBadge()}
+    </div>
   )
 }
 
@@ -172,7 +181,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
       <CardContent className="relative z-10 flex-1 p-0 min-h-0">
         {propLoading || loading ? (
           <div className="h-full overflow-hidden flex flex-col relative z-0">
-            <Table>
+            <table className="w-full text-sm">
               <TableHeader className="bg-white/40 backdrop-blur-md">
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
@@ -181,27 +190,39 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
                   <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">
+                    <div className="relative left-16">Status</div>
+                  </TableHead>
+                  <TableHead className="text-xs text-muted-foreground font-medium">
+                    <div className="relative left-16">Machine</div>
+                  </TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <TableRow key={i} className="border-border/50 hover:bg-transparent">
-                    <TableCell><Skeleton className="h-3.5 w-24 sm:w-28 rounded-sm bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-12 sm:w-16 rounded-sm bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-10 sm:w-12 rounded bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-12 sm:w-14 rounded-sm bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-20 sm:w-24 rounded-sm bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-6 sm:w-8 rounded-sm bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-5 w-16 sm:w-20 rounded-full bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-16 sm:w-20 rounded-sm bg-muted-foreground/10" /></TableCell>
-                    <TableCell><Skeleton className="h-3.5 w-10 sm:w-12 ml-auto rounded-sm bg-muted-foreground/10" /></TableCell>
+                  <TableRow key={i} className="border-border/50 hover:bg-transparent h-10">
+                    <TableCell className="py-0.5"><Skeleton className="h-3.5 w-24 sm:w-28 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell className="py-0.5"><Skeleton className="h-3.5 w-12 sm:w-16 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell className="py-0.5"><Skeleton className="h-4 w-10 sm:w-12 rounded bg-muted-foreground/10" /></TableCell>
+                    <TableCell className="py-0.5"><Skeleton className="h-3.5 w-12 sm:w-14 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell className="py-0.5"><Skeleton className="h-3.5 w-20 sm:w-24 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell className="py-0.5"><Skeleton className="h-3.5 w-6 sm:w-8 rounded-sm bg-muted-foreground/10" /></TableCell>
+                    <TableCell className="py-0.5">
+                      <div className="relative left-16">
+                        <Skeleton className="h-5 w-16 sm:w-20 rounded-full bg-muted-foreground/10" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-0.5">
+                      <div className="relative left-16">
+                        <Skeleton className="h-3.5 w-16 sm:w-20 rounded-sm bg-muted-foreground/10" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-0.5"><Skeleton className="h-3.5 w-10 sm:w-12 ml-auto rounded-sm bg-muted-foreground/10" /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </table>
           </div>
         ) : scans.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 gap-2">
@@ -219,23 +240,31 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
                 <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Machine</TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">
+                  <div className="relative left-16">Status</div>
+                </TableHead>
+                <TableHead className="text-xs text-muted-foreground font-medium">
+                  <div className="relative left-16">Machine</div>
+                </TableHead>
                 <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
               </TableRow>
             </TableHeader>
           )
           const renderRows = (rows: any[]) => rows.map((item, i) => (
-            <TableRow key={i} className="border-border hover:bg-transparent cursor-default">
-              <TableCell className="text-xs text-muted-foreground relative z-10">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
-              <TableCell className="text-xs font-medium text-card-foreground">{item.ScanUser || '—'}</TableCell>
-              <TableCell className="text-xs font-semibold text-card-foreground">{(enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—') ? enrichedData[item.ISBN].lot : (item.LotNumber || '—')}</TableCell>
-              <TableCell className="text-xs text-card-foreground">{(enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—') ? enrichedData[item.ISBN].box : (item.BoxNumber || '—')}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{item.ISBN || '—'}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{item.PageCount || '—'}</TableCell>
-              <TableCell>{getPipelineStatusBadge(item.Status || '')}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{item.MachineName || '—'}</TableCell>
-              <TableCell className="text-xs text-muted-foreground text-right">{formatTime(item.Updated)}</TableCell>
+            <TableRow key={i} className="border-border hover:bg-transparent cursor-default h-10">
+              <TableCell className="text-xs text-muted-foreground relative z-10 py-0.5">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
+              <TableCell className="text-xs font-medium text-card-foreground py-0.5">{item.ScanUser || '—'}</TableCell>
+              <TableCell className="text-xs font-semibold text-card-foreground py-0.5">{(enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—') ? enrichedData[item.ISBN].lot : (item.LotNumber || '—')}</TableCell>
+              <TableCell className="text-xs text-card-foreground py-0.5">{(enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—') ? enrichedData[item.ISBN].box : (item.BoxNumber || '—')}</TableCell>
+              <TableCell className="text-xs text-muted-foreground py-0.5">{item.ISBN || '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground py-0.5">{item.PageCount || '—'}</TableCell>
+              <TableCell className="py-0.5">
+                <div className="relative left-16">{getPipelineStatusBadge(item.Status || '')}</div>
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground py-0.5">
+                <div className="relative left-16">{item.MachineName || '—'}</div>
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground text-right py-0.5">{formatTime(item.Updated)}</TableCell>
             </TableRow>
           ))
           return (
@@ -243,10 +272,10 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
               {/* Mobile: 5 rows + prev/next */}
               <div className="sm:hidden flex flex-col max-h-[300px]">
                 <div className="overflow-auto">
-                  <Table>
+                  <table className="w-full text-sm">
                     {tableHead}
                     <TableBody>{renderRows(mobileRows)}</TableBody>
-                  </Table>
+                  </table>
                 </div>
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-white">
@@ -272,10 +301,10 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
               </div>
               {/* Desktop: max-h for scroll */}
               <div className="hidden sm:block max-h-[300px] overflow-auto">
-                <Table>
+                <table className="w-full text-sm">
                   {tableHead}
                   <TableBody>{renderRows(scans)}</TableBody>
-                </Table>
+                </table>
               </div>
             </>
           )

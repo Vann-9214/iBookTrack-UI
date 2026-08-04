@@ -451,17 +451,16 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
                           
                           {/* Inner pagination for boxes */}
                           {totalBoxPages > 1 && (
-                            <div className="pt-3 pb-0.5 flex justify-end border-t border-black/5 mt-3">
-                              <div className="scale-[0.85] origin-right">
-                                <Pagination
-                                  currentPage={boxPage}
-                                  totalPages={totalBoxPages}
-                                  pageSize={boxPageSize}
-                                  onPageChange={setBoxPage}
-                                  canPrevPage={boxPage > 1}
-                                  canNextPage={boxPage < totalBoxPages}
-                                />
-                              </div>
+                            <div className="pt-3 pb-0.5 mt-3">
+                              <Pagination
+                                currentPage={boxPage}
+                                totalPages={totalBoxPages}
+                                pageSize={boxPageSize}
+                                onPageChange={setBoxPage}
+                                canPrevPage={boxPage > 1}
+                                canNextPage={boxPage < totalBoxPages}
+                                className="border-t border-black/5 py-2 px-0"
+                              />
                             </div>
                           )}
                         </div>

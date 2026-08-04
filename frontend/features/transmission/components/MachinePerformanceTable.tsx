@@ -306,10 +306,10 @@ export function MachinePerformanceTable({
                       ) : (
                         paginatedMachineBooks.map((book) => (
                           <tr key={book.ISBN} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="font-mono text-xs text-gray-800 px-4 py-3">{book.ISBN}</td>
-                            <td className="px-4 py-3">{getPipelineStatusBadge(book.Status || '')}</td>
-                            <td className="text-xs text-gray-600 px-4 py-3">{book.ScanUser || '—'}</td>
-                            <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
+                            <td className="font-mono text-xs text-gray-800 px-4 py-1">{book.ISBN}</td>
+                            <td className="px-4 py-1">{getPipelineStatusBadge(book.Status || '')}</td>
+                            <td className="text-xs text-gray-600 px-4 py-1">{book.ScanUser || '—'}</td>
+                            <td className="text-xs text-gray-400 px-4 py-1 text-right whitespace-nowrap">
                               {book.Updated
                                 ? format(new Date(book.Updated), 'MMM d, HH:mm')
                                 : book.ScanDate

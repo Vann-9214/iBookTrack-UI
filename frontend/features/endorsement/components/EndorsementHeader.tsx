@@ -41,18 +41,22 @@ export function EndorsementHeader({ brand, refreshing, onRefresh, lastUpdated }:
                   >
                     <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
                   </button>
-                  <RefreshControl
-                    onRefresh={onRefresh}
-                    refreshing={refreshing ?? false}
-                    lastUpdated={lastUpdated ?? null}
-                    storageKey="endorsement"
-                    className="hidden sm:flex"
-                  />
                 </div>
               )}
             </div>
           </div>
         </div>
+        {onRefresh && (
+          <div className="flex items-center justify-start sm:justify-end shrink-0">
+            <RefreshControl
+              onRefresh={onRefresh}
+              refreshing={refreshing ?? false}
+              lastUpdated={lastUpdated ?? null}
+              storageKey="endorsement"
+              className="hidden sm:flex"
+            />
+          </div>
+        )}
       </div>
     </header>
   )

@@ -199,23 +199,23 @@ export function LiveScanFeed({
                     : 'border-b border-gray-50 hover:bg-gray-50'
                   return (
                     <tr key={i} className={`${rowCls} transition-colors`}>
-                      <td className="font-mono text-xs text-gray-800 px-4 py-3 whitespace-nowrap">{item.ISBN}</td>
-                      <td className="text-xs text-gray-600 px-4 py-3 whitespace-nowrap">
+                      <td className="font-mono text-xs text-gray-800 px-4 py-1 whitespace-nowrap">{item.ISBN}</td>
+                      <td className="text-xs text-gray-600 px-4 py-1 whitespace-nowrap">
                         {enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—'
                           ? enrichedData[item.ISBN].box
                           : item.BoxNumber || '—'}
                       </td>
-                      <td className="text-xs text-gray-600 px-4 py-3 whitespace-nowrap">
+                      <td className="text-xs text-gray-600 px-4 py-1 whitespace-nowrap">
                         {enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—'
                           ? enrichedData[item.ISBN].lot
                           : item.LotNumber || '—'}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">{getPipelineStatusBadge(item.Status || '')}</td>
-                      <td className="text-xs text-gray-500 px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-1 whitespace-nowrap">{getPipelineStatusBadge(item.Status || '')}</td>
+                      <td className="text-xs text-gray-500 px-4 py-1 whitespace-nowrap">
                         {item.ScanMachineName || item.MachineName || '—'}
                       </td>
-                      <td className="text-xs text-gray-600 px-4 py-3 whitespace-nowrap">{item.ScanUser || '—'}</td>
-                      <td className="text-xs text-gray-400 px-4 py-3 text-right whitespace-nowrap">
+                      <td className="text-xs text-gray-600 px-4 py-1 whitespace-nowrap">{item.ScanUser || '—'}</td>
+                      <td className="text-xs text-gray-400 px-4 py-1 text-right whitespace-nowrap">
                         {item.Updated
                           ? format(new Date(item.Updated), 'MMM d, HH:mm')
                           : item.ScanDate
