@@ -26,29 +26,40 @@ export function getPipelineStatusBadge(status: string): ReactNode {
   const formattedStage = formatPipelineStage(stage)
   const stateUpper = state.toUpperCase()
 
-  if (stateUpper === 'COMPLETED') {
-    return createElement(
-      Badge,
-      { variant: 'outline', className: 'border-success/30 bg-success/10 text-success gap-1 text-[10px]' },
-      createElement(CheckCircle2, { className: 'h-3 w-3' }),
-      ` ${formattedStage} COMPLETED`
-    )
-  }
+  let badgeNode: ReactNode
 
-  if (stateUpper === 'FAILED') {
-    return createElement(
+  if (stateUpper === 'COMPLETED') {
+    badgeNode = createElement(
       Badge,
-      { variant: 'outline', className: 'border-destructive/30 bg-destructive/10 text-destructive gap-1 text-[10px]' },
-      createElement(XCircle, { className: 'h-3 w-3' }),
-      ` ${formattedStage} FAILED`
+      { variant: 'outline', className: 'px-1.5 py-0 h-4 border-success/30 bg-success/10 text-success gap-1 text-[8px] uppercase font-bold' },
+      createElement(CheckCircle2, { className: 'h-2.5 w-2.5' }),
+      ' COMPLETED'
+    )
+  } else if (stateUpper === 'FAILED') {
+    badgeNode = createElement(
+      Badge,
+      { variant: 'outline', className: 'px-1.5 py-0 h-4 border-destructive/30 bg-destructive/10 text-destructive gap-1 text-[8px] uppercase font-bold' },
+      createElement(XCircle, { className: 'h-2.5 w-2.5' }),
+      ' FAILED'
+    )
+  } else {
+    badgeNode = createElement(
+      Badge,
+      { variant: 'outline', className: 'px-1.5 py-0 h-4 border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[8px] uppercase font-bold' },
+      createElement(Loader2, { className: 'h-2.5 w-2.5 animate-spin' }),
+      ' ONGOING'
     )
   }
 
   return createElement(
-    Badge,
-    { variant: 'outline', className: 'border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[10px]' },
-    createElement(Loader2, { className: 'h-3 w-3 animate-spin' }),
-    ` ${formattedStage} ONGOING`
+    'div',
+    { className: 'flex flex-col items-start gap-0.5' },
+    createElement(
+      'span',
+      { className: 'text-[8px] font-bold text-muted-foreground uppercase leading-tight' },
+      formattedStage
+    ),
+    badgeNode
   )
 }
 

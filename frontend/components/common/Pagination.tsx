@@ -52,6 +52,7 @@ export function Pagination({
 
       <div className="flex items-center gap-2">
         <Button
+          type="button"
           size="sm"
           variant="outline"
           disabled={!canPrevPage}
@@ -65,6 +66,7 @@ export function Pagination({
           {totalPages <= 7 ? (
             Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <button
+                type="button"
                 key={page}
                 onClick={() => onPageChange(page)}
                 className={cn(
@@ -81,7 +83,7 @@ export function Pagination({
             <>
               {currentPage > 3 && (
                 <>
-                  <button onClick={() => onPageChange(1)} className="h-8 w-8 rounded text-xs font-medium hover:bg-muted text-foreground transition-colors">
+                  <button type="button" onClick={() => onPageChange(1)} className="h-8 w-8 rounded text-xs font-medium hover:bg-muted text-foreground transition-colors">
                     1
                   </button>
                   {currentPage > 4 && <span className="px-1 text-muted-foreground">...</span>}
@@ -95,6 +97,7 @@ export function Pagination({
                 )
               )].map((page) => (
                 <button
+                  type="button"
                   key={page}
                   onClick={() => onPageChange(page)}
                   className={cn(
@@ -111,7 +114,7 @@ export function Pagination({
               {currentPage < totalPages - 2 && (
                 <>
                   {currentPage < totalPages - 3 && <span className="px-1 text-muted-foreground">...</span>}
-                  <button onClick={() => onPageChange(totalPages)} className="h-8 w-8 rounded text-xs font-medium hover:bg-muted text-foreground transition-colors">
+                  <button type="button" onClick={() => onPageChange(totalPages)} className="h-8 w-8 rounded text-xs font-medium hover:bg-muted text-foreground transition-colors">
                     {totalPages}
                   </button>
                 </>
@@ -121,6 +124,7 @@ export function Pagination({
         </div>
 
         <Button
+          type="button"
           size="sm"
           variant="outline"
           disabled={!canNextPage}
