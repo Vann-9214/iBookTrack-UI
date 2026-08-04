@@ -90,6 +90,7 @@ export const getLotTransmissionSummaryService = async (req, res) => {
       scan_id: s.id,
       isbn: isbn,
       title: s.books?.title || null,
+      author: s.books?.author || null,
       scan_status: s.scan_status,
       rejection_reason: s.user_flags?.rejection_reason || null,
       warehouse_scan_at: s.warehouse_scan_at,

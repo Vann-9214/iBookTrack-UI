@@ -114,6 +114,7 @@ export interface LotIsbn {
   isbn: string
   box_number?: string | null
   title?: string | null
+  author?: string | null
   current_stage?: string
   scan_status: 'processable' | 'non_processable' | 'reject' | string
   simflex_status?: string | null

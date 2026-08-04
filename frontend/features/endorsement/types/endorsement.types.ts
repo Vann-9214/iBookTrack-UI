@@ -26,6 +26,7 @@ export interface BoxBookEntry {
   id: string
   isbn: string
   title: string | null
+  author?: string | null
   scan_status: string
   flag?: { issue: string; remarks: string }
 }
@@ -45,6 +46,7 @@ export interface WarehouseBook {
   id: string
   isbn: string
   title: string
+  author?: string | null
   scan_status: string
   rejection_reason: string | null
   notes?: string | null

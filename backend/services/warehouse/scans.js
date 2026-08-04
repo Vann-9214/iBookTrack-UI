@@ -6,7 +6,7 @@ import { broadcastEvent } from '../../utils/sse.js';
 export const scanBookService = async (req, res) => {
   try {
     const { session_id } = req.params
-    let { isbn, title: scannedTitle, scan_status, rejection_reason, notes, book_type } = req.body
+    let { isbn, title: scannedTitle, author: scannedAuthor, scan_status, rejection_reason, notes, book_type } = req.body
 
     if (book_type) book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
     if (!isbn) return res.status(400).json({ error: 'ISBN is required' })
@@ -53,10 +53,13 @@ export const scanBookService = async (req, res) => {
     let { rows: existingBookRows } = await db.query('SELECT id FROM books WHERE isbn = $1 AND box_id = $2 LIMIT 1', [isbn, assignedBoxId]);
     if (existingBookRows[0]) {
       bookId = existingBookRows[0].id;
+      if (scannedAuthor) {
+        await db.query('UPDATE books SET author = $1 WHERE id = $2 AND author IS NULL', [scannedAuthor, bookId]);
+      }
     } else {
       const { rows: newBookRows } = await db.query(
-        'INSERT INTO books (isbn, box_id, title, book_type) VALUES ($1, $2, $3, $4) RETURNING id',
-        [isbn, assignedBoxId, scannedTitle || null, book_type || null]
+        'INSERT INTO books (isbn, box_id, title, author, book_type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [isbn, assignedBoxId, scannedTitle || null, scannedAuthor || null, book_type || null]
       );
       bookId = newBookRows[0].id;
     }
@@ -282,7 +285,7 @@ export const getBoxScansService = async (req, res) => {
     const { rows: scans } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.warehouse_scan_at,
              uf.rejection_reason, uf.notes,
-             b.isbn, b.title, bx.box_number, l.lot_number
+             b.isbn, b.title, b.author, bx.box_number, l.lot_number
       FROM book_activity ba
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
       JOIN books b ON ba.book_id = b.id
@@ -299,6 +302,7 @@ export const getBoxScansService = async (req, res) => {
           id: scan.id,
           isbn: scan.isbn,
           title: scan.title,
+          author: scan.author,
           scan_status: scan.scan_status,
           rejection_reason: scan.rejection_reason || null,
           notes: scan.notes || null,

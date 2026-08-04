@@ -113,7 +113,7 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
       ba.id, ba.scan_status, ba.warehouse_scan_at,
       ba.transmission_status, ba.transmission_updated_at,
       uf.rejection_reason as "user_flags.rejection_reason",
-      b.isbn as "books.isbn", b.title as "books.title", b.box_id as "books.box_id",
+      b.isbn as "books.isbn", b.title as "books.title", b.author as "books.author", b.box_id as "books.box_id",
       bx.box_number as "boxes.box_number", bx.current_stage as "boxes.current_stage"
     FROM book_activity ba
     INNER JOIN books b ON ba.book_id = b.id
@@ -138,6 +138,7 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
         books: {
           isbn: row['books.isbn'],
           title: row['books.title'],
+          author: row['books.author'],
           box_id: row['books.box_id'],
           boxes: {
             box_number: row['boxes.box_number'],

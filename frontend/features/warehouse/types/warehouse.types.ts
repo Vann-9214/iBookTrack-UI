@@ -57,6 +57,7 @@ export interface IlmsMismatchModalState {
   open: boolean
   isbn: string
   title: string
+  author?: string
   expectedLot: string
   expectedBox: string
   ilmsLot: string

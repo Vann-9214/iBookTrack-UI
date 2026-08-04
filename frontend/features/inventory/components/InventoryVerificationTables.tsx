@@ -64,6 +64,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                     </div>
                     <div className="col-span-5 sm:col-span-6 min-w-0">
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{book.author || '—'}</p>
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex items-center justify-end min-w-0">
                       {book.scan_status === 'processable' ? (
@@ -130,8 +131,9 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                     <div className="col-span-3 sm:col-span-2 min-w-0">
                       <p className="text-xs font-mono text-muted-foreground truncate">{book.isbn}</p>
                     </div>
-                    <div className="col-span-4 sm:col-span-5 min-w-0 flex items-center">
+                    <div className="col-span-4 sm:col-span-5 min-w-0 flex flex-col justify-center">
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{book.author || '—'}</p>
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex items-center justify-end gap-1.5 min-w-0">
                       {book.scan_status === 'processable' ? (

@@ -92,6 +92,10 @@ export function InspectionFlagModal({
                   <p className="mt-1 line-clamp-3 text-sm font-semibold leading-5 text-foreground">{inspFlagModalBook.title}</p>
                 </div>
                 <div className="border-t border-rose-200/80 pt-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Author</p>
+                  <p className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-foreground">{inspFlagModalBook.author || '—'}</p>
+                </div>
+                <div className="border-t border-rose-200/80 pt-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">ISBN</p>
                   <p className={cn('mt-1 font-mono text-xs font-bold tracking-wide', theme.text)}>{inspFlagModalBook.isbn}</p>
                 </div>

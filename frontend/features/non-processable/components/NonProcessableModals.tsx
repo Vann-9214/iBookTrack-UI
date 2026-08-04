@@ -146,6 +146,7 @@ export function NonProcessableModals({
                     <col className="w-10" />
                     <col className="w-32" />
                     <col className="w-auto" />
+                    <col className="w-40" />
                     <col className="w-32" />
                     <col className="w-48" />
                     <col className="w-48" />
@@ -155,6 +156,7 @@ export function NonProcessableModals({
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">#</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">ISBN</th>
                       <th className="hidden sm:table-cell text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Title</th>
+                      <th className="hidden sm:table-cell text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Author</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap">Lot &amp; Box</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Issue</th>
                       <th className="text-left py-2 px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Flagged By</th>
@@ -166,6 +168,7 @@ export function NonProcessableModals({
                         <td className="py-2 px-3 text-xs font-medium text-gray-400 align-middle">{(modalPage - 1) * 20 + i + 1}</td>
                         <td className="py-2 px-3 font-mono text-xs font-semibold text-gray-800 truncate align-middle">{f.isbn}</td>
                         <td className="hidden sm:table-cell py-2 px-3 text-gray-600 truncate align-middle">{f.title || '—'}</td>
+                        <td className="hidden sm:table-cell py-2 px-3 text-gray-600 truncate align-middle">{f.author || '—'}</td>
                         <td className="text-xs px-3 py-2 align-middle whitespace-nowrap">
                           <span className="font-bold text-gray-800">{f.assigned_box?.lot?.lot_number || '—'}</span>
                           {f.assigned_box?.box_number && (

@@ -28,7 +28,7 @@ export function WarehouseIlmsMismatchModal({
     if (isClosing) return
     setIsClosing(true)
     window.setTimeout(() => {
-      setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
+      setIlmsMismatchModal({ open: false, isbn: '', title: '', author: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
       setIsClosing(false)
       onClosed?.()
     }, 220)
@@ -64,6 +64,10 @@ export function WarehouseIlmsMismatchModal({
               <div className="border-t border-amber-200/80 pt-3">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Title</p>
                 <p className="mt-1 text-sm leading-5 text-foreground/80">{ilmsMismatchModal.title || 'Unknown Title'}</p>
+              </div>
+              <div className="border-t border-amber-200/80 pt-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Author</p>
+                <p className="mt-1 text-sm leading-5 text-foreground/80">{ilmsMismatchModal.author || '—'}</p>
               </div>
             </div>
           </div>

@@ -177,7 +177,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
         eu.name as "endorsement_user.name",
         su.name as "scan_user.name",
         ba.id as "book_activity.id",
-        b.isbn as "books.isbn", b.title as "books.title",
+        b.isbn as "books.isbn", b.title as "books.title", b.author as "books.author",
         bx.box_number as "boxes.box_number", bx.box_type as "boxes.box_type",
         l.lot_number as "lots.lot_number"
       FROM user_flags uf
@@ -269,7 +269,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
       book_activity: {
         id: r['book_activity.id'],
         books: {
-          isbn: r['books.isbn'], title: r['books.title'],
+          isbn: r['books.isbn'], title: r['books.title'], author: r['books.author'],
           boxes: { box_number: r['boxes.box_number'], box_type: r['boxes.box_type'], lot: { lot_number: r['lots.lot_number'] } }
         }
       }

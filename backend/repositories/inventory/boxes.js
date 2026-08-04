@@ -410,7 +410,7 @@ export const getBookActivityWithFlags = async (boxId) => {
     const { rows } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.warehouse_scan_at, ba.transmission_status,
              uf.rejection_reason as "user_flags.rejection_reason", uf.notes as "user_flags.notes",
-             b.isbn as "books.isbn", b.title as "books.title", b.box_id as "books.box_id"
+             b.isbn as "books.isbn", b.title as "books.title", b.author as "books.author", b.box_id as "books.box_id"
       FROM book_activity ba 
       JOIN books b ON ba.book_id = b.id
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
@@ -422,7 +422,7 @@ export const getBookActivityWithFlags = async (boxId) => {
         grouped.set(r.id, {
           id: r.id, scan_status: r.scan_status, warehouse_scan_at: r.warehouse_scan_at, transmission_status: r.transmission_status,
           user_flags: [],
-          books: { isbn: r['books.isbn'], title: r['books.title'], box_id: r['books.box_id'] }
+          books: { isbn: r['books.isbn'], title: r['books.title'], author: r['books.author'], box_id: r['books.box_id'] }
         });
       }
       if (r['user_flags.rejection_reason']) {

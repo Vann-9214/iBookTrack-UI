@@ -156,6 +156,7 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
                       <span>ISBN: {bk.isbn}</span>
                     </div>
                     {bk.title && <p className="text-xs text-foreground font-medium mt-1 truncate">{bk.title}</p>}
+                    <p className="text-[11px] text-muted-foreground truncate">{bk.author || '—'}</p>
                   </div>
                 ))
               )}

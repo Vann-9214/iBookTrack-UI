@@ -74,6 +74,7 @@ export function TransmissionFlagModal({
             <BookOpen className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-foreground truncate">{flagModalScan.title}</p>
+              <p className="text-[11px] text-muted-foreground truncate mt-0.5">{flagModalScan.author || '—'}</p>
               <p className="text-sm font-bold tracking-wider text-foreground font-mono mt-1">
                 ISBN: {flagModalScan.isbn}
               </p>

@@ -6,6 +6,7 @@ export interface BookInBox {
   id: string
   isbn: string
   title: string | null
+  author?: string | null
   scan_status: string
   scanned_at: string
   book_type?: string
@@ -78,6 +79,7 @@ export interface WarehouseBook {
   id?: string
   isbn: string
   title: string
+  author?: string | null
   scan_status: 'processable' | 'non_processable'
   rejection_reason?: string
   notes?: string

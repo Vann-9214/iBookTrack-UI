@@ -139,7 +139,10 @@ export function CompleteInspectionModal({
                   processableBooks.map((book, idx) => (
                     <div key={`proc-${book.id}-${idx}`} className="flex items-center gap-3 px-5 py-2.5 bg-white/60 hover:bg-white/90 transition-colors">
                       <span className="text-[11px] font-bold font-mono text-emerald-900 w-28 shrink-0">{book.isbn}</span>
-                      <span className="text-[11px] font-semibold text-emerald-800 truncate flex-1">{book.title}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold text-emerald-800 truncate">{book.title}</span>
+                        <span className="block text-[10px] text-emerald-700/70 truncate">{book.author || '—'}</span>
+                      </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 border border-emerald-200/60 shrink-0">Processable</span>
                     </div>
                   ))
@@ -164,7 +167,10 @@ export function CompleteInspectionModal({
                   prevFlaggedBooks.map((book, idx) => (
                     <div key={`prev-${book.id}-${idx}`} className="flex items-center gap-3 px-5 py-2.5 bg-white/60 hover:bg-white/90 transition-colors">
                       <span className="text-[11px] font-bold font-mono text-orange-900 w-28 shrink-0">{book.isbn}</span>
-                      <span className="text-[11px] font-semibold text-orange-800 truncate flex-1">{book.title}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold text-orange-800 truncate">{book.title}</span>
+                        <span className="block text-[10px] text-orange-700/70 truncate">{book.author || '—'}</span>
+                      </span>
                       {book.flag_issue && (
                         <span className="text-[10px] font-medium text-orange-700/80 truncate w-40 shrink-0 hidden sm:block">
                           {issueLabel(book.flag_issue)}
@@ -194,7 +200,10 @@ export function CompleteInspectionModal({
                   newFlaggedBooks.map((book, idx) => (
                     <div key={`new-${book.id}-${idx}`} className="flex items-center gap-3 px-5 py-2.5 bg-white/60 hover:bg-white/90 transition-colors">
                       <span className="text-[11px] font-bold font-mono text-rose-900 w-28 shrink-0">{book.isbn}</span>
-                      <span className="text-[11px] font-semibold text-rose-800 truncate flex-1">{book.title}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold text-rose-800 truncate">{book.title}</span>
+                        <span className="block text-[10px] text-rose-700/70 truncate">{book.author || '—'}</span>
+                      </span>
                       {book.flag_issue && (
                         <span className="text-[10px] font-medium text-rose-700/80 truncate w-40 shrink-0 hidden sm:block">
                           {issueLabel(book.flag_issue)}

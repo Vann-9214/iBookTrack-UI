@@ -215,6 +215,7 @@ export const getQcFlagsService = async (req) => {
       scan_id: f.id,
       isbn: book.isbn || null,
       title: book.title || null,
+      author: book.author || null,
       issue: f.rejection_reason,
       remarks: f.notes,
       flagged_at: latestFlag?.at || f.warehouse_flag_at || null,

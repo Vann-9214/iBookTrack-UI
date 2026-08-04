@@ -79,6 +79,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   </div>
                   <div className="flex-1 min-w-0 pr-2">
                     <p className="text-[11px] sm:text-xs text-foreground font-semibold truncate leading-snug">{book.title}</p>
+                    <p className="text-[10px] text-muted-foreground truncate leading-snug">{book.author || '—'}</p>
                   </div>
                   <div className="flex w-[200px] shrink-0 items-center justify-end gap-2 sm:w-[220px] sm:gap-3 pr-2">
                     {book.scan_status === 'processable' ? (

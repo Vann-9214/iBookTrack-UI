@@ -168,6 +168,7 @@ export const searchIsbnService = async (req, res) => {
     const ilmsResult = await ilmsApi.searchBookByISBN(isbn)
 
     let bookTitle = null
+    let bookAuthor = null
     let ilmsBoxNo = null
     let ilmsLotNo = null
     let ilmsData = null
@@ -175,13 +176,14 @@ export const searchIsbnService = async (req, res) => {
     if (ilmsResult.success && ilmsResult.data) {
       ilmsData = ilmsResult.data
       bookTitle = ilmsData.Title
+      bookAuthor = ilmsData.Author
       ilmsBoxNo = ilmsData.BoxNo
       ilmsLotNo = ilmsData.LotNo
     }
 
     // Search in warehouse scan logs
     const { rows: rawScans } = await db.query(`
-      SELECT ba.*, uf.rejection_reason, b.isbn, b.title, b.book_type, bx.box_number, bx.current_stage, l.lot_number
+      SELECT ba.*, uf.rejection_reason, b.isbn, b.title, b.author, b.book_type, bx.box_number, bx.current_stage, l.lot_number
       FROM book_activity ba
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
       JOIN books b ON ba.book_id = b.id
@@ -240,6 +242,7 @@ export const searchIsbnService = async (req, res) => {
       book: {
         isbn,
         title: bookTitle || book?.title || 'Unknown',
+        author: bookAuthor || book?.author || null,
         box_number: boxNumber || ilmsBoxNo || 'Not in warehouse yet',
         lot_number: lotNumber || ilmsLotNo || 'Unknown',
         current_stage: scans?.[0]?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
@@ -254,7 +257,7 @@ export const searchIsbnService = async (req, res) => {
       scans: scans.map(s => ({
         ...s,
         user_flags: { rejection_reason: s.rejection_reason },
-        books: { isbn: s.isbn, title: s.title, book_type: s.book_type, box: { box_number: s.box_number, current_stage: s.current_stage, lot: { lot_number: s.lot_number } } }
+        books: { isbn: s.isbn, title: s.title, author: s.author, book_type: s.book_type, box: { box_number: s.box_number, current_stage: s.current_stage, lot: { lot_number: s.lot_number } } }
       })),
       currentLocation: book ? {
         ...book, box: { box_number: book.box_number, lot: { lot_number: book.lot_number } }

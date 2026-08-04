@@ -192,6 +192,7 @@ export function NonProcessableList({
                                        <div className="font-mono font-bold text-slate-700 text-[11px] tracking-wide bg-slate-50 px-1.5 py-0 rounded border border-slate-100">{f.isbn}</div>
                                      </div>
                                      <h4 className="text-[12px] font-bold text-slate-800 leading-snug line-clamp-1">{f.title || 'Unknown Title'}</h4>
+                                     <p className="text-[10.5px] font-medium text-slate-500 leading-snug line-clamp-1">{f.author || '—'}</p>
                                      
                                      {f.remarks && (
                                        <button 

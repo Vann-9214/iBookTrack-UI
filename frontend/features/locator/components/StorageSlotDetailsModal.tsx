@@ -231,13 +231,15 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
                             <tr className="text-muted-foreground border-b border-border/40">
                               <th className="text-left py-1 font-medium">ISBN</th>
                               <th className="text-left py-1 font-medium">Title</th>
+                              <th className="text-left py-1 font-medium">Author</th>
                             </tr>
                           </thead>
                           <tbody>
                             {a.books.map((b, i) => (
                               <tr key={i} className="border-b border-border/20 last:border-0">
                                 <td className="py-1 pr-3 text-foreground whitespace-nowrap">{b.isbn}</td>
-                                <td className="py-1 text-muted-foreground truncate max-w-[200px]" title={b.title}>{b.title}</td>
+                                <td className="py-1 pr-3 text-muted-foreground truncate max-w-[200px]" title={b.title}>{b.title}</td>
+                                <td className="py-1 text-muted-foreground truncate max-w-[160px]" title={b.author || '—'}>{b.author || '—'}</td>
                               </tr>
                             ))}
                           </tbody>

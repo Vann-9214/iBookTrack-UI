@@ -333,7 +333,7 @@ export const getBoxByIdService = async (req) => {
         source: 'scan_status',
       };
     }
-    return { ...s, isbn: s.books?.isbn, title: s.books?.title, flag };
+    return { ...s, isbn: s.books?.isbn, title: s.books?.title, author: s.books?.author, flag };
   });
 
   const totalFlagCount = books.filter(b => b.flag !== null).length;

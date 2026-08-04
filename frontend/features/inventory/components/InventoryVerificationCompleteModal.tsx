@@ -127,7 +127,10 @@ export function InventoryVerificationCompleteModal({ verification, onSuccess }: 
                   verifProcessableBooks.map((book, idx) => (
                     <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-5 py-2.5 bg-white/60 hover:bg-white/90 transition-colors">
                       <span className="text-[11px] font-bold font-mono text-emerald-900 w-28 shrink-0">{book.isbn}</span>
-                      <span className="text-[11px] font-semibold text-emerald-800 truncate flex-1">{book.title}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold text-emerald-800 truncate">{book.title}</span>
+                        <span className="block text-[10px] text-emerald-700/70 truncate">{book.author || '—'}</span>
+                      </span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-700 border border-emerald-200/60">Processable</span>
                     </div>
                   ))
@@ -156,6 +159,7 @@ export function InventoryVerificationCompleteModal({ verification, onSuccess }: 
                         id: book.id,
                         isbn: book.isbn,
                         title: book.title,
+                        author: book.author,
                         issue: book.flag_issue || warehouseBook?.rejection_reason,
                         statusLabel: 'Non-Processable',
                         statusClass: 'bg-red-100 text-red-700 border border-red-200/60',
@@ -165,6 +169,7 @@ export function InventoryVerificationCompleteModal({ verification, onSuccess }: 
                       id: `missing-${book.isbn}-${idx}`,
                       isbn: book.isbn,
                       title: book.title || 'Missing book',
+                      author: book.author,
                       issue: undefined,
                       statusLabel: 'Missing',
                       statusClass: 'bg-rose-100 text-rose-700 border border-rose-200/60',
@@ -172,7 +177,10 @@ export function InventoryVerificationCompleteModal({ verification, onSuccess }: 
                   ].map((book, idx) => (
                     <div key={`${book.id}-${idx}`} className="flex items-center gap-3 px-5 py-2.5 bg-white/60 hover:bg-white/90 transition-colors">
                       <span className="text-[11px] font-bold font-mono text-rose-900 w-28 shrink-0">{book.isbn}</span>
-                      <span className="text-[11px] font-semibold text-rose-800 truncate flex-1">{book.title}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold text-rose-800 truncate">{book.title}</span>
+                        <span className="block text-[10px] text-rose-700/70 truncate">{book.author || '—'}</span>
+                      </span>
                       {book.issue && (
                         <span className="text-[10px] font-medium text-rose-700/80 truncate w-32 shrink-0 hidden sm:block">{issueLabel(book.issue)}</span>
                       )}

@@ -53,9 +53,14 @@ export function BarcodeResultCard({ result, onRemove }: BarcodeResultCardProps) 
           <p className="text-sm font-semibold text-red-300">ISBN not found in system</p>
         ) : (
           /* Title — wraps naturally, no truncation */
-          <p className="text-sm font-bold leading-snug break-words">
-            {result.title}
-          </p>
+          <>
+            <p className="text-sm font-bold leading-snug break-words">
+              {result.title}
+            </p>
+            <p className="text-xs font-medium text-green-200 leading-snug break-words">
+              {result.author || '—'}
+            </p>
+          </>
         )}
         {/* Separator — emphasises the ISBN number below */}
         <hr className="border-green-700 my-1.5" />
