@@ -13,9 +13,8 @@ export function StageBoxBooksTable({ books, brand, selectedStage, simflex }: Sta
 
   return (
     <div className="divide-y divide-border">
-      <div className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
+      <div className="grid grid-cols-[1fr_120px] items-center px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/50">
         <span>ISBN / Title</span>
-        <span>Type</span>
         <span>Status</span>
       </div>
       {books.map((book) => {
@@ -25,14 +24,11 @@ export function StageBoxBooksTable({ books, brand, selectedStage, simflex }: Sta
         const simflexStatus = simflex?.[book.isbn]
 
         return (
-          <div key={book.id} className="grid grid-cols-[1fr_80px_120px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
+          <div key={book.id} className="grid grid-cols-[1fr_120px] items-center px-4 py-2.5 hover:bg-muted/40 transition-colors">
             <div className="min-w-0 pr-3">
               <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
               {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
             </div>
-            <span className={cn('text-xs font-medium', brand === 'jaguar' ? 'text-green-600' : 'text-blue-600')}>
-              {typeText}
-            </span>
             <div className="flex flex-col gap-0.5">
               <span
                 className={cn(

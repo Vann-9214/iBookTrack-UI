@@ -34,30 +34,24 @@ export function InventoryOutgoingBookList({
     <div className="bg-white divide-y divide-border/60">
       <div className={cn(
         'items-center px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-black/5',
-        isMobile ? 'grid grid-cols-[1fr_80px_120px]' : 'grid grid-cols-[1fr_80px_120px_48px_40px]'
+        isMobile ? 'grid grid-cols-[1fr_120px]' : 'grid grid-cols-[1fr_120px_48px_40px]'
       )}>
         <span>ISBN / Title</span>
-        <span>Type</span>
         <span>Status</span>
         <span className="text-center">Print</span>
         <span>{/* Printed */}</span>
       </div>
       {books.map((book) => {
         const isBookPrinted = (actions.printedBookSlips[box.id] ?? new Set<string>()).has(book.id)
-        const typeKey = (book.book_type || box.lot?.type || '')
-        const typeText = typeKey ? typeKey.charAt(0).toUpperCase() + typeKey.slice(1).toLowerCase() : '—'
         return (
           <div key={book.id} className={cn(
             'items-center px-4 py-2 hover:bg-primary/5 transition-colors',
-            isMobile ? 'grid grid-cols-[1fr_80px_120px]' : 'grid grid-cols-[1fr_80px_120px_48px_40px]'
+            isMobile ? 'grid grid-cols-[1fr_120px]' : 'grid grid-cols-[1fr_120px_48px_40px]'
           )}>
             <div className="min-w-0 pr-3">
               <p className="text-xs font-semibold text-foreground truncate">{book.isbn}</p>
               {book.title && <p className="text-[11px] text-muted-foreground truncate">{book.title}</p>}
             </div>
-            <span className="text-xs font-medium text-primary">
-              {typeText}
-            </span>
             <div className="flex flex-col gap-0.5">
               <span className={cn(
                 'text-[10px] px-2 py-0.5 rounded font-medium whitespace-nowrap w-fit',

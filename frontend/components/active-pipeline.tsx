@@ -100,9 +100,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
       return 'bg-slate-100/80 text-slate-500 border-slate-200/80 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700/80'
     }
     if (type === 'received' || type === 'default') {
-      return brandName === 'jaguar'
-        ? 'bg-emerald-100/80 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/80 shadow-xs'
-        : 'bg-blue-100/80 text-blue-700 border-blue-200/80 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/80 shadow-xs'
+      return 'bg-blue-100/80 text-blue-700 border-blue-200/80 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/80 shadow-xs'
     }
     if (type === 'completed') {
       return 'bg-emerald-100/80 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/80 shadow-xs'
@@ -218,8 +216,8 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Legend */}
           <div className="hidden lg:flex items-center gap-2 mt-5">
             <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
-              <ArrowDown className={cn("w-3.5 h-3.5", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
-              <span className={cn("text-[11px] font-bold uppercase tracking-wider", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>Received</span>
+              <ArrowDown className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Received</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
               <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -344,8 +342,8 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           {/* Legend */}
           <div className="flex flex-nowrap items-center justify-center lg:justify-start gap-1.5 sm:gap-2 mt-5">
             <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
-              <ArrowDown className={cn("w-3.5 h-3.5", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
-              <span className={cn("text-[9px] sm:text-[11px] font-bold uppercase tracking-wider", brand === 'jaguar' ? "text-emerald-600" : "text-blue-600")}>Received</span>
+              <ArrowDown className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-blue-600">Received</span>
             </div>
             <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
               <Check className="w-3.5 h-3.5 text-emerald-500" />

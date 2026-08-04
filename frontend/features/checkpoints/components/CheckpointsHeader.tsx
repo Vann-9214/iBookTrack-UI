@@ -60,16 +60,18 @@ export function CheckpointsHeader({
                 >
                   <RefreshCw className={cn('h-4 w-4', (topLoading || transitionsLoading) && 'animate-spin')} />
                 </button>
-                <RefreshControl
-                  onRefresh={onRefresh}
-                  refreshing={topLoading || transitionsLoading}
-                  lastUpdated={lastUpdated}
-                  storageKey="checkpoints"
-                  className="hidden sm:flex"
-                />
               </div>
             </div>
           </div>
+        </div>
+        <div className="flex items-center justify-start sm:justify-end shrink-0">
+          <RefreshControl
+            onRefresh={onRefresh}
+            refreshing={topLoading || transitionsLoading}
+            lastUpdated={lastUpdated}
+            storageKey="checkpoints"
+            className="hidden sm:flex"
+          />
         </div>
       </div>
     </header>
