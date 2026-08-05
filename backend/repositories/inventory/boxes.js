@@ -243,8 +243,51 @@ export const getLotsBySearch = async (safeSearch) => {
   }
 };
 
+/**
+ * Builds the shared WHERE clause + params for the pipeline transitions
+ * list and count queries, so both stay in sync.
+ */
+const buildPipelineTransitionsFilter = (stage, box_type, search, date_from, date_to, lotIds) => {
+  let where = ' WHERE 1=1';
+  const params = [];
+  let paramIdx = 1;
+
+  if (box_type) {
+    where += ` AND b.box_type = $${paramIdx++}`;
+    params.push(box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase());
+  }
+  if (stage && stage !== 'all') {
+    where += ` AND b.current_stage = $${paramIdx++}`;
+    params.push(stage);
+  }
+  if (date_from) {
+    where += ` AND bs.updated_at >= $${paramIdx++}`;
+    params.push(`${date_from}T00:00:00.000Z`);
+  }
+  if (date_to) {
+    where += ` AND bs.updated_at <= $${paramIdx++}`;
+    params.push(`${date_to}T23:59:59.999Z`);
+  }
+
+  if (search) {
+    if (lotIds && lotIds.length > 0) {
+      const searchIdx = paramIdx++;
+      const lotPh = lotIds.map(() => `$${paramIdx++}`).join(',');
+      where += ` AND (b.box_number ILIKE $${searchIdx} OR b.lot_id IN (${lotPh}))`;
+      params.push(`%${search}%`, ...lotIds);
+    } else {
+      where += ` AND b.box_number ILIKE $${paramIdx++}`;
+      params.push(`%${search}%`);
+    }
+  }
+
+  return { where, params, nextParamIdx: paramIdx };
+};
+
 export const getPipelineTransitionsQuery = async (limitNum, offsetNum, stage, box_type, search, date_from, date_to, lotIds) => {
-  let query = `
+  const { where, params, nextParamIdx } = buildPipelineTransitionsFilter(stage, box_type, search, date_from, date_to, lotIds);
+
+  const query = `
     SELECT 
       bs.id,
       bs.warehouse_time_received, bs.warehouse_user_received,
@@ -271,61 +314,33 @@ export const getPipelineTransitionsQuery = async (limitNum, offsetNum, stage, bo
     FROM box_sessions bs
     INNER JOIN boxes b ON bs.box_id = b.id
     LEFT JOIN lots l ON b.lot_id = l.id
-    WHERE 1=1
+    ${where}
+    ORDER BY bs.updated_at DESC LIMIT $${nextParamIdx} OFFSET $${nextParamIdx + 1}
   `;
-  const params = [];
-  let paramIdx = 1;
+  const queryParams = [...params, limitNum, offsetNum];
 
-  if (box_type) {
-    query += ` AND b.box_type = $${paramIdx++}`;
-    params.push(box_type.charAt(0).toUpperCase() + box_type.slice(1).toLowerCase());
+  try {
+    const { rows } = await db.query(query, queryParams);
+    return { data: rows, error: null };
+  } catch (error) {
+    return { data: null, error };
   }
-  if (stage && stage !== 'all') {
-    query += ` AND b.current_stage = $${paramIdx++}`;
-    params.push(stage);
-  }
-  if (date_from) {
-    query += ` AND bs.updated_at >= $${paramIdx++}`;
-    params.push(`${date_from}T00:00:00.000Z`);
-  }
-  if (date_to) {
-    query += ` AND bs.updated_at <= $${paramIdx++}`;
-    params.push(`${date_to}T23:59:59.999Z`);
-  }
-  
-  if (search) {
-    if (lotIds && lotIds.length > 0) {
-      const ph = lotIds.map(() => `$${paramIdx++}`).join(',');
-      query += ` AND (b.box_number ILIKE $${paramIdx++} OR b.lot_id IN (${ph}))`;
-      params.push(...lotIds, `%${search}%`); // actually need to order params correctly: lotIds then search
-      // wait, let's fix param ordering:
-      // it should be: b.box_number ILIKE $X OR b.lot_id IN ($Y...)
-      // The push above is wrong order. Let's fix:
-      params.pop(); // remove search
-      // params now doesn't have lotIds or search.
-      // Re-do:
-      query = query.replace(`AND (b.box_number ILIKE $${paramIdx - 1} OR b.lot_id IN (${ph}))`, ''); 
-      // safer way:
-    } else {
-      query += ` AND b.box_number ILIKE $${paramIdx++}`;
-      params.push(`%${search}%`);
-    }
-  }
+};
 
-  // Handle lotIds safely
-  if (search && lotIds && lotIds.length > 0) {
-    const searchIdx = paramIdx++;
-    const lotPh = lotIds.map(() => `$${paramIdx++}`).join(',');
-    query += ` AND (b.box_number ILIKE $${searchIdx} OR b.lot_id IN (${lotPh}))`;
-    params.push(`%${search}%`, ...lotIds);
-  }
+export const getPipelineTransitionsCount = async (stage, box_type, search, date_from, date_to, lotIds) => {
+  const { where, params } = buildPipelineTransitionsFilter(stage, box_type, search, date_from, date_to, lotIds);
 
-  query += ` ORDER BY bs.updated_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
-  params.push(limitNum, offsetNum);
+  const query = `
+    SELECT COUNT(*) as total
+    FROM box_sessions bs
+    INNER JOIN boxes b ON bs.box_id = b.id
+    LEFT JOIN lots l ON b.lot_id = l.id
+    ${where}
+  `;
 
   try {
     const { rows } = await db.query(query, params);
-    return { data: rows, error: null };
+    return { data: parseInt(rows[0]?.total, 10) || 0, error: null };
   } catch (error) {
     return { data: null, error };
   }

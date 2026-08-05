@@ -16,13 +16,13 @@ export function TransitionTimeline({
   isCompleted,
 }: TransitionTimelineProps) {
   return (
-    <div className="px-4 sm:px-6 py-4 bg-muted/20 border-t border-border overflow-x-auto">
+    <div className="premium-gradient-ui-card__panel px-4 sm:px-6 py-3 border-t border-border overflow-x-auto">
       <div className="flex items-start justify-between relative px-4 min-w-[900px] gap-4">
         {/* Connecting background line */}
         <div className="absolute top-3 left-14 right-14 h-[2px] bg-border z-0" />
         {/* Progress line */}
         <div
-          className="absolute top-3 left-14 h-[2px] bg-green-500 z-0 transition duration-500"
+          className="absolute top-3 left-14 h-[2px] bg-success z-0 transition-all duration-500"
           style={{
             width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 112px)`,
           }}
@@ -30,18 +30,18 @@ export function TransitionTimeline({
 
         {PIPELINE_STAGES.map((s, i) => {
           const isPast = isCompleted || i < stageIdx
-          const isCurrent = i === stageIdx
+          const isCurrent = !isCompleted && i === stageIdx
 
           let icon = <div className="w-6 h-6 rounded-full bg-muted border-2 border-background z-10" />
           if (isPast) {
             icon = (
-              <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center z-10 border-2 border-background shadow-sm">
+              <div className="w-6 h-6 rounded-full bg-success text-white flex items-center justify-center z-10 border-2 border-background shadow-sm">
                 <CheckCircle className="w-3.5 h-3.5" />
               </div>
             )
           } else if (isCurrent) {
             icon = (
-              <div className="w-6 h-6 rounded-full bg-blue-500 z-10 border-2 border-background shadow-sm flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-sky-500 z-10 border-2 border-background shadow-[0_0_0_4px_rgba(14,165,233,0.18)] flex items-center justify-center animate-pulse">
                 <div className="w-2 h-2 rounded-full bg-white" />
               </div>
             )

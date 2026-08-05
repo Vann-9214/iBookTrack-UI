@@ -206,9 +206,12 @@ export const getPipelineTransitionsService = async (req) => {
     lotIds = (matchedLots || []).map(l => l.id);
   }
 
-  const query = boxesRepo.getPipelineTransitionsQuery(limitNum, offsetNum, stage, box_type, search, date_from, date_to, lotIds);
-  const { data: sessions, error } = await query;
+  const [{ data: sessions, error }, { data: totalCount, error: countError }] = await Promise.all([
+    boxesRepo.getPipelineTransitionsQuery(limitNum, offsetNum, stage, box_type, search, date_from, date_to, lotIds),
+    boxesRepo.getPipelineTransitionsCount(stage, box_type, search, date_from, date_to, lotIds),
+  ]);
   if (error) throw error;
+  if (countError) throw countError;
 
   let filteredSessions = sessions || [];
   const userIds = new Set();
@@ -287,7 +290,7 @@ export const getPipelineTransitionsService = async (req) => {
     };
   });
 
-  return { success: true, transitions: pagedEvents };
+  return { success: true, transitions: pagedEvents, totalCount: totalCount || 0 };
 };
 
 export const getBoxByNumberService = async (req) => {

@@ -6,6 +6,8 @@ import type { Transition } from '../types/checkpoints.types'
 
 const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'storage']
 
+type StatusTone = 'info' | 'success' | 'warning' | 'indigo'
+
 interface TransitionLogRowProps {
   transition: Transition
   isExpanded: boolean
@@ -25,93 +27,99 @@ export function TransitionLogRow({
   const isCompleted = box.current_stage === 'storage' && t.storage_time_assigned != null
 
   let statusText = 'In progress'
-  let statusColor = 'bg-blue-100 text-blue-700'
+  let statusTone: StatusTone = 'info'
   let holderName = '—'
-  let holderStage = ''
 
   if (box.current_stage === 'warehouse') {
     holderName = t.warehouse_user_name || '—'
-    holderStage = 'Warehouse'
     if (!isCompleted) {
       if (t.warehouse_scan_name) {
         statusText = 'Received • Completed • Sent'
-        statusColor = 'bg-green-100 text-green-700'
+        statusTone = 'success'
       } else {
         statusText = 'Received'
-        statusColor = 'bg-yellow-100 text-yellow-700'
+        statusTone = 'warning'
       }
     }
   } else if (box.current_stage === 'inventory') {
     holderName = t.inventory_user_name || '—'
-    holderStage = 'Inventory'
     if (!isCompleted) {
       if (t.inventory_send_name) {
         statusText = 'Sent'
-        statusColor = 'bg-indigo-100 text-indigo-700'
+        statusTone = 'indigo'
         holderName = t.inventory_send_name || holderName
       } else if (t.inventory_scan_name) {
         statusText = 'Completed'
-        statusColor = 'bg-green-100 text-green-700'
+        statusTone = 'success'
         holderName = t.inventory_scan_name || holderName
       } else if (t.inventory_time_received) {
         statusText = 'Received'
-        statusColor = 'bg-yellow-100 text-yellow-700'
+        statusTone = 'warning'
       }
     }
   } else if (box.current_stage === 'cut') {
     holderName = t.cut_user_name || '—'
-    holderStage = 'Cut'
     if (!isCompleted) {
       if (t.cut_send_name) {
         statusText = 'Sent'
-        statusColor = 'bg-indigo-100 text-indigo-700'
+        statusTone = 'indigo'
         holderName = t.cut_send_name || holderName
       } else if (t.cut_time_received) {
         statusText = 'Received'
-        statusColor = 'bg-yellow-100 text-yellow-700'
+        statusTone = 'warning'
       }
     }
   } else if (box.current_stage === 'endorsement') {
     holderName = t.endorsement_user_name || '—'
-    holderStage = 'Endorsement'
     if (!isCompleted) {
       if (t.endorsement_send_name) {
         statusText = 'Sent'
-        statusColor = 'bg-indigo-100 text-indigo-700'
+        statusTone = 'indigo'
         holderName = t.endorsement_send_name || holderName
       } else if (t.endorsement_scan_name) {
         statusText = 'Completed'
-        statusColor = 'bg-green-100 text-green-700'
+        statusTone = 'success'
         holderName = t.endorsement_scan_name || holderName
       } else if (t.endorsement_time_received) {
         statusText = 'Received'
-        statusColor = 'bg-yellow-100 text-yellow-700'
+        statusTone = 'warning'
       }
     }
   } else if (box.current_stage === 'scan' || box.current_stage === 'transmit') {
     holderName = t.scan_user_name || '—'
-    holderStage = box.current_stage === 'transmit' ? 'Transmit' : 'Scan'
     if (box.current_stage === 'transmit') {
       statusText = 'Transmitted'
-      statusColor = 'bg-blue-100 text-blue-700'
+      statusTone = 'info'
     } else if (t.scan_time_received) {
       statusText = 'Received'
-      statusColor = 'bg-yellow-100 text-yellow-700'
+      statusTone = 'warning'
     }
   } else if (box.current_stage === 'storage') {
     holderName = t.storage_user_name || t.scan_user_name || '—'
-    holderStage = 'Storage'
   }
 
   if (isCompleted) {
     statusText = 'Completed'
-    statusColor = 'bg-green-100 text-green-700'
+    statusTone = 'success'
+  }
+
+  const statusStyles: Record<StatusTone, string> = {
+    success: 'bg-success/10 text-success ring-success/25 dark:bg-success/15',
+    warning: 'bg-warning/15 text-warning-foreground ring-warning/30 dark:text-warning',
+    indigo: 'bg-indigo-500/10 text-indigo-600 ring-indigo-500/25 dark:text-indigo-400',
+    info: 'bg-sky-500/10 text-sky-600 ring-sky-500/25 dark:text-sky-400',
+  }
+  const statusDotStyles: Record<StatusTone, string> = {
+    success: 'bg-success',
+    warning: 'bg-warning',
+    indigo: 'bg-indigo-500',
+    info: 'bg-sky-500',
   }
 
   return (
-    <div className="border-b border-border/50 last:border-0 flex flex-col bg-card hover:bg-muted/30 transition-colors">
+    <div className="premium-gradient-ui-card__row group border-b border-border/50 last:border-0 flex flex-col bg-card transition-colors">
       <div
-        className="flex items-center px-6 py-4 cursor-pointer gap-4"
+        className="flex items-center px-6 py-2 cursor-pointer gap-4"
         onClick={onToggle}
       >
         <div className="w-[260px] shrink-0 flex items-center">
@@ -123,23 +131,39 @@ export function TransitionLogRow({
               </span>
             )}
           </div>
-          <div className="flex flex-col gap-1 w-[140px]">
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-col gap-1.5 w-[140px]">
+            <div className="flex items-center gap-1">
               {PIPELINE_STAGES.map((s, i) => {
-                let dotColor = 'bg-muted-foreground/30'
-                if (isCompleted || i < stageIdx) dotColor = 'bg-green-500'
-                else if (i === stageIdx) dotColor = 'bg-blue-500'
-                return <div key={s} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                const isPast = isCompleted || i < stageIdx
+                const isCurrent = !isCompleted && i === stageIdx
+                return (
+                  <div
+                    key={s}
+                    title={s}
+                    className={cn(
+                      'h-1.5 flex-1 rounded-full transition-colors',
+                      isPast && 'bg-success',
+                      isCurrent && 'bg-sky-500 shadow-[0_0_0_2px_rgba(14,165,233,0.2)]',
+                      !isPast && !isCurrent && 'bg-muted-foreground/20'
+                    )}
+                  />
+                )
               })}
             </div>
-            <span className="text-[10px] text-muted-foreground capitalize font-medium truncate">
+            <span className="text-[10px] text-muted-foreground capitalize font-semibold truncate">
               {box.current_stage}
             </span>
           </div>
         </div>
 
-        <div className="w-[180px] shrink-0">
-          <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wide whitespace-nowrap ${statusColor}`}>
+        <div className="w-[190px] shrink-0">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold tracking-wide whitespace-nowrap ring-1 ring-inset',
+              statusStyles[statusTone]
+            )}
+          >
+            <span className={cn('h-1.5 w-1.5 rounded-full', statusDotStyles[statusTone])} />
             {statusText}
           </span>
         </div>
@@ -156,15 +180,16 @@ export function TransitionLogRow({
           </span>
         </div>
 
-        <div className="w-[160px] shrink-0 flex flex-col min-w-0">
-          <span className="text-sm font-semibold text-foreground truncate" title={holderName}>
-            {holderName}
-          </span>
-          <span className="text-[11px] text-muted-foreground">{holderStage}</span>
+        <div className="w-[170px] shrink-0 flex items-center gap-2 min-w-0">
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-foreground truncate" title={holderName}>
+              {holderName}
+            </span>
+          </div>
         </div>
 
         <div className="w-[120px] shrink-0 flex flex-col items-end justify-center ml-auto pr-4">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs font-medium text-muted-foreground">
             {t.updated_at ? formatTime(t.updated_at) : '—'}
           </span>
           {box.created_at && (
@@ -178,7 +203,7 @@ export function TransitionLogRow({
           )}
         </div>
 
-        <div className="text-muted-foreground">
+        <div className="text-muted-foreground group-hover:text-[var(--brand-strong)] transition-colors">
           <ChevronDown className={cn('h-4 w-4 transition-transform duration-300', isExpanded && 'rotate-180')} />
         </div>
       </div>

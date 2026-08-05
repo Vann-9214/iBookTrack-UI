@@ -133,6 +133,7 @@
   --warning-foreground: oklch(0.2 0 0);
   /* Ambient accent fallbacks (overridden per theme below) */
   --brand-soft: oklch(0.95 0.035 254);
+  --brand-faint: oklch(0.985 0.012 254);
   --brand-wash: oklch(0.91 0.06 254);
   --brand-glow: oklch(0.93 0.04 240);
   --brand-strong: oklch(0.55 0.2 260);
@@ -147,6 +148,7 @@
   --sidebar-ring: oklch(0.55 0.2 260);
   /* Ambient accents consumed by the dashboard */
   --brand-soft: oklch(0.95 0.035 254);
+  --brand-faint: oklch(0.985 0.012 254); /* Very pale blue wash, subtler than brand-soft */
   --brand-wash: oklch(0.91 0.06 254);   /* Visible blue pool */
   --brand-glow: oklch(0.93 0.04 240);   /* Deeper blue accent */
   --brand-strong: oklch(0.55 0.2 260);
@@ -161,6 +163,7 @@
   --sidebar-ring: oklch(0.62 0.16 142);
   /* Ambient accents consumed by the dashboard */
   --brand-soft: oklch(0.95 0.05 150);
+  --brand-faint: oklch(0.985 0.015 150); /* Very pale green wash, subtler than brand-soft */
   --brand-wash: oklch(0.90 0.07 150);   /* Visible green pool */
   --brand-glow: oklch(0.93 0.04 180);   /* Subtle teal/cyan warmth */
   --brand-strong: oklch(0.62 0.16 142);
@@ -267,6 +270,33 @@
   transform: none;
   border-color: color-mix(in oklch, var(--brand-strong) 22%, white);
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 28px color-mix(in oklch, var(--brand-strong) 10%, transparent);
+}
+
+/* Themed (non-grey) surfaces used inside premium cards for toolbars,
+   table headers, hover states and expanded panels. Always tint with
+   --brand-strong so mustang/jaguar theming carries through instead of
+   falling back to neutral grey. */
+.premium-gradient-ui-card__toolbar {
+  background: linear-gradient(135deg, var(--brand-soft), var(--card) 75%);
+}
+
+.premium-gradient-ui-card__table-header {
+  background: var(--brand-faint);
+  border-bottom: 1px solid var(--border);
+}
+
+.premium-gradient-ui-card__row:hover {
+  background: linear-gradient(135deg, var(--brand-soft), var(--card) 88%);
+}
+
+.premium-gradient-ui-card__panel {
+  background: linear-gradient(135deg, var(--brand-soft), var(--card) 60%);
+}
+
+.premium-gradient-ui-card__chip {
+  border: 1px solid color-mix(in oklch, var(--brand-strong) 20%, white);
+  background: color-mix(in oklch, var(--brand-strong) 10%, white);
+  color: color-mix(in oklch, var(--brand-strong) 85%, black);
 }
 
 .dark {

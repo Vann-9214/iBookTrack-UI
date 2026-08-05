@@ -37,7 +37,7 @@ export function StageBoxRow({
   const relevantTime = getRelevantTimeForBox(box, selectedStage)
   const parsedTime = relevantTime ? new Date(relevantTime).getTime() : 0
   const diffDays = parsedTime ? (Date.now() - parsedTime) / (1000 * 60 * 60 * 24) : 0
-  const isDelayed = diffDays >= 1
+  const isDelayed = (selectedStage === 'transmit' || selectedStage === 'scan') ? false : diffDays >= 1
 
   const totalCount = box.box_sessions?.[0]?.total_processable_books ?? 0
   const status = getStepStatus(totalCount)

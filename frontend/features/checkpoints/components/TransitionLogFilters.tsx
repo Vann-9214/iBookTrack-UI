@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Search, Calendar as CalendarIcon } from 'lucide-react'
+import { Search, Calendar as CalendarIcon, X, SlidersHorizontal } from 'lucide-react'
 import { format } from 'date-fns'
+import type { DateRange } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -33,6 +34,9 @@ interface TransitionLogFiltersProps {
   onSearchApply: () => void
 }
 
+const gradientButtonClass =
+  'premium-gradient-ui-card--solid inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-4 text-xs font-bold text-white! shadow-md transition hover:-translate-y-0.5 hover:shadow-lg [&_svg]:text-white! [&_svg]:opacity-100!'
+
 export function TransitionLogFilters({
   searchInput,
   onSearchInputChange,
@@ -44,115 +48,99 @@ export function TransitionLogFilters({
   onDateToChange,
   onSearchApply,
 }: TransitionLogFiltersProps) {
-  const [fromDateOpen, setFromDateOpen] = useState(false)
-  const [toDateOpen, setToDateOpen] = useState(false)
+  const [rangeOpen, setRangeOpen] = useState(false)
+
+  const hasActiveFilters = Boolean(searchInput || stageFilter || dateFrom || dateTo)
+
+  const handleClear = () => {
+    onSearchInputChange('')
+    onSearchApply()
+    onStageFilterChange('')
+    onDateFromChange('')
+    onDateToChange('')
+  }
+
+  const dateRange: DateRange | undefined = (dateFrom || dateTo)
+    ? { from: dateFrom ? new Date(dateFrom) : undefined, to: dateTo ? new Date(dateTo) : undefined }
+    : undefined
+
+  const dateRangeLabel = dateFrom || dateTo
+    ? `${dateFrom ? format(new Date(dateFrom), 'MMM d') : '...'} – ${dateTo ? format(new Date(dateTo), 'MMM d') : '...'}`
+    : 'All dates'
+
+  const handleRangeSelect = (range: DateRange | undefined) => {
+    onDateFromChange(range?.from ? format(range.from, 'yyyy-MM-dd') : '')
+    onDateToChange(range?.to ? format(range.to, 'yyyy-MM-dd') : '')
+    if (range?.from && range?.to) setRangeOpen(false)
+  }
 
   return (
-    <div className="px-5 py-4 border-b border-border/50 bg-muted/20 flex flex-col md:flex-row gap-4 items-end">
-      <div className="flex flex-row gap-3 w-full md:w-auto md:flex-1">
-        <div className="relative flex-1 min-w-0">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-            Search
-          </label>
-          <div className="relative group">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-            <Input
-              placeholder="Search box or lot (Press Enter)"
-              value={searchInput}
-              onChange={(e) => onSearchInputChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onSearchApply()
-              }}
-              className="w-full sm:w-64 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:border-primary/50"
+    <div className="premium-gradient-ui-card__toolbar px-5 py-3 border-b border-border/50">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="mr-auto flex items-center gap-1.5 text-muted-foreground">
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Filters</span>
+        </div>
+
+        <div className="relative shrink-0">
+          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search box or lot"
+            value={searchInput}
+            onChange={(e) => onSearchInputChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSearchApply()
+            }}
+            className="h-9 w-44 sm:w-52 rounded-full border-border/60 bg-background/70 pl-8 pr-3 text-xs font-medium shadow-sm focus-visible:ring-4 focus-visible:ring-primary/15"
+          />
+        </div>
+
+        <Select
+          value={stageFilter || 'all'}
+          onValueChange={(v) => onStageFilterChange(v === 'all' ? '' : (v as Stage))}
+        >
+          <SelectTrigger className={cn(gradientButtonClass, 'border-none [&_svg]:size-3.5')}>
+            <SelectValue placeholder="All stages" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All stages</SelectItem>
+            {STAGE_ORDER.filter((s) => s !== 'transmit').map((stage) => (
+              <SelectItem key={stage} value={stage}>
+                {STAGE_META[stage].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Popover open={rangeOpen} onOpenChange={setRangeOpen}>
+          <PopoverTrigger asChild>
+            <button type="button" className={gradientButtonClass}>
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {dateRangeLabel}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="range"
+              numberOfMonths={2}
+              selected={dateRange}
+              onSelect={handleRangeSelect}
+              initialFocus
             />
-          </div>
-        </div>
+          </PopoverContent>
+        </Popover>
 
-        <div className="w-[140px] shrink-0">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-            Stage
-          </label>
-          <Select
-            value={stageFilter || 'all'}
-            onValueChange={(v) => onStageFilterChange(v === 'all' ? '' : (v as Stage))}
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleClear}
+            className="h-9 shrink-0 gap-1.5 rounded-full px-3 text-xs font-semibold text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
-            <SelectTrigger className="h-10 bg-background border-border/50 focus:ring-1 focus:ring-primary rounded-xl shadow-sm hover:border-border transition-colors">
-              <SelectValue placeholder="All stages" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All stages</SelectItem>
-              {STAGE_ORDER.filter((s) => s !== 'transmit').map((stage) => (
-                <SelectItem key={stage} value={stage}>
-                  {STAGE_META[stage].label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 w-full md:w-auto">
-        <div className="w-full md:w-[140px]">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-            Date From
-          </label>
-          <Popover open={fromDateOpen} onOpenChange={setFromDateOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition',
-                  !dateFrom && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                {dateFrom ? format(new Date(dateFrom), 'MMM dd, yyyy') : 'Start date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateFrom ? new Date(dateFrom) : undefined}
-                onSelect={(date) => {
-                  onDateFromChange(date ? format(date, 'yyyy-MM-dd') : '')
-                  setFromDateOpen(false)
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div className="w-full md:w-[140px]">
-          <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-            Date To
-          </label>
-          <Popover open={toDateOpen} onOpenChange={setToDateOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition',
-                  !dateTo && 'text-muted-foreground'
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                {dateTo ? format(new Date(dateTo), 'MMM dd, yyyy') : 'End date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={dateTo ? new Date(dateTo) : undefined}
-                onSelect={(date) => {
-                  onDateToChange(date ? format(date, 'yyyy-MM-dd') : '')
-                  setToDateOpen(false)
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+            <X className="h-3.5 w-3.5" />
+            Clear
+          </Button>
+        )}
       </div>
     </div>
   )

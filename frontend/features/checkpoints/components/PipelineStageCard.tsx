@@ -22,7 +22,7 @@ export function PipelineStageCard({
   const meta = STAGE_META[stage]
 
   const bottleneckCount =
-    stage === 'transmit'
+    stage === 'transmit' || stage === 'scan'
       ? 0
       : boxes.filter((b) => {
           const relevantTime = getRelevantTimeForBox(b, stage)
