@@ -114,12 +114,12 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
         toast({ title: 'Book Not Found', description: `ISBN not found in ${brand.toUpperCase()} records.`, variant: 'destructive' })
         return
       }
-      const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || `Author ${verifBookCounter + 1}` }
+      const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }
       saveVerifBookToLocal(details, warehouse?.scan_status || 'processable', warehouse?.rejection_reason || null, warehouse?.notes || null)
     } catch {
       toast({ title: 'API Error', description: 'Failed to fetch book details. Cannot verify ISBN.', variant: 'destructive' })
     } finally { setLoadingVerifBooks(false) }
-  }, [saveVerifBookToLocal, toast, verifBookCounter, verifCurrentSession, verifScannedBooks, warehouseBooks])
+  }, [saveVerifBookToLocal, toast, verifBookCounter, verifCurrentSession, verifScannedBooks, warehouseBooks, brand])
 
   const handleVerifAddIssue = useCallback(async () => {
     const isbn = verifIssueIsbn.trim()
@@ -129,10 +129,10 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     setVerifFetchingIssueBook(true)
     try {
       const data = await searchIlmsBook(isbn)
-      const issueData: InventoryIssue = { isbn, type: verifIssueType, title: data.success && data.data && !data.data.Message ? data.data.Title : `Book ${verifBookCounter + 1}`, author: data.success && data.data && !data.data.Message ? data.data.Author : `Author ${verifBookCounter + 1}` }
+      const issueData: InventoryIssue = { isbn, type: verifIssueType, title: data.success && data.data && !data.data.Message ? data.data.Title : '', author: data.success && data.data && !data.data.Message ? data.data.Author : '' }
       setVerifIssues((prev) => [...prev, issueData]); setVerifIssueIsbn('')
     } catch {
-      setVerifIssues((prev) => [...prev, { isbn, type: verifIssueType, title: `Book ${verifBookCounter + 1}`, author: `Author ${verifBookCounter + 1}` }]); setVerifIssueIsbn('')
+      setVerifIssues((prev) => [...prev, { isbn, type: verifIssueType, title: '', author: '' }]); setVerifIssueIsbn('')
     } finally { setVerifFetchingIssueBook(false) }
   }, [toast, verifBookCounter, verifIssueIsbn, verifIssueType, verifIssues, verifScannedBooks])
 

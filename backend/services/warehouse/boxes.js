@@ -60,7 +60,7 @@ export const getRejectedBooksService = async (req, res) => {
         eu.name as "endorsement_user.name",
         ba.id as "book_activity.id",
         ba.warehouse_scan_at,
-        b.isbn, b.title,
+        b.isbn, b.title, b.author,
         bx.box_number, l.lot_number
       FROM user_flags uf
       LEFT JOIN users wu ON uf.warehouse_flag_by = wu.id
@@ -97,6 +97,7 @@ export const getRejectedBooksService = async (req, res) => {
         id: uf['book_activity.id'] || uf.id,
         isbn: uf.isbn || null,
         title: uf.title || null,
+        author: uf.author || null,
         rejection_reason: uf.rejection_reason || null,
         scanned_at: latestFlag?.at || uf.warehouse_scan_at || null,
         scanned_by_name: latestFlag?.by || null,

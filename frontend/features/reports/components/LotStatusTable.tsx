@@ -24,6 +24,11 @@ interface LotStatusTableProps {
   onPageChange: (lotId: string, page: number) => void
 }
 
+const SortIcon = ({ k, currentSortKey, sortDir }: { k: SortKey, currentSortKey: SortKey, sortDir: SortDir }) => {
+  if (currentSortKey !== k) return <ChevronUp className="h-3 w-3 opacity-30" />
+  return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+}
+
 export const LotStatusTable: React.FC<LotStatusTableProps> = ({
   brand,
   lots,
@@ -42,10 +47,7 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
   boxPageByLot,
   onPageChange,
 }) => {
-  const SortIcon = ({ k }: { k: SortKey }) => {
-    if (sortKey !== k) return <ChevronUp className="h-3 w-3 opacity-30" />
-    return sortDir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
-  }
+
 
   const thCls = (k: SortKey) =>
     cn(
@@ -97,27 +99,27 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
             <tr>
               <th className={thCls('lot_number')} onClick={() => onSort('lot_number')}>
                 <span className="flex items-center gap-1">
-                  Lot Number <SortIcon k="lot_number" />
+                  Lot Number <SortIcon k="lot_number" currentSortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th className={thCls('computed_status')} onClick={() => onSort('computed_status')}>
                 <span className="flex items-center gap-1">
-                  Status <SortIcon k="computed_status" />
+                  Status <SortIcon k="computed_status" currentSortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th className={thCls('total_boxes')} onClick={() => onSort('total_boxes')}>
                 <span className="flex items-center gap-1">
-                  <Package className="h-3 w-3" />Boxes <SortIcon k="total_boxes" />
+                  <Package className="h-3 w-3" />Boxes <SortIcon k="total_boxes" currentSortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th className={thCls('transmitted')} onClick={() => onSort('transmitted')}>
                 <span className="flex items-center gap-1">
-                  <BookOpen className="h-3 w-3" />Transmitted <SortIcon k="transmitted" />
+                  <BookOpen className="h-3 w-3" />Transmitted <SortIcon k="transmitted" currentSortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th className={thCls('pending')} onClick={() => onSort('pending')}>
                 <span className="flex items-center gap-1">
-                  Pending <SortIcon k="pending" />
+                  Pending <SortIcon k="pending" currentSortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -125,12 +127,12 @@ export const LotStatusTable: React.FC<LotStatusTableProps> = ({
               </th>
               <th className={thCls('created_by_name')} onClick={() => onSort('created_by_name')}>
                 <span className="flex items-center gap-1">
-                  Created by <SortIcon k="created_by_name" />
+                  Created by <SortIcon k="created_by_name" currentSortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
               <th className={thCls('progress')} onClick={() => onSort('progress')}>
                 <span className="flex items-center gap-1">
-                  Progress <SortIcon k="progress" />
+                  Progress <SortIcon k="progress" currentSortKey={sortKey} sortDir={sortDir} />
                 </span>
               </th>
             </tr>

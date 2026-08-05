@@ -235,8 +235,8 @@ export const completeSessionService = async (req, res) => {
 
         if (!bookId) {
           const { rows: newBookRows } = await db.query(
-            'INSERT INTO books (isbn, title, box_id, book_type) VALUES ($1, $2, $3, $4) RETURNING id',
-            [issue.isbn, issue.title || 'Unknown Title', session.box_id, book_type || null]
+            'INSERT INTO books (isbn, title, author, box_id, book_type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [issue.isbn, issue.title || 'Unknown Title', issue.author || null, session.box_id, book_type || null]
           );
           bookId = newBookRows[0].id;
         }
@@ -413,8 +413,8 @@ export const bulkSaveSessionService = async (req, res) => {
       
       if (!bookId) {
         const { rows: nbRows } = await db.query(
-          'INSERT INTO books (isbn, title, box_id, book_type) VALUES ($1, $2, $3, $4) RETURNING id',
-          [b.isbn, b.title || 'Unknown Title', assignedBoxId, book_type || null]
+          'INSERT INTO books (isbn, title, author, box_id, book_type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+          [b.isbn, b.title || 'Unknown Title', b.author || null, assignedBoxId, book_type || null]
         );
         bookId = nbRows[0].id;
       }
@@ -446,8 +446,8 @@ export const bulkSaveSessionService = async (req, res) => {
         
         if (!bookId) {
            const { rows: nbRows } = await db.query(
-             'INSERT INTO books (isbn, title, box_id, book_type) VALUES ($1, $2, $3, $4) RETURNING id',
-             [issue.isbn, issue.title || 'Unknown', assignedBoxId, book_type || null]
+             'INSERT INTO books (isbn, title, author, box_id, book_type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+             [issue.isbn, issue.title || 'Unknown', issue.author || null, assignedBoxId, book_type || null]
            );
            bookId = nbRows[0].id;
         }

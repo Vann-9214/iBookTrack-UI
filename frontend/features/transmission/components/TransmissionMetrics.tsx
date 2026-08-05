@@ -30,7 +30,7 @@ export function TransmissionMetrics({
       <div className="grid grid-cols-3 gap-2 sm:hidden">
         <div
           className={cn(
-            'rounded-2xl border p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition-all text-center',
+            'rounded-2xl border p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition text-center',
             brand === 'jaguar'
               ? 'border-emerald-300 bg-emerald-100/60'
               : 'border-blue-300 bg-blue-100/60'
@@ -46,13 +46,13 @@ export function TransmissionMetrics({
           </div>
           <div className="text-[10px] font-medium text-gray-500 mt-0.5 leading-tight">Transmitted</div>
         </div>
-        <div className="rounded-2xl border border-green-300 bg-green-100/60 p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition-all text-center">
+        <div className="rounded-2xl border border-green-300 bg-green-100/60 p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition text-center">
           <div className="text-lg font-black leading-none text-green-600">{loading ? '…' : `${passRate}%`}</div>
           <div className="text-[10px] font-medium text-gray-500 mt-0.5 leading-tight">Pass</div>
         </div>
         <div
           className={cn(
-            'relative overflow-hidden rounded-2xl border p-2.5 flex flex-col items-center justify-center shadow-sm ring-1 active:scale-[0.97] transition-all text-center',
+            'relative overflow-hidden rounded-2xl border p-2.5 flex flex-col items-center justify-center shadow-sm ring-1 active:scale-[0.97] transition text-center',
             brand === 'jaguar'
               ? 'bg-emerald-600 border-emerald-600/40 ring-emerald-300/30 text-white'
               : 'bg-blue-600 border-blue-600/40 ring-blue-300/30 text-white'
@@ -69,7 +69,7 @@ export function TransmissionMetrics({
       <div className="hidden sm:grid grid-cols-3 gap-4">
         <div
           className={cn(
-            'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
+            'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 hover:-translate-y-1 hover:shadow-xl',
             brand === 'jaguar'
               ? 'bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60'
               : 'bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70 hover:shadow-blue-200/60'
@@ -109,7 +109,7 @@ export function TransmissionMetrics({
             books sent to archive
           </div>
         </div>
-        <div className="group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60">
+        <div className="group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 hover:-translate-y-1 hover:shadow-xl bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60">
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
           <div className="relative flex items-start justify-between mb-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-emerald-600 shadow-emerald-500/25">
@@ -125,7 +125,7 @@ export function TransmissionMetrics({
         </div>
         <div
           className={cn(
-            'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl',
+            'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 hover:-translate-y-1 hover:shadow-xl',
             brand === 'jaguar'
               ? 'bg-emerald-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white hover:shadow-emerald-500/40'
               : 'bg-blue-600 border-2 border-blue-600/40 ring-blue-300/30 text-white hover:shadow-blue-500/40'

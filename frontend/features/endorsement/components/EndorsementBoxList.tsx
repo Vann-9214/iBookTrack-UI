@@ -54,12 +54,12 @@ export function EndorsementBoxList({
   title?: string
   eyebrow?: string
 }) {
+  const pagination = usePagination({ totalItems: boxes.length, defaultPageSize })
+  const paginatedBoxes = boxes.slice(pagination.offset, pagination.offset + pagination.limit)
+
   if (!boxes.length && !showEmpty && !loading) {
     return null
   }
-
-  const pagination = usePagination({ totalItems: boxes.length, defaultPageSize })
-  const paginatedBoxes = boxes.slice(pagination.offset, pagination.offset + pagination.limit)
 
   return (
     <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl p-4 sm:p-5">

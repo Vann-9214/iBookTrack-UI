@@ -5,6 +5,11 @@ import type { TransmissionBrand } from '../types/transmission.types'
 
 export const NONE_MACHINE = '__NONE__'
 
+// Full, canonical pipeline stage order (mirrors backend STAGE_ORDER).
+// Used to render a static, complete list of stage filter options instead
+// of only the stages that happen to be present in the currently loaded lot.
+export const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan', 'transmit', 'storage']
+
 export function formatPipelineStage(stage: string) {
   if (!stage) return '—'
   if (stage === 'Tif2PDF') return 'PDF Conversion'
@@ -63,68 +68,72 @@ export function getPipelineStatusBadge(status: string): ReactNode {
   )
 }
 
+function formatSimflexStage(stage: string): string {
+  if (stage === 'Jaguar Validate') return 'Validate'
+  if (stage === 'Tif2PDF') return 'PDF Conversion'
+  if (stage === 'Scanning') return 'Scan'
+  if (stage === 'Preval') return 'Preval'
+  if (stage === 'Transmission_Archive' || stage === 'Transmission_Archived') return 'Transmission'
+  return stage.replace(/_/g, ' ')
+}
+
+function formatSimflexState(state: string): string {
+  if (state === 'COMPLETED') return 'Completed'
+  if (state === 'ONGOING') return 'Ongoing'
+  if (state === 'FAILED') return 'Failed'
+  return state
+}
+
 export function getSimflexBadge(status: string | null | undefined, completed: boolean, scanStatus?: string): ReactNode {
   if (scanStatus === 'non_processable') {
     return createElement(
       Badge,
-      { variant: 'outline', className: 'border-gray-200 bg-gray-100 text-gray-400 text-[10px]' },
+      { variant: 'outline', className: 'border-gray-200 bg-gray-100 text-gray-400 text-[10px] whitespace-normal' },
       'N/A'
     )
   }
 
-  if (completed) {
-    return createElement(
-      Badge,
-      { variant: 'outline', className: 'border-emerald-300 bg-emerald-50 text-emerald-700 gap-1 text-[10px]' },
-      createElement(CheckCircle2, { className: 'h-3 w-3' }),
-      ' Transmitted'
-    )
-  }
-
   if (!status) {
+    if (completed) {
+      return createElement(
+        Badge,
+        { variant: 'outline', className: 'border-emerald-300 bg-emerald-50 text-emerald-700 text-[10px] whitespace-normal' },
+        'Transmission Completed'
+      )
+    }
     return createElement(
       Badge,
-      { variant: 'outline', className: 'border-gray-200 bg-gray-50 text-gray-500 text-[10px]' },
+      { variant: 'outline', className: 'border-gray-200 bg-gray-50 text-gray-500 text-[10px] whitespace-normal' },
       'Pending'
     )
   }
 
-  if (status.includes('Validate')) {
+  if (/transmission/i.test(status) && /completed/i.test(status)) {
     return createElement(
       Badge,
-      { variant: 'outline', className: 'border-blue-300 bg-blue-50 text-blue-700 text-[10px]' },
-      'Jaguar Validate'
+      { variant: 'outline', className: 'border-emerald-300 bg-emerald-50 text-emerald-700 text-[10px] whitespace-normal' },
+      'Transmission Completed'
     )
   }
 
-  if (status.includes('Tif2PDF')) {
-    return createElement(
-      Badge,
-      { variant: 'outline', className: 'border-violet-300 bg-violet-50 text-violet-700 text-[10px]' },
-      'PDFConversion'
-    )
-  }
+  const parts = status.trim().split(/\s+/)
+  const rawState = (parts.pop() || '').toUpperCase()
+  const rawStage = parts.join(' ')
 
-  if (status.includes('Preval')) {
-    return createElement(
-      Badge,
-      { variant: 'outline', className: 'border-amber-300 bg-amber-50 text-amber-700 text-[10px]' },
-      'Pre-Validation'
-    )
-  }
+  const stageLabel = formatSimflexStage(rawStage)
+  const stateLabel = formatSimflexState(rawState)
+  const label = stageLabel && stateLabel ? `${stageLabel} ${stateLabel}` : stageLabel || stateLabel || status
 
-  if (status.includes('Scanning')) {
-    return createElement(
-      Badge,
-      { variant: 'outline', className: 'border-cyan-300 bg-cyan-50 text-cyan-700 text-[10px]' },
-      'Done Scan'
-    )
-  }
+  const colorClass =
+    rawState === 'COMPLETED' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' :
+    rawState === 'ONGOING' ? 'border-blue-300 bg-blue-50 text-blue-700' :
+    rawState === 'FAILED' ? 'border-red-300 bg-red-50 text-red-700' :
+    'border-gray-200 bg-gray-50 text-gray-500'
 
   return createElement(
     Badge,
-    { variant: 'outline', className: 'border-gray-200 bg-gray-50 text-gray-500 text-[10px]' },
-    status
+    { variant: 'outline', className: `${colorClass} text-[10px] whitespace-normal` },
+    label
   )
 }
 

@@ -117,13 +117,13 @@ export function WarehouseActiveSession({
 
         <div className="grid grid-cols-2 sm:flex w-full shrink-0 gap-2 sm:w-auto">
           <button onClick={() => setShowIsbnModal(true)}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-2 py-3 text-[11px] sm:text-xs sm:px-4 font-semibold text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/10 sm:flex-none">
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-2 py-3 text-[11px] sm:text-xs sm:px-4 font-semibold text-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/10 sm:flex-none">
             <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Convert
           </button>
           
           <button onClick={handleResetSession}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200/80 bg-white/80 px-2 py-3 text-[11px] sm:text-xs sm:px-4 font-semibold text-red-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:shadow-red-200/40 sm:flex-none">
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200/80 bg-white/80 px-2 py-3 text-[11px] sm:text-xs sm:px-4 font-semibold text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:shadow-red-200/40 sm:flex-none">
             <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Reset
           </button>
@@ -131,7 +131,7 @@ export function WarehouseActiveSession({
           <button
             onClick={handleCloseSession}
             disabled={loading || scannedBooks.length === 0}
-            className="col-span-2 sm:col-span-1 inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid"
+            className="col-span-2 sm:col-span-1 inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid"
           >
             <CircleCheck className="h-4 w-4" />
             Complete Session

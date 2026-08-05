@@ -50,7 +50,7 @@ export function ScannerInput({ onScan, brand }: ScannerInputProps) {
       </div>
       
       <div className="relative group">
-        <div className={cn('pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1 transition-all duration-300 group-focus-within:animate-pulse', isWarehouse ? `${isJaguar ? 'bg-emerald-500/10 text-emerald-600' : 'bg-blue-500/10 text-blue-600'}` : 'bg-primary/10 text-primary')}>
+        <div className={cn('pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1 transition duration-300 group-focus-within:animate-pulse', isWarehouse ? `${isJaguar ? 'bg-emerald-500/10 text-emerald-600' : 'bg-blue-500/10 text-blue-600'}` : 'bg-primary/10 text-primary')}>
           <Barcode className="h-3.5 w-3.5" />
         </div>
         
@@ -60,7 +60,7 @@ export function ScannerInput({ onScan, brand }: ScannerInputProps) {
           value={scanInput}
           onChange={handleChange}
           onKeyPress={handleKeyPress}
-          className={cn('h-9 rounded-xl border-2 border-primary/20 pl-10 placeholder:text-slate-400/70 text-base shadow-inner ring-1 ring-black/5 transition-all duration-300 focus-visible:border-primary/60 focus-visible:shadow-[0_0_15px_rgba(var(--primary),0.2)] sm:h-10 sm:text-sm', isWarehouse ? 'bg-white/85 backdrop-blur-[2px]' : 'bg-background/50')}
+          className={cn('h-9 rounded-xl border-2 border-primary/20 pl-10 placeholder:text-slate-400/70 text-base shadow-inner ring-1 ring-black/5 transition duration-300 focus-visible:border-primary/60 focus-visible:shadow-[0_0_15px_rgba(var(--primary),0.2)] sm:h-10 sm:text-sm', isWarehouse ? 'bg-white/85 backdrop-blur-[2px]' : 'bg-background/50')}
           autoFocus
         />
       </div>

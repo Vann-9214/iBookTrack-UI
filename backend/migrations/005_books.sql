@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.books (
   isbn TEXT NOT NULL,
   box_id UUID REFERENCES public.boxes(id) ON DELETE CASCADE,
   title TEXT,
+  author TEXT,
   book_type TEXT,
   is_extra BOOLEAN NOT NULL DEFAULT false,
   is_missing BOOLEAN NOT NULL DEFAULT false,

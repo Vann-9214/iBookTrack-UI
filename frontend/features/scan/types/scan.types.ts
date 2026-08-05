@@ -2,6 +2,7 @@ export interface BookInBox {
   id: string
   isbn: string
   title: string | null
+  author?: string | null
   scan_status: string
   scanned_at: string
   book_type?: string

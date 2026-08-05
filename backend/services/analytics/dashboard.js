@@ -215,6 +215,7 @@ export const getQcFlagsService = async (req) => {
       scan_id: f.id,
       isbn: book.isbn || null,
       title: book.title || null,
+      author: book.author || null,
       issue: f.rejection_reason,
       remarks: f.notes,
       flagged_at: latestFlag?.at || f.warehouse_flag_at || null,
@@ -267,6 +268,7 @@ export const getDailyOutputService = async (req) => {
       const lot = firstRel(box.lot) || {};
       booksByIsbn[b.isbn] = {
         title: b.title || null,
+        author: b.author || null,
         box_number: box.box_number || null,
         lot_number: lot.lot_number || null,
       };
@@ -283,6 +285,7 @@ export const getDailyOutputService = async (req) => {
           const isbn = missingIsbns[i];
           if (!booksByIsbn[isbn]) booksByIsbn[isbn] = {};
           booksByIsbn[isbn].title = booksByIsbn[isbn].title || res.data.Title || null;
+          booksByIsbn[isbn].author = booksByIsbn[isbn].author || res.data.Author || null;
           booksByIsbn[isbn].lot_number = booksByIsbn[isbn].lot_number || res.data.LotNo || null;
           booksByIsbn[isbn].box_number = booksByIsbn[isbn].box_number || res.data.BoxNo || null;
         }
@@ -295,6 +298,7 @@ export const getDailyOutputService = async (req) => {
     return {
       isbn: r.isbn,
       title: local.title || null,
+      author: local.author || null,
       box_number: local.box_number || r.box_number || '—',
       lot_number: local.lot_number || '—',
       scan_user: r.scan_user || '—',
@@ -414,6 +418,8 @@ export const getPipelineStatsService = async (req) => {
       const isbns = [...new Set(activities.map(a => a.books?.isbn))];
       const location = selectedBrand || 'mustang';
       
+      const normalizeIsbn = (isbn) => String(isbn || '').replace(/-/g, '').trim().toLowerCase();
+
       const simflexResult = await getSimflexStatusForISBNs(isbns, location);
       const simflexData = simflexResult.success ? simflexResult.data : [];
 
@@ -423,8 +429,8 @@ export const getPipelineStatsService = async (req) => {
         if (!boxGroups[boxId]) boxGroups[boxId] = { isbns: [], completed: 0, transmitting: 0 };
         const isbn = a.books?.isbn;
         boxGroups[boxId].isbns.push(isbn);
-        
-        const simStatus = simflexData.find(s => s.isbn === isbn);
+
+        const simStatus = simflexData.find(s => normalizeIsbn(s.isbn) === normalizeIsbn(isbn));
         if (simStatus) {
           if (simStatus.transmissionCompleted) {
             boxGroups[boxId].completed++;

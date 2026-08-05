@@ -51,14 +51,14 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="relative z-10 w-full max-w-[1100px] mx-auto transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)]">
+    <div className="relative z-10 w-full max-w-[1100px] mx-auto transition duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)]">
       {/* Team selection */}
-      <div className={`w-full transition-all duration-700 ${selectedTeam ? 'absolute inset-x-0 -translate-y-12 opacity-0 pointer-events-none scale-95' : 'translate-y-0 opacity-100 scale-100 relative'}`}>
+      <div className={`w-full transition duration-700 ${selectedTeam ? 'absolute inset-x-0 -translate-y-12 opacity-0 pointer-events-none scale-95' : 'translate-y-0 opacity-100 scale-100 relative'}`}>
         <RegisterTeamSelector onSelect={setSelectedTeam} />
       </div>
 
       {/* Form */}
-      <div className={`w-full max-w-[460px] mx-auto transition-all duration-700 absolute left-1/2 -translate-x-1/2 ${selectedTeam ? 'translate-y-0 opacity-100 relative' : 'translate-y-12 opacity-0 pointer-events-none'}`}>
+      <div className={`w-full max-w-[460px] mx-auto transition duration-700 absolute left-1/2 -translate-x-1/2 ${selectedTeam ? 'translate-y-0 opacity-100 relative' : 'translate-y-12 opacity-0 pointer-events-none'}`}>
         <button
           onClick={() => setSelectedTeam(null)}
           className="flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors mb-6 group mx-auto"
@@ -92,7 +92,7 @@ export function RegisterForm() {
                 placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
               />
             </div>
 
@@ -105,7 +105,7 @@ export function RegisterForm() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
               />
             </div>
 
@@ -119,7 +119,7 @@ export function RegisterForm() {
                   placeholder="Min. 8 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
                 />
                 <button
                   type="button"
@@ -146,7 +146,7 @@ export function RegisterForm() {
                   placeholder="Re-enter password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition-all focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
                 />
                 <button
                   type="button"
@@ -173,7 +173,7 @@ export function RegisterForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`mt-4 h-13 py-3.5 w-full rounded-2xl text-[0.95rem] font-bold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-lg bg-gradient-to-r hover:opacity-90 ${selectedTeam?.color || 'from-gray-800 to-gray-900'} ${selectedTeam?.shadow}`}
+              className={`mt-4 h-13 py-3.5 w-full rounded-2xl text-[0.95rem] font-bold text-white transition duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-lg bg-gradient-to-r hover:opacity-90 ${selectedTeam?.color || 'from-gray-800 to-gray-900'} ${selectedTeam?.shadow}`}
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

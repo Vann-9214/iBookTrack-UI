@@ -37,7 +37,7 @@ export default function TransmissionMonitorPage() {
                   <button
                     onClick={() => t.fetchLiveData()}
                     disabled={t.loading}
-                    className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition-all disabled:opacity-50"
+                    className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition disabled:opacity-50"
                     aria-label="Refresh"
                   >
                     <RefreshCw className={cn('h-4 w-4', t.loading && 'animate-spin')} />

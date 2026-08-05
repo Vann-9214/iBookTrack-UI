@@ -28,7 +28,7 @@ export function WarehouseIlmsMismatchModal({
     if (isClosing) return
     setIsClosing(true)
     window.setTimeout(() => {
-      setIlmsMismatchModal({ open: false, isbn: '', title: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
+      setIlmsMismatchModal({ open: false, isbn: '', title: '', author: '', expectedLot: '', expectedBox: '', ilmsLot: '', ilmsBox: '', onConfirm: () => {} })
       setIsClosing(false)
       onClosed?.()
     }, 220)
@@ -65,6 +65,10 @@ export function WarehouseIlmsMismatchModal({
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Title</p>
                 <p className="mt-1 text-sm leading-5 text-foreground/80">{ilmsMismatchModal.title || 'Unknown Title'}</p>
               </div>
+              <div className="border-t border-amber-200/80 pt-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Author</p>
+                <p className="mt-1 text-sm leading-5 text-foreground/80">{ilmsMismatchModal.author || '—'}</p>
+              </div>
             </div>
           </div>
 
@@ -98,7 +102,7 @@ export function WarehouseIlmsMismatchModal({
           <button onClick={() => close()} className="rounded-xl border border-amber-200/80 bg-white/80 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-amber-50 hover:text-foreground">
             Cancel
           </button>
-          <button onClick={() => close(ilmsMismatchModal.onConfirm)} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600">
+          <button onClick={() => close(ilmsMismatchModal.onConfirm)} className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5 hover:from-amber-600 hover:to-orange-600">
             Confirm book
           </button>
         </div>

@@ -1,31 +1,41 @@
 import { query, sql, normalizeStatus, isMonitoredStatus, safeIsbnList } from './client.js'
 import { logger } from '../../../utils/logger.js'
 
+function normalizeIsbn(isbn) {
+  return String(isbn || '').replace(/-/g, '').trim().toLowerCase()
+}
+
 export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
   try {
     // Allowlist-sanitize before the values reach the query builder.
     const safeIsbns = safeIsbnList(isbns)
     if (safeIsbns.length === 0) return { success: true, data: [] }
 
+    // Normalize to no-hyphens so we match regardless of how Simplex stored the ISBN.
+    const safeIsbnsNoHyphens = [...new Set(safeIsbns.map(normalizeIsbn))].filter(Boolean)
+    if (safeIsbnsNoHyphens.length === 0) return { success: true, data: [] }
+
     // Fetch all status rows for these ISBNs across all time (not just today)
     const rows = await query(
       sql`SELECT ISBN, Status, ScanDate, Updated, PageCount, ScanUser, BoxNumber
        FROM zeusz_IsbnStatus
-       WHERE ISBN IN (${safeIsbns})
+       WHERE REPLACE(LTRIM(RTRIM(ISBN)), '-', '') IN (${safeIsbnsNoHyphens})
        ORDER BY Updated DESC`,
       location
     )
 
     const data = Array.isArray(rows) ? rows : []
 
-    // Group by ISBN to build a per-ISBN summary
+    // Group by normalized ISBN to build a per-ISBN summary
     const byIsbn = {}
     data.forEach(r => {
-      const isbn = r.ISBN
+      const rawIsbn = r.ISBN
+      const isbn = normalizeIsbn(rawIsbn)
       const status = normalizeStatus(r.Status)
       if (!byIsbn[isbn]) {
         byIsbn[isbn] = {
           isbn,
+          rawIsbn,
           statuses:             [],
           transmissionCompleted: false,
           latestStatus:          null,
@@ -55,10 +65,11 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
     })
 
     // Ensure every requested ISBN appears in the result (even if not in Scan Manager yet)
-    safeIsbns.forEach(isbn => {
+    safeIsbnsNoHyphens.forEach(isbn => {
       if (!byIsbn[isbn]) {
         byIsbn[isbn] = {
           isbn,
+          rawIsbn: null,
           statuses:             [],
           transmissionCompleted: false,
           latestStatus:          null,

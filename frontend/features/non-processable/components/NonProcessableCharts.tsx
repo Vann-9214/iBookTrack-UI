@@ -70,7 +70,7 @@ export function NonProcessableCharts({
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     return (
-                      <div className="bg-slate-900/95 backdrop-blur-md p-3.5 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col gap-1.5 min-w-[120px] transform transition-all">
+                      <div className="bg-slate-900/95 backdrop-blur-md p-3.5 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col gap-1.5 min-w-[120px] transform transition">
                         <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">{label}</span>
                         <div className="flex items-center gap-2">
                           <div className={cn("w-2 h-2 rounded-full shadow-lg", isJaguar ? "bg-emerald-400 shadow-emerald-400/50" : "bg-blue-400 shadow-blue-400/50")} />
@@ -174,7 +174,7 @@ export function NonProcessableCharts({
                   <div key={lot.lot_number} className="group relative flex flex-col items-center justify-end w-full h-full z-10 cursor-default">
                     
                     {/* Floating Value Tooltip (Appears on hover) */}
-                    <div className="absolute -top-10 opacity-0 group-hover:opacity-100 group-hover:-translate-y-2 transition-all duration-300 z-20 pointer-events-none">
+                    <div className="absolute -top-10 opacity-0 group-hover:opacity-100 group-hover:-translate-y-2 transition duration-300 z-20 pointer-events-none">
                       <div className="bg-slate-800 text-white text-[10px] font-black px-2.5 py-1.5 rounded-md shadow-lg flex items-center gap-1">
                         {lot.totalFlags} <span className="text-slate-300 font-semibold uppercase tracking-wider text-[8px]">flags</span>
                         <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45" />
@@ -190,7 +190,7 @@ export function NonProcessableCharts({
                     <div className="w-10 sm:w-14 bg-slate-100/80 rounded-t-xl overflow-hidden ring-1 ring-slate-200/50 shadow-inner flex items-end relative transition-transform duration-300 group-hover:scale-x-110" style={{ height: `${percent}%` }}>
                       <div 
                         className={cn(
-                          "w-full rounded-t-xl bg-gradient-to-t relative shadow-lg transition-all duration-1000 ease-out group-hover:brightness-110 origin-bottom", 
+                          "w-full rounded-t-xl bg-gradient-to-t relative shadow-lg transition duration-1000 ease-out group-hover:brightness-110 origin-bottom", 
                           style.bg, 
                           style.shadow,
                           style.glow

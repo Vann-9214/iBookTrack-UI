@@ -70,6 +70,7 @@ export interface ScannedBook {
   id: string
   isbn: string
   title: string | null
+  author?: string | null
   scan_status: string
   transmission_status?: string | null
   flag?: {

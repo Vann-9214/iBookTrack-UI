@@ -2,6 +2,7 @@ export interface BookEntry {
   no: number
   isbn: string
   title: string
+  author?: string
   status: string
   rejectionReason?: string
 }
@@ -21,6 +22,7 @@ export interface BarcodeResult {
   kind: 'barcode'
   isbn: string
   title: string
+  author?: string
   lot: string
   box: string
   bookType: string      // 'Mustang' | 'Jaguar' | '—'
@@ -34,6 +36,7 @@ export type ScanResult = QrResult | BarcodeResult
 
 export interface IsbnLookupBook {
   title?: string
+  author?: string
   lot_number?: string
   box_number?: string
   book_type?: string

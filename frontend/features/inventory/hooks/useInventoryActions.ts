@@ -58,7 +58,7 @@ export function useInventoryActions(brand: string, inventory: InventoryState, ve
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
   const [sendingToCut, setSendingToCut] = useState<string | null>(null)
 
-  useEffect(() => { void verification.loadUserProfile() }, [])
+  useEffect(() => { void verification.loadUserProfile() }, [verification.loadUserProfile])
 
   const handleManualRefresh = async () => {
     setIsManualRefreshing(true)

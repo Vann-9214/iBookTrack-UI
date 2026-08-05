@@ -6,9 +6,12 @@
  * summaries across boxes, and querying external services (Scan Manager).
  */
 
+import { logger } from '../../utils/logger.js';
 import * as lotsRepo from '../../repositories/inventory/lots.js';
+import { syncBoxTransmissionStatus } from './boxes.js';
 import { runWarehouseTimeoutSweep } from '../../utils/warehouseTimeout.js';
 import { broadcastEvent } from '../../utils/sse.js';
+import { isTransmissionArchiveCompleted } from '../../utils/transmissionStatus.js';
 
 const VALID_LOT_TYPES = ['Mustang', 'Jaguar'];
 
@@ -58,47 +61,50 @@ export const getLotTransmissionSummaryService = async (req, res) => {
     };
   }
 
+  // Pull fresh Scan Manager (Simplex) status into our DB first, then read from the DB.
+  // The UI is supposed to show persisted DB state, not hit the external API directly.
+  const lotLocation = lot.type ? lot.type.toLowerCase() : 'mustang';
+  await Promise.all(
+    boxes.map(box =>
+      syncBoxTransmissionStatus(box.id, lotLocation).catch(err =>
+        logger.error(`[Lot Sync] Failed to sync box ${box.id} for lot ${lot.lot_number}:`, err.message)
+      )
+    )
+  );
+
   const allScans = await lotsRepo.getBookActivitiesForBoxes(boxIds);
   const processableScans = allScans.filter(s => s.scan_status === 'processable');
   const nonProcessableScans = allScans.filter(s => s.scan_status === 'non_processable');
 
-  const { getSimflexStatusForISBNs } = await import('../scan_manager/api/index.js');
-  const uniqueIsbns = [...new Set(processableScans.map(s => s.books?.isbn))];
-
-  let simflexMap = {};
-  if (uniqueIsbns.length > 0) {
-    const location = lot.type ? lot.type.toLowerCase() : 'mustang';
-    const result = await getSimflexStatusForISBNs(uniqueIsbns, location);
-    if (result.success) {
-      for (const r of result.data) {
-        simflexMap[r.isbn] = r;
-      }
-    }
-  }
-
   const isbnRows = allScans.map(s => {
     const isbn = s.books?.isbn;
-    const sf = simflexMap[isbn] || {};
-    
+
     const current_stage = s.books?.boxes?.current_stage || null;
     const stg = (current_stage || '').toLowerCase();
     const showSimflex = stg === 'scan' || stg === 'storage';
 
-    const latestStatus = showSimflex ? (sf.latestStatus || null) : null;
-    const transmissionCompleted = showSimflex ? (sf.transmissionCompleted || false) : false;
-    const transmissionDate = transmissionCompleted ? (sf.latestUpdated || null) : null;
+    const dbStatus = showSimflex ? (s.transmission_status || null) : null;
+    // Only "Transmission_Archive COMPLETED" counts as fully transmitted — an
+    // intermediate stage (e.g. "Validate COMPLETED", "Preval COMPLETED")
+    // must NOT be treated as transmitted.
+    const transmissionCompleted = isTransmissionArchiveCompleted(dbStatus);
+    // The "Updated" timestamp reflects the last time Scan Manager reported a
+    // status for this book — it is NOT tied to transmission completion, so
+    // it should show regardless of what stage the book is currently at.
+    const transmissionDate = s.transmission_updated_at || null;
 
     return {
       scan_id: s.id,
       isbn: isbn,
       title: s.books?.title || null,
+      author: s.books?.author || null,
       scan_status: s.scan_status,
       rejection_reason: s.user_flags?.rejection_reason || null,
       warehouse_scan_at: s.warehouse_scan_at,
       assigned_box_id: s.books?.box_id,
       box_number: s.books?.boxes?.box_number || null,
       current_stage: current_stage,
-      simflex_status: latestStatus,
+      simflex_status: dbStatus,
       transmission_completed: transmissionCompleted,
       transmission_date: transmissionDate,
     };
@@ -110,10 +116,10 @@ export const getLotTransmissionSummaryService = async (req, res) => {
   for (const r of isbnRows) {
     if (!r.transmission_completed && r.simflex_status) {
       const s = r.simflex_status;
-      if (s.startsWith('Scanning')) wip.done_scan++;
-      else if (s.startsWith('Preval')) wip.pre_validation++;
-      else if (s.startsWith('Tif2PDF')) wip.pdf_conversion++;
-      else if (s.startsWith('Validate')) wip.validation++;
+      if (s.includes('Validate')) wip.validation++;
+      else if (s.includes('Tif2PDF')) wip.pdf_conversion++;
+      else if (s.includes('Preval')) wip.pre_validation++;
+      else if (s.includes('Scanning')) wip.done_scan++;
     }
   }
 

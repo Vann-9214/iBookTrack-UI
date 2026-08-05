@@ -177,7 +177,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
         eu.name as "endorsement_user.name",
         su.name as "scan_user.name",
         ba.id as "book_activity.id",
-        b.isbn as "books.isbn", b.title as "books.title",
+        b.isbn as "books.isbn", b.title as "books.title", b.author as "books.author",
         bx.box_number as "boxes.box_number", bx.box_type as "boxes.box_type",
         l.lot_number as "lots.lot_number"
       FROM user_flags uf
@@ -269,7 +269,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
       book_activity: {
         id: r['book_activity.id'],
         books: {
-          isbn: r['books.isbn'], title: r['books.title'],
+          isbn: r['books.isbn'], title: r['books.title'], author: r['books.author'],
           boxes: { box_number: r['boxes.box_number'], box_type: r['boxes.box_type'], lot: { lot_number: r['lots.lot_number'] } }
         }
       }
@@ -284,7 +284,7 @@ export const getBooksByIsbnsWithLots = async (isbns) => {
   if (!isbns || !isbns.length) return { data: [], error: null };
   const ph = isbns.map((_, i) => `$${i + 1}`).join(',');
   const query = `
-    SELECT b.isbn, b.title, bx.box_number as "boxes.box_number", l.lot_number as "lots.lot_number"
+    SELECT b.isbn, b.title, b.author, bx.box_number as "boxes.box_number", l.lot_number as "lots.lot_number"
     FROM books b
     LEFT JOIN boxes bx ON b.box_id = bx.id
     LEFT JOIN lots l ON bx.lot_id = l.id
@@ -293,7 +293,7 @@ export const getBooksByIsbnsWithLots = async (isbns) => {
   try {
     const { rows } = await db.query(query, isbns);
     const data = rows.map(r => ({
-      isbn: r.isbn, title: r.title,
+      isbn: r.isbn, title: r.title, author: r.author,
       box: r['boxes.box_number'] ? { box_number: r['boxes.box_number'], lot: r['lots.lot_number'] ? { lot_number: r['lots.lot_number'] } : null } : null
     }));
     return { data, error: null };

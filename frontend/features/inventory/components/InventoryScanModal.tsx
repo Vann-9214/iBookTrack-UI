@@ -91,6 +91,10 @@ export function InventoryScanModal({
                   <p className="mt-1 line-clamp-3 text-sm font-semibold leading-5 text-foreground">{book.title}</p>
                 </div>
                 <div className="border-t border-rose-200/80 pt-2.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Author</p>
+                  <p className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-foreground">{book.author || '—'}</p>
+                </div>
+                <div className="border-t border-rose-200/80 pt-2.5">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">ISBN</p>
                   <p className={cn('mt-1 font-mono text-xs font-bold tracking-wide', theme.text)}>{book.isbn}</p>
                 </div>
@@ -167,7 +171,7 @@ export function InventoryScanModal({
           <button
             onClick={() => { onSave(); close(); }}
             disabled={!issue || !remarks.trim() || saving}
-            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
           >
             <AlertTriangle className="h-4 w-4" />
             {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Confirm Flag'}

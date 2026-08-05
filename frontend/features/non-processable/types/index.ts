@@ -2,6 +2,7 @@ export interface QCFlag {
   scan_id: number
   isbn: string
   title?: string
+  author?: string
   issue: string
   remarks?: string
   flagged_at?: string

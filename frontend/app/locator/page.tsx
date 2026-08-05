@@ -267,7 +267,7 @@ export default function WarehouseLocatorPage() {
                   type="button"
                   onClick={() => setMobileTab('ready')}
                   className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition-all",
+                    "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition",
                     mobileTab === 'ready'
                       ? "bg-card text-foreground shadow-xs border border-border/80"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
@@ -291,7 +291,7 @@ export default function WarehouseLocatorPage() {
                   type="button"
                   onClick={() => setMobileTab('pending')}
                   className={cn(
-                    "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all",
+                    "flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition",
                     mobileTab === 'pending'
                       ? "bg-card text-foreground shadow-xs border border-border/80"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/40"

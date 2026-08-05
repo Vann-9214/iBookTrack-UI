@@ -73,6 +73,7 @@ export function InspectionComparisonTables({
                     </div>
                     <div className="col-span-5 sm:col-span-6 min-w-0">
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{book.author || '—'}</p>
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex items-center justify-end min-w-0">
                       {book.scan_status === 'processable' ? (
@@ -142,8 +143,9 @@ export function InspectionComparisonTables({
                     <div className="col-span-3 sm:col-span-2 min-w-0">
                       <p className="text-xs font-mono text-muted-foreground truncate">{book.isbn}</p>
                     </div>
-                    <div className="col-span-4 sm:col-span-5 min-w-0 flex items-center">
+                    <div className="col-span-4 sm:col-span-5 min-w-0 flex flex-col justify-center">
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{book.author || '—'}</p>
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex flex-row items-center justify-end gap-1.5 min-w-0">
                       {book.scan_status === 'processable' ? (
@@ -153,7 +155,7 @@ export function InspectionComparisonTables({
                           </span>
                           <button
                             onClick={() => openInspFlagModal(book)}
-                            className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40 whitespace-nowrap"
+                            className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40 whitespace-nowrap"
                           >
                             Flag Issue
                           </button>

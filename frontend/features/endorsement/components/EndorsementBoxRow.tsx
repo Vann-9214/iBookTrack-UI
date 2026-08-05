@@ -35,7 +35,7 @@ export function EndorsementBoxRow({
   return (
     <div
       className={cn(
-        'group rounded-2xl shadow-sm transition-all',
+        'group rounded-2xl shadow-sm transition',
         expanded
           ? 'premium-gradient-ui-card--solid premium-gradient-ui-card--static'
           : 'bg-white/80 ring-1 ring-black/5 hover:bg-white',

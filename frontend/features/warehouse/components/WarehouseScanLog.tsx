@@ -79,6 +79,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   </div>
                   <div className="flex-1 min-w-0 pr-2">
                     <p className="text-[11px] sm:text-xs text-foreground font-semibold truncate leading-snug">{book.title}</p>
+                    <p className="text-[10px] text-muted-foreground truncate leading-snug">{book.author || '—'}</p>
                   </div>
                   <div className="flex w-[200px] shrink-0 items-center justify-end gap-2 sm:w-[220px] sm:gap-3 pr-2">
                     {book.scan_status === 'processable' ? (
@@ -89,7 +90,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                         </span>
                         <button
                           onClick={() => openFlagModal(book)}
-                          className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40"
+                          className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40"
                         >
                           Flag
                         </button>

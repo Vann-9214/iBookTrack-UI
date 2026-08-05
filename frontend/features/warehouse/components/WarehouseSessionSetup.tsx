@@ -45,7 +45,7 @@ export function WarehouseSessionSetup({
   const borderTheme = 'border-primary/20 focus:ring-primary/20'
 
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border-2 p-4 sm:p-5 shadow-sm ring-1 transition-all duration-300", cardTheme)}>
+    <div className={cn("relative overflow-hidden rounded-2xl border-2 p-4 sm:p-5 shadow-sm ring-1 transition duration-300", cardTheme)}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl" />
 
       <div className="relative">
@@ -99,7 +99,7 @@ export function WarehouseSessionSetup({
                       }}
                       onFocus={() => setLotOpen(true)}
                       disabled={lotsLoading}
-                      className={cn("h-9 pr-10 rounded-lg bg-white/85 shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2", borderTheme)}
+                      className={cn("h-9 pr-10 rounded-lg bg-white/85 shadow-sm ring-1 ring-black/5 transition focus:bg-white focus:ring-2", borderTheme)}
                     />
                     <ChevronsUpDown className="absolute right-3 top-3 h-4 w-4 shrink-0 opacity-40 pointer-events-none transition-opacity group-hover:opacity-60" />
                   </div>
@@ -165,7 +165,7 @@ export function WarehouseSessionSetup({
                     handleNewSession(false)
                   }
                 }}
-                className={cn("h-9 rounded-lg bg-white/85 shadow-sm ring-1 ring-black/5 transition-all focus:bg-white focus:ring-2", borderTheme)}
+                className={cn("h-9 rounded-lg bg-white/85 shadow-sm ring-1 ring-black/5 transition focus:bg-white focus:ring-2", borderTheme)}
               />
             )}
           </div>
@@ -174,7 +174,7 @@ export function WarehouseSessionSetup({
           <Button
             onClick={() => handleNewSession(false)}
             disabled={loading || !activeLot || !selectedBox || lotsLoading || !!boxLockedBy}
-            className="w-full sm:w-auto h-9 px-5 text-sm font-bold shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:hover:translate-y-0 disabled:hover:shadow-lg shrink-0 rounded-xl text-white premium-gradient-ui-card--solid"
+            className="w-full sm:w-auto h-9 px-5 text-sm font-bold shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:hover:translate-y-0 disabled:hover:shadow-lg shrink-0 rounded-xl text-white premium-gradient-ui-card--solid"
           >
             {loading ? (
               <>

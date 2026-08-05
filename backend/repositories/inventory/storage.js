@@ -20,7 +20,7 @@ export const getStorageLocationsWithAssignments = async () => {
               'lot', (SELECT json_build_object('lot_number', l.lot_number) FROM lots l WHERE l.id = bx.lot_id),
               'books', (
                 SELECT COALESCE(json_agg(json_build_object(
-                  'isbn', bk.isbn, 'title', bk.title,
+                  'isbn', bk.isbn, 'title', bk.title, 'author', bk.author,
                   'scans', (
                     SELECT COALESCE(json_agg(json_build_object('scan_status', ba.scan_status)), '[]'::json)
                     FROM book_activity ba WHERE ba.book_id = bk.id
@@ -127,7 +127,7 @@ export const getScanStageBoxes = async (boxType, excludedBoxIds = []) => {
       json_build_object('lot_number', l.lot_number) as lot,
       (
         SELECT COALESCE(json_agg(json_build_object(
-          'isbn', bk.isbn, 'title', bk.title,
+          'isbn', bk.isbn, 'title', bk.title, 'author', bk.author,
           'scans', (
             SELECT COALESCE(json_agg(json_build_object('scan_status', ba.scan_status, 'transmission_status', ba.transmission_status)), '[]'::json)
             FROM book_activity ba WHERE ba.book_id = bk.id

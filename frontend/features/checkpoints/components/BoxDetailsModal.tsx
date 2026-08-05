@@ -93,6 +93,7 @@ export function BoxDetailsModal({
                   <th className="pb-2 text-left font-medium w-6">#</th>
                   <th className="pb-2 text-left font-medium pr-3">ISBN</th>
                   <th className="pb-2 text-left font-medium pr-3">Title</th>
+                  <th className="pb-2 text-left font-medium pr-3">Author</th>
                   <th className="pb-2 text-left font-medium pr-3">Status</th>
                   <th className="pb-2 text-left font-medium pr-3">Stage</th>
                   {(['scan', 'transmit', 'storage'].includes(box?.current_stage || '')) && (
@@ -109,6 +110,9 @@ export function BoxDetailsModal({
                       <td className="py-1.5 pr-3">{book.isbn}</td>
                       <td className="py-1.5 pr-3 max-w-[220px] truncate text-foreground">
                         {book.title || '—'}
+                      </td>
+                      <td className="py-1.5 pr-3 max-w-[180px] truncate text-foreground">
+                        {book.author || '—'}
                       </td>
                       <td className="py-1.5 pr-3">
                         <span

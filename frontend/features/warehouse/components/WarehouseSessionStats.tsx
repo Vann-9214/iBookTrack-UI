@@ -43,7 +43,7 @@ export function WarehouseSessionStats({ currentSession }: WarehouseSessionStatsP
     <div className="grid grid-cols-3 gap-2 sm:gap-3">
       {/* Mobile: centered col, no icon. Desktop: original — icon left, left-aligned text */}
       {stats.map(({ label, value, icon: Icon, card, iconBg, text, accent }) => (
-        <div key={label} className={cn('relative min-w-0 overflow-hidden rounded-2xl border p-2 shadow-sm ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-3', card)}>
+        <div key={label} className={cn('relative min-w-0 overflow-hidden rounded-2xl border p-2 shadow-sm ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-3', card)}>
           <div className={cn('absolute -right-5 -top-5 h-20 w-20 rounded-full blur-xl', accent)} />
           <div className="relative flex h-full items-center justify-between gap-3">
             <div className={cn('hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:flex', iconBg)}>

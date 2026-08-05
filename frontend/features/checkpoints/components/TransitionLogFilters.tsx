@@ -63,7 +63,7 @@ export function TransitionLogFilters({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') onSearchApply()
               }}
-              className="w-full sm:w-64 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition-all duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:border-primary/50"
+              className="w-full sm:w-64 h-9 pl-9 pr-4 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 focus-visible:border-primary/50"
             />
           </div>
         </div>
@@ -101,7 +101,7 @@ export function TransitionLogFilters({
               <Button
                 variant="outline"
                 className={cn(
-                  'w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition-all',
+                  'w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition',
                   !dateFrom && 'text-muted-foreground'
                 )}
               >
@@ -132,7 +132,7 @@ export function TransitionLogFilters({
               <Button
                 variant="outline"
                 className={cn(
-                  'w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition-all',
+                  'w-full h-10 justify-start text-left font-normal text-sm bg-background border-border/50 hover:bg-muted/50 hover:text-foreground rounded-xl shadow-sm group transition',
                   !dateTo && 'text-muted-foreground'
                 )}
               >

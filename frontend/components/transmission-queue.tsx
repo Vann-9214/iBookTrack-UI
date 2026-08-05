@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useEffect, useMemo, useState, useRef, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import {
   Card,
@@ -95,7 +95,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
     [propScans, fetchedScans]
   )
 
-  const fetchLive = async () => {
+  const fetchLive = useCallback(async () => {
     setLoading(true)
     try {
       const res = await authFetch(`${API_URL}/api/scanning/live?location=${brand}&newProcessOnly=true`)
@@ -108,12 +108,12 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
     } finally {
       setLoading(false)
     }
-  }
+  }, [brand])
 
   useEffect(() => {
     if (propScans) return
     fetchLive()
-  }, [brand])
+  }, [brand, propScans, fetchLive])
 
   const [enrichedData, setEnrichedData] = useState<Record<string, { box: string, lot: string }>>({})
   const fetchedIsbns = useRef<Set<string>>(new Set())

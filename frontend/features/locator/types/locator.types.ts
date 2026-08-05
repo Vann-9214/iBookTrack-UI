@@ -1,6 +1,7 @@
 export type BookEntry = {
   isbn: string
   title: string
+  author?: string | null
 }
 
 export type Assignment = {

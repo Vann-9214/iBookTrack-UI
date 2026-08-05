@@ -21,6 +21,7 @@ export function useQrScanner() {
         kind:            'barcode',
         isbn,
         title:           '—',
+        author:          '—',
         lot:             '—',
         box:             '—',
         bookType:        '—',
@@ -43,6 +44,7 @@ export function useQrScanner() {
             kind:            'barcode',
             isbn,
             title:           b.title && b.title !== 'Unknown' ? b.title : '—',
+            author:          b.author || '—',
             lot:             b.lot_number || '—',
             box:             b.box_number || '—',
             bookType:        b.book_type || '—',
@@ -84,6 +86,7 @@ export function useQrScanner() {
               return {
                 ...book,
                 title:           b.title && b.title !== 'Unknown' ? b.title : '—',
+                author:          b.author || '—',
                 rejectionReason: b.rejection_reason || '',
               }
             }

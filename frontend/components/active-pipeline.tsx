@@ -131,7 +131,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
       const style = getBadgeStyles('default', brandName, isZero)
       return (
         <span className={cn(
-          "inline-flex items-center gap-1 justify-center min-w-[2rem] px-2.5 py-0.5 rounded-lg border text-sm font-extrabold leading-tight tabular-nums transition-all my-0.5",
+          "inline-flex items-center gap-1 justify-center min-w-[2rem] px-2.5 py-0.5 rounded-lg border text-sm font-extrabold leading-tight tabular-nums transition my-0.5",
           style
         )}>
           {!isZero && <ArrowDown className="w-3.5 h-3.5" />} {step.displayText}
@@ -147,7 +147,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
             <span
               key={idx}
               className={cn(
-                "inline-flex items-center gap-0.5 sm:gap-1 justify-center min-w-[1.5rem] px-1.5 sm:px-2 py-0.5 rounded-md border text-[11px] sm:text-sm font-extrabold leading-tight tabular-nums transition-all",
+                "inline-flex items-center gap-0.5 sm:gap-1 justify-center min-w-[1.5rem] px-1.5 sm:px-2 py-0.5 rounded-md border text-[11px] sm:text-sm font-extrabold leading-tight tabular-nums transition",
                 style
               )}
               title={`${p.label}: ${p.value}`}
@@ -281,11 +281,11 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const inner = (
                 <>
                   {/* Step number circle */}
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold mb-2 transition-all duration-300 group-hover/step:scale-110 group-hover/step:shadow-lg", cfg.nodeFill)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold mb-2 transition duration-300 group-hover/step:scale-110 group-hover/step:shadow-lg", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   {/* Card body */}
-                  <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 transition-all duration-300 group-hover/step:shadow-lg group-hover/step:-translate-y-1", cfg.cardBg)}>
+                  <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 transition duration-300 group-hover/step:shadow-lg group-hover/step:-translate-y-1", cfg.cardBg)}>
                     <span className="relative text-xs font-bold text-slate-500 uppercase tracking-wider">{step.label}</span>
                     <div className="relative">{renderFormattedCounts(step, cfg.countColor, brand)}</div>
                     <div className={cn("relative h-[3px] w-full rounded-full my-1", cfg.bar)} />
@@ -316,7 +316,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200", cfg.nodeFill)}>
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition duration-200", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   <div className="flex flex-col text-left">
@@ -332,7 +332,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                 </>
               )
               return (
-                <div key={step.label} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5 transition-all duration-200 active:scale-[0.98]", cfg.cardBg)}>
+                <div key={step.label} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5 transition duration-200 active:scale-[0.98]", cfg.cardBg)}>
                   {inner}
                 </div>
               )

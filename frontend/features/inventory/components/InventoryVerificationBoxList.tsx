@@ -97,7 +97,7 @@ export function InventoryVerificationBoxList({
               <div
                 key={box.id}
                 className={cn(
-                  'group rounded-2xl shadow-sm transition-all',
+                  'group rounded-2xl shadow-sm transition',
                   isExpanded
                     ? 'premium-gradient-ui-card--solid premium-gradient-ui-card--static'
                     : 'bg-white/80 ring-1 ring-black/5 hover:bg-white'

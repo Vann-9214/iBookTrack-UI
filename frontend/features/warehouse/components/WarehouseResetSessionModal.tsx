@@ -59,7 +59,7 @@ export function WarehouseResetSessionModal({ open, onClose, onConfirm }: Warehou
 
         <div className="flex flex-col-reverse gap-2 border-t border-rose-100 bg-red-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
           <button onClick={close} disabled={isResetting} className="rounded-xl border border-rose-200/80 bg-white/80 px-4 py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:bg-rose-50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>
-          <button onClick={confirmReset} disabled={isResetting} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition-all hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-wait disabled:opacity-75 disabled:hover:translate-y-0">
+          <button onClick={confirmReset} disabled={isResetting} className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-rose-500/25 transition hover:-translate-y-0.5 hover:from-rose-600 hover:to-red-700 disabled:cursor-wait disabled:opacity-75 disabled:hover:translate-y-0">
             {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             {isResetting ? 'Resetting session...' : 'Reset Session'}
           </button>

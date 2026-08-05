@@ -47,6 +47,7 @@ export function parseQr(raw: string): QrResult {
         no: idx + 1,
         isbn: eq === -1 ? entry : entry.slice(0, eq),
         title: '—',
+        author: '—',
         status: eq === -1 ? '' : entry.slice(eq + 1),
       }
     })

@@ -8,7 +8,7 @@
 import { db } from '../../config/db.js';
 
 export const getBooks = async (box_id) => {
-  let query = 'SELECT id, isbn, title, book_type, box_id FROM books';
+  let query = 'SELECT id, isbn, title, author, book_type, box_id FROM books';
   const params = [];
 
   if (box_id) {

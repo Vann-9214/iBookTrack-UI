@@ -42,7 +42,7 @@ export function EndorsementTabs({
             disabled={inspSessionActive}
             onClick={() => setActiveTab(id)}
             className={cn(
-              'flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2.5 text-sm font-semibold rounded-xl transition-all',
+              'flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2.5 text-sm font-semibold rounded-xl transition',
               active
                 ? 'premium-gradient-ui-card--solid text-white shadow-md'
                 : 'text-muted-foreground hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed'

@@ -34,7 +34,7 @@ export default function InventoryPage() {
       actions.setPrintedBoxLabels((prev) => new Set(prev).add(actions.printBox!.id))
       actions.setPrintBox(null)
     }
-  }, [actions.printBox])
+  }, [actions.printBox, actions])
 
   const handleBookSlipAfterPrint = useCallback(() => {
     if (actions.printBook) {
@@ -49,7 +49,7 @@ export default function InventoryPage() {
       actions.setPrintBook(null)
       actions.setLoadingBookPrint(null)
     }
-  }, [actions.printBook])
+  }, [actions.printBook, actions])
 
   const confirmActionTitle =
     actions.confirmModal.action === 'receive' ? 'Confirm Receipt' :

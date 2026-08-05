@@ -37,10 +37,14 @@ export function DashboardSearch(props: DashboardSearchProps) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-overlay-in"
       onClick={handleClose}
+      onKeyDown={(e) => e.key === 'Escape' && handleClose()}
     >
       <div
+        role="presentation"
         className="bg-card border border-border rounded-2xl shadow-2xl ring-1 ring-black/5 w-full max-w-lg max-h-[88vh] flex flex-col overflow-hidden animate-modal-in"
         onClick={(event) => event.stopPropagation()}
       >

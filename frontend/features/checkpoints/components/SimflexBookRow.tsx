@@ -6,7 +6,7 @@ interface SimflexBookRowProps {
 
 export function SimflexBookRow({ row }: SimflexBookRowProps) {
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-4 flex items-center justify-between shadow-sm hover:shadow-md transition-all">
+    <div className="rounded-xl border border-border/70 bg-card p-4 flex items-center justify-between shadow-sm hover:shadow-md transition">
       <div className="flex items-center gap-4">
         <div className="flex flex-col">
           <span className="font-mono font-bold text-foreground text-sm">{row.ISBN}</span>

@@ -25,7 +25,7 @@ const normalizeLocation = (loc) => ({
     books: (a.box?.books || [])
       .flatMap(b => {
         const processable = (b.scans || []).some(s => s.scan_status === 'processable');
-        return processable ? [{ isbn: b.isbn, title: b.title || `ISBN: ${b.isbn}` }] : [];
+        return processable ? [{ isbn: b.isbn, title: b.title || `ISBN: ${b.isbn}`, author: b.author || null }] : [];
       }),
   })),
 });
@@ -124,7 +124,7 @@ export const getReadyBoxesService = async (req) => {
     books: (b.books || [])
       .flatMap(bk => {
         const processable = (bk.scans || []).some(s => s.scan_status === 'processable');
-        return processable ? [{ isbn: bk.isbn, title: bk.title || `ISBN: ${bk.isbn}` }] : [];
+        return processable ? [{ isbn: bk.isbn, title: bk.title || `ISBN: ${bk.isbn}`, author: bk.author || null }] : [];
       }),
   }));
 

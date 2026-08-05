@@ -100,7 +100,7 @@ export function PendingApproval() {
                   { step: '3', text: 'You get full access to the system', done: false },
                 ].map((item) => (
                   <div key={item.step} className="flex items-start gap-2 sm:gap-3">
-                    <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[9px] sm:text-[11px] font-bold shrink-0 mt-px transition-all ${
+                    <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[9px] sm:text-[11px] font-bold shrink-0 mt-px transition ${
                       item.done
                         ? 'bg-emerald-400/20 text-emerald-400 border border-emerald-400/30'
                         : 'bg-white/[0.06] text-white/40 border border-white/[0.10]'
@@ -145,7 +145,7 @@ export function PendingApproval() {
             <button
               onClick={handleCheckStatus}
               disabled={checking}
-              className="w-full h-9 sm:h-11 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-bold text-white transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-60 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] shadow-lg shadow-blue-500/20"
+              className="w-full h-9 sm:h-11 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-bold text-white transition duration-200 flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-60 disabled:cursor-not-allowed hover:brightness-110 active:scale-[0.98] shadow-lg shadow-blue-500/20"
               style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
             >
               {checking ? (
@@ -162,7 +162,7 @@ export function PendingApproval() {
             </button>
             <button
               onClick={logout}
-              className="w-full h-8 sm:h-10 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
+              className="w-full h-8 sm:h-10 rounded-lg sm:rounded-xl text-[11px] sm:text-sm font-medium text-white/50 hover:text-white/80 hover:bg-white/[0.06] transition duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
             >
               <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               Sign Out

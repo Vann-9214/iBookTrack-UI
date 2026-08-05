@@ -107,13 +107,13 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
 
         <div className="flex w-full shrink-0 gap-2 sm:w-auto z-10">
           <button onClick={() => setShowIsbnModal(true)}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs font-semibold text-primary shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/10 sm:flex-none">
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-xs font-semibold text-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/10 sm:flex-none">
             <BookOpen className="h-4 w-4" />
             Convert ISBN
           </button>
           
           <button onClick={() => setShowResetConfirm(true)}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200/80 bg-white/80 px-4 py-3 text-xs font-semibold text-red-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:shadow-red-200/40 sm:flex-none">
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200/80 bg-white/80 px-4 py-3 text-xs font-semibold text-red-600 shadow-sm transition hover:-translate-y-0.5 hover:border-red-300 hover:bg-red-50 hover:shadow-red-200/40 sm:flex-none">
             <X className="h-4 w-4" />
             Reset
           </button>
@@ -121,7 +121,7 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
           <button
             onClick={handleOpenVerifComplete}
             disabled={completeDisabled}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid"
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl px-5 py-3 text-xs font-semibold text-white shadow-lg transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 sm:flex-none premium-gradient-ui-card--solid"
           >
             <CircleCheck className="h-4 w-4" />
             Complete Session
@@ -132,7 +132,7 @@ export function InventoryVerificationActiveSession({ brand, verification }: { br
       {/* Book count stats */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {stats.map(({ label, value, icon: Icon, card, iconBg, text, accent }) => (
-          <div key={label} className={cn('relative min-w-0 overflow-hidden rounded-2xl border p-2 shadow-sm ring-1 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-3', card)}>
+          <div key={label} className={cn('relative min-w-0 overflow-hidden rounded-2xl border p-2 shadow-sm ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg sm:p-3', card)}>
             <div className={cn('absolute -right-5 -top-5 h-20 w-20 rounded-full blur-xl', accent)} />
             <div className="relative flex h-full items-center justify-between gap-3">
               <div className={cn('hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:flex', iconBg)}>

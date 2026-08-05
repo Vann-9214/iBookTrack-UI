@@ -22,7 +22,7 @@ export function TransitionTimeline({
         <div className="absolute top-3 left-14 right-14 h-[2px] bg-border z-0" />
         {/* Progress line */}
         <div
-          className="absolute top-3 left-14 h-[2px] bg-green-500 z-0 transition-all duration-500"
+          className="absolute top-3 left-14 h-[2px] bg-green-500 z-0 transition duration-500"
           style={{
             width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 112px)`,
           }}

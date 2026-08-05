@@ -14,9 +14,10 @@ import type {
   LotIsbnFilter,
   LotSearchResult,
   LotSummary,
+  LotTransmissionFilter,
   TransmissionBrand,
 } from '../types/transmission.types'
-import { lotTypeForBrand } from '../utils/transmission.helpers'
+import { lotTypeForBrand, PIPELINE_STAGES } from '../utils/transmission.helpers'
 
 export function useTransmissionLot(brand: TransmissionBrand) {
   const lotType = lotTypeForBrand(brand)
@@ -29,6 +30,8 @@ export function useTransmissionLot(brand: TransmissionBrand) {
 
   const [lotIsbnFilter, setLotIsbnFilter] = useState<LotIsbnFilter>('all')
   const [lotBoxFilter, setLotBoxFilter] = useState<string>('all')
+  const [lotStageFilter, setLotStageFilter] = useState<string>('all')
+  const [lotTransmissionFilter, setLotTransmissionFilter] = useState<LotTransmissionFilter>('all')
   const [lotBoxSelectorOpen, setLotBoxSelectorOpen] = useState(false)
   const [lotBoxSearch, setLotBoxSearch] = useState('')
   const [lotIsbnSearch, setLotIsbnSearch] = useState('')
@@ -47,6 +50,22 @@ export function useTransmissionLot(brand: TransmissionBrand) {
     wip: true,
     non_processable: false,
   })
+
+  // Reset lot state when brand changes so the user starts back at the picker.
+  useEffect(() => {
+    setLotInput('')
+    setLotSummary(null)
+    setLotError(null)
+    setShowLotPicker(true)
+    setLotIsbnFilter('all')
+    setLotBoxFilter('all')
+    setLotStageFilter('all')
+    setLotTransmissionFilter('all')
+    setLotBoxSearch('')
+    setLotIsbnSearch('')
+    setLotBoxSelectorOpen(false)
+    if (lotSearchTimerRef.current) clearTimeout(lotSearchTimerRef.current)
+  }, [brand])
 
   // ISBN tagging state
   const [flagModalScan, setFlagModalScan] = useState<LotIsbn | null>(null)
@@ -182,6 +201,11 @@ export function useTransmissionLot(brand: TransmissionBrand) {
   const visibleBoxGroups = matchedBoxGroups.slice(0, BOX_RENDER_CAP)
   const activeBoxGroup = lotBoxFilter !== 'all' ? lotBoxGroups.find((g) => g.box_number === lotBoxFilter) : null
 
+  // Full, static list of pipeline stages for the stage filter dropdown.
+  // This always shows every stage a book can be in, not just the ones
+  // currently present in this lot's data.
+  const lotStages = PIPELINE_STAGES
+
   const filteredLotIsbns = useMemo(() => {
     return lotIsbns.filter((r) => {
       const matchesSearch =
@@ -192,13 +216,27 @@ export function useTransmissionLot(brand: TransmissionBrand) {
 
       if (lotBoxFilter !== 'all' && (r.box_number || '—') !== lotBoxFilter) return false
 
+      if (lotStageFilter !== 'all' && r.current_stage !== lotStageFilter) return false
+
+      if (lotTransmissionFilter !== 'all') {
+        if (lotTransmissionFilter === 'transmitted') {
+          if (!r.transmission_completed) return false
+        } else {
+          const stage = (r.simflex_status || '').split(' ')[0].toLowerCase()
+          if (lotTransmissionFilter === 'scan' && stage !== 'scanning') return false
+          if (lotTransmissionFilter === 'validate' && stage !== 'validate') return false
+          if (lotTransmissionFilter === 'pdf_conversion' && stage !== 'tif2pdf') return false
+          if (lotTransmissionFilter === 'preval' && stage !== 'preval') return false
+        }
+      }
+
       if (lotIsbnFilter === 'processable') return r.scan_status === 'processable'
       if (lotIsbnFilter === 'transmitted') return r.transmission_completed
       if (lotIsbnFilter === 'wip') return r.scan_status === 'processable' && !r.transmission_completed
       if (lotIsbnFilter === 'non_processable') return r.scan_status === 'non_processable'
       return true
     })
-  }, [lotIsbns, lotIsbnSearch, lotBoxFilter, lotIsbnFilter])
+  }, [lotIsbns, lotIsbnSearch, lotBoxFilter, lotIsbnFilter, lotStageFilter, lotTransmissionFilter])
 
   const isMobile = useIsMobile()
   const lotIsbnPagination = usePagination({
@@ -212,7 +250,7 @@ export function useTransmissionLot(brand: TransmissionBrand) {
 
   useEffect(() => {
     lotIsbnPagination.goToPage(1)
-  }, [lotBoxFilter, lotIsbnFilter, lotIsbnSearch, lotIsbnPagination.goToPage])
+  }, [lotBoxFilter, lotIsbnFilter, lotIsbnSearch, lotStageFilter, lotTransmissionFilter, lotIsbnPagination.goToPage])
 
   return {
     lotInput,
@@ -224,6 +262,11 @@ export function useTransmissionLot(brand: TransmissionBrand) {
     setLotIsbnFilter,
     lotBoxFilter,
     setLotBoxFilter,
+    lotStageFilter,
+    setLotStageFilter,
+    lotTransmissionFilter,
+    setLotTransmissionFilter,
+    lotStages,
     lotBoxSelectorOpen,
     setLotBoxSelectorOpen,
     lotBoxSearch,

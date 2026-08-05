@@ -77,6 +77,7 @@ export function QrResultCard({ result, onRemove }: QrResultCardProps) {
                   <HeaderCell>NO.</HeaderCell>
                   <HeaderCell>ISBN</HeaderCell>
                   <HeaderCell>TITLE</HeaderCell>
+                  <HeaderCell>AUTHOR</HeaderCell>
                   <HeaderCell>STATUS</HeaderCell>
                 </TableRow>
               </TableHeader>
@@ -88,6 +89,7 @@ export function QrResultCard({ result, onRemove }: QrResultCardProps) {
                     <BodyCell className="font-mono whitespace-nowrap">{book.isbn}</BodyCell>
                     {/* Title wraps to fill available width */}
                     <BodyCell className="break-words min-w-[80px]">{book.title}</BodyCell>
+                    <BodyCell className="break-words min-w-[80px]">{book.author || '—'}</BodyCell>
                     <BodyCell>
                       {book.status
                         ? <StatusBadge status={book.status} rejectionReason={book.rejectionReason} />
