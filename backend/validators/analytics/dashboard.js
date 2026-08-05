@@ -59,6 +59,13 @@ export const getPipelineStatsSchema = {
   })
 };
 
+export const getMismatchExportSchema = {
+  query: z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be in YYYY-MM-DD format.'),
+    box_type: z.enum(['mustang', 'jaguar', 'Mustang', 'Jaguar']).optional()
+  })
+};
+
 export const resolveQcFlagSchema = {
   params: z.object({
     id: z.string().min(1)

@@ -36,7 +36,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
           <div className="flex flex-col">
             <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
-              <div className="col-span-5 sm:col-span-6">Book Title</div>
+              <div className="col-span-5 sm:col-span-6">Title/Author</div>
               <div className="col-span-4 sm:col-span-4 text-right">Status</div>
             </div>
             <div className="space-y-1.5 overflow-y-auto overflow-x-hidden max-h-[240px] pr-1.5 custom-scrollbar">
@@ -121,7 +121,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
           <div className="flex flex-col">
             <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
-              <div className="col-span-4 sm:col-span-5">Book Title</div>
+              <div className="col-span-4 sm:col-span-5">Title/Author</div>
               <div className="col-span-4 sm:col-span-4 text-right">Status</div>
               <div className="col-span-1 text-right"></div>
             </div>

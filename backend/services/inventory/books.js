@@ -32,7 +32,7 @@ export const searchIlmsBookService = async (req, res) => {
 
 export const flagBookService = async (req, res) => {
   const { id } = req.params;
-  const { issue, remarks, box_id, ilms_title, physical_title, physical_author } = req.body;
+  const { issue, remarks, box_id, ilms_title, ilms_author, physical_title, physical_author } = req.body;
   const { data: scan, error: scanError } = await booksRepo.getScanRecord(id);
   if (scanError || !scan) throw { status: 404, payload: { error: 'Scan record not found' } };
   
@@ -55,6 +55,7 @@ export const flagBookService = async (req, res) => {
       await booksRepo.insertMismatchInfo({
         book_id: actualBookId,
         ilms_title,
+        ilms_author,
         physical_title,
         physical_author,
         created_by: req.user.id

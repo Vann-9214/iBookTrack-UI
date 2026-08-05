@@ -118,7 +118,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
       const data = await endorsementService.searchIlms(isbn)
       if (data.success && data.data && !data.data.Message) {
         addInspBookLocal(
-          { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data?.AuthorName || '' }, 
+          { isbn: data.data.ISBN || isbn, title: data.data.Title || warehouseBook?.title || `ISBN: ${isbn}`, author: data.data?.AuthorName || data.data?.Author || warehouseBook?.author || '' }, 
           prevStatus, 
           warehouseBook?.rejection_reason || null,
           warehouseBook?.notes || null
@@ -196,7 +196,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
     setInspMismatchModalBook(null)
   }
 
-  const saveInspMismatchFromLog = (payload: { ilms_title: string; physical_title: string; physical_author: string }) => {
+  const saveInspMismatchFromLog = (payload: { ilms_title: string; ilms_author: string; physical_title: string; physical_author: string }) => {
     if (!inspMismatchModalBook) return
     setInspFlagSaving(true)
     setInspScannedBooks((prev) =>
@@ -237,6 +237,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
 
     const missingBooks = expectedWarehouseBooks.filter((wb) => !inspScannedBooks.some((vb) => vb.isbn === wb.isbn))
     const extraBooks = inspScannedBooks.filter((vb) => !expectedWarehouseBooks.some((wb) => wb.isbn === vb.isbn))
+      const booksToSave = inspScannedBooks.filter((b) => b.scan_status === 'non_processable' || b.flag_issue === 'mismatched-book' || !warehouseBooks.some((wb) => wb.isbn === b.isbn))
 
     if (missingBooks.length > 0 || extraBooks.length > 0) {
       if (missingBooks.length > 0 && extraBooks.length > 0) {

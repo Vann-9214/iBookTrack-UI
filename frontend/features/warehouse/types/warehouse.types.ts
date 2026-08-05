@@ -3,6 +3,7 @@ import type { FlagIssue } from '@/constants/flag-issues'
 export interface ILMSBookData {
   Title?: string
   AuthorName?: string
+  Author?: string
   LotNo?: string
   BoxNo?: string
   'Received-Status'?: string
@@ -19,6 +20,7 @@ export interface ScannedBook {
   flag_remarks?: string
   mismatch_details?: {
     ilms_title: string
+    ilms_author?: string
     physical_title: string
     physical_author?: string
   }

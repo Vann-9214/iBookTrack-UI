@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
-import { FileText, Search, Package, Inbox, Check, ChevronRight, Boxes, MessageSquare, X } from 'lucide-react'
+import { FileText, Search, Package, Inbox, Check, ChevronRight, Boxes, MessageSquare, X, Download } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LotGroup, QCFlag } from '../types'
 import { getTone, ISSUE_LABELS } from '../utils/constants'
+import { MismatchExportModal } from './MismatchExportModal'
 
 const isMismatchIssue = (issue: string) => {
   const s = (issue || '').toLowerCase().trim();
@@ -35,6 +36,7 @@ interface NonProcessableListProps {
   resolvingId: number | null
   handleResolveClick: (flag: QCFlag) => void
   isJaguar: boolean
+  brand: string
 }
 
 export function NonProcessableList({
@@ -45,11 +47,13 @@ export function NonProcessableList({
   loading,
   resolvingId,
   handleResolveClick,
-  isJaguar
+  isJaguar,
+  brand
 }: NonProcessableListProps) {
   const TONE = getTone(isJaguar)
   const [selectedNote, setSelectedNote] = useState<{ isbn: string, title: string, remarks: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | 'non-processable' | 'mismatch'>('all')
+  const [exportOpen, setExportOpen] = useState(false)
 
   const finalLots = useMemo(() => {
     if (activeTab === 'all') return filteredLots;
@@ -132,6 +136,18 @@ export function NonProcessableList({
               )}
             />
           </div>
+          <button
+            onClick={() => setExportOpen(true)}
+            className={cn(
+              'inline-flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap',
+              isJaguar
+                ? 'bg-emerald-600 text-white ring-emerald-200/50 hover:bg-emerald-700'
+                : 'bg-blue-600 text-white ring-blue-200/50 hover:bg-blue-700'
+            )}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export Mismatched
+          </button>
           <div className={cn(
             'inline-flex items-center shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap',
             isJaguar ? 'bg-emerald-50 text-emerald-700 ring-emerald-200/50' : 'bg-blue-50 text-blue-700 ring-blue-200/50'
@@ -140,6 +156,8 @@ export function NonProcessableList({
           </div>
         </div>
       </div>
+
+      <MismatchExportModal open={exportOpen} onOpenChange={setExportOpen} brand={brand} />
 
       {/* Table header */}
       <div className="px-1 sm:pr-[18px]">

@@ -17,7 +17,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
   } = core
 
   const saveBookToLocal = (
-    bookData: { isbn: string; title: string; author: string; ilmsData?: any; mismatch_details?: { ilms_title: string; physical_title: string; physical_author?: string } },
+    bookData: { isbn: string; title: string; author: string; ilmsData?: any; mismatch_details?: { ilms_title: string; ilms_author?: string; physical_title: string; physical_author?: string } },
     scan_status: 'processable' | 'non_processable',
     flag_issue: string | null,
     flag_remarks: string | null
@@ -65,16 +65,16 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
           open: true,
           isbn: cleanIsbn,
           title: bookData?.Title || 'Unknown Title',
-          author: bookData?.AuthorName || '',
+          author: bookData?.AuthorName || bookData?.Author || '',
           expectedLot: activeLot,
           expectedBox: currentBoxNumber,
           ilmsLot: mismatch.ilmsLot,
           ilmsBox: mismatch.ilmsBox,
-          onConfirm: () => saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.AuthorName || '', ilmsData: bookData }, 'processable', null, null),
+          onConfirm: () => saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.AuthorName || bookData?.Author || '', ilmsData: bookData }, 'processable', null, null),
         })
         return
       }
-      saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.AuthorName || '', ilmsData: bookData }, 'processable', null, null)
+      saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.AuthorName || bookData?.Author || '', ilmsData: bookData }, 'processable', null, null)
     } catch (error) {
       setSessionError('Failed to verify ISBN. Please try again.')
     } finally {
@@ -110,7 +110,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     }
   }
 
-  const saveMismatchFromLog = async (payload: { ilms_title: string; physical_title: string; physical_author: string }) => {
+  const saveMismatchFromLog = async (payload: { ilms_title: string; ilms_author: string; physical_title: string; physical_author: string }) => {
     if (!currentSession) return
     const modalBook = core.mismatchModalBook
     if (!modalBook) return
@@ -157,7 +157,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     try {
       const data = await queryIsbnStream(cleanIsbn, currentSession?.type, true, issueType)
       if (!data.success) { setSessionError(data.error || `ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`); setIssueIsbn(''); return }
-      setIssues((prev) => [...prev, { isbn: cleanIsbn, type: issueType, title: data.data?.Title || 'Unknown Title', author: data.data?.AuthorName || '' }])
+      setIssues((prev) => [...prev, { isbn: cleanIsbn, type: issueType, title: data.data?.Title || 'Unknown Title', author: data.data?.AuthorName || data.data?.Author || '' }])
       setIssueIsbn('')
     } catch {
       setSessionError('Failed to connect to iLMS. Please try again.')

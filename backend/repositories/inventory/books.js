@@ -94,12 +94,12 @@ export const deleteFlag = async (book_activity_id) => {
 };
 
 export const insertMismatchInfo = async (mismatchData) => {
-  const { book_id, ilms_title, physical_title, physical_author, created_by } = mismatchData;
+  const { book_id, ilms_title, ilms_author, physical_title, physical_author, created_by } = mismatchData;
   const query = `
-    INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
+    VALUES ($1, $2, $3, $4, $5, $6)
   `;
-  await db.query(query, [book_id, ilms_title, physical_title, physical_author || null, created_by]);
+  await db.query(query, [book_id, ilms_title, ilms_author || null, physical_title, physical_author || null, created_by]);
 };
 
 export const markBookAsMismatch = async (book_id) => {

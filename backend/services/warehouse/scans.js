@@ -143,9 +143,9 @@ export const scanBookService = async (req, res) => {
         await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
         if (mismatch_details && mismatch_details.ilms_title && mismatch_details.physical_title) {
           await db.query(`
-            INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
-            VALUES ($1, $2, $3, $4, $5)
-          `, [bookId, mismatch_details.ilms_title, mismatch_details.physical_title, mismatch_details.physical_author || null, req.user.id]);
+            INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6)
+          `, [bookId, mismatch_details.ilms_title, mismatch_details.ilms_author || null, mismatch_details.physical_title, mismatch_details.physical_author || null, req.user.id]);
         }
       }
     }
@@ -163,7 +163,7 @@ export const scanBookService = async (req, res) => {
 export const flagScanService = async (req, res) => {
   try {
     const { scan_id } = req.params
-    const { rejection_reason, notes, ilms_title, physical_title, physical_author } = req.body
+    const { rejection_reason, notes, ilms_title, ilms_author, physical_title, physical_author } = req.body
 
     if (!rejection_reason) return res.status(400).json({ error: 'rejection_reason is required' })
     if (!notes || String(notes).trim() === '') return res.status(400).json({ error: 'Notes/remarks are required' })
@@ -210,9 +210,9 @@ export const flagScanService = async (req, res) => {
       await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existingScan.book_id]);
       if (ilms_title && physical_title) {
         await db.query(`
-          INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
-          VALUES ($1, $2, $3, $4, $5)
-        `, [existingScan.book_id, ilms_title, physical_title, physical_author || null, req.user.id]);
+          INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [existingScan.book_id, ilms_title, ilms_author || null, physical_title, physical_author || null, req.user.id]);
       }
     }
 
@@ -248,7 +248,7 @@ export const flagScanService = async (req, res) => {
 export const tagScanService = async (req, res) => {
   try {
     const { scan_id } = req.params
-    const { status, remarks, rejection_reason, notes: reqNotes, stage: reqStage, ilms_title, physical_title, physical_author } = req.body
+    const { status, remarks, rejection_reason, notes: reqNotes, stage: reqStage, ilms_title, ilms_author, physical_title, physical_author } = req.body
 
     const { rows: existingRows } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.session_id, ba.book_id, b.isbn 
@@ -284,13 +284,17 @@ export const tagScanService = async (req, res) => {
       await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existing.book_id]);
       if (ilms_title && physical_title) {
         await db.query(`
-          INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
-          VALUES ($1, $2, $3, $4, $5)
-        `, [existing.book_id, ilms_title, physical_title, physical_author || null, req.user.id]);
+          INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [existing.book_id, ilms_title, ilms_author || null, physical_title, physical_author || null, req.user.id]);
       }
     }
 
-    const { rows: updatedRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING *', [status, scan_id]);
+    let finalStatus = status;
+    if (actualReason === 'mismatched-book') {
+      finalStatus = existing.scan_status;
+    }
+    const { rows: updatedRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING *', [finalStatus, scan_id]);
     const updated = updatedRows[0];
 
     if (existing.scan_status === 'processable' && (status === 'non_processable' || status === 'reject')) {
@@ -316,7 +320,7 @@ export const getBoxScansService = async (req, res) => {
     const { box_id } = req.params
 
     const { rows: scans } = await db.query(`
-      SELECT ba.id, ba.scan_status, ba.warehouse_scan_at,
+      SELECT ba.id, ba.scan_status, ba.warehouse_scan_at, ba.inventory_scan_at, ba.endorsement_scan_at,
              uf.rejection_reason, uf.notes,
              b.isbn, b.title, b.author, bx.box_number, l.lot_number
       FROM book_activity ba
@@ -325,13 +329,14 @@ export const getBoxScansService = async (req, res) => {
       JOIN boxes bx ON b.box_id = bx.id
       LEFT JOIN lots l ON bx.lot_id = l.id
       WHERE b.box_id = $1
-      ORDER BY ba.warehouse_scan_at DESC
+      ORDER BY COALESCE(ba.endorsement_scan_at, ba.inventory_scan_at, ba.warehouse_scan_at) DESC
     `, [box_id]);
 
     const grouped = new Map();
     for (const scan of scans) {
-      if (!grouped.has(scan.id)) {
-        grouped.set(scan.id, {
+      const key = scan.isbn;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
           id: scan.id,
           isbn: scan.isbn,
           title: scan.title,
