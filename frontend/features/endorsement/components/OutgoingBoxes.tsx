@@ -54,11 +54,11 @@ export function OutgoingBoxes({
             onClick={(e) => { e.stopPropagation(); openConfirm('send_to_scan', box) }}
             disabled={sendingToScan === box.id}
             className={cn(
-              'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+              'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
               expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
             )}
           >
-            {sendingToScan === box.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sendingToScan === box.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             {sendingToScan === box.id ? 'Sending...' : 'Send to Scan'}
           </button>
         )}

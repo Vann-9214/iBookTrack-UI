@@ -22,7 +22,7 @@ export function TransitionTimeline({
         <div className="absolute top-3 left-14 right-14 h-[2px] bg-border z-0" />
         {/* Progress line */}
         <div
-          className="absolute top-3 left-14 h-[2px] bg-green-500 z-0 transition duration-500"
+          className="absolute top-3 left-14 h-[2px] bg-primary z-0 transition duration-500"
           style={{
             width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 112px)`,
           }}
@@ -35,13 +35,13 @@ export function TransitionTimeline({
           let icon = <div className="w-6 h-6 rounded-full bg-muted border-2 border-background z-10" />
           if (isPast) {
             icon = (
-              <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center z-10 border-2 border-background shadow-sm">
+              <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center z-10 border-2 border-background shadow-sm">
                 <CheckCircle className="w-3.5 h-3.5" />
               </div>
             )
           } else if (isCurrent) {
             icon = (
-              <div className="w-6 h-6 rounded-full bg-blue-500 z-10 border-2 border-background shadow-sm flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-primary z-10 border-2 border-background shadow-sm flex items-center justify-center">
                 <div className="w-2 h-2 rounded-full bg-white" />
               </div>
             )

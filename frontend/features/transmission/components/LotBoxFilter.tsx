@@ -166,7 +166,7 @@ export function LotBoxFilter({
                           </span>
                           <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                             <span>{g.total} books</span>
-                            <span className="text-emerald-600">· {g.transmitted} sent</span>
+                            <span className="text-primary">· {g.transmitted} sent</span>
                             {g.non_processable > 0 && (
                               <span className="text-red-500">· {g.non_processable} N/P</span>
                             )}
@@ -178,7 +178,7 @@ export function LotBoxFilter({
                             className={cn(
                               'text-[9px] px-1 py-0 font-semibold shrink-0',
                               pct === 100
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
+                                ? 'border-emerald-200 bg-emerald-50 text-primary'
                                 : 'border-amber-200 bg-amber-50 text-amber-600'
                             )}
                           >
@@ -216,7 +216,7 @@ export function LotBoxFilter({
             <Badge variant="outline" className="text-[10px] border-gray-200 bg-gray-50 text-gray-600 font-semibold gap-1">
               {activeBoxGroup.total} <span className="font-normal text-muted-foreground">books</span>
             </Badge>
-            <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-emerald-600 font-semibold gap-1">
+            <Badge variant="outline" className="text-[10px] border-emerald-200 bg-emerald-50 text-primary font-semibold gap-1">
               {activeBoxGroup.transmitted} <span className="font-normal">sent</span>
             </Badge>
             {activeBoxGroup.non_processable > 0 && (

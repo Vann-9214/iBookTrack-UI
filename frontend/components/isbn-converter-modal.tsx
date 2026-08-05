@@ -114,7 +114,7 @@ export function IsbnConverterModal({ open, onClose, brand = 'mustang' }: IsbnCon
             <div className="space-y-2">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex justify-between items-center">
                 <span>ISBN-13 Result</span>
-                {copied && <span className="text-[10px] text-emerald-600 flex items-center gap-1 font-semibold"><CheckCircle2 className="h-3 w-3" /> Copied!</span>}
+                {copied && <span className="text-[10px] text-primary flex items-center gap-1 font-semibold"><CheckCircle2 className="h-3 w-3" /> Copied!</span>}
               </label>
               <div className="relative">
                 <input
@@ -136,7 +136,7 @@ export function IsbnConverterModal({ open, onClose, brand = 'mustang' }: IsbnCon
                   )}
                   title="Copy ISBN-13"
                 >
-                  {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                  {copied ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
               {!isValid10 && isbn10.length > 0 && (

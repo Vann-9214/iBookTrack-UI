@@ -20,6 +20,11 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
         booksByBox={inventory.boxBooks}
         loadingBoxId={actions.outgoingLoadingBooks}
         loading={inventory.loadingBoxes}
+        headerRight={
+          <span className="text-[11px] font-semibold text-amber-600 bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20 shadow-sm shadow-amber-950/5 hidden sm:block">
+            Important: Print the box label first
+          </span>
+        }
         onToggle={(id) => {
           const box = actions.outgoingBoxes.find((item: InventoryBox) => item.id === id)
           if (box) void actions.toggleOutgoingBox(box)
@@ -51,7 +56,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
                     onClick={(e) => { e.stopPropagation(); actions.handlePrintLabel(box) }}
                     disabled={actions.loadingPrint === box.id}
                     className={cn(
-                      'flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors',
+                      'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
                       expanded
                         ? 'bg-white text-foreground shadow-sm hover:bg-white/90'
                         : 'bg-white/60 border border-white/80 text-foreground hover:bg-white/80'
@@ -75,7 +80,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
                   onClick={(e) => { e.stopPropagation(); actions.openConfirm('send_to_cut', box) }}
                   disabled={actions.sendingToCut === box.id || !allPrinted}
                   className={cn(
-                    'flex flex-1 sm:flex-none items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+                    'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 disabled:cursor-not-allowed transition-colors shrink-0',
                     expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
                   )}
                 >
@@ -83,9 +88,6 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
                   {actions.sendingToCut === box.id ? 'Sending...' : 'Send to Cut'}
                 </button>
               </div>
-              {!isMobile && !allPrinted && (
-                <p className={cn('text-[10px] font-medium w-full sm:w-auto text-center sm:text-right mt-1 sm:mt-0', expanded ? 'text-white/80' : 'text-amber-600')}>Print the box label first</p>
-              )}
             </div>
           )
         }}

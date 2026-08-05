@@ -50,7 +50,7 @@ export function getPipelineStatusBadge(status: string): ReactNode {
   } else {
     badgeNode = createElement(
       Badge,
-      { variant: 'outline', className: 'px-1.5 py-0 h-4 border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[8px] uppercase font-bold' },
+      { variant: 'outline', className: 'px-1.5 py-0 h-4 border-blue-300 bg-blue-50 text-primary gap-1 text-[8px] uppercase font-bold' },
       createElement(Loader2, { className: 'h-2.5 w-2.5 animate-spin' }),
       ' ONGOING'
     )

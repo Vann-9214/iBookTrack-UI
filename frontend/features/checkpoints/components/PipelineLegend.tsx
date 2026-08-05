@@ -11,7 +11,7 @@ export function PipelineLegend({ brand }: PipelineLegendProps) {
         <span
           className={cn(
             'h-2 w-2 rounded-full',
-            brand === 'jaguar' ? 'bg-green-400' : 'bg-blue-400'
+            brand === 'jaguar' ? 'bg-primary' : 'bg-primary'
           )}
         />
         <span className="text-xs text-muted-foreground">

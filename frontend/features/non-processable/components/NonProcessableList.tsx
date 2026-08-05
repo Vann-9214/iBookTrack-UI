@@ -82,30 +82,18 @@ export function NonProcessableList({
     return finalLots.reduce((acc, lot) => acc + lot.totalFlags, 0);
   }, [finalLots]);
 
-  const cardTheme = isJaguar
-    ? 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/20 border-emerald-200/50 ring-emerald-100/50'
-    : 'bg-gradient-to-br from-blue-50/50 to-indigo-100/20 border-blue-200/50 ring-blue-100/50'
-  const iconTheme = isJaguar
-    ? 'bg-emerald-600 shadow-emerald-500/25'
-    : 'bg-blue-600 shadow-blue-500/25'
-  const headerTextTheme = isJaguar ? 'text-emerald-950/80' : 'text-blue-950/80'
-  const subTextTheme = isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80'
-
   return (
-    <div className={cn("relative rounded-2xl border shadow-sm ring-1 overflow-hidden flex flex-col mt-5 transition duration-300 min-h-[500px]", cardTheme)}>
-      <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/20 blur-2xl" />
+    <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl relative flex flex-col mt-5 transition duration-300 min-h-[500px] shadow-sm">
+      <div className="premium-gradient-ui-card__glow" />
       {/* Header */}
-      <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-black/5 shrink-0 bg-white/40 backdrop-blur-sm">
+      <div className="premium-gradient-ui-card__surface relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 shrink-0 m-4 mb-2 rounded-xl z-10">
         <div className="flex items-center gap-2.5">
-          <div className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-lg',
-            iconTheme
-          )}>
+          <div className="premium-gradient-ui-card__icon flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white shadow-lg">
             <Boxes className="h-4 w-4" />
           </div>
           <div>
-            <h2 className={cn("text-[15px] font-black tracking-tight leading-none", headerTextTheme)}>Non-Processable by Lot & Box</h2>
-            <p className={cn("text-[11.5px] font-medium mt-0.5", subTextTheme)}>
+            <h2 className="text-[15px] font-black tracking-tight leading-none text-foreground/80">Non-Processable by Lot & Box</h2>
+            <p className="text-[11.5px] font-medium mt-0.5 text-primary/80">
               Items flagged during receiving and QC
             </p>
           </div>
@@ -114,14 +102,29 @@ export function NonProcessableList({
         <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0 flex-wrap lg:flex-nowrap">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-9">
             <TabsList className="h-9 p-1">
-              <TabsTrigger value="all" className="text-xs px-3 h-7">All</TabsTrigger>
-              <TabsTrigger value="non-processable" className="text-xs px-3 h-7">Non-Processable</TabsTrigger>
-              <TabsTrigger value="mismatch" className="text-xs px-3 h-7">Mismatch</TabsTrigger>
+              <TabsTrigger 
+                value="all" 
+                className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
+              >
+                All
+              </TabsTrigger>
+              <TabsTrigger 
+                value="non-processable" 
+                className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
+              >
+                Non-Processable
+              </TabsTrigger>
+              <TabsTrigger 
+                value="mismatch" 
+                className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
+              >
+                Mismatch
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
           <div className="relative group">
-            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-primary group-focus-within:text-primary" : "text-primary group-focus-within:text-primary")} />
             <Input 
               placeholder="Search lots or ISBN..." 
               value={searchQuery}
@@ -154,7 +157,7 @@ export function NonProcessableList({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-h-0 overflow-y-auto bg-white/40">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center h-full">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground/20 border-t-muted-foreground/60 mb-4" />
@@ -166,7 +169,7 @@ export function NonProcessableList({
               "w-12 h-12 rounded-full flex items-center justify-center shadow-sm",
               isJaguar ? "bg-emerald-100" : "bg-blue-100"
             )}>
-              <Inbox className={cn("h-6 w-6", isJaguar ? "text-emerald-600" : "text-blue-600")} />
+              <Inbox className={cn("h-6 w-6", isJaguar ? "text-primary" : "text-primary")} />
             </div>
             <p className="text-[15px] font-bold text-foreground mt-1">No lots & boxes found</p>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
@@ -177,10 +180,10 @@ export function NonProcessableList({
           <Accordion type="single" collapsible className="w-full space-y-2 px-1 py-1">
             {finalLots.map((lot) => (
               <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border border-slate-200/60 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-300">
-                <AccordionTrigger className={cn("w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden transition duration-300", isJaguar ? "data-[state=open]:bg-emerald-500 data-[state=open]:shadow-lg" : "data-[state=open]:bg-blue-600 data-[state=open]:shadow-lg")}>
+                <AccordionTrigger className={cn("w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden transition duration-300", isJaguar ? "data-[state=open]:bg-primary data-[state=open]:shadow-lg" : "data-[state=open]:bg-primary data-[state=open]:shadow-lg")}>
                    {/* Icon */}
                    <div className="col-span-2 sm:col-span-1">
-                     <div className={cn("flex items-center justify-center w-8 h-8 rounded-lg transition duration-300 group-hover:scale-105 shadow-sm ring-1 ring-black/5", isJaguar ? "bg-emerald-50 text-emerald-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent" : "bg-blue-50 text-blue-600 group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent")}>
+                     <div className={cn("flex items-center justify-center w-8 h-8 rounded-lg transition duration-300 group-hover:scale-105 shadow-sm ring-1 ring-black/5", isJaguar ? "bg-emerald-50 text-primary group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent" : "bg-blue-50 text-primary group-data-[state=open]:bg-white/20 group-data-[state=open]:text-white group-data-[state=open]:ring-transparent")}>
                        <Package className="h-4 w-4" />
                      </div>
                    </div>
@@ -222,7 +225,7 @@ export function NonProcessableList({
                           <AccordionTrigger className={cn("px-3 py-2 sm:px-4 hover:no-underline transition duration-300 [&>svg]:opacity-40 [&>svg]:transition-transform [&>svg]:duration-300", isJaguar ? "hover:bg-emerald-50/50 data-[state=open]:bg-emerald-50/80" : "hover:bg-blue-50/50 data-[state=open]:bg-blue-50/80")}>
                             <div className="flex justify-between items-center w-full pr-3">
                               <div className="flex items-center gap-2.5">
-                                <div className={cn("flex h-6 w-6 items-center justify-center rounded-lg shadow-sm transition duration-300 group-data-[state=open]/box:scale-105 group-data-[state=open]/box:shadow-md", isJaguar ? "bg-emerald-100 text-emerald-600 group-data-[state=open]/box:bg-emerald-600 group-data-[state=open]/box:text-white" : "bg-blue-100 text-blue-600 group-data-[state=open]/box:bg-blue-600 group-data-[state=open]/box:text-white")}>
+                                <div className={cn("flex h-6 w-6 items-center justify-center rounded-lg shadow-sm transition duration-300 group-data-[state=open]/box:scale-105 group-data-[state=open]/box:shadow-md", isJaguar ? "bg-emerald-100 text-primary group-data-[state=open]/box:bg-primary group-data-[state=open]/box:text-white" : "bg-blue-100 text-primary group-data-[state=open]/box:bg-primary group-data-[state=open]/box:text-white")}>
                                   <Inbox className="h-3 w-3" />
                                 </div>
                                 <div className="flex flex-col items-start leading-tight">
@@ -256,7 +259,7 @@ export function NonProcessableList({
                                      {f.remarks && (
                                        <button 
                                          onClick={(e) => { e.stopPropagation(); setSelectedNote({ isbn: f.isbn, title: f.title || 'Unknown Title', remarks: f.remarks! }) }}
-                                         className="mt-1.5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors border border-blue-100 shadow-sm w-fit"
+                                         className="mt-1.5 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-primary hover:text-blue-700 bg-blue-50/50 hover:bg-blue-100 px-2 py-1 rounded-md transition-colors border border-blue-100 shadow-sm w-fit"
                                        >
                                          <MessageSquare className="h-2.5 w-2.5" />
                                          View Notes
@@ -282,7 +285,7 @@ export function NonProcessableList({
                                            "relative overflow-hidden text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg transition duration-300 shadow-sm group/btn flex items-center gap-1",
                                            resolvingId === f.scan_id 
                                              ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
-                                             : "bg-emerald-50 text-emerald-600 border border-emerald-200/60 hover:bg-emerald-500 hover:text-white hover:border-transparent hover:shadow-sm hover:shadow-emerald-500/20"
+                                             : "bg-emerald-50 text-primary border border-emerald-200/60 hover:bg-primary hover:text-white hover:border-transparent hover:shadow-sm hover:shadow-emerald-500/20"
                                          )}
                                        >
                                          {resolvingId === f.scan_id ? (
@@ -313,7 +316,7 @@ export function NonProcessableList({
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modal-in ring-1 ring-black/5" onClick={e => e.stopPropagation()}>
             <div className={cn("px-6 py-5 flex items-center justify-between", isJaguar ? "bg-emerald-50 border-b border-emerald-100" : "bg-blue-50 border-b border-blue-100")}>
               <div className="flex items-center gap-3">
-                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg", isJaguar ? "bg-emerald-600" : "bg-blue-600")}>
+                <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg", isJaguar ? "bg-primary" : "bg-primary")}>
                   <MessageSquare className="h-5 w-5" />
                 </div>
                 <div>

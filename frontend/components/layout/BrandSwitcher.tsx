@@ -50,12 +50,10 @@ export function BrandSwitcher({ disableBrandToggle }: BrandSwitcherProps) {
     >
       {/* Background Pill */}
       <div
-        className="absolute top-0.5 bottom-0.5 rounded-md pointer-events-none sm:transition sm:duration-300 sm:ease-out"
+        className="absolute top-0.5 bottom-0.5 rounded-md pointer-events-none sm:transition sm:duration-300 sm:ease-out shadow-sm premium-gradient-ui-card--solid"
         style={{
           width: 'calc(50% - 3px)',
           left: brand === 'mustang' ? '2px' : 'calc(50% + 1px)',
-          backgroundImage: 'none',
-          backgroundColor: gradient.from,
         }}
       />
 

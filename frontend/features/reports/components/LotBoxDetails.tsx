@@ -59,7 +59,7 @@ export const LotBoxDetails: React.FC<LotBoxDetailsProps> = ({
                   <tr key={box.box_id} className="hover:bg-muted/20 transition-colors">
                     <td className="px-6 py-1.5 font-medium text-foreground whitespace-nowrap">{box.box_number}</td>
                     <td className="px-4 py-1.5 whitespace-nowrap">
-                      <span className={cn('text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0', box.current_stage === 'storage' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400' : 'bg-muted text-muted-foreground')}>
+                      <span className={cn('text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0', box.current_stage === 'storage' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-primary' : 'bg-muted text-muted-foreground')}>
                         {box.current_stage}
                       </span>
                     </td>
@@ -78,7 +78,7 @@ export const LotBoxDetails: React.FC<LotBoxDetailsProps> = ({
                       <div className="flex items-center gap-2 max-w-[300px]">
                         <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
                           <div
-                            className={cn('h-full rounded-full transition-all', brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500', box.progress === 100 && 'bg-emerald-500')}
+                            className={cn('h-full rounded-full transition-all', 'bg-primary', box.progress === 100 && 'bg-primary')}
                             style={{ width: `${box.progress}%` }}
                           />
                         </div>
@@ -86,9 +86,9 @@ export const LotBoxDetails: React.FC<LotBoxDetailsProps> = ({
                       </div>
                     </td>
                     <td className="px-4 py-1.5 text-right text-muted-foreground tabular-nums">{box.total_books}</td>
-                    <td className="px-4 py-1.5 text-right font-medium text-emerald-600 dark:text-emerald-400 tabular-nums">{box.processable}</td>
+                    <td className="px-4 py-1.5 text-right font-medium text-primary dark:text-primary tabular-nums">{box.processable}</td>
                     <td className="px-4 py-1.5 text-right font-medium text-amber-600 dark:text-amber-400 tabular-nums">{box.pending_books || 0}</td>
-                    <td className="px-4 py-1.5 text-right font-medium text-blue-600 dark:text-blue-400 tabular-nums">{box.wip_books || 0}</td>
+                    <td className="px-4 py-1.5 text-right font-medium text-primary dark:text-primary tabular-nums">{box.wip_books || 0}</td>
                     <td className="px-4 py-1.5 text-right font-medium text-violet-600 dark:text-violet-400 tabular-nums">{box.transmitted_books || 0}</td>
                     <td className="px-6 py-1.5 text-right font-medium text-red-600 dark:text-red-400 tabular-nums">
                       {box.non_processable > 0 ? box.non_processable : '-'}

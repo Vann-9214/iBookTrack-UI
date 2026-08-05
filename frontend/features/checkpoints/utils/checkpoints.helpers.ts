@@ -49,7 +49,7 @@ export const STAGE_META: Record<Stage, StageMeta> = {
     label: 'Scan',
     icon: Camera,
     color: 'bg-blue-100 text-blue-700 border-blue-300',
-    solidBg: 'bg-blue-500',
+    solidBg: 'bg-primary',
   },
   transmit: {
     label: 'Transmit',
@@ -61,7 +61,7 @@ export const STAGE_META: Record<Stage, StageMeta> = {
     label: 'Storage',
     icon: Warehouse,
     color: 'bg-emerald-100 text-emerald-700 border-emerald-300',
-    solidBg: 'bg-emerald-500',
+    solidBg: 'bg-primary',
   },
 }
 
@@ -94,12 +94,12 @@ export function getStatusConfig(status: string, brand: string): StatusConfig {
     return {
       nodeRing:
         brand === 'jaguar'
-          ? 'border-green-400 text-green-500'
-          : 'border-blue-400 text-blue-500',
-      countColor: brand === 'jaguar' ? 'text-green-500' : 'text-blue-500',
-      bar: brand === 'jaguar' ? 'bg-green-400' : 'bg-blue-400',
+          ? 'border-primary text-primary'
+          : 'border-primary text-primary',
+      countColor: 'text-primary',
+      bar: brand === 'jaguar' ? 'bg-primary' : 'bg-primary',
       cardBg: brand === 'jaguar' ? 'bg-green-50' : 'bg-blue-50',
-      dot: brand === 'jaguar' ? 'bg-green-400' : 'bg-blue-400',
+      dot: brand === 'jaguar' ? 'bg-primary' : 'bg-primary',
       label: 'Active',
       borderTop:
         brand === 'jaguar' ? 'border-t-green-400' : 'border-t-blue-400',

@@ -18,8 +18,8 @@ export function ScannerInput({ onScan, brand }: ScannerInputProps) {
     ? 'border-emerald-200/80 bg-emerald-50 ring-emerald-100/70'
     : 'border-blue-200/80 bg-blue-50 ring-blue-100/70'
   const iconTheme = isJaguar
-    ? 'bg-emerald-600 shadow-emerald-500/25'
-    : 'bg-blue-600 shadow-blue-500/25'
+    ? 'bg-primary shadow-emerald-500/25'
+    : 'bg-primary shadow-blue-500/25'
   const textTheme = isJaguar ? 'text-emerald-700' : 'text-blue-700'
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -45,12 +45,12 @@ export function ScannerInput({ onScan, brand }: ScannerInputProps) {
           <label className={cn('text-[11px] font-bold uppercase tracking-wider', isWarehouse ? textTheme : 'text-muted-foreground')}>
             Barcode / ISBN Scanner
           </label>
-          {isWarehouse && <p className={cn('text-[11px] font-medium leading-tight', isJaguar ? 'text-emerald-600/80' : 'text-blue-600/80')}>Scan a book to add it to this session.</p>}
+          {isWarehouse && <p className={cn('text-[11px] font-medium leading-tight', isJaguar ? 'text-primary/80' : 'text-primary/80')}>Scan a book to add it to this session.</p>}
         </div>
       </div>
       
       <div className="relative group">
-        <div className={cn('pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1 transition duration-300 group-focus-within:animate-pulse', isWarehouse ? `${isJaguar ? 'bg-emerald-500/10 text-emerald-600' : 'bg-blue-500/10 text-blue-600'}` : 'bg-primary/10 text-primary')}>
+        <div className={cn('pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1 transition duration-300 group-focus-within:animate-pulse', isWarehouse ? `${isJaguar ? 'bg-primary/10 text-primary' : 'bg-primary/10 text-primary'}` : 'bg-primary/10 text-primary')}>
           <Barcode className="h-3.5 w-3.5" />
         </div>
         

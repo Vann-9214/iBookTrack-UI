@@ -52,8 +52,8 @@ export function LotSelector({
         <div className={cn(
           "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg",
           brand === 'jaguar' 
-            ? "bg-emerald-600 shadow-emerald-500/25"
-            : "bg-blue-600 shadow-blue-500/25"
+            ? "bg-primary shadow-emerald-500/25"
+            : "bg-primary shadow-blue-500/25"
         )}>
           <Package className="h-5 w-5" />
         </div>
@@ -73,7 +73,7 @@ export function LotSelector({
 
       <div className="px-5 py-3 border-b border-border/50 bg-muted/20">
         <div className="relative group max-w-md w-full">
-          <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+          <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", "text-primary group-focus-within:text-primary")} />
           <Input
             placeholder="Search by lot number… (e.g. lot-3A)"
             value={lotSearchQuery}
@@ -96,8 +96,8 @@ export function LotSelector({
             <div className={cn(
               "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg mb-3",
               brand === 'jaguar' 
-                ? "bg-emerald-600 shadow-emerald-500/25"
-                : "bg-blue-600 shadow-blue-500/25"
+                ? "bg-primary shadow-emerald-500/25"
+                : "bg-primary shadow-blue-500/25"
             )}>
               <Package className="h-6 w-6" />
             </div>

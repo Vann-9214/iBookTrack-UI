@@ -10,8 +10,8 @@ export function IntakeSummary() {
       value: '2,450',
       unit: 'books',
       icon: Package,
-      bgColor: 'bg-blue-500/10',
-      textColor: 'text-blue-500',
+      bgColor: 'bg-primary/10',
+      textColor: 'text-primary',
       trend: '+12%',
       trendUp: true,
     },
@@ -20,8 +20,8 @@ export function IntakeSummary() {
       value: '2,180',
       unit: 'books',
       icon: TrendingUp,
-      bgColor: 'bg-green-500/10',
-      textColor: 'text-green-500',
+      bgColor: 'bg-primary/10',
+      textColor: 'text-primary',
       trend: '+8%',
       trendUp: true,
     },
@@ -68,7 +68,7 @@ export function IntakeSummary() {
                 <div className="text-2xl font-bold text-foreground">{stat.value}</div>
                 <div className="text-xs text-muted-foreground">{stat.unit}</div>
               </div>
-              <div className={`text-xs mt-2 flex items-center gap-1 ${stat.trendUp ? 'text-green-500' : 'text-red-500'}`}>
+              <div className={`text-xs mt-2 flex items-center gap-1 ${stat.trendUp ? 'text-primary' : 'text-red-500'}`}>
                 {stat.trendUp ? '↑' : '↓'} {stat.trend} from yesterday
               </div>
             </CardContent>

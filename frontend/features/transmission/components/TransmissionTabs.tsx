@@ -25,20 +25,19 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
   const l = lot
   const [activeTab, setActiveTab] = useState('lot')
 
-  const tabActiveTheme = 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-[color-mix(in_oklch,var(--primary)_70%,black)] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-transparent'
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="overflow-x-auto w-full sm:w-auto">
           <TabsList className={cn("w-full flex bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", t.loading && "opacity-50 pointer-events-none")}>
-            <TabsTrigger value="queue" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
+            <TabsTrigger value="queue" className="flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap">
               Live Scan Feed
             </TabsTrigger>
-            <TabsTrigger value="machine" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap", tabActiveTheme)}>
+            <TabsTrigger value="machine" className="flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap">
               By Machine
             </TabsTrigger>
-            <TabsTrigger value="lot" className={cn("flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap flex items-center justify-center", tabActiveTheme)}>
+            <TabsTrigger value="lot" className="flex-1 text-[11px] px-2 sm:px-4 py-1 rounded-md transition font-medium data-[state=active]:font-bold whitespace-nowrap flex items-center justify-center">
               <Package className="h-3 w-3 mr-1.5" />
               Lot & Box
             </TabsTrigger>
@@ -57,7 +56,7 @@ export function TransmissionTabs({ brand, transmission, machine, lot }: Transmis
               <span
                 className={cn(
                   'h-1.5 w-1.5 rounded-full',
-                  t.tableView === 'books' ? (brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500') : 'bg-gray-400'
+                  t.tableView === 'books' ? ('bg-primary') : 'bg-gray-400'
                 )}
               />
               {t.loading ? '…' : t.totalBooks} Books

@@ -219,7 +219,7 @@
   height: 2.5rem;
   border-radius: 0.75rem;
   color: white;
-  background: var(--brand-strong);
+  background: linear-gradient(to right, var(--brand-strong), color-mix(in oklch, var(--brand-strong) 70%, black));
   box-shadow: 0 8px 18px color-mix(in oklch, var(--brand-strong) 24%, transparent);
 }
 
@@ -256,7 +256,7 @@
 .premium-gradient-ui-card--solid {
   color: white;
   border-color: color-mix(in oklch, var(--brand-strong) 78%, black);
-  background: var(--brand-strong);
+  background: linear-gradient(to right, var(--brand-strong), color-mix(in oklch, var(--brand-strong) 70%, black));
 }
 
 .premium-gradient-ui-card--static {
@@ -353,6 +353,21 @@
   --color-warning-foreground: var(--warning-foreground);
 }
 
+@theme {
+  /* Unified Mustang Blue Palette based on --primary (oklch(0.55 0.2 260)) */
+  --color-blue-50: oklch(0.97 0.02 260);
+  --color-blue-100: oklch(0.94 0.04 260);
+  --color-blue-200: oklch(0.89 0.08 260);
+  --color-blue-300: oklch(0.81 0.12 260);
+  --color-blue-400: oklch(0.71 0.16 260);
+  --color-blue-500: oklch(0.62 0.19 260);
+  --color-blue-600: oklch(0.55 0.20 260);
+  --color-blue-700: oklch(0.48 0.17 260);
+  --color-blue-800: oklch(0.40 0.14 260);
+  --color-blue-900: oklch(0.33 0.11 260);
+  --color-blue-950: oklch(0.24 0.08 260);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -364,6 +379,12 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .bg-primary {
+    background: linear-gradient(to right, var(--primary), color-mix(in oklch, var(--primary) 70%, black)) !important;
   }
 }
 

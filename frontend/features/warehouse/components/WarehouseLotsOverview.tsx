@@ -172,11 +172,10 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
   const cardTheme = 'bg-white/68 border border-primary/15 ring-1 ring-primary/10 rounded-2xl'
   const iconTheme = 'premium-gradient-ui-card--solid'
   const textTheme = 'text-primary'
-  const headerTextTheme = 'text-primary'
+  const headerTextTheme = 'text-black'
   const subTextTheme = 'text-primary/80'
   const tableHeaderTheme = 'bg-primary/5 text-primary/70'
   const borderTheme = 'border-primary/20 focus-visible:ring-primary/20'
-  const tabActiveTheme = 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-[color-mix(in_oklch,var(--primary)_70%,black)] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-transparent'
 
   return (
     <div className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden flex flex-col transition duration-300", cardTheme)}>
@@ -201,18 +200,18 @@ export function WarehouseLotsOverview({ brand, refreshKey, refreshTrigger, unifi
         <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0 w-full sm:w-auto overflow-x-auto hide-scrollbar pb-1 sm:pb-0">
           <Tabs value={activeTab} className="w-full sm:w-auto" onValueChange={(val) => { setActiveTab(val); setExpandedLot(null); setBoxPage(1); }}>
             <TabsList className={cn("w-full flex bg-white/70 border-transparent shadow-sm ring-1 ring-black/5 h-8 p-0.5 rounded-lg", displayLoading && "opacity-50 pointer-events-none")}>
-              <TabsTrigger disabled={displayLoading} value="all" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition font-medium data-[state=active]:font-bold", tabActiveTheme)}>All Lots</TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="in_progress" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition font-medium data-[state=active]:font-bold", tabActiveTheme)}>
+              <TabsTrigger disabled={displayLoading} value="all" className="flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all duration-200 font-medium hover:bg-primary/10 hover:text-primary hover:scale-105 active:scale-95 data-[state=active]:font-bold data-[state=active]:hover:scale-100">All Lots</TabsTrigger>
+              <TabsTrigger disabled={displayLoading} value="in_progress" className="flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all duration-200 font-medium hover:bg-primary/10 hover:text-primary hover:scale-105 active:scale-95 data-[state=active]:font-bold data-[state=active]:hover:scale-100">
                 In Progress
               </TabsTrigger>
-              <TabsTrigger disabled={displayLoading} value="delayed" className={cn("flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition font-medium data-[state=active]:font-bold", tabActiveTheme)}>
+              <TabsTrigger disabled={displayLoading} value="delayed" className="flex-1 text-[11px] px-2 sm:px-3 py-1 rounded-md transition-all duration-200 font-medium hover:bg-primary/10 hover:text-primary hover:scale-105 active:scale-95 data-[state=active]:font-bold data-[state=active]:hover:scale-100">
                 Delayed
               </TabsTrigger>
             </TabsList>
           </Tabs>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <div className="relative block group flex-1 sm:flex-none w-full sm:w-auto">
-              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", "text-primary group-focus-within:text-primary")} />
               <Input 
                 placeholder="Search lots or boxes..." 
                 value={lotSearchInput} 

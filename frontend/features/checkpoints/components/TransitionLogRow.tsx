@@ -127,8 +127,8 @@ export function TransitionLogRow({
             <div className="flex items-center gap-1.5">
               {PIPELINE_STAGES.map((s, i) => {
                 let dotColor = 'bg-muted-foreground/30'
-                if (isCompleted || i < stageIdx) dotColor = 'bg-green-500'
-                else if (i === stageIdx) dotColor = 'bg-blue-500'
+                if (isCompleted || i < stageIdx) dotColor = 'bg-primary'
+                else if (i === stageIdx) dotColor = 'bg-primary'
                 return <div key={s} className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
               })}
             </div>

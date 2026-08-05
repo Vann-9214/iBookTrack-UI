@@ -24,9 +24,9 @@ export function WarehouseSessionStats({ currentSession }: WarehouseSessionStatsP
       value: currentSession.total_processable,
       icon: CircleCheck,
       card: 'border-emerald-200/80 bg-emerald-50 ring-emerald-100/70 hover:shadow-emerald-200/60',
-      iconBg: 'bg-emerald-600 shadow-emerald-500/25',
+      iconBg: 'bg-primary shadow-emerald-500/25',
       text: 'text-emerald-700',
-      accent: 'bg-emerald-400/20',
+      accent: 'bg-primary/20',
     },
     {
       label: 'Non-processable',

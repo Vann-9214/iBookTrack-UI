@@ -43,13 +43,13 @@ const batches = [
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'In Progress':
-      return 'bg-blue-500/10 text-blue-500'
+      return 'bg-primary/10 text-primary'
     case 'Queued':
       return 'bg-gray-500/10 text-gray-400'
     case 'Validation':
       return 'bg-yellow-500/10 text-yellow-500'
     case 'Completed':
-      return 'bg-green-500/10 text-green-500'
+      return 'bg-primary/10 text-primary'
     default:
       return 'bg-gray-500/10 text-gray-400'
   }

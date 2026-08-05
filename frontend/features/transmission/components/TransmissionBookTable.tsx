@@ -182,8 +182,8 @@ export function TransmissionBookTable({
                       <div className={cn(
                         "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
                         brand === 'jaguar'
-                          ? "bg-emerald-600 shadow-emerald-500/25"
-                          : "bg-blue-600 shadow-blue-500/25"
+                          ? "bg-primary shadow-emerald-500/25"
+                          : "bg-primary shadow-blue-500/25"
                       )}>
                         <BookOpen className="h-6 w-6" />
                       </div>
@@ -253,7 +253,7 @@ export function TransmissionBookTable({
                       <td className="px-3 py-2 align-middle whitespace-nowrap">
                         {r.transmission_date ? (
                           <div className="flex items-center gap-1.5">
-                            {r.transmission_completed && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+                            {r.transmission_completed && <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />}
                             <span className={r.transmission_completed ? 'text-emerald-700 font-medium' : 'text-foreground'}>
                               {format(new Date(r.transmission_date), 'MMM d, yyyy HH:mm')}
                             </span>
