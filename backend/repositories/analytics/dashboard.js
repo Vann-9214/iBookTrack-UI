@@ -281,6 +281,52 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
   }
 };
 
+export const getMismatchExport = async (date, boxType) => {
+  try {
+    const query = `
+      SELECT
+        b.isbn as "books.isbn",
+        l.lot_number as "lots.lot_number",
+        bx.box_number as "boxes.box_number",
+        b.title as "books.title",
+        mi.ilms_title as "mismatch_info.ilms_title",
+        COALESCE(mi.ilms_author, b.author) as "mismatch_info.ilms_author",
+        mi.physical_title as "mismatch_info.physical_title",
+        mi.physical_author as "mismatch_info.physical_author",
+        bx.box_type as "boxes.box_type",
+        DATE(COALESCE(uf.inventory_flag_at, uf.warehouse_flag_at, uf.endorsement_flag_at, uf.scan_flag_at)) as flagged_date
+      FROM user_flags uf
+      JOIN book_activity ba ON uf.book_activity_id = ba.id
+      JOIN books b ON ba.book_id = b.id
+      JOIN boxes bx ON b.box_id = bx.id
+      JOIN lots l ON bx.lot_id = l.id
+      LEFT JOIN mismatch_info mi ON mi.book_id = b.id
+      WHERE uf.rejection_reason = 'mismatched-book'
+        AND DATE(COALESCE(uf.inventory_flag_at, uf.warehouse_flag_at, uf.endorsement_flag_at, uf.scan_flag_at)) = $1
+        ${boxType ? 'AND bx.box_type = $2' : "AND bx.box_type IN ('Mustang', 'Jaguar')"}
+      ORDER BY COALESCE(uf.inventory_flag_at, uf.warehouse_flag_at, uf.endorsement_flag_at, uf.scan_flag_at) DESC
+    `;
+    const params = [date];
+    if (boxType) params.push(boxType);
+
+    const { rows } = await db.query(query, params);
+    const data = rows.map(r => ({
+      isbn: r['books.isbn'],
+      lot: r['lots.lot_number'],
+      box: r['boxes.box_number'],
+      ilms_title: r['books.title'],
+      ilms_author: r['mismatch_info.ilms_author'],
+      physical_title: r['mismatch_info.physical_title'],
+      physical_author: r['mismatch_info.physical_author'],
+      project_type: r['boxes.box_type'],
+      date: r.flagged_date ? new Date(r.flagged_date).toISOString().split('T')[0] : null,
+    }));
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
+
 export const getBooksByIsbnsWithLots = async (isbns) => {
   if (!isbns || !isbns.length) return { data: [], error: null };
   const ph = isbns.map((_, i) => `$${i + 1}`).join(',');

@@ -98,14 +98,14 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     setVerifCurrentSession((v) => v ? { ...v, total_scanned_books: v.total_scanned_books + 1, total_processable: v.total_processable + (scan_status === 'processable' ? 1 : 0), total_non_processable: v.total_non_processable + (scan_status === 'non_processable' ? 1 : 0) } : null)
   }, [verifCurrentSession])
 
-  const saveVerifBookToDB = useCallback(async (book: { isbn: string; title: string; author: string }, status: 'processable' | 'non_processable', issue: string | null, remarks: string | null, ilms_title?: string, physical_title?: string, physical_author?: string) => {
+  const saveVerifBookToDB = useCallback(async (book: { isbn: string; title: string; author: string }, status: 'processable' | 'non_processable', issue: string | null, remarks: string | null, ilms_title?: string, physical_title?: string, physical_author?: string, ilms_author?: string) => {
     if (!verifCurrentSession) return
     return saveInventoryScan(verifCurrentSession.id, { 
       ...book, 
       scan_status: status, 
       rejection_reason: issue || undefined, 
       notes: remarks || undefined,
-      ...(ilms_title && physical_title ? { mismatch_details: { ilms_title, physical_title, physical_author } } : {})
+      ...(ilms_title && physical_title ? { mismatch_details: { ilms_title, ilms_author, physical_title, physical_author } } : {})
     })
   }, [verifCurrentSession])
 
@@ -122,7 +122,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
         toast({ title: 'Book Not Found', description: `ISBN not found in ${brand.toUpperCase()} records.`, variant: 'destructive' })
         return
       }
-      const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }
+      const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || warehouse?.title || `ISBN: ${isbn}`, author: data.data?.AuthorName || data.data?.Author || warehouse?.author || '' }
       saveVerifBookToLocal(details, warehouse?.scan_status || 'processable', warehouse?.rejection_reason || null, warehouse?.notes || null)
     } catch {
       toast({ title: 'API Error', description: 'Failed to fetch book details. Cannot verify ISBN.', variant: 'destructive' })
@@ -137,7 +137,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     setVerifFetchingIssueBook(true)
     try {
       const data = await searchIlmsBook(isbn)
-      const issueData: InventoryIssue = { isbn, type: verifIssueType, title: data.success && data.data && !data.data.Message ? data.data.Title : '', author: data.success && data.data && !data.data.Message ? data.data.Author : '' }
+      const issueData: InventoryIssue = { isbn, type: verifIssueType, title: data.success && data.data && !data.data.Message ? data.data.Title : '', author: data.success && data.data && !data.data.Message ? data.data.AuthorName : '' }
       setVerifIssues((prev) => [...prev, issueData]); setVerifIssueIsbn('')
     } catch {
       setVerifIssues((prev) => [...prev, { isbn, type: verifIssueType, title: '', author: '' }]); setVerifIssueIsbn('')
@@ -176,7 +176,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     finally { setVerifFlagSaving(false) }
   }, [toast, verifFlagIssue, verifFlagModalBook, verifFlagRemarks])
 
-  const saveVerifMismatchFromLog = useCallback(async (payload: { ilms_title: string; physical_title: string; physical_author: string }) => {
+  const saveVerifMismatchFromLog = useCallback(async (payload: { ilms_title: string; ilms_author: string; physical_title: string; physical_author: string }) => {
     if (!verifMismatchModalBook) return
     setVerifFlagSaving(true)
     try {
@@ -221,7 +221,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     if (!verifCurrentSession || !verifBox) return
     setLoadingVerifBooks(true)
     try {
-      const booksToSave = verifScannedBooks.filter((b) => b.scan_status === 'non_processable' || !warehouseBooks.some((wb) => wb.isbn === b.isbn))
+      const booksToSave = verifScannedBooks.filter((b) => b.scan_status === 'non_processable' || b.flag_issue === 'mismatched-book' || !warehouseBooks.some((wb) => wb.isbn === b.isbn))
       for (const book of booksToSave) {
         const warehouseBook = warehouseBooks.find((wb) => wb.isbn === book.isbn)
         try {
@@ -229,8 +229,8 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
             if (warehouseBook.id) await tagInventoryScan(warehouseBook.id, book.flag_issue || '', book.flag_remarks || undefined)
             else await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
           } else if (book.flag_issue === 'mismatched-book') {
-            if (warehouseBook && warehouseBook.id) await tagInventoryScan(warehouseBook.id, 'mismatched-book', book.flag_remarks || undefined, book.mismatch_details?.ilms_title, book.mismatch_details?.physical_title, book.mismatch_details?.physical_author)
-            else await saveVerifBookToDB(book, book.scan_status, 'mismatched-book', book.flag_remarks || null, book.mismatch_details?.ilms_title, book.mismatch_details?.physical_title, book.mismatch_details?.physical_author)
+            if (warehouseBook && warehouseBook.id) await tagInventoryScan(warehouseBook.id, 'mismatched-book', book.flag_remarks || undefined, book.mismatch_details?.ilms_title, book.mismatch_details?.physical_title, book.mismatch_details?.physical_author, book.mismatch_details?.ilms_author)
+            else await saveVerifBookToDB(book, book.scan_status, 'mismatched-book', book.flag_remarks || null, book.mismatch_details?.ilms_title, book.mismatch_details?.physical_title, book.mismatch_details?.physical_author, book.mismatch_details?.ilms_author)
           } else if (!warehouseBook) await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
         } catch (error) { toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' }); throw error }
       }

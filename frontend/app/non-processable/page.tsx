@@ -84,6 +84,7 @@ export default function NonProcessablePage() {
               resolvingId={resolvingId}
               handleResolveClick={setFlagToResolve}
               isJaguar={isJaguar}
+              brand={brand}
             />
             
             <div className="h-4 shrink-0"></div>

@@ -73,7 +73,7 @@ export async function fetchWarehouseBooks(boxId: string) {
 }
 
 export async function searchIlmsBook(isbn: string) {
-  return authFetch(`${apiUrl}/api/books/ilms/search/${encodeURIComponent(isbn)}`).then(json<{ success?: boolean; data?: { ISBN?: string; Title?: string; Author?: string; Message?: string } }>)
+  return authFetch(`${apiUrl}/api/books/ilms/search/${encodeURIComponent(isbn)}`).then(json<{ success?: boolean; data?: { ISBN?: string; Title?: string; AuthorName?: string; Author?: string; Message?: string } }>)
 }
 
 export async function saveInventoryScan(
@@ -85,7 +85,7 @@ export async function saveInventoryScan(
     scan_status: 'processable' | 'non_processable'
     rejection_reason?: string
     notes?: string
-    mismatch_details?: { ilms_title: string; physical_title: string; physical_author?: string }
+    mismatch_details?: { ilms_title: string; ilms_author?: string; physical_title: string; physical_author?: string }
   }
 ) {
   return authFetch(`${apiUrl}/api/warehouse/sessions/${sessionId}/scan`, {
@@ -94,10 +94,10 @@ export async function saveInventoryScan(
   }).then(json)
 }
 
-export async function tagInventoryScan(scanId: string, rejection_reason: string, notes?: string, ilms_title?: string, physical_title?: string, physical_author?: string) {
+export async function tagInventoryScan(scanId: string, rejection_reason: string, notes?: string, ilms_title?: string, physical_title?: string, physical_author?: string, ilms_author?: string) {
   return authFetch(`${apiUrl}/api/warehouse/scans/${scanId}/tag`, {
     method: 'POST',
-    body: JSON.stringify({ status: 'non_processable', rejection_reason, notes, stage: 'inventory', ilms_title, physical_title, physical_author }),
+    body: JSON.stringify({ status: 'non_processable', rejection_reason, notes, stage: 'inventory', ilms_title, ilms_author, physical_title, physical_author }),
   }).then(json)
 }
 

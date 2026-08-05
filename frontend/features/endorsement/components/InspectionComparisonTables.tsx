@@ -44,7 +44,7 @@ export function InspectionComparisonTables({
           <div className="flex flex-col">
             <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
-              <div className="col-span-5 sm:col-span-6">Book Title</div>
+              <div className="col-span-5 sm:col-span-6">Title/Author</div>
               <div className="col-span-4 sm:col-span-4 text-right">Status</div>
             </div>
             <div className="space-y-1.5 overflow-y-auto overflow-x-hidden max-h-[240px] pr-1.5 custom-scrollbar">
@@ -79,9 +79,21 @@ export function InspectionComparisonTables({
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex items-center justify-end min-w-0">
                       {book.scan_status === 'processable' ? (
-                        <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5">
-                          Processable
-                        </span>
+                        book.rejection_reason === 'mismatched-book' ? (
+                          <div className="flex flex-col items-end justify-center">
+                            <span className="text-right text-[8.5px] font-bold text-amber-600 max-w-[150px] leading-none mb-0.5 truncate">
+                              Mismatched
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-[1px] text-[8.5px] font-bold text-amber-600 whitespace-nowrap uppercase tracking-wider">
+                              <ClipboardCheck className="h-2.5 w-2.5" />
+                              Processable
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5">
+                            Processable
+                          </span>
+                        )
                       ) : (
                         <div className="flex flex-col items-end justify-center">
                           {book.rejection_reason && (
@@ -122,7 +134,7 @@ export function InspectionComparisonTables({
           <div className="flex flex-col">
             <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
-              <div className="col-span-4 sm:col-span-5">Book Title</div>
+              <div className="col-span-4 sm:col-span-5">Title/Author</div>
               <div className="col-span-4 sm:col-span-4 text-right">Status</div>
               <div className="col-span-1 text-right"></div>
             </div>

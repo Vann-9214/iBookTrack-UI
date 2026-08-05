@@ -24,9 +24,10 @@ export const validateRequest = (schema) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
+        const issues = error.issues || error.errors || [];
         return res.status(400).json({
-          error: error.errors[0]?.message || 'Invalid request data',
-          details: error.errors
+          error: issues[0]?.message || 'Invalid request data',
+          details: issues
         });
       }
       next(error);

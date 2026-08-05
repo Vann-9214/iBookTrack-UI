@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AlertTriangle, BookOpen, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -8,13 +8,20 @@ export interface MismatchDetailsModalProps {
   book: { isbn: string; title: string; author?: string } | null
   saving: boolean
   onClose: () => void
-  onSave: (payload: { ilms_title: string; physical_title: string; physical_author: string }) => void
+  onSave: (payload: { ilms_title: string; ilms_author: string; physical_title: string; physical_author: string }) => void
 }
 
 export function MismatchDetailsModal({ book, saving, onClose, onSave }: MismatchDetailsModalProps) {
   const [isClosing, setIsClosing] = useState(false)
   const [physicalTitle, setPhysicalTitle] = useState('')
   const [physicalAuthor, setPhysicalAuthor] = useState('')
+
+  useEffect(() => {
+    if (book) {
+      setPhysicalTitle('')
+      setPhysicalAuthor('')
+    }
+  }, [book])
 
   const theme = {
     border: 'border-amber-200/80',
@@ -119,6 +126,7 @@ export function MismatchDetailsModal({ book, saving, onClose, onSave }: Mismatch
             onClick={() => {
               onSave({
                 ilms_title: book.title,
+                ilms_author: book.author || '',
                 physical_title: physicalTitle,
                 physical_author: physicalAuthor,
               })
