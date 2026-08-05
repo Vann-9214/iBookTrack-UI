@@ -56,7 +56,7 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, openMismatchModa
           <div className="overflow-x-auto">
             <div className={cn('flex min-w-[520px] gap-2 border-b px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:px-5 sm:text-[11px]', surfaceTheme, 'border-primary/10')}>
               <div className="w-[110px] shrink-0">ISBN</div>
-              <div className="min-w-0 flex-1">Title</div>
+              <div className="min-w-0 flex-1">Title/Author</div>
               <div className="w-[200px] shrink-0 text-right sm:w-[220px]">Status</div>
               <div className="grid w-[90px] shrink-0 grid-cols-[1fr_28px] gap-1.5">
                 <span className="text-center">Time</span>

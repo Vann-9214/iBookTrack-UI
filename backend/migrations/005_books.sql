@@ -57,16 +57,3 @@ FOR EACH ROW EXECUTE FUNCTION update_box_book_counts();
 DROP TRIGGER IF EXISTS trg_books_updated_at ON public.books;
 CREATE TRIGGER trg_books_updated_at BEFORE UPDATE ON public.books FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-CREATE TABLE IF NOT EXISTS public.mismatch_info (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  book_id UUID REFERENCES public.books(id) ON DELETE CASCADE,
-  
-  ilms_title TEXT NOT NULL,          
-  physical_title TEXT NOT NULL,      
-  physical_author TEXT,              
-  
-  created_by UUID REFERENCES public.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_mismatch_info_book_id ON public.mismatch_info (book_id);

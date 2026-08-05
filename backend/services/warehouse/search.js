@@ -176,7 +176,7 @@ export const searchIsbnService = async (req, res) => {
     if (ilmsResult.success && ilmsResult.data) {
       ilmsData = ilmsResult.data
       bookTitle = ilmsData.Title
-      bookAuthor = ilmsData.Author
+      bookAuthor = ilmsData.AuthorName || ilmsData.Author
       ilmsBoxNo = ilmsData.BoxNo
       ilmsLotNo = ilmsData.LotNo
     }

@@ -434,9 +434,9 @@ export const bulkSaveSessionService = async (req, res) => {
           await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
           if (b.mismatch_details && b.mismatch_details.ilms_title && b.mismatch_details.physical_title) {
             await db.query(`
-              INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
-              VALUES ($1, $2, $3, $4, $5)
-            `, [bookId, b.mismatch_details.ilms_title, b.mismatch_details.physical_title, b.mismatch_details.physical_author || null, req.user.id]);
+              INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
+              VALUES ($1, $2, $3, $4, $5, $6)
+            `, [bookId, b.mismatch_details.ilms_title, b.mismatch_details.ilms_author || null, b.mismatch_details.physical_title, b.mismatch_details.physical_author || null, req.user.id]);
           }
         }
       }

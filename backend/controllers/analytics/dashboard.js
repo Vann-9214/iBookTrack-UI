@@ -37,6 +37,16 @@ export const getQcFlags = async (req, res) => {
   }
 };
 
+export const getMismatchExport = async (req, res) => {
+  try {
+    const result = await dashboardService.getMismatchExportService(req);
+    res.json(result);
+  } catch (error) {
+    logger.error('Get mismatch export error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const getDailyOutput = async (req, res) => {
   try {
     const result = await dashboardService.getDailyOutputService(req);

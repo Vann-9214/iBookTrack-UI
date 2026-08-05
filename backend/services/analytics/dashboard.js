@@ -229,6 +229,17 @@ export const getQcFlagsService = async (req) => {
   return { success: true, flags: mappedFlags, total: count || 0, page, limit };
 };
 
+export const getMismatchExportService = async (req) => {
+  await runWarehouseTimeoutSweep();
+  const date = req.query.date;
+  const boxType = req.query.box_type ? req.query.box_type.charAt(0).toUpperCase() + req.query.box_type.slice(1).toLowerCase() : null;
+
+  const { data, error } = await dashboardRepo.getMismatchExport(date, boxType);
+  if (error) throw error;
+
+  return { success: true, rows: data || [] };
+};
+
 export const getDailyOutputService = async (req) => {
   const requestedPage = parseInt(req.query.page || '1', 10);
   const requestedLimit = parseInt(req.query.limit || '50', 10);
@@ -285,7 +296,7 @@ export const getDailyOutputService = async (req) => {
           const isbn = missingIsbns[i];
           if (!booksByIsbn[isbn]) booksByIsbn[isbn] = {};
           booksByIsbn[isbn].title = booksByIsbn[isbn].title || res.data.Title || null;
-          booksByIsbn[isbn].author = booksByIsbn[isbn].author || res.data.Author || null;
+          booksByIsbn[isbn].author = booksByIsbn[isbn].author || res.data.AuthorName || res.data.Author || null;
           booksByIsbn[isbn].lot_number = booksByIsbn[isbn].lot_number || res.data.LotNo || null;
           booksByIsbn[isbn].box_number = booksByIsbn[isbn].box_number || res.data.BoxNo || null;
         }

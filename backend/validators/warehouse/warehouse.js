@@ -40,7 +40,13 @@ export const scanBookSchema = {
     scan_status: shortText,
     rejection_reason: longText.optional(),
     notes: longText.optional(),
-    book_type: shortText
+    book_type: shortText,
+    mismatch_details: z.object({
+      ilms_title: longText,
+      ilms_author: longText.optional(),
+      physical_title: longText,
+      physical_author: longText.optional()
+    }).optional().nullable()
   })
 };
 
@@ -175,8 +181,13 @@ export const tagScanSchema = {
     rejection_reason: longText.optional(),
     notes: longText.optional(),
     remarks: z.string().trim().optional(),
-    stage: shortText.optional()
+    stage: shortText.optional(),
+    ilms_title: longText.optional(),
+    ilms_author: longText.optional(),
+    physical_title: longText.optional(),
+    physical_author: longText.optional()
   }).refine((data) => {
+    if (data.rejection_reason === 'mismatched-book') return true;
     const text = data.notes || data.remarks || '';
     return text.trim().length > 0;
   }, {

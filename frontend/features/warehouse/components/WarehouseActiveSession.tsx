@@ -44,10 +44,10 @@ export function WarehouseActiveSession({
   return (
     <div className="relative flex flex-col gap-4">
       {loading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-[3px] rounded-2xl animate-in fade-in duration-200">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span className="text-sm font-medium text-muted-foreground">Completing session…</span>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/60 backdrop-blur-[3px] animate-in fade-in duration-200">
+          <div className="flex flex-col items-center gap-3 bg-white/80 p-6 rounded-2xl shadow-xl ring-1 ring-black/5">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="text-sm font-semibold text-foreground">Completing session…</span>
           </div>
         </div>
       )}
