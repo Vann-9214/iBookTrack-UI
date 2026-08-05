@@ -1,11 +1,30 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { FileText, Search, Package, Inbox, Check, ChevronRight, Boxes, MessageSquare, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LotGroup, QCFlag } from '../types'
 import { getTone, ISSUE_LABELS } from '../utils/constants'
+
+const isMismatchIssue = (issue: string) => {
+  const s = (issue || '').toLowerCase().trim();
+  const mismatchValues = ['mismatch', 'mismatched-book', 'inventory mismatch'];
+  return mismatchValues.includes(s);
+};
+
+const isPhysicalIssue = (issue: string) => {
+  const s = (issue || '').toLowerCase().trim();
+  const physicalKeywords = [
+    'bleed-through', 'brittle', 'cannot-detach', 'sticky', 'cd-only', 'map-spanning', 'split-pages',
+    'cutoff-text', 'illegible', 'inverted-contrast', 'missing-pages', 'no-content', 'obscured',
+    'oversized', 'pen-marks', 'pop-up', 'postcard', 'stained', 'dirty', 'stamp-mark', 'thick-cardboard',
+    'torn-pages', 'torn', 'dog-ear', 'damage', 'split', 'bleed', 'cut', 'physical', 'dog-ears', 'torn-cover',
+    'missing', 'extra'
+  ];
+  return physicalKeywords.some(kw => s.includes(kw));
+};
 
 interface NonProcessableListProps {
   filteredLots: LotGroup[]
@@ -30,6 +49,38 @@ export function NonProcessableList({
 }: NonProcessableListProps) {
   const TONE = getTone(isJaguar)
   const [selectedNote, setSelectedNote] = useState<{ isbn: string, title: string, remarks: string } | null>(null)
+  const [activeTab, setActiveTab] = useState<'all' | 'non-processable' | 'mismatch'>('all')
+
+  const finalLots = useMemo(() => {
+    if (activeTab === 'all') return filteredLots;
+    
+    return filteredLots.map(lot => {
+      const newBoxes: Record<string, any> = {};
+      let newTotalFlags = 0;
+      
+      Object.values(lot.boxes).forEach((box: any) => {
+        const newFlags = box.flags.filter((f: any) => {
+          if (activeTab === 'mismatch') return isMismatchIssue(f.issue);
+          if (activeTab === 'non-processable') return isPhysicalIssue(f.issue);
+          return true;
+        });
+        
+        if (newFlags.length > 0) {
+          newBoxes[box.box_number] = { ...box, flags: newFlags };
+          newTotalFlags += newFlags.length;
+        }
+      });
+      
+      if (newTotalFlags > 0) {
+        return { ...lot, boxes: newBoxes, totalFlags: newTotalFlags };
+      }
+      return null;
+    }).filter(Boolean) as LotGroup[];
+  }, [filteredLots, activeTab]);
+
+  const currentTotalCount = useMemo(() => {
+    return finalLots.reduce((acc, lot) => acc + lot.totalFlags, 0);
+  }, [finalLots]);
 
   const cardTheme = isJaguar
     ? 'bg-gradient-to-br from-emerald-50/50 to-emerald-100/20 border-emerald-200/50 ring-emerald-100/50'
@@ -60,7 +111,15 @@ export function NonProcessableList({
           </div>
         </div>
         
-        <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+        <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0 flex-wrap lg:flex-nowrap">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-9">
+            <TabsList className="h-9 p-1">
+              <TabsTrigger value="all" className="text-xs px-3 h-7">All</TabsTrigger>
+              <TabsTrigger value="non-processable" className="text-xs px-3 h-7">Non-Processable</TabsTrigger>
+              <TabsTrigger value="mismatch" className="text-xs px-3 h-7">Mismatch</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <div className="relative group">
             <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
             <Input 
@@ -77,7 +136,7 @@ export function NonProcessableList({
             'inline-flex items-center shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap',
             isJaguar ? 'bg-emerald-50 text-emerald-700 ring-emerald-200/50' : 'bg-blue-50 text-blue-700 ring-blue-200/50'
           )}>
-            {totalCount} flags
+            {currentTotalCount} flags
           </div>
         </div>
       </div>
@@ -101,7 +160,7 @@ export function NonProcessableList({
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground/20 border-t-muted-foreground/60 mb-4" />
             <p className="text-sm font-medium text-muted-foreground">Loading lots...</p>
           </div>
-        ) : filteredLots.length === 0 ? (
+        ) : finalLots.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 py-24 px-6 text-center h-full">
             <div className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center shadow-sm",
@@ -116,7 +175,7 @@ export function NonProcessableList({
           </div>
         ) : (
           <Accordion type="single" collapsible className="w-full space-y-2 px-1 py-1">
-            {filteredLots.map((lot) => (
+            {finalLots.map((lot) => (
               <AccordionItem key={lot.lot_number} value={lot.lot_number} className="border border-slate-200/60 bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition duration-300">
                 <AccordionTrigger className={cn("w-full grid grid-cols-12 gap-4 items-center px-4 sm:px-5 py-3 text-left hover:no-underline group [&>svg]:hidden transition duration-300", isJaguar ? "data-[state=open]:bg-emerald-500 data-[state=open]:shadow-lg" : "data-[state=open]:bg-blue-600 data-[state=open]:shadow-lg")}>
                    {/* Icon */}

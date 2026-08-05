@@ -6,6 +6,7 @@ export interface BookInBox {
   scan_status: string
   scanned_at: string
   book_type?: string
+  flag?: { issue: string; remarks?: string }
 }
 
 export interface BoxSession {

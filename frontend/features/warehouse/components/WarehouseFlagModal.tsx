@@ -58,8 +58,8 @@ export function WarehouseFlagModal({
     issue.value !== 'missing-from-inventory' && 
     issue.value !== 'missing-from-endorsement'
   )
-  const standardIssues = filteredIssues.filter((issue) => issue.value !== 'mismatched-book' && issue.value !== 'extra-book')
-  const inventoryIssues = filteredIssues.filter((issue) => issue.value === 'mismatched-book' || issue.value === 'extra-book')
+  const standardIssues = filteredIssues.filter((issue) => issue.value !== 'extra-book')
+  const inventoryIssues = filteredIssues.filter((issue) => issue.value === 'extra-book')
 
   if (!flagModalBook) return null
   return (

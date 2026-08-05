@@ -78,14 +78,15 @@ export function useNonProcessable(brand: string) {
           
           const issueStr = (f.issue || '').toLowerCase().trim()
           
-          const mismatchValues = ['missing', 'extra', 'mismatched-book', 'extra-book', 'mismatch', 'inventory mismatch']
-          const isMismatch = mismatchValues.includes(issueStr) || issueStr === 'missing book' || issueStr === 'extra book'
+          const mismatchValues = ['mismatch', 'mismatched-book', 'inventory mismatch']
+          const isMismatch = mismatchValues.includes(issueStr)
           
           const physicalKeywords = [
             'bleed-through', 'brittle', 'cannot-detach', 'sticky', 'cd-only', 'map-spanning', 'split-pages',
             'cutoff-text', 'illegible', 'inverted-contrast', 'missing-pages', 'no-content', 'obscured',
             'oversized', 'pen-marks', 'pop-up', 'postcard', 'stained', 'dirty', 'stamp-mark', 'thick-cardboard',
-            'torn-pages', 'torn', 'dog-ear', 'damage', 'split', 'bleed', 'cut', 'physical', 'dog-ears', 'torn-cover'
+            'torn-pages', 'torn', 'dog-ear', 'damage', 'split', 'bleed', 'cut', 'physical', 'dog-ears', 'torn-cover',
+            'missing', 'extra'
           ]
           const isPhysical = physicalKeywords.some(kw => issueStr.includes(kw))
 
@@ -246,7 +247,8 @@ export function useNonProcessable(brand: string) {
                            'bleed-through', 'brittle', 'cannot-detach', 'sticky', 'cd-only', 'map-spanning', 'split-pages',
                            'cutoff-text', 'illegible', 'inverted-contrast', 'missing-pages', 'no-content', 'obscured',
                            'oversized', 'pen-marks', 'pop-up', 'postcard', 'stained', 'dirty', 'stamp-mark', 'thick-cardboard',
-                           'torn-pages', 'torn', 'dog-ear', 'damage', 'split', 'bleed', 'cut', 'physical', 'dog-ears', 'torn-cover'
+                           'torn-pages', 'torn', 'dog-ear', 'damage', 'split', 'bleed', 'cut', 'physical', 'dog-ears', 'torn-cover',
+                           'missing', 'extra'
                          ];
                          const isPhysical = physicalKeywords.some(kw => s.includes(kw));
                          return inRange && isPhysical;
@@ -255,8 +257,8 @@ export function useNonProcessable(brand: string) {
                          const dateStr = f.flagged_at ? format(new Date(f.flagged_at), 'yyyy-MM-dd') : '';
                          const inRange = dateStr >= computedFromDate && dateStr <= computedToDate;
                          const s = (f.issue || '').toLowerCase().trim();
-                         const mismatchValues = ['missing', 'extra', 'mismatched-book', 'extra-book', 'mismatch', 'inventory mismatch'];
-                         const isMismatch = mismatchValues.includes(s) || s === 'missing book' || s === 'extra book';
+                         const mismatchValues = ['mismatch', 'mismatched-book', 'inventory mismatch'];
+                         const isMismatch = mismatchValues.includes(s);
                          return inRange && isMismatch;
                        }) :
                        selectedCategory === 'Resolved' ? sessionResolvedFlags :

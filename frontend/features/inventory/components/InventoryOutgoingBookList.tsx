@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { BookStatusBadge } from '@/components/book-status-badge'
 import { Loader2, Printer } from 'lucide-react'
 import type { BookInBox, InventoryBox } from '../types/inventory.types'
 import type { useInventoryActions } from '../hooks/useInventoryActions'
@@ -56,17 +57,7 @@ export function InventoryOutgoingBookList({
             <div className="min-w-0 pr-3">
               <p className="text-[11px] text-muted-foreground truncate">{book.author || '—'}</p>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className={cn(
-                'text-[10px] px-2 py-0.5 rounded font-medium whitespace-nowrap w-fit',
-                book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              )}>
-                {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-              </span>
-              {book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
-                <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">{book.flag.issue}</span>
-              )}
-            </div>
+            <BookStatusBadge scan_status={book.scan_status} flag={book.flag} />
             {!isMobile && (
               <div className="flex items-center justify-center">
                 <button
