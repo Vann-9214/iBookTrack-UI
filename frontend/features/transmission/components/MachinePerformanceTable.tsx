@@ -68,7 +68,7 @@ export function MachinePerformanceTable({
       const key = normalizeMachineName(b.ScanMachineName)
       const existing = map.get(key) || { total: 0, completed: 0 }
       existing.total += 1
-      if (b.Status === 'Transmission_Archive COMPLETED') existing.completed += 1
+      if (String(b.Status || '').toUpperCase().includes('TRANSMISSION_ARCHIVE') && String(b.Status || '').toUpperCase().includes('COMPLETED')) existing.completed += 1
       map.set(key, existing)
     }
     return map

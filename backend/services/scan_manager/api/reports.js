@@ -14,7 +14,7 @@ export async function getDailyOutputCount(date, location = 'mustang') {
          FROM zeusz_IsbnStatus
          GROUP BY ISBN
        ) latest ON t.ISBN = latest.ISBN AND t.Updated = latest.MaxUpdated
-       WHERE t.Status = 'Transmission_Archive COMPLETED'
+       WHERE (UPPER(t.Status) LIKE '%TRANSMISSION_ARCHIVE%' OR UPPER(t.Status) LIKE '%TRANSMISSION ARCHIVE%') AND UPPER(t.Status) LIKE '%COMPLETED%'
          AND CAST(t.Updated AS DATE) = '${sql.raw(d)}'`,
       location
     )
@@ -29,7 +29,7 @@ export async function getDailyOutputCount(date, location = 'mustang') {
 export async function getDailyOutputRows(date, location = 'mustang', newProcessOnly = false) {
   try {
     const d = date ? safeDate(date) : new Date().toISOString().split('T')[0]
-    const reworkFilter = newProcessOnly ? "AND IsRework = 'False'" : ""
+    const reworkFilterQuery = newProcessOnly ? "AND IsRework = 'False'" : ""
 
     // Match the dashboard card count: latest status per ISBN added today is
     // Transmission_Archive COMPLETED, with optional New Process Only filter.
@@ -38,11 +38,11 @@ export async function getDailyOutputRows(date, location = 'mustang', newProcessO
        INNER JOIN (
          SELECT ISBN, MAX(Updated) AS MaxUpdated
          FROM zeusz_IsbnStatus
-         WHERE CAST(DateAdded AS DATE) = '${sql.raw(d)}' ${sql.raw(reworkFilter)}
+         WHERE CAST(DateAdded AS DATE) = '${sql.raw(d)}' ${sql.raw(reworkFilterQuery)}
          GROUP BY ISBN
        ) latest ON t.ISBN = latest.ISBN AND t.Updated = latest.MaxUpdated
-       WHERE t.Status = 'Transmission_Archive COMPLETED'
-         ${sql.raw(reworkFilter)}
+       WHERE (UPPER(t.Status) LIKE '%TRANSMISSION_ARCHIVE%' OR UPPER(t.Status) LIKE '%TRANSMISSION ARCHIVE%') AND UPPER(t.Status) LIKE '%COMPLETED%'
+         ${sql.raw(reworkFilterQuery)}
          AND CAST(DateAdded AS DATE) = '${sql.raw(d)}'
        ORDER BY t.Updated DESC`,
       location
@@ -366,4 +366,4 @@ export async function getScanningExportData(date, location = 'mustang') {
  * @param {string} [startDate]
  * @param {string} [endDate]
  * @param {'mustang'|'jaguar'} [location='mustang']
- */
+ */

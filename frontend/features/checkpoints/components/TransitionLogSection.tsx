@@ -1,5 +1,4 @@
 import { Scan } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { TransitionLogFilters } from './TransitionLogFilters'
 import { TransitionLogTable } from './TransitionLogTable'
@@ -43,30 +42,16 @@ export function TransitionLogSection({
   onToggleTimeline,
 }: TransitionLogSectionProps) {
   return (
-    <Card className="border-border/50 bg-card overflow-hidden py-0 gap-0 shadow-xl shadow-black/[0.03] ring-1 ring-black/5 rounded-2xl">
-      <div
-        className={cn(
-          'flex items-center justify-between px-6 py-5 border-b border-border/50',
-          brand === 'jaguar'
-            ? 'bg-gradient-to-r from-green-50/50 to-transparent'
-            : 'bg-gradient-to-r from-blue-50/50 to-transparent'
-        )}
-      >
+    <Card className="premium-gradient-ui-card premium-gradient-ui-card--static overflow-hidden py-0 gap-0">
+      <div className="premium-gradient-ui-card__glow" />
+      <div className="relative flex items-center justify-between px-6 py-5 border-b border-border/50">
         <div className="flex items-center gap-4">
-          <div
-            className={cn(
-              'flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm',
-              brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500'
-            )}
-          >
+          <div className="premium-gradient-ui-card__icon">
             <Scan className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-foreground tracking-tight">Box Pipeline Tracker</h2>
-            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-              Showing page {transitionsPagination.currentPage} of{' '}
-              {Math.max(1, transitionsPagination.totalPages)}
-            </p>
+            <p className="premium-gradient-ui-card__eyebrow">Live tracking</p>
+            <h2 className="premium-gradient-ui-card__title">Box Pipeline Tracker</h2>
           </div>
         </div>
       </div>

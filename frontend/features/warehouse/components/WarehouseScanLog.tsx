@@ -8,11 +8,12 @@ import { cn } from '@/lib/utils'
 interface WarehouseScanLogProps {
   scannedBooks: ScannedBook[]
   openFlagModal: (book: ScannedBook) => void
+  openMismatchModal: (book: ScannedBook) => void
   handleRemoveBook: (bookId: string) => void
   brand?: 'mustang' | 'jaguar'
 }
 
-export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook }: WarehouseScanLogProps) {
+export function WarehouseScanLog({ scannedBooks, openFlagModal, openMismatchModal, handleRemoveBook }: WarehouseScanLogProps) {
   const cardTheme = 'bg-white/68 border border-primary/15 ring-1 ring-primary/10 rounded-2xl'
   const iconTheme = 'premium-gradient-ui-card--solid'
   const textTheme = 'text-primary'
@@ -83,18 +84,38 @@ export function WarehouseScanLog({ scannedBooks, openFlagModal, handleRemoveBook
                   </div>
                   <div className="flex w-[200px] shrink-0 items-center justify-end gap-2 sm:w-[220px] sm:gap-3 pr-2">
                     {book.scan_status === 'processable' ? (
-                      <>
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">
-                          <CircleCheck className="h-3.5 w-3.5" />
-                          Processable
-                        </span>
-                        <button
-                          onClick={() => openFlagModal(book)}
-                          className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40"
-                        >
-                          Flag
-                        </button>
-                      </>
+                      book.flag_issue === 'mismatched-book' ? (
+                        <div className="flex flex-col items-end justify-center">
+                          <span className="text-right text-[8.5px] font-bold text-amber-600 max-w-[190px] leading-none mb-0.5">
+                            Mismatch Details Saved
+                          </span>
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-[1px] text-[8.5px] font-bold text-amber-600 whitespace-nowrap uppercase tracking-wider">
+                            <CircleCheck className="h-2.5 w-2.5" />
+                            Processable
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold bg-green-100 text-green-700 border border-green-200 whitespace-nowrap">
+                            <CircleCheck className="h-3.5 w-3.5" />
+                            Processable
+                          </span>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => openMismatchModal(book)}
+                              className="rounded-lg border border-amber-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-amber-600 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-amber-200/40"
+                            >
+                              Mismatch
+                            </button>
+                            <button
+                              onClick={() => openFlagModal(book)}
+                              className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40"
+                            >
+                              Flag
+                            </button>
+                          </div>
+                        </>
+                      )
                     ) : (
                       <div className="flex flex-col items-end justify-center">
                         {book.flag_issue && (

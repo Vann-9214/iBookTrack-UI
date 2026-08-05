@@ -9,11 +9,11 @@ import type { useWarehouseState } from './useWarehouseState'
 export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
   const { toast } = useToast()
   const {
-    activeLot, currentBoxNumber, currentSession, scannedBooks, setScannedBooks,
-    setCurrentSession, setCurrentBoxBooks, setBookCounter, setIsbnLoading,
+    activeLot, currentBoxNumber, currentSession, setCurrentSession, scannedBooks, setScannedBooks,
     setSessionError, setIlmsMismatchModal, setFlagModalBook, setFlagIssue,
-    setFlagRemarks, setFlagSaving, setFlagOpen, issueIsbn, setIssueIsbn,
+    setFlagRemarks, setFlagSaving, setFlagOpen, setMismatchModalBook, issueIsbn, setIssueIsbn,
     issueType, issues, setIssues, setFetchingIssueBook,
+    setCurrentBoxBooks, setBookCounter, setIsbnLoading,
   } = core
 
   const saveBookToLocal = (
@@ -33,6 +33,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
       scan_status,
       flag_issue: flag_issue || undefined,
       flag_remarks: flag_remarks || undefined,
+      mismatch_details: bookData.mismatch_details,
       timestamp: new Date(),
       ilmsData: bookData.ilmsData || null,
     }
@@ -88,6 +89,10 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     setFlagOpen(false)
   }
 
+  const openMismatchModal = (book: ScannedBook) => {
+    setMismatchModalBook(book)
+  }
+
   const saveFlagFromLog = async () => {
     if (!currentSession) return
     const modalBook = core.flagModalBook
@@ -100,6 +105,27 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
       toast({ title: 'Flagged as Non-Processable' })
     } catch (e: any) {
       setSessionError(e.message || 'Failed to flag book')
+    } finally {
+      setFlagSaving(false)
+    }
+  }
+
+  const saveMismatchFromLog = async (payload: { ilms_title: string; physical_title: string; physical_author: string }) => {
+    if (!currentSession) return
+    const modalBook = core.mismatchModalBook
+    if (!modalBook) return
+    setFlagSaving(true)
+    try {
+      setScannedBooks((prev) => prev.map((b) => b.id === modalBook.id ? { 
+        ...b, 
+        scan_status: 'processable', 
+        flag_issue: 'mismatched-book', 
+        mismatch_details: payload 
+      } : b))
+      setMismatchModalBook(null)
+      toast({ title: 'Mismatch Details Saved' })
+    } catch (e: any) {
+      setSessionError(e.message || 'Failed to save mismatch details')
     } finally {
       setFlagSaving(false)
     }
@@ -143,5 +169,5 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
   const handleRemoveIssue = (isbn: string) => setIssues((prev) => prev.filter((i) => i.isbn !== isbn))
   const handleIssueKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter' && issueIsbn.trim()) handleAddIssue() }
 
-  return { saveBookToLocal, handleScan, openFlagModal, saveFlagFromLog, handleRemoveBook, handleAddIssue, handleRemoveIssue, handleIssueKeyPress }
+  return { saveBookToLocal, handleScan, openFlagModal, openMismatchModal, saveFlagFromLog, saveMismatchFromLog, handleRemoveBook, handleAddIssue, handleRemoveIssue, handleIssueKeyPress }
 }

@@ -51,8 +51,13 @@ export function InventoryBookList({
               )}>
                 {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
               </span>
-              {showFlags && book.scan_status === 'non_processable' && book.flag?.issue && book.flag.issue !== 'non-processable' && book.flag.issue !== 'non_processable' && (
-                <span className="text-[9px] font-semibold text-red-500/80 leading-none capitalize">{book.flag.issue}</span>
+              {showFlags && book.flag?.issue && !['non-processable', 'non_processable'].includes(book.flag.issue) && (
+                <span className={cn(
+                  "text-[9px] font-semibold leading-none capitalize",
+                  book.flag.issue === 'mismatched-book' ? "text-amber-600" : "text-red-500/80"
+                )}>
+                  {book.flag.issue === 'mismatched-book' ? 'Mismatched' : book.flag.issue}
+                </span>
               )}
             </div>
           </div>

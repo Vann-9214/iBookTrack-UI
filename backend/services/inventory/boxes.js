@@ -160,7 +160,7 @@ export const getBoxesService = async (req) => {
         if (activities.length > 0 && activities.length >= (b.total_processable_books || 0)) {
           isCompleted = activities.every(a => {
              const stat = String(a.transmission_status || '').trim().toUpperCase();
-             return stat === 'COMPLETED' || stat === 'TRANSMISSION_ARCHIVE COMPLETED' || stat === 'TRANSMISSION COMPLETED';
+             return stat === 'COMPLETED' || (stat.includes('TRANSMISSION') && stat.includes('COMPLETED'));
           });
         }
         scanCompletionMap[boxId] = isCompleted;
@@ -323,8 +323,8 @@ export const getBoxByIdService = async (req) => {
 
   const books = (scans || []).map(s => {
     let flag = null;
-    if (s.user_flags || s.scan_status === 'non_processable') {
-      const flagRec = Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags;
+    if ((Array.isArray(s.user_flags) && s.user_flags.length > 0) || s.scan_status === 'non_processable') {
+      const flagRec = Array.isArray(s.user_flags) && s.user_flags.length > 0 ? s.user_flags[0] : null;
       flag = {
         issue: flagRec?.rejection_reason || 'non-processable',
         remarks: flagRec?.notes || '',

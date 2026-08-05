@@ -18,6 +18,7 @@ interface InspectionSessionProps {
   handleOpenInspComplete: () => void
   handleInspScan: (isbn: string) => void
   openInspFlagModal: (book: InspScannedBook) => void
+  openInspMismatchModal: (book: InspScannedBook) => void
   handleRemoveInspBook: (bookId: string) => void
   brand: Brand
 }
@@ -35,6 +36,7 @@ export function InspectionSession({
   handleOpenInspComplete,
   handleInspScan,
   openInspFlagModal,
+  openInspMismatchModal,
   handleRemoveInspBook,
   brand,
 }: InspectionSessionProps) {
@@ -63,6 +65,7 @@ export function InspectionSession({
         loadingWarehouseBooks={loadingWarehouseBooks}
         inspScannedBooks={inspScannedBooks}
         openInspFlagModal={openInspFlagModal}
+        openInspMismatchModal={openInspMismatchModal}
         handleRemoveInspBook={handleRemoveInspBook}
       />
 

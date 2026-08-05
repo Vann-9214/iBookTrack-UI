@@ -222,11 +222,11 @@ export function useTransmissionLot(brand: TransmissionBrand) {
         if (lotTransmissionFilter === 'transmitted') {
           if (!r.transmission_completed) return false
         } else {
-          const stage = (r.simflex_status || '').split(' ')[0].toLowerCase()
-          if (lotTransmissionFilter === 'scan' && stage !== 'scanning') return false
-          if (lotTransmissionFilter === 'validate' && stage !== 'validate') return false
-          if (lotTransmissionFilter === 'pdf_conversion' && stage !== 'tif2pdf') return false
-          if (lotTransmissionFilter === 'preval' && stage !== 'preval') return false
+          const rawSimflex = (r.simflex_status || '').toLowerCase()
+          if (lotTransmissionFilter === 'scan' && !rawSimflex.startsWith('scanning')) return false
+          if (lotTransmissionFilter === 'validate' && !rawSimflex.includes('validate')) return false
+          if (lotTransmissionFilter === 'pdf_conversion' && !rawSimflex.startsWith('tif2pdf')) return false
+          if (lotTransmissionFilter === 'preval' && !rawSimflex.startsWith('preval')) return false
         }
       }
 

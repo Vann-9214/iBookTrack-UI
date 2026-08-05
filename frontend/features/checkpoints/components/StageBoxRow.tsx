@@ -49,26 +49,26 @@ export function StageBoxRow({
     <div
       id={`box-${box.id}`}
       className={cn(
-        'group rounded-xl border overflow-hidden transition',
+        'group relative overflow-hidden rounded-2xl transition-colors',
         isDelayed
-          ? 'border-orange-200 bg-orange-50/60 hover:border-orange-300'
-          : 'border-gray-100 bg-gray-50/60 hover:border-transparent',
-        isExpanded && 'shadow-md'
+          ? 'bg-orange-50/70'
+          : 'bg-white/60 hover:bg-white',
+        isExpanded && 'shadow-sm'
       )}
     >
       <div
         className={cn(
-          'flex items-center gap-3 sm:gap-4 px-4 py-3 cursor-pointer group transition-colors',
-          isDelayed ? 'hover:bg-orange-50' : 'hover:bg-white'
+          'relative flex items-center gap-3 sm:gap-4 px-4 py-3 cursor-pointer transition-colors',
+          isDelayed ? 'hover:bg-orange-50/80' : 'hover:bg-white'
         )}
         onClick={onToggle}
       >
         <div
           className={cn(
-            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm',
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg text-white',
             isDelayed
-              ? 'bg-orange-100 text-orange-700 border border-orange-200'
-              : cfg.iconColorCls
+              ? 'bg-orange-500 border border-orange-500'
+              : 'premium-gradient-ui-card--solid border-transparent'
           )}
         >
           <Package className="h-5 w-5" />
@@ -126,7 +126,7 @@ export function StageBoxRow({
               onConfirm={onConfirm}
             />
           </div>
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors group-hover:bg-white">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors group-hover:bg-white group-hover:text-foreground">
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </span>
         </div>
@@ -142,14 +142,14 @@ export function StageBoxRow({
             selectedStage={selectedStage}
             onConfirm={onConfirm}
           />
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors group-hover:bg-white">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors group-hover:bg-white group-hover:text-foreground">
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </span>
         </div>
       </div>
 
       {isExpanded && (
-        <div className="border-t border-border bg-muted/30">
+        <div className="border-t border-border/50 bg-muted/20">
           {showMeta && (
             <div className="sm:hidden px-4 pt-3 pb-2 border-b border-border/50 bg-background/50 flex flex-col gap-1 text-xs text-muted-foreground">
               <div>

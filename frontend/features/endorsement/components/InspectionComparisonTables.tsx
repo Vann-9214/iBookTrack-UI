@@ -8,6 +8,7 @@ interface InspectionComparisonTablesProps {
   loadingWarehouseBooks: boolean
   inspScannedBooks: InspScannedBook[]
   openInspFlagModal: (book: InspScannedBook) => void
+  openInspMismatchModal: (book: InspScannedBook) => void
   handleRemoveInspBook: (bookId: string) => void
 }
 
@@ -16,6 +17,7 @@ export function InspectionComparisonTables({
   loadingWarehouseBooks,
   inspScannedBooks,
   openInspFlagModal,
+  openInspMismatchModal,
   handleRemoveInspBook,
 }: InspectionComparisonTablesProps) {
   return (
@@ -149,17 +151,35 @@ export function InspectionComparisonTables({
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex flex-row items-center justify-end gap-1.5 min-w-0">
                       {book.scan_status === 'processable' ? (
-                        <>
-                          <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5">
-                            Processable
-                          </span>
-                          <button
-                            onClick={() => openInspFlagModal(book)}
-                            className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40 whitespace-nowrap"
-                          >
-                            Flag Issue
-                          </button>
-                        </>
+                        book.flag_issue === 'mismatched-book' ? (
+                          <div className="flex flex-col items-end justify-center">
+                            <span className="text-right text-[8.5px] font-bold text-amber-600 max-w-[150px] leading-none mb-0.5 truncate">
+                              Mismatch Saved
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-[1px] text-[8.5px] font-bold text-amber-600 whitespace-nowrap uppercase tracking-wider">
+                              <ClipboardCheck className="h-2.5 w-2.5" />
+                              Processable
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5">
+                              Processable
+                            </span>
+                            <button
+                              onClick={() => openInspMismatchModal(book)}
+                              className="rounded-lg border border-amber-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-amber-600 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-amber-200/40 whitespace-nowrap"
+                            >
+                              Mismatch
+                            </button>
+                            <button
+                              onClick={() => openInspFlagModal(book)}
+                              className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40 whitespace-nowrap"
+                            >
+                              Flag
+                            </button>
+                          </>
+                        )
                       ) : (
                         <div className="flex flex-col items-end justify-center">
                           {(book.flag_issue || warehouseBook?.rejection_reason) && (

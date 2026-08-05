@@ -23,16 +23,16 @@ export const BOOK_FLAG_ISSUES = [
   { value: 'missing-from-warehouse', label: 'Missing from warehouse' },
   { value: 'missing-from-inventory', label: 'Missing from inventory' },
   { value: 'missing-from-endorsement', label: 'Missing from endorsement' },
-  { value: 'mismatched-book', label: 'Mismatch Book from ILMS (Title)' },
   { value: 'extra-book', label: 'Extra Book from Packing Lists' },
 ] as const
 
 export const FLAG_ISSUES = BOOK_FLAG_ISSUES
 
-export type BookFlagIssue = (typeof BOOK_FLAG_ISSUES)[number]['value']
+export type BookFlagIssue = (typeof BOOK_FLAG_ISSUES)[number]['value'] | 'mismatched-book'
 export type FlagIssue = BookFlagIssue
 
 export function getFlagIssueLabel(value: string): string {
+  if (value === 'mismatched-book') return 'Mismatch Book from ILMS (Title)'
   const match = BOOK_FLAG_ISSUES.find((issue) => issue.value === value)
   return match ? match.label : value
 }

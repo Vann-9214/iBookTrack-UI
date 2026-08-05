@@ -29,11 +29,13 @@ export function PendingApproval() {
       <div className="relative z-10 w-full max-w-[460px]">
         {/* Logo */}
         <div className="flex justify-center mb-4 sm:mb-8">
-          <img
-            src="/iBookTrack_logoN.png"
-            alt="iBookTrack"
-            className="h-8 sm:h-12 object-contain drop-shadow-lg"
-          />
+          <div className="bg-white p-2 sm:p-3 rounded-2xl shadow-xl flex items-center justify-center">
+            <img
+              src="/iBookTrack_logoN.png"
+              alt="iBookTrack"
+              className="h-10 sm:h-14 object-contain"
+            />
+          </div>
         </div>
 
         {/* Main card */}
@@ -172,7 +174,7 @@ export function PendingApproval() {
 
         {/* Footer */}
         <p className="text-center text-[9px] sm:text-[11px] text-blue-200/30 mt-3 sm:mt-6">
-          InnoTrack · Powered by Innodata
+          iBookTrack · Powered by Innodata
         </p>
       </div>
     </div>

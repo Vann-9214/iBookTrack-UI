@@ -14,5 +14,5 @@
 export function isTransmissionArchiveCompleted(status) {
   if (!status) return false;
   const s = String(status).toUpperCase();
-  return /TRANSMISSION[_\s]ARCHIVE/.test(s) && s.includes('COMPLETED');
+  return s.includes('TRANSMISSION') && s.includes('COMPLETED');
 }

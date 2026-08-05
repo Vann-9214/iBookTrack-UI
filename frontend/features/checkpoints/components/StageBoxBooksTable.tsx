@@ -47,7 +47,7 @@ export function StageBoxBooksTable({ books, brand, selectedStage, simflex }: Sta
               )}
               {isProcessable && simflexStatus && (
                 <span className="text-[9px] font-semibold text-blue-500/80 leading-none capitalize mt-0.5">
-                  In Simflex: {simflexStatus.transmissionCompleted ? 'Transmission Completed' : simflexStatus.latestStatus || 'Pending'}
+                  In Simflex: {simflexStatus.latestStatus || 'Pending'}
                 </span>
               )}
             </div>

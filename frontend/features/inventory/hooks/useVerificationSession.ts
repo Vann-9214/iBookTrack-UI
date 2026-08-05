@@ -43,8 +43,10 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
   const [verifIssueType, setVerifIssueType] = useState<'missing' | 'extra'>('missing')
   const [verifFetchingIssueBook, setVerifFetchingIssueBook] = useState(false)
   const [verifFlagModalBook, setVerifFlagModalBook] = useState<VerificationScannedBook | null>(null)
-  const [verifFlagIssue, setVerifFlagIssue] = useState(''), [verifFlagRemarks, setVerifFlagRemarks] = useState('')
+  const [verifFlagIssue, setVerifFlagIssue] = useState('')
+  const [verifFlagRemarks, setVerifFlagRemarks] = useState('')
   const [verifFlagSaving, setVerifFlagSaving] = useState(false)
+  const [verifMismatchModalBook, setVerifMismatchModalBook] = useState<VerificationScannedBook | null>(null)
   const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
 
@@ -96,9 +98,15 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     setVerifCurrentSession((v) => v ? { ...v, total_scanned_books: v.total_scanned_books + 1, total_processable: v.total_processable + (scan_status === 'processable' ? 1 : 0), total_non_processable: v.total_non_processable + (scan_status === 'non_processable' ? 1 : 0) } : null)
   }, [verifCurrentSession])
 
-  const saveVerifBookToDB = useCallback(async (book: { isbn: string; title: string; author: string }, status: 'processable' | 'non_processable', issue: string | null, remarks: string | null) => {
+  const saveVerifBookToDB = useCallback(async (book: { isbn: string; title: string; author: string }, status: 'processable' | 'non_processable', issue: string | null, remarks: string | null, ilms_title?: string, physical_title?: string, physical_author?: string) => {
     if (!verifCurrentSession) return
-    return saveInventoryScan(verifCurrentSession.id, { ...book, scan_status: status, rejection_reason: issue || undefined, notes: remarks || undefined })
+    return saveInventoryScan(verifCurrentSession.id, { 
+      ...book, 
+      scan_status: status, 
+      rejection_reason: issue || undefined, 
+      notes: remarks || undefined,
+      ...(ilms_title && physical_title ? { mismatch_details: { ilms_title, physical_title, physical_author } } : {})
+    })
   }, [verifCurrentSession])
 
   const handleVerifScan = useCallback(async (isbn: string) => {
@@ -153,6 +161,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
   }, [toast, verifScannedBooks])
 
   const openVerifFlagModal = useCallback((book: VerificationScannedBook) => { setVerifFlagModalBook(book); setVerifFlagIssue(book.flag_issue || ''); setVerifFlagRemarks(book.flag_remarks || '') }, [])
+  const openVerifMismatchModal = useCallback((book: VerificationScannedBook) => { setVerifMismatchModalBook(book) }, [])
 
   const saveVerifFlagFromLog = useCallback(async () => {
     if (!verifFlagModalBook || !verifFlagIssue) { toast({ title: 'Select an issue first', variant: 'destructive' }); return }
@@ -167,6 +176,23 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     finally { setVerifFlagSaving(false) }
   }, [toast, verifFlagIssue, verifFlagModalBook, verifFlagRemarks])
 
+  const saveVerifMismatchFromLog = useCallback(async (payload: { ilms_title: string; physical_title: string; physical_author: string }) => {
+    if (!verifMismatchModalBook) return
+    setVerifFlagSaving(true)
+    try {
+      setVerifScannedBooks((v) => v.map((b) => b.id === verifMismatchModalBook.id ? { 
+        ...b, 
+        scan_status: 'processable', 
+        flag_issue: 'mismatched-book', 
+        mismatch_details: payload 
+      } : b))
+      setVerifMismatchModalBook(null)
+      toast({ title: 'Mismatch Details Saved' })
+    } catch (e) { 
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to save mismatch', variant: 'destructive' }) 
+    } finally { setVerifFlagSaving(false) }
+  }, [toast, verifMismatchModalBook])
+
   const handleResetVerifSession = useCallback(async () => {
     if (!verifCurrentSession) return
     try { if (verifBox) await cancelInventorySession(verifBox.id) } catch (e) { console.error('Failed to reset session status:', e) }
@@ -180,12 +206,14 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     const expected = warehouseBooks.filter((wb) => wb.rejection_reason !== 'missing')
     const missing = expected.filter((wb) => !verifScannedBooks.some((vb) => vb.isbn === wb.isbn))
     const extra = verifScannedBooks.filter((vb) => !expected.some((wb) => wb.isbn === vb.isbn))
+    
     if (missing.length > 0 || extra.length > 0) {
       if (missing.length > 0 && extra.length > 0) toast({ title: 'Mismatch Detected', description: `You are missing ${missing.length} expected book(s) and have ${extra.length} extra book(s).`, variant: 'destructive' })
       else if (missing.length > 0) toast({ title: 'Mismatch Detected', description: `You are missing ${missing.length} expected book(s) from the Warehouse guide.`, variant: 'destructive' })
       else toast({ title: 'Mismatch Detected', description: `You have ${extra.length} extra book(s) that were not in the Warehouse guide. Please remove them before completing.`, variant: 'destructive' })
       return
     }
+
     setVerifTotalBooksExpected(''); setVerifIssues([]); setVerifConfirmComplete(true)
   }, [toast, verifCurrentSession, verifScannedBooks, warehouseBooks])
 
@@ -200,6 +228,9 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
           if (warehouseBook && warehouseBook.scan_status === 'processable' && book.scan_status === 'non_processable') {
             if (warehouseBook.id) await tagInventoryScan(warehouseBook.id, book.flag_issue || '', book.flag_remarks || undefined)
             else await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
+          } else if (book.flag_issue === 'mismatched-book') {
+            if (warehouseBook && warehouseBook.id) await tagInventoryScan(warehouseBook.id, 'mismatched-book', book.flag_remarks || undefined, book.mismatch_details?.ilms_title, book.mismatch_details?.physical_title, book.mismatch_details?.physical_author)
+            else await saveVerifBookToDB(book, book.scan_status, 'mismatched-book', book.flag_remarks || null, book.mismatch_details?.ilms_title, book.mismatch_details?.physical_title, book.mismatch_details?.physical_author)
           } else if (!warehouseBook) await saveVerifBookToDB(book, book.scan_status, book.flag_issue || null, book.flag_remarks || null)
         } catch (error) { toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' }); throw error }
       }
@@ -217,8 +248,9 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
     verifCurrentSession, verifScannedBooks, verifBookCounter, verifCurrentBoxBooks, verifTotalBooksExpected, setVerifTotalBooksExpected,
     verifIssues, setVerifIssues, verifIssueIsbn, setVerifIssueIsbn, verifIssueType, setVerifIssueType, verifFetchingIssueBook,
     verifFlagModalBook, setVerifFlagModalBook, verifFlagIssue, setVerifFlagIssue, verifFlagRemarks, setVerifFlagRemarks, verifFlagSaving,
+    verifMismatchModalBook, setVerifMismatchModalBook,
     warehouseBooks, loadingWarehouseBooks, loadUserProfile, fetchWarehouseBooks,
     handleStartVerifSession, handleVerifScan, handleVerifAddIssue, handleVerifRemoveIssue, handleVerifIssueKeyPress, handleRemoveVerifBook,
-    openVerifFlagModal, saveVerifFlagFromLog, handleResetVerifSession, handleOpenVerifComplete, handleCompleteVerifSession,
+    openVerifFlagModal, openVerifMismatchModal, saveVerifFlagFromLog, saveVerifMismatchFromLog, handleResetVerifSession, handleOpenVerifComplete, handleCompleteVerifSession,
   }
 }
