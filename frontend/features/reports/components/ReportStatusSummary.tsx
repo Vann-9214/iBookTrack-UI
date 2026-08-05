@@ -22,30 +22,30 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
     theme: isJaguar
       ? {
           card: 'bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70',
-          icon: 'bg-emerald-600 shadow-emerald-500/25',
+          icon: 'bg-primary shadow-emerald-500/25',
           value: 'text-emerald-700',
           title: 'text-emerald-950/70',
-          sub: 'text-emerald-600/80',
+          sub: 'text-primary/80',
           hover: 'hover:shadow-emerald-200/60',
-          activeRing: 'ring-2 ring-emerald-500/50 border-emerald-400 shadow-md',
+          activeRing: 'ring-2 ring-primary/50 border-primary shadow-md',
         }
       : {
           card: 'bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70',
-          icon: 'bg-blue-600 shadow-blue-500/25',
+          icon: 'bg-primary shadow-blue-500/25',
           value: 'text-blue-700',
           title: 'text-blue-950/70',
-          sub: 'text-blue-600/80',
+          sub: 'text-primary/80',
           hover: 'hover:shadow-blue-200/60',
-          activeRing: 'ring-2 ring-blue-500/50 border-blue-400 shadow-md',
+          activeRing: 'ring-2 ring-primary/50 border-primary shadow-md',
         },
     emerald: {
       card: 'bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70',
-      icon: 'bg-emerald-600 shadow-emerald-500/25',
+      icon: 'bg-primary shadow-emerald-500/25',
       value: 'text-emerald-700',
       title: 'text-emerald-950/70',
-      sub: 'text-emerald-600/80',
+      sub: 'text-primary/80',
       hover: 'hover:shadow-emerald-200/60',
-      activeRing: 'ring-2 ring-emerald-500/50 border-emerald-400 shadow-md',
+      activeRing: 'ring-2 ring-primary/50 border-primary shadow-md',
     },
     amber: {
       card: 'bg-gradient-to-br from-amber-50 via-card to-orange-100/60 border-2 border-amber-200/80 ring-amber-100/70',
@@ -58,16 +58,16 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
     },
     blue: {
       card: 'bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70',
-      icon: 'bg-blue-600 shadow-blue-500/25',
+      icon: 'bg-primary shadow-blue-500/25',
       value: 'text-blue-700',
       title: 'text-blue-950/70',
-      sub: 'text-blue-600/80',
+      sub: 'text-primary/80',
       hover: 'hover:shadow-blue-200/60',
-      activeRing: 'ring-2 ring-blue-500/50 border-blue-400 shadow-md',
+      activeRing: 'ring-2 ring-primary/50 border-primary shadow-md',
     },
     solid: isJaguar
       ? {
-          card: 'bg-emerald-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white',
+          card: 'bg-primary border-2 border-primary/40 ring-emerald-300/30 text-white',
           icon: 'bg-white/20 shadow-black/10',
           value: 'text-white',
           title: 'text-white/90',
@@ -76,7 +76,7 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
           activeRing: 'ring-2 ring-white/50 shadow-lg',
         }
       : {
-          card: 'bg-blue-600 border-2 border-blue-600/40 ring-blue-300/30 text-white',
+          card: 'bg-primary border-2 border-primary/40 ring-blue-300/30 text-white',
           icon: 'bg-white/20 shadow-black/10',
           value: 'text-white',
           title: 'text-white/90',

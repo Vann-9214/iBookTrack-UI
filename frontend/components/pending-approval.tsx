@@ -92,7 +92,7 @@ export function PendingApproval() {
           <div className="mx-4 sm:mx-8 mb-3 sm:mb-6">
             <div className="rounded-lg sm:rounded-xl bg-white/[0.04] border border-white/[0.08] p-3 sm:p-5">
               <h3 className="text-white/90 text-[9px] sm:text-xs font-bold uppercase tracking-wider mb-2.5 sm:mb-4 flex items-center gap-1.5 sm:gap-2">
-                <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400" />
+                <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
                 What happens next
               </h3>
               <div className="space-y-2 sm:space-y-3.5">
@@ -104,7 +104,7 @@ export function PendingApproval() {
                   <div key={item.step} className="flex items-start gap-2 sm:gap-3">
                     <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[9px] sm:text-[11px] font-bold shrink-0 mt-px transition ${
                       item.done
-                        ? 'bg-emerald-400/20 text-emerald-400 border border-emerald-400/30'
+                        ? 'bg-primary/20 text-primary border border-primary/30'
                         : 'bg-white/[0.06] text-white/40 border border-white/[0.10]'
                     }`}>
                       {item.done ? '✓' : item.step}
@@ -120,11 +120,11 @@ export function PendingApproval() {
 
           {/* Contact card */}
           <div className="mx-4 sm:mx-8 mb-3 sm:mb-6">
-            <div className="flex items-start gap-2.5 sm:gap-3.5 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-blue-400/[0.06] border border-blue-400/[0.12]">
+            <div className="flex items-start gap-2.5 sm:gap-3.5 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-primary/[0.06] border border-primary/[0.12]">
               <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.3), rgba(99,102,241,0.2))' }}
               >
-                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
+                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
               </div>
               <div className="min-w-0">
                 <h3 className="text-white/90 text-[11px] sm:text-sm font-semibold">Need access urgently?</h3>
@@ -133,7 +133,7 @@ export function PendingApproval() {
                 </p>
                 <a
                   href="mailto:support@innodata.com"
-                  className="inline-flex items-center gap-1 text-blue-400 text-[10px] sm:text-xs font-semibold mt-1 sm:mt-2 hover:text-blue-300 transition-colors group"
+                  className="inline-flex items-center gap-1 text-primary text-[10px] sm:text-xs font-semibold mt-1 sm:mt-2 hover:text-blue-300 transition-colors group"
                 >
                   support@innodata.com
                   <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform group-hover:translate-x-0.5" />

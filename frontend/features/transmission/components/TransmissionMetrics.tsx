@@ -39,7 +39,7 @@ export function TransmissionMetrics({
           <div
             className={cn(
               'text-lg font-black leading-none',
-              brand === 'jaguar' ? 'text-emerald-600' : 'text-blue-600'
+              'text-primary'
             )}
           >
             {loading ? '…' : totalTransmitted.toLocaleString()}
@@ -47,15 +47,15 @@ export function TransmissionMetrics({
           <div className="text-[10px] font-medium text-gray-500 mt-0.5 leading-tight">Transmitted</div>
         </div>
         <div className="rounded-2xl border border-green-300 bg-green-100/60 p-2.5 flex flex-col items-center justify-center shadow-sm active:scale-[0.97] transition text-center">
-          <div className="text-lg font-black leading-none text-green-600">{loading ? '…' : `${passRate}%`}</div>
+          <div className="text-lg font-black leading-none text-primary">{loading ? '…' : `${passRate}%`}</div>
           <div className="text-[10px] font-medium text-gray-500 mt-0.5 leading-tight">Pass</div>
         </div>
         <div
           className={cn(
             'relative overflow-hidden rounded-2xl border p-2.5 flex flex-col items-center justify-center shadow-sm ring-1 active:scale-[0.97] transition text-center',
             brand === 'jaguar'
-              ? 'bg-emerald-600 border-emerald-600/40 ring-emerald-300/30 text-white'
-              : 'bg-blue-600 border-blue-600/40 ring-blue-300/30 text-white'
+              ? 'bg-primary border-primary/40 ring-emerald-300/30 text-white'
+              : 'bg-primary border-primary/40 ring-blue-300/30 text-white'
           )}
         >
           <div className="relative text-lg font-black leading-none text-white">
@@ -80,7 +80,7 @@ export function TransmissionMetrics({
             <div
               className={cn(
                 'flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110',
-                brand === 'jaguar' ? 'bg-emerald-600 shadow-emerald-500/25' : 'bg-blue-600 shadow-blue-500/25'
+                brand === 'jaguar' ? 'bg-primary shadow-emerald-500/25' : 'bg-primary shadow-blue-500/25'
               )}
             >
               <FileUp className="h-6 w-6" />
@@ -89,7 +89,7 @@ export function TransmissionMetrics({
               <span
                 className={cn(
                   'text-[11px] font-semibold',
-                  brand === 'jaguar' ? 'text-emerald-600' : 'text-blue-600'
+                  'text-primary'
                 )}
               >
                 {ongoingTransmissions} in progress
@@ -105,14 +105,14 @@ export function TransmissionMetrics({
             {loading ? '…' : totalTransmitted.toLocaleString()}
           </div>
           <div className={cn("relative text-sm font-semibold mb-0.5", brand === 'jaguar' ? 'text-emerald-950/70' : 'text-blue-950/70')}>Transmitted Today</div>
-          <div className={cn('relative text-xs font-medium', brand === 'jaguar' ? 'text-emerald-600/80' : 'text-blue-600/80')}>
+          <div className={cn('relative text-xs font-medium', brand === 'jaguar' ? 'text-primary/80' : 'text-primary/80')}>
             books sent to archive
           </div>
         </div>
         <div className="group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 hover:-translate-y-1 hover:shadow-xl bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60">
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
           <div className="relative flex items-start justify-between mb-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-emerald-600 shadow-emerald-500/25">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-primary shadow-emerald-500/25">
               <CheckCircle2 className="h-6 w-6" />
             </div>
             {failedTransmissions > 0 && (
@@ -121,14 +121,14 @@ export function TransmissionMetrics({
           </div>
           <div className="relative text-4xl font-black mb-0.5 tracking-tight tabular-nums text-emerald-700">{loading ? '…' : `${passRate}%`}</div>
           <div className="relative text-sm font-semibold mb-0.5 text-emerald-950/70">Pass Rate</div>
-          <div className="relative text-xs font-medium text-emerald-600/80">transmission success rate</div>
+          <div className="relative text-xs font-medium text-primary/80">transmission success rate</div>
         </div>
         <div
           className={cn(
             'group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 hover:-translate-y-1 hover:shadow-xl',
             brand === 'jaguar'
-              ? 'bg-emerald-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white hover:shadow-emerald-500/40'
-              : 'bg-blue-600 border-2 border-blue-600/40 ring-blue-300/30 text-white hover:shadow-blue-500/40'
+              ? 'bg-primary border-2 border-primary/40 ring-emerald-300/30 text-white hover:shadow-emerald-500/40'
+              : 'bg-primary border-2 border-primary/40 ring-blue-300/30 text-white hover:shadow-blue-500/40'
           )}
         >
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />

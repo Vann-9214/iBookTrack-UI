@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { useUser } from "@/hooks/use-user"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Inbox, Loader2, Package, BookOpen, Eye } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -29,23 +29,31 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
 
   return (
     <>
-      <Card className="premium-gradient-ui-card premium-gradient-ui-card--static gap-0 overflow-hidden py-0 h-fit max-h-[640px]">
-        <div className="premium-gradient-ui-card__glow" />
-        <div className="relative flex items-center justify-between gap-3 px-5 py-3.5 border-b border-border/50">
+      <Card className={cn("gap-0 h-fit max-h-[640px] rounded-2xl border shadow-sm ring-1 transition duration-300", brand === 'jaguar'
+        ? "border-emerald-200/60 ring-emerald-100/50 hover:shadow-emerald-200/50"
+        : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
+      )}>
+        <CardHeader className={cn("flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b", brand === 'jaguar'
+          ? "bg-primary/40 border-b-emerald-200/70"
+          : "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-b-blue-200/70"
+        )}>
           <div className="flex items-center gap-3">
-            <div className="premium-gradient-ui-card__icon">
+            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg", brand === 'jaguar'
+              ? "bg-primary shadow-emerald-500/25"
+              : "bg-primary shadow-blue-500/25"
+            )}>
               <Inbox className="h-5 w-5" />
             </div>
-            <div>
-              <p className="premium-gradient-ui-card__eyebrow">Ready to store</p>
-              <h2 className="premium-gradient-ui-card__title">Unassigned Boxes</h2>
-            </div>
+            <CardTitle className="text-base">Unassigned Boxes</CardTitle>
           </div>
-          <span className="premium-gradient-ui-card__chip inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full px-2 text-[11px] font-bold">
+          <span className={cn("inline-flex h-5 min-w-[1.25rem] self-center items-center justify-center rounded-full px-1.5 text-[10px] font-bold", brand === 'jaguar'
+            ? "bg-primary/10 text-primary"
+            : "bg-primary/10 text-primary"
+          )}>
             {filteredReadyBoxes.length}
           </span>
-        </div>
-        <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden px-4 py-4">
+        </CardHeader>
+        <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden">
           {loadingReady ? (
             <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -53,7 +61,7 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
             </div>
           ) : filteredReadyBoxes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
-              <Package className="h-7 w-7 text-primary" />
+              <Package className={cn("h-7 w-7", brand === 'jaguar' ? "text-primary" : "text-primary")} />
               <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
               <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
             </div>

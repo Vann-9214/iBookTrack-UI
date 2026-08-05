@@ -35,7 +35,7 @@ export function StageBoxBooksTable({ books, brand, selectedStage, simflex }: Sta
             <div className="flex flex-col gap-0.5">
               <BookStatusBadge scan_status={book.scan_status} flag={book.flag} />
               {isProcessable && simflexStatus && (
-                <span className="text-[9px] font-semibold text-blue-500/80 leading-none capitalize mt-0.5">
+                <span className="text-[9px] font-semibold text-primary/80 leading-none capitalize mt-0.5">
                   In Simflex: {simflexStatus.latestStatus || 'Pending'}
                 </span>
               )}

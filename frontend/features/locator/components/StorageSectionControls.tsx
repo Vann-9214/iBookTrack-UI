@@ -52,7 +52,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
             {Array.from({ length: totalSections }, (_, i) => i + 1).map(s => {
               const { totalUsed, totalCap, locCount } = getSectionStats(s)
               const pct = totalCap > 0 ? (totalUsed / totalCap) * 100 : 0
-              const dotColor = locCount === 0 ? 'bg-muted-foreground/25' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : pct > 0 ? 'bg-emerald-500' : 'bg-muted-foreground/25'
+              const dotColor = locCount === 0 ? 'bg-muted-foreground/25' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : pct > 0 ? 'bg-primary' : 'bg-muted-foreground/25'
               return (
                 <button
                   key={s}
@@ -72,7 +72,7 @@ export const StorageSectionControls: React.FC<StorageSectionControlsProps> = ({
           </div>
           <div className="mt-3 pt-2.5 border-t border-border flex items-center justify-end py-4">
             <div className="flex items-center gap-4.5 flex-wrap">
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-emerald-500" />Active</span>
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-primary" />Active</span>
               <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-amber-500" />70–90%</span>
               <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-red-500" />&gt;90%</span>
               <span className="flex items-center gap-1 text-[10px] text-muted-foreground"><span className="h-2 w-2 rounded-full bg-muted-foreground/25" />Empty</span>

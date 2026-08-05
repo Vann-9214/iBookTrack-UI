@@ -67,7 +67,7 @@ export function WarehouseActiveSession({
           <div className={cn('relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ring-1 ring-black/5', iconTheme)}>
             <Warehouse className="h-7 w-7" />
             <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm">
-              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-emerald-500" />
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary" />
             </span>
           </div>
           <div className="min-w-0">

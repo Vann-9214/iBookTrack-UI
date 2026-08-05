@@ -14,19 +14,21 @@ export function BookStatusBadge({ scan_status, flag, showFlag = true, className 
   const isGenericStatus = !issue || issue === 'non-processable' || issue === 'non_processable'
 
   return (
-    <div className={cn('flex flex-col gap-0.5', className)}>
+    <div className={cn('flex flex-row items-center gap-2', className)}>
       <span className={cn(
-        'text-[10px] px-2 py-0.5 rounded font-medium whitespace-nowrap w-fit',
-        isProcessable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold whitespace-nowrap w-fit ring-1 shadow-sm',
+        isProcessable 
+          ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white ring-emerald-500/30' 
+          : 'bg-gradient-to-br from-red-400 to-rose-600 text-white ring-red-500/30'
       )}>
         {isProcessable ? 'Processable' : 'Non-Processable'}
       </span>
       {showFlag && issue && !isGenericStatus && (
         <span className={cn(
-          'text-[9px] font-semibold leading-none capitalize',
-          isMismatch ? 'text-amber-600' : 'text-red-500/80'
+          'text-[9px] font-bold tracking-wide uppercase',
+          isMismatch ? 'text-amber-500' : 'text-red-400'
         )}>
-          {isMismatch ? 'Mismatched' : issue}
+          {isMismatch ? 'Mismatched' : issue.replace(/-/g, ' ')}
         </span>
       )}
     </div>

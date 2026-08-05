@@ -51,7 +51,7 @@ function getPipelineStatusBadge(status: string) {
       </Badge>
     )
     return (
-      <Badge variant="outline" className="px-1.5 py-0 h-4 border-blue-300 bg-blue-50 text-blue-600 gap-1 text-[8px] uppercase font-bold">
+      <Badge variant="outline" className="px-1.5 py-0 h-4 border-blue-300 bg-blue-50 text-blue-700 gap-1 text-[8px] uppercase font-bold">
         <Loader2 className="h-2.5 w-2.5 animate-spin" /> ONGOING
       </Badge>
     )
@@ -149,19 +149,19 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
-    <Card className={cn("hidden sm:flex relative flex-col gap-0 overflow-hidden p-0 h-full rounded-2xl border-2 shadow-sm ring-1", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
+    <Card className={cn("hidden sm:flex relative flex-col gap-0 overflow-hidden p-0 h-full rounded-2xl border-2 shadow-sm ring-1", "bg-gradient-to-br from-primary/5 via-white to-primary/10 border-primary/20 ring-primary/10")}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
       {/* Header - sticky */}
-      <div className={cn("relative z-10 flex items-center justify-between px-5 py-4 border-b shrink-0", brand === 'jaguar' ? "bg-gradient-to-r from-emerald-50 to-white border-emerald-200/60" : "bg-gradient-to-r from-blue-50 to-white border-blue-200/60")}>
+      <div className={cn("relative z-10 flex items-center justify-between px-5 py-4 border-b shrink-0", "bg-transparent border-primary/20")}>
         <div className="flex items-center gap-3">
-          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20" : "bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/20")}>
+          <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-md", "bg-primary shadow-primary/20")}>
             <Activity className="h-4 w-4" />
           </div>
           <div>
             <p className="text-base font-bold tracking-tight text-gray-800 whitespace-nowrap">Live WIP Books</p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={cn("h-1.5 w-1.5 rounded-full", brand === 'jaguar' ? "bg-green-500" : "bg-blue-500")} />
-              <span className={cn("text-xs font-medium", brand === 'jaguar' ? "text-green-500" : "text-blue-500")}>
+              <span className={cn("h-1.5 w-1.5 rounded-full", brand === 'jaguar' ? "bg-primary" : "bg-primary")} />
+              <span className={cn("text-xs font-medium", brand === 'jaguar' ? "text-primary" : "text-primary")}>
                 {ongoingCount > 0 ? `${ongoingCount} actively processing` : 'actively processing'}
               </span>
             </div>
@@ -171,7 +171,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           {propLoading || loading ? (
             <Skeleton className="h-6 w-16 rounded-full bg-muted-foreground/20" />
           ) : (
-            <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-400 to-emerald-600" : "bg-gradient-to-br from-blue-400 to-blue-600")}>
+            <span className={cn("text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white shadow-sm", "bg-primary")}>
               {`${scans.length} books`}
             </span>
           )}
@@ -182,21 +182,21 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
         {propLoading || loading ? (
           <div className="h-full overflow-hidden flex flex-col relative z-0">
             <table className="w-full text-sm">
-              <TableHeader className="bg-white/40 backdrop-blur-md">
-                <TableRow className="border-border hover:bg-transparent">
-                  <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Lot</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">
+              <TableHeader className="sticky top-0 z-20" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 5%, white)" }}>
+                <TableRow className="border-primary/20 hover:bg-transparent bg-transparent">
+                  <TableHead className="text-xs text-primary font-bold">Scan Date</TableHead>
+                  <TableHead className="text-xs text-primary font-bold">User</TableHead>
+                  <TableHead className="text-xs text-primary font-bold">Lot</TableHead>
+                  <TableHead className="text-xs text-primary font-bold">Box</TableHead>
+                  <TableHead className="text-xs text-primary font-bold">ISBN</TableHead>
+                  <TableHead className="text-xs text-primary font-bold">Pages</TableHead>
+                  <TableHead className="text-xs text-primary font-bold">
                     <div className="relative left-16">Status</div>
                   </TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">
+                  <TableHead className="text-xs text-primary font-bold">
                     <div className="relative left-16">Machine</div>
                   </TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
+                  <TableHead className="text-xs text-primary font-bold text-right">Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -232,27 +232,27 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
           const totalPages = Math.ceil(scans.length / MOBILE_PAGE_SIZE)
           const mobileRows = scans.slice(mobilePage * MOBILE_PAGE_SIZE, (mobilePage + 1) * MOBILE_PAGE_SIZE)
           const tableHead = (
-            <TableHeader className="sticky top-0 z-10 bg-white/40 backdrop-blur-md">
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-xs text-muted-foreground font-medium">Scan Date</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">User</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Lot</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Box</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">ISBN</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">Pages</TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">
+            <TableHeader className="sticky top-0 z-20" style={{ backgroundColor: "color-mix(in srgb, var(--primary) 5%, white)" }}>
+              <TableRow className="border-primary/20 hover:bg-transparent bg-transparent">
+                <TableHead className="text-xs text-primary font-bold">Scan Date</TableHead>
+                <TableHead className="text-xs text-primary font-bold">User</TableHead>
+                <TableHead className="text-xs text-primary font-bold">Lot</TableHead>
+                <TableHead className="text-xs text-primary font-bold">Box</TableHead>
+                <TableHead className="text-xs text-primary font-bold">ISBN</TableHead>
+                <TableHead className="text-xs text-primary font-bold">Pages</TableHead>
+                <TableHead className="text-xs text-primary font-bold">
                   <div className="relative left-16">Status</div>
                 </TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium">
+                <TableHead className="text-xs text-primary font-bold">
                   <div className="relative left-16">Machine</div>
                 </TableHead>
-                <TableHead className="text-xs text-muted-foreground font-medium text-right">Updated</TableHead>
+                <TableHead className="text-xs text-primary font-bold text-right">Updated</TableHead>
               </TableRow>
             </TableHeader>
           )
           const renderRows = (rows: any[]) => rows.map((item, i) => (
             <TableRow key={i} className="border-border hover:bg-transparent cursor-default h-10">
-              <TableCell className="text-xs text-muted-foreground relative z-10 py-0.5">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground py-0.5">{item.ScanDate ? new Date(item.ScanDate).toLocaleString() : '—'}</TableCell>
               <TableCell className="text-xs font-medium text-card-foreground py-0.5">{item.ScanUser || '—'}</TableCell>
               <TableCell className="text-xs font-semibold text-card-foreground py-0.5">{(enrichedData[item.ISBN]?.lot && enrichedData[item.ISBN]?.lot !== '—') ? enrichedData[item.ISBN].lot : (item.LotNumber || '—')}</TableCell>
               <TableCell className="text-xs text-card-foreground py-0.5">{(enrichedData[item.ISBN]?.box && enrichedData[item.ISBN]?.box !== '—') ? enrichedData[item.ISBN].box : (item.BoxNumber || '—')}</TableCell>

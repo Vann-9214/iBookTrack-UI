@@ -33,7 +33,7 @@ export function QrResultCard({ result, onRemove }: QrResultCardProps) {
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/30">
         <span className="text-xs font-semibold text-foreground flex items-center gap-2">
           Scan Result
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-600 text-white">
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary text-white">
             Latest
           </span>
         </span>

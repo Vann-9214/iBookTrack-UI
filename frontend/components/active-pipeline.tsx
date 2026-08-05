@@ -15,23 +15,13 @@ function getStepStatus(step: any) {
 }
 
 const getBrandColor = (brand: string, type: 'nodeRing' | 'nodeFill' | 'count' | 'bar' | 'cardBg' | 'dot') => {
-  if (brand === 'jaguar') {
-    return {
-      nodeRing: 'border-emerald-400 text-emerald-500',
-      nodeFill: 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-transparent text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/20',
-      count: 'text-emerald-600',
-      bar: 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-transparent',
-      cardBg: 'bg-emerald-50 border-emerald-200/70 ring-1 ring-emerald-100/50 shadow-sm shadow-emerald-500/5',
-      dot: 'bg-emerald-500',
-    }[type]
-  }
   return {
-    nodeRing: 'border-blue-400 text-blue-500',
-    nodeFill: 'bg-gradient-to-br from-blue-400 to-blue-600 border-transparent text-white shadow-lg shadow-blue-500/30 ring-1 ring-blue-400/20',
-    count: 'text-blue-600',
-    bar: 'bg-gradient-to-r from-blue-500 via-blue-400 to-transparent',
-    cardBg: 'bg-blue-50 border-blue-200/70 ring-1 ring-blue-100/50 shadow-sm shadow-blue-500/5',
-    dot: 'bg-blue-500',
+    nodeRing: 'border-primary text-primary',
+    nodeFill: 'premium-gradient-ui-card--solid shadow-lg shadow-primary/30 ring-1 ring-primary/20',
+    count: 'text-primary',
+    bar: 'bg-gradient-to-r from-primary via-primary/60 to-transparent',
+    cardBg: 'bg-white border-primary/20 ring-1 ring-primary/10 shadow-sm shadow-primary/5',
+    dot: 'bg-primary',
   }[type]
 }
 
@@ -175,11 +165,11 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   if (loading || !stats) {
     return (
-      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
+      <Card className={cn("relative overflow-hidden premium-gradient-ui-card")}>
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
+              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm premium-gradient-ui-card--solid shadow-primary/20")}>
                 <Workflow className="h-4 w-4" />
               </span>
               <span className="text-lg font-bold tracking-tight">Active Pipeline</span>
@@ -195,7 +185,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               return (
                 <div key={i} className="flex-1 min-w-0 flex flex-col items-center gap-0 rounded-xl">
                   {/* Step number circle */}
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-semibold mb-2", cfg.nodeFill)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold mb-2", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   {/* Card body */}
@@ -234,7 +224,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
               return (
                 <div key={i} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5", cfg.cardBg)}>
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold", cfg.nodeFill)}>
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   <div className="relative flex flex-col text-left gap-1">
@@ -256,17 +246,17 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   return (
     <>
-      <Card className={cn("relative rounded-2xl border-2 shadow-sm ring-1 overflow-hidden", brand === 'jaguar' ? "border-emerald-200/80 bg-emerald-50 ring-emerald-100/70" : "border-blue-200/80 bg-blue-50 ring-blue-100/70")}>
+      <Card className={cn("relative overflow-hidden premium-gradient-ui-card")}>
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm", brand === 'jaguar' ? "bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20" : "bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/20")}>
+              <span className={cn("flex shrink-0 h-8 w-8 items-center justify-center rounded-xl text-white shadow-sm premium-gradient-ui-card--solid shadow-primary/20")}>
                 <Workflow className="h-4 w-4" />
               </span>
               <span className="text-lg font-bold tracking-tight whitespace-nowrap">Active Pipeline</span>
               {currentLot && <span className="text-sm font-medium text-muted-foreground truncate max-w-full">| {currentLot}</span>}
             </div>
-            <span className={cn("ml-auto text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-white shadow-sm whitespace-nowrap", brand === 'jaguar' ? "bg-emerald-600" : "bg-blue-600")}>
+            <span className={cn("ml-auto text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-white shadow-sm whitespace-nowrap premium-gradient-ui-card--solid")}>
               <span className="sm:hidden">Today</span>
               <span className="hidden sm:inline">{todayLabel}</span>
             </span>
@@ -281,7 +271,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const inner = (
                 <>
                   {/* Step number circle */}
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm font-bold mb-2 transition duration-300 group-hover/step:scale-110 group-hover/step:shadow-lg", cfg.nodeFill)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold mb-2 transition duration-300 group-hover/step:scale-110 group-hover/step:shadow-lg", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   {/* Card body */}
@@ -316,7 +306,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition duration-200", cfg.nodeFill)}>
+                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold transition duration-200", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   <div className="flex flex-col text-left">

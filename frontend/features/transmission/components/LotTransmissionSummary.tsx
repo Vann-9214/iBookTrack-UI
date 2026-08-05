@@ -67,13 +67,13 @@ export function LotTransmissionSummary({
         key: 'processable',
         label: 'Processable',
         value: lotSummary.processable,
-        activeBorder: 'border-blue-400',
+        activeBorder: 'border-primary',
         activeBg: 'bg-blue-100',
         baseBorder: 'border-blue-200',
         baseBg: 'bg-blue-50/80',
         hover: 'hover:bg-blue-100',
-        text: 'text-blue-400',
-        num: 'text-blue-600',
+        text: 'text-primary',
+        num: 'text-primary',
       },
       {
         key: 'non_processable',
@@ -91,13 +91,13 @@ export function LotTransmissionSummary({
         key: 'transmitted',
         label: 'Transmitted',
         value: lotSummary.transmitted,
-        activeBorder: 'border-emerald-400',
+        activeBorder: 'border-primary',
         activeBg: 'bg-emerald-100',
         baseBorder: 'border-emerald-200',
         baseBg: 'bg-emerald-50/80',
         hover: 'hover:bg-emerald-100',
-        text: 'text-emerald-400',
-        num: 'text-emerald-600',
+        text: 'text-primary',
+        num: 'text-primary',
       },
       {
         key: 'wip',
@@ -166,7 +166,7 @@ export function LotTransmissionSummary({
               <div className="flex items-center justify-between mb-1.5">
                 <p className="text-[11px] font-semibold text-gray-500">Transmission Progress</p>
                 <p className="text-[11px] font-medium text-muted-foreground">
-                  <span className="text-emerald-600 font-bold">{lotSummary.transmitted}</span>
+                  <span className="text-primary font-bold">{lotSummary.transmitted}</span>
                   <span className="text-gray-400"> / </span>
                   <span>{lotSummary.processable}</span>
                 </p>

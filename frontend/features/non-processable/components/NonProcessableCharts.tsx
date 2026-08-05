@@ -30,7 +30,7 @@ export function NonProcessableCharts({
             <h3 className="font-bold tracking-tight text-slate-800 flex items-center gap-2 mb-1">
               Timeline
             </h3>
-            <p className={cn("text-[10px] font-bold uppercase tracking-widest", isJaguar ? "text-emerald-500" : "text-blue-500")}>Non-processable items flagged over time</p>
+            <p className={cn("text-[10px] font-bold uppercase tracking-widest", isJaguar ? "text-primary" : "text-primary")}>Non-processable items flagged over time</p>
           </div>
           <div className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-full text-white shadow-sm transition-transform duration-300 group-hover/timeline:scale-105", 
@@ -73,7 +73,7 @@ export function NonProcessableCharts({
                       <div className="bg-slate-900/95 backdrop-blur-md p-3.5 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] ring-1 ring-white/10 flex flex-col gap-1.5 min-w-[120px] transform transition">
                         <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">{label}</span>
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-2 h-2 rounded-full shadow-lg", isJaguar ? "bg-emerald-400 shadow-emerald-400/50" : "bg-blue-400 shadow-blue-400/50")} />
+                          <div className={cn("w-2 h-2 rounded-full shadow-lg", isJaguar ? "bg-primary shadow-emerald-400/50" : "bg-primary shadow-blue-400/50")} />
                           <span className="font-black text-xl text-white leading-none">
                             {payload[0].value} <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider ml-0.5">flags</span>
                           </span>
@@ -117,7 +117,7 @@ export function NonProcessableCharts({
             <h3 className="font-bold tracking-tight text-gray-800 flex items-center gap-2 mb-1">
               Worst Lots
             </h3>
-            <p className={cn("text-[10px] font-bold uppercase tracking-widest", isJaguar ? "text-emerald-500" : "text-blue-500")}>Top 5 by flag count</p>
+            <p className={cn("text-[10px] font-bold uppercase tracking-widest", isJaguar ? "text-primary" : "text-primary")}>Top 5 by flag count</p>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg bg-white shadow-sm text-red-700 ring-1 ring-red-200/50">
             Top 5
@@ -131,7 +131,7 @@ export function NonProcessableCharts({
                 "flex w-12 h-12 rounded-full items-center justify-center shadow-sm mb-3",
                 isJaguar ? "bg-emerald-100" : "bg-blue-100"
               )}>
-                <Inbox className={cn("h-6 w-6", isJaguar ? "text-emerald-600" : "text-blue-600")} />
+                <Inbox className={cn("h-6 w-6", isJaguar ? "text-primary" : "text-primary")} />
               </div>
               <span className="font-medium text-gray-600 text-sm">No worst lots found</span>
             </div>

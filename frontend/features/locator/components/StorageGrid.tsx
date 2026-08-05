@@ -91,13 +91,13 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
       : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
     )}>
       <CardHeader className={cn("flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b", brand === 'jaguar'
-        ? "bg-emerald-600/40 border-b-emerald-200/70"
+        ? "bg-primary/40 border-b-emerald-200/70"
         : "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-b-blue-200/70"
       )}>
         <div className="flex items-center gap-3">
           <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg", brand === 'jaguar'
-            ? "bg-emerald-600 shadow-emerald-500/25"
-            : "bg-blue-600 shadow-blue-500/25"
+            ? "bg-primary shadow-emerald-500/25"
+            : "bg-primary shadow-blue-500/25"
           )}>
             <StorageLocatorIcon className="h-5 w-5" />
           </div>
@@ -173,7 +173,7 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                         badgeBg = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50"
                         badgeLabel = `${pct}% full`
                       } else {
-                        badgeBg = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50"
+                        badgeBg = "bg-primary/10 text-primary dark:text-primary border-emerald-200 dark:border-emerald-900/50"
                         badgeLabel = `${pct}% full`
                       }
                     }
@@ -198,8 +198,8 @@ export const StorageGrid: React.FC<StorageGridProps> = ({
                           <div className={cn(
                             "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-bold shadow-xs",
                             brand === 'jaguar'
-                              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : "border-blue-500/20 bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                              ? "border-primary/20 bg-primary/10 text-primary dark:text-primary"
+                              : "border-primary/20 bg-primary/10 text-primary dark:text-primary"
                           )}>
                             {loc.rack}{loc.level}
                           </div>

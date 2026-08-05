@@ -17,9 +17,7 @@ export function TransmissionHeader({ brand, mobileRightContent }: TransmissionHe
       <div
         className={cn(
           'p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0',
-          brand === 'jaguar'
-            ? 'bg-emerald-600'
-            : 'bg-blue-600'
+          'bg-primary'
         )}
       >
         <Radio className="h-7 w-7" />
@@ -34,9 +32,7 @@ export function TransmissionHeader({ brand, mobileRightContent }: TransmissionHe
             <span
               className={cn(
                 'inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
-                brand === 'jaguar'
-                  ? 'bg-emerald-600'
-                  : 'bg-blue-600'
+                'bg-primary'
               )}
             >
               {brand}

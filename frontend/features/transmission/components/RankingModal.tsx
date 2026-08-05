@@ -54,11 +54,11 @@ export function RankingModal({ showRanking, setShowRanking, ranking, rankingLoad
               <div className="grid grid-cols-4 gap-4">
                 <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Books</p>
-                  <p className="text-3xl font-black text-blue-600 mt-1">{ranking.totalBooks.toLocaleString()}</p>
+                  <p className="text-3xl font-black text-primary mt-1">{ranking.totalBooks.toLocaleString()}</p>
                 </div>
                 <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Pages</p>
-                  <p className="text-3xl font-black text-green-600 mt-1">{ranking.totalPages.toLocaleString()}</p>
+                  <p className="text-3xl font-black text-primary mt-1">{ranking.totalPages.toLocaleString()}</p>
                 </div>
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Highest Output</p>

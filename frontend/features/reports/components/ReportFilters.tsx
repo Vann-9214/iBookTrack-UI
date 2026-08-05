@@ -30,7 +30,6 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
   const isJaguar = brand === 'jaguar'
   const statuses: FilterStatus[] = ['all', 'closed', 'open', 'in-progress']
 
-  const tabActiveTheme = 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-[color-mix(in_oklch,var(--primary)_70%,black)] data-[state=active]:text-white data-[state=active]:shadow-sm data-[state=active]:border-transparent'
 
   return (
     <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 w-full pb-1">
@@ -48,9 +47,9 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
                   key={s}
                   disabled={loading} 
                   value={s} 
-                  className={cn("flex-1 text-[9px] sm:text-[11px] px-1 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap min-w-0 flex items-center justify-center gap-1", tabActiveTheme)}
+                  className="flex-1 text-[9px] sm:text-[11px] px-1 sm:px-3 py-1 rounded-md transition-all font-medium data-[state=active]:font-bold whitespace-nowrap min-w-0 flex items-center justify-center gap-1"
                 >
-                  <Icon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 hidden sm:block", isActive ? (s === 'all' ? (isJaguar ? 'text-emerald-500' : 'text-blue-500') : meta?.color.split(' ')[0]) : 'text-slate-400')} />
+                  <Icon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0 hidden sm:block", isActive ? (s === 'all' ? (isJaguar ? 'text-primary' : 'text-primary') : meta?.color.split(' ')[0]) : 'text-slate-400')} />
                   <span className="truncate">{label}</span>
                   <span className={cn(
                     "ml-0.5 sm:ml-1 px-1 sm:px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] leading-none font-black shrink-0",
@@ -68,7 +67,7 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
       {/* Search Input & Export */}
       <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
         <div className="relative group flex-1 sm:w-64 sm:flex-none">
-          <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+          <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-primary group-focus-within:text-primary" : "text-primary group-focus-within:text-primary")} />
           <input
             type="text"
             value={search}

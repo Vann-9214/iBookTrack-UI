@@ -250,23 +250,14 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
   /* Full class strings (Tailwind needs them static). "theme" resolves to the
      active brand tone so the KPI cards visibly shift blue↔green. */
   const TONE = {
-    theme: isJaguar
-      ? {
-          card: "bg-gradient-to-br from-emerald-50 via-white to-emerald-100/60 border-2 border-emerald-200/80 ring-emerald-100/70",
-          icon: "bg-gradient-to-br from-emerald-500 to-green-600 shadow-emerald-500/25",
-          value: "text-emerald-700",
-          title: "text-emerald-950/70",
-          sub: "text-emerald-600/80",
-          hover: "hover:shadow-emerald-200/60",
-        }
-      : {
-          card: "bg-gradient-to-br from-blue-50 via-white to-indigo-100/60 border-2 border-blue-200/80 ring-blue-100/70",
-          icon: "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/25",
-          value: "text-blue-700",
-          title: "text-blue-950/70",
-          sub: "text-blue-600/80",
-          hover: "hover:shadow-blue-200/60",
-        },
+    theme: {
+      card: "bg-gradient-to-br from-primary/5 via-white to-primary/10 border-2 border-primary/20 ring-1 ring-primary/10",
+      icon: "bg-primary shadow-primary/25",
+      value: "text-primary",
+      title: "text-foreground/70",
+      sub: "text-primary/80",
+      hover: "hover:shadow-primary/20 hover:border-primary/40",
+    },
     red: {
       card: "bg-gradient-to-br from-red-50 via-white to-rose-100/60 border-2 border-red-200/80 ring-red-100/70",
       icon: "bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/25",
@@ -275,54 +266,29 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       sub: "text-red-500/80",
       hover: "hover:shadow-red-200/60",
     },
-    /* Bold theme variant for the headline "Total Books" card */
-    solid: isJaguar
-      ? {
-          card: "bg-gradient-to-br from-emerald-500 via-emerald-500 to-green-600 border-2 border-emerald-600/40 ring-emerald-300/30 text-white",
-          icon: "bg-white/20 shadow-black/10",
-          value: "text-white",
-          title: "text-white/90",
-          sub: "text-white/70",
-          hover: "hover:shadow-emerald-500/40",
-        }
-      : {
-          card: "bg-gradient-to-br from-blue-500 via-blue-500 to-indigo-600 border-2 border-blue-600/40 ring-blue-300/30 text-white",
-          icon: "bg-white/20 shadow-black/10",
-          value: "text-white",
-          title: "text-white/90",
-          sub: "text-white/70",
-          hover: "hover:shadow-blue-500/40",
-        },
+    solid: {
+      card: "bg-primary text-white shadow-lg ring-1 ring-primary/30",
+      icon: "bg-white/20 shadow-black/10",
+      value: "text-white",
+      title: "text-white/90",
+      sub: "text-white/70",
+      hover: "hover:shadow-primary/40",
+    },
   } as const
 
-  /* Theme-aware palette for the brand-colored modals (Live Lots, Daily Output) */
-  const M = isJaguar
-    ? {
-        headerBg: "bg-gradient-to-r from-emerald-50 to-white",
-        iconBg: "bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-md shadow-emerald-500/20",
-        dot: "bg-emerald-500",
-        accent: "text-emerald-600",
-        soft: "text-emerald-500",
-        border: "border-emerald-100",
-        softBg: "bg-gradient-to-br from-emerald-50 to-white",
-        bar: "bg-gradient-to-r from-emerald-400 to-emerald-600",
-        track: "bg-emerald-100",
-        rowHover: "hover:bg-gradient-to-r hover:from-emerald-50/50 hover:to-transparent",
-        chip: "bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-sm ring-1 ring-emerald-500/20",
-      }
-    : {
-        headerBg: "bg-gradient-to-r from-blue-50 to-white",
-        iconBg: "bg-gradient-to-br from-blue-400 to-blue-600 shadow-md shadow-blue-500/20",
-        dot: "bg-blue-500",
-        accent: "text-blue-600",
-        soft: "text-blue-500",
-        border: "border-blue-100",
-        softBg: "bg-gradient-to-br from-blue-50 to-white",
-        bar: "bg-gradient-to-r from-blue-400 to-blue-600",
-        track: "bg-blue-100",
-        rowHover: "hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent",
-        chip: "bg-gradient-to-br from-blue-400 to-indigo-600 text-white shadow-sm ring-1 ring-blue-500/20",
-      }
+  const M = {
+    headerBg: "bg-white border-b border-primary/10",
+    iconBg: "bg-primary shadow-md shadow-primary/20",
+    dot: "bg-primary",
+    accent: "text-primary",
+    soft: "text-primary",
+    border: "border-primary/20",
+    softBg: "bg-white",
+    bar: "bg-primary",
+    track: "bg-primary/20",
+    rowHover: "hover:bg-primary/5",
+    chip: "bg-primary text-white shadow-sm ring-1 ring-primary/20",
+  }
 
   const stats = [
     {
@@ -534,7 +500,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                           <span className="line-clamp-2 max-w-[350px]" title={f.author || ''}>{f.author || '—'}</span>
                         </td>
                         <td className="py-2 px-2 text-sm whitespace-nowrap">
-                          <span className="inline-flex items-center rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white px-2.5 py-0.5 text-xs font-semibold ring-1 ring-blue-500/20 shadow-sm">
+                          <span className="inline-flex items-center rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white px-2.5 py-0.5 text-xs font-semibold ring-1 ring-primary/20 shadow-sm">
                             {f.assigned_box?.lot?.lot_number ? f.assigned_box.lot.lot_number : '—'}
                           </span>
                           {f.assigned_box?.box_number && (
@@ -610,7 +576,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   </h3>
                   {!selectedLot && (
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="h-2 w-2 rounded-full bg-green-500" />
+                      <span className="h-2 w-2 rounded-full bg-primary" />
                       <span className="text-xs text-gray-500">
                         {liveLots.filter(l => l.status !== 'Completed').length} open · {liveLots.filter(l => l.status === 'Completed').length} completed
                       </span>
@@ -671,17 +637,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                               <svg className="absolute inset-0 h-[88px] w-[88px] -rotate-90" viewBox="0 0 100 100">
                                 <defs>
                                   <linearGradient id="detailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    {isJaguar ? (
-                                      <>
-                                        <stop offset="0%" stopColor="#34d399" />
-                                        <stop offset="100%" stopColor="#059669" />
-                                      </>
-                                    ) : (
-                                      <>
-                                        <stop offset="0%" stopColor="#60a5fa" />
-                                        <stop offset="100%" stopColor="#2563eb" />
-                                      </>
-                                    )}
+                                    <stop offset="0%" stopColor="var(--primary)" />
+                                    <stop offset="100%" stopColor="color-mix(in oklch, var(--primary) 70%, black)" />
                                   </linearGradient>
                                 </defs>
                                 <circle
@@ -768,17 +725,8 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                             <svg className="absolute inset-0 h-10 w-10 -rotate-90 drop-shadow-sm" viewBox="0 0 40 40">
                               <defs>
                                 <linearGradient id={`listGrad-${lot.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                                  {isJaguar ? (
-                                    <>
-                                      <stop offset="0%" stopColor="#34d399" />
-                                      <stop offset="100%" stopColor="#059669" />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <stop offset="0%" stopColor="#60a5fa" />
-                                      <stop offset="100%" stopColor="#2563eb" />
-                                    </>
-                                  )}
+                                  <stop offset="0%" stopColor="var(--primary)" />
+                                  <stop offset="100%" stopColor="color-mix(in oklch, var(--primary) 70%, black)" />
                                 </linearGradient>
                               </defs>
                               <circle
@@ -836,7 +784,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   <FileOutput className="h-6 w-6" />
                 </div>
                 <div>
-                  <h2 className={cn("text-xl font-bold tracking-tight bg-clip-text text-transparent", M.bar)}>Daily Output</h2>
+                  <h2 className={cn("text-xl font-bold tracking-tight", M.accent)}>Daily Output</h2>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="relative flex h-2 w-2">
                       <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", M.dot)}></span>
