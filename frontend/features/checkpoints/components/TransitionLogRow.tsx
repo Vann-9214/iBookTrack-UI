@@ -10,12 +10,14 @@ type StatusTone = 'info' | 'success' | 'warning' | 'indigo'
 
 interface TransitionLogRowProps {
   transition: Transition
+  index: number
   isExpanded: boolean
   onToggle: () => void
 }
 
 export function TransitionLogRow({
   transition: t,
+  index,
   isExpanded,
   onToggle,
 }: TransitionLogRowProps) {
@@ -119,9 +121,12 @@ export function TransitionLogRow({
   return (
     <div className="premium-gradient-ui-card__row group border-b border-border/50 last:border-0 flex flex-col bg-card transition-colors">
       <div
-        className="flex items-center px-6 py-2 cursor-pointer gap-4"
+        className="flex items-center px-6 py-2 cursor-pointer gap-8"
         onClick={onToggle}
       >
+        <div className="w-[40px] shrink-0 flex items-center text-sm text-muted-foreground font-semibold">
+          {index}
+        </div>
         <div className="w-[260px] shrink-0 flex items-center">
           <div className="w-[110px] shrink-0 flex flex-col mr-2">
             <span className="font-bold text-foreground text-sm truncate">{box.box_number}</span>

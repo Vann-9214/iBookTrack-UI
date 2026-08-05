@@ -36,14 +36,14 @@ export const LocatorSearch: React.FC<LocatorSearchProps> = ({
             value={searchValue}
             onChange={e => { setSearchValue(e.target.value); setSearchValidationError(null) }}
             onKeyDown={e => e.key === "Enter" && handleSearch()}
-            className="pl-10 h-10 bg-card border-border rounded-xl shadow-sm focus-visible:ring-primary/20"
+            className="pl-10 h-10 bg-background/70 border-border/60 rounded-full shadow-sm focus-visible:ring-4 focus-visible:ring-primary/15"
           />
         </div>
-        <Button onClick={handleSearch} disabled={searchLoading} className="h-10 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition shrink-0">
+        <Button onClick={handleSearch} disabled={searchLoading} className="premium-gradient-ui-card--solid h-10 px-5 rounded-full shadow-md transition hover:-translate-y-0.5 hover:shadow-lg shrink-0">
           {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
         </Button>
         {(highlightedCellsCount > 0 || searchDone) && (
-          <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={clearSearch}>
+          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted" onClick={clearSearch}>
             <X className="h-4 w-4" />
           </Button>
         )}

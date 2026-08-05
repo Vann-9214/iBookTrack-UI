@@ -299,6 +299,30 @@
   color: color-mix(in oklch, var(--brand-strong) 85%, black);
 }
 
+/* Warning (amber) variants of the icon/chip/solid-button treatments,
+   used for "pending" style panels/buttons that stay amber regardless
+   of the active mustang/jaguar brand. */
+.premium-gradient-ui-card__icon--warning {
+  background: var(--warning);
+  box-shadow: 0 8px 18px color-mix(in oklch, var(--warning) 30%, transparent);
+}
+
+.premium-gradient-ui-card__eyebrow--warning {
+  color: color-mix(in oklch, var(--warning) 60%, black);
+}
+
+.premium-gradient-ui-card__chip--warning {
+  border: 1px solid color-mix(in oklch, var(--warning) 35%, white);
+  background: color-mix(in oklch, var(--warning) 18%, white);
+  color: color-mix(in oklch, var(--warning) 60%, black);
+}
+
+.premium-gradient-ui-card--solid-warning {
+  color: white;
+  border-color: color-mix(in oklch, var(--warning) 70%, black);
+  background: var(--warning);
+}
+
 .dark {
   --background: oklch(0.16 0.005 260);
   --foreground: oklch(0.97 0 0);

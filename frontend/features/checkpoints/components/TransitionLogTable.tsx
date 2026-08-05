@@ -42,7 +42,8 @@ export function TransitionLogTable({
       ) : (
         <div className="flex flex-col border-t border-border/50 max-h-[600px] overflow-y-auto overflow-x-auto relative">
           <div className="min-w-max">
-            <div className="premium-gradient-ui-card__table-header flex items-center gap-4 px-6 py-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider sticky top-0 z-20">
+            <div className="premium-gradient-ui-card__table-header flex items-center gap-8 px-6 py-2 text-[11px] font-bold text-muted-foreground uppercase tracking-wider sticky top-0 z-20">
+              <div className="w-[40px] shrink-0">#</div>
               <div className="w-[260px] shrink-0 flex items-center">
                 <div className="w-[110px] shrink-0 mr-2">Box & Lot</div>
                 <div className="w-[140px] shrink-0">Stage</div>
@@ -65,14 +66,18 @@ export function TransitionLogTable({
               <div className="w-4 shrink-0"></div>
             </div>
 
-            {transitions.map((t) => (
-              <TransitionLogRow
-                key={t.id}
-                transition={t}
-                isExpanded={expandedTimelineId === t.id}
-                onToggle={() => onToggleTimeline(t.id)}
-              />
-            ))}
+            {transitions.map((t, index) => {
+              const globalIndex = ((transitionsPagination.currentPage || 1) - 1) * (transitionsPagination.pageSize || 10) + index + 1
+              return (
+                <TransitionLogRow
+                  key={t.id}
+                  transition={t}
+                  index={globalIndex}
+                  isExpanded={expandedTimelineId === t.id}
+                  onToggle={() => onToggleTimeline(t.id)}
+                />
+              )
+            })}
           </div>
         </div>
       )}

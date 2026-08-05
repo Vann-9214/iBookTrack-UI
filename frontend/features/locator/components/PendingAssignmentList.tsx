@@ -1,5 +1,5 @@
 import React from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Clock, CheckCircle2, Loader2, MapPin, Trash2, Package, ChevronUp, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PendingAssignment } from "../types/locator.types"
@@ -39,19 +39,23 @@ export const PendingAssignmentList: React.FC<PendingAssignmentListProps> = ({
   const { user } = useUser()
 
   return (
-    <Card className="gap-0 h-fit max-h-[640px] rounded-2xl border border-amber-200/60 shadow-sm ring-1 ring-amber-100/50 transition duration-300 hover:shadow-amber-200/50">
-      <CardHeader className="flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b border-b-amber-200/70 bg-amber-600/40">
+    <Card className="premium-gradient-ui-card premium-gradient-ui-card--static gap-0 overflow-hidden py-0 h-fit max-h-[640px]">
+      <div className="premium-gradient-ui-card__glow" />
+      <div className="relative flex items-center justify-between gap-3 px-5 py-3.5 border-b border-border/50">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-amber-600 text-white shadow-lg shadow-amber-500/25">
+          <div className="premium-gradient-ui-card__icon premium-gradient-ui-card__icon--warning">
             <Clock className="h-5 w-5" />
           </div>
-          <CardTitle className="text-base">Pending Assignment</CardTitle>
+          <div>
+            <p className="premium-gradient-ui-card__eyebrow premium-gradient-ui-card__eyebrow--warning">Awaiting placement</p>
+            <h2 className="premium-gradient-ui-card__title">Pending Assignment</h2>
+          </div>
         </div>
-        <span className="inline-flex h-5 min-w-[1.25rem] self-center items-center justify-center rounded-full bg-amber-500/10 px-1.5 text-[10px] font-bold text-amber-600">
+        <span className="premium-gradient-ui-card__chip premium-gradient-ui-card__chip--warning inline-flex h-6 min-w-[1.5rem] shrink-0 items-center justify-center rounded-full px-2 text-[11px] font-bold">
           {filteredPendingAssignments.length}
         </span>
-      </CardHeader>
-      <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden">
+      </div>
+      <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden px-4 py-4">
         {loadingPending ? (
           <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
