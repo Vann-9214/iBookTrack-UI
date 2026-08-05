@@ -92,7 +92,7 @@ export function RegisterForm() {
                 placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
               />
             </div>
 
@@ -105,7 +105,7 @@ export function RegisterForm() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
               />
             </div>
 
@@ -119,7 +119,7 @@ export function RegisterForm() {
                   placeholder="Min. 8 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
                 />
                 <button
                   type="button"
@@ -146,7 +146,7 @@ export function RegisterForm() {
                   placeholder="Re-enter password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
+                  className="h-12 w-full rounded-2xl border-0 bg-gray-100/80 px-4 pr-12 text-[0.95rem] text-[#0f172a] placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-primary/20 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.1)] shadow-inner"
                 />
                 <button
                   type="button"

@@ -34,21 +34,21 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
         : "border-blue-200/60 ring-blue-100/50 hover:shadow-blue-200/50"
       )}>
         <CardHeader className={cn("flex min-h-[72px] flex-row items-center justify-between -mt-6 mb-3 px-6 py-4 rounded-t-2xl border-b", brand === 'jaguar'
-          ? "bg-emerald-600/40 border-b-emerald-200/70"
+          ? "bg-primary/40 border-b-emerald-200/70"
           : "bg-gradient-to-br from-blue-50 to-indigo-100/40 border-b-blue-200/70"
         )}>
           <div className="flex items-center gap-3">
             <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg", brand === 'jaguar'
-              ? "bg-emerald-600 shadow-emerald-500/25"
-              : "bg-blue-600 shadow-blue-500/25"
+              ? "bg-primary shadow-emerald-500/25"
+              : "bg-primary shadow-blue-500/25"
             )}>
               <Inbox className="h-5 w-5" />
             </div>
             <CardTitle className="text-base">Unassigned Boxes</CardTitle>
           </div>
           <span className={cn("inline-flex h-5 min-w-[1.25rem] self-center items-center justify-center rounded-full px-1.5 text-[10px] font-bold", brand === 'jaguar'
-            ? "bg-emerald-500/10 text-emerald-600"
-            : "bg-blue-500/10 text-blue-600"
+            ? "bg-primary/10 text-primary"
+            : "bg-primary/10 text-primary"
           )}>
             {filteredReadyBoxes.length}
           </span>
@@ -61,7 +61,7 @@ export const ReadyBoxList: React.FC<ReadyBoxListProps> = ({
             </div>
           ) : filteredReadyBoxes.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2 text-center text-muted-foreground">
-              <Package className={cn("h-7 w-7", brand === 'jaguar' ? "text-emerald-500" : "text-blue-500")} />
+              <Package className={cn("h-7 w-7", brand === 'jaguar' ? "text-primary" : "text-primary")} />
               <p className="text-xs">{activeSearchQuery ? 'No matching unassigned boxes' : 'No unassigned boxes'}</p>
               <p className="text-[10px] max-w-[200px]">{activeSearchQuery ? 'Try a different full ISBN, Box [number], or Lot [number].' : 'Scan-stage boxes with completed transmission will appear here.'}</p>
             </div>

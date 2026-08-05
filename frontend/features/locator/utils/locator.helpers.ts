@@ -63,7 +63,7 @@ export function getCapacityColor(used: number, capacity: number): string {
   const pct = capacity > 0 ? (used / capacity) * 100 : 0
   if (pct >= 90) return "bg-red-100 border-red-300 dark:bg-red-950/40 dark:border-red-800 text-red-700 dark:text-red-400"
   if (pct >= 70) return "bg-amber-100 border-amber-300 dark:bg-amber-950/40 dark:border-amber-800 text-amber-700 dark:text-amber-400"
-  if (pct > 0)   return "bg-emerald-100 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400"
+  if (pct > 0)   return "bg-emerald-100 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800 text-emerald-700 dark:text-primary"
   return "bg-muted/40 border-border text-muted-foreground"
 }
 

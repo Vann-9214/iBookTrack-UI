@@ -58,7 +58,7 @@ export function WarehouseCompleteSessionModal({
         text: 'text-emerald-700',
         hover: 'hover:bg-emerald-100/70',
         footer: 'border-emerald-100 bg-gradient-to-r from-emerald-50/60 via-card to-emerald-50/60',
-        button: 'bg-emerald-600 shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700',
+        button: 'bg-primary shadow-emerald-500/25 hover:from-emerald-600 hover:to-green-700',
       }
     : {
         border: 'border-blue-200/80',
@@ -68,7 +68,7 @@ export function WarehouseCompleteSessionModal({
         text: 'text-blue-700',
         hover: 'hover:bg-blue-100/70',
         footer: 'border-blue-100 bg-gradient-to-r from-blue-50/60 via-card to-indigo-50/60',
-        button: 'bg-blue-600 shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700',
+        button: 'bg-primary shadow-blue-500/25 hover:from-blue-600 hover:to-indigo-700',
       }
 
   useEffect(() => {
@@ -137,7 +137,7 @@ export function WarehouseCompleteSessionModal({
                 confirmCloseSession()
               }}
               placeholder="e.g. 100"
-              className={cn('h-11 w-full rounded-xl border bg-white/85 px-3 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2', isJaguar ? 'border-emerald-200/80 focus:ring-emerald-500/20' : 'border-blue-200/80 focus:ring-blue-500/20')}
+              className={cn('h-11 w-full rounded-xl border bg-white/85 px-3 text-sm font-medium text-foreground shadow-sm focus:outline-none focus:ring-2', isJaguar ? 'border-emerald-200/80 focus:ring-primary/20' : 'border-blue-200/80 focus:ring-primary/20')}
             />
           </div>
           <div className="space-y-4 border-b border-rose-200/80 bg-red-50 px-6 py-5">

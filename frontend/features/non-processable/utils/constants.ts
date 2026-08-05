@@ -12,29 +12,17 @@ export const ISSUE_LABELS: Record<string, string> = {
 }
 
 export const getTone = (isJaguar: boolean) => ({
-  theme: isJaguar
-    ? {
-        card: "bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70",
-        icon: "bg-emerald-600 shadow-emerald-500/25",
-        value: "text-emerald-700",
-        title: "text-emerald-950/70",
-        sub: "text-emerald-600/80",
-        hover: "hover:shadow-emerald-200/60 cursor-pointer",
-        modalBg: "bg-emerald-600",
-        modalIcon: "bg-emerald-600",
-        modalDot: "bg-emerald-500",
-      }
-    : {
-        card: "bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70",
-        icon: "bg-blue-600 shadow-blue-500/25",
-        value: "text-blue-700",
-        title: "text-blue-950/70",
-        sub: "text-blue-600/80",
-        hover: "hover:shadow-blue-200/60 cursor-pointer",
-        modalBg: "bg-blue-50",
-        modalIcon: "bg-blue-600",
-        modalDot: "bg-blue-500",
-      },
+  theme: {
+    card: "bg-gradient-to-br from-primary/5 via-white to-primary/10 border-2 border-primary/20 ring-1 ring-primary/10",
+    icon: "bg-primary shadow-primary/25",
+    value: "text-primary",
+    title: "text-foreground/70",
+    sub: "text-primary/80",
+    hover: "hover:shadow-primary/20 hover:border-primary/40 cursor-pointer",
+    modalBg: isJaguar ? "bg-emerald-50" : "bg-blue-50",
+    modalIcon: "bg-primary",
+    modalDot: "bg-primary",
+  },
   red: {
     card: "bg-gradient-to-br from-red-500 via-red-500 to-rose-600 border-2 border-red-600/40 ring-red-300/30 text-white",
     icon: "bg-white/20 shadow-black/10",

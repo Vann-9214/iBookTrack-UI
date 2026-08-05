@@ -57,7 +57,7 @@ export const StorageSlotDetailsModal: React.FC<StorageSlotDetailsModalProps> = (
         {
           "bg-white dark:bg-white border-2 border-red-400 dark:border-red-600": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "red",
           "bg-white dark:bg-white border-2 border-amber-400 dark:border-amber-600": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "amber",
-          "bg-white dark:bg-white border-2 border-emerald-400 dark:border-emerald-600": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "emerald",
+          "bg-white dark:bg-white border-2 border-primary dark:border-primary": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "emerald",
           "bg-card border border-border": getCapacityColorName(detailSlot.used, detailSlot.capacity) === "neutral"
         }
       )} onClick={e => e.stopPropagation()}>

@@ -34,10 +34,10 @@ export function InventoryVerificationTables({ verification }: { verification: Re
           <p className="text-sm text-muted-foreground py-6 text-center">No warehouse scans found for this box.</p>
         ) : (
           <div className="flex flex-col">
-            <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
+            <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-y border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
-              <div className="col-span-5 sm:col-span-6">Title/Author</div>
-              <div className="col-span-4 sm:col-span-4 text-right">Status</div>
+              <div className="col-span-5 sm:col-span-6 pl-6">Title/Author</div>
+              <div className="col-span-4 sm:col-span-4 text-right pr-6">Status</div>
             </div>
             <div className="space-y-1.5 overflow-y-auto overflow-x-hidden max-h-[240px] pr-1.5 custom-scrollbar">
               {warehouseBooks
@@ -67,7 +67,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{book.author || '—'}</p>
                     </div>
-                    <div className="col-span-4 sm:col-span-4 flex items-center justify-end min-w-0">
+                    <div className="col-span-4 sm:col-span-4 flex items-center justify-end min-w-0 pr-6">
                       {book.scan_status === 'processable' ? (
                         book.rejection_reason === 'mismatched-book' ? (
                           <div className="flex flex-col items-end justify-center">
@@ -119,10 +119,10 @@ export function InventoryVerificationTables({ verification }: { verification: Re
           <p className="text-sm text-muted-foreground py-6 text-center">No books scanned yet.</p>
         ) : (
           <div className="flex flex-col">
-            <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-b border-border mb-2 shrink-0">
+            <div className="grid grid-cols-12 gap-2 pl-3 pr-[24px] py-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border-y border-border mb-2 shrink-0">
               <div className="col-span-3 sm:col-span-2">ISBN</div>
-              <div className="col-span-4 sm:col-span-5">Title/Author</div>
-              <div className="col-span-4 sm:col-span-4 text-right">Status</div>
+              <div className="col-span-4 sm:col-span-5 pl-6">Title/Author</div>
+              <div className="col-span-4 sm:col-span-4 text-right pr-6">Status</div>
               <div className="col-span-1 text-right"></div>
             </div>
             <div className="space-y-1.5 overflow-y-auto overflow-x-hidden max-h-[240px] pr-1.5 custom-scrollbar">
@@ -148,7 +148,7 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                       <p className="text-[11px] text-foreground truncate">{book.title}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{book.author || '—'}</p>
                     </div>
-                    <div className="col-span-4 sm:col-span-4 flex items-center justify-end gap-1.5 min-w-0">
+                    <div className="col-span-4 sm:col-span-4 flex items-center justify-end gap-1.5 min-w-0 pr-6">
                       {book.scan_status === 'processable' ? (
                         book.flag_issue === 'mismatched-book' ? (
                           <div className="flex flex-col items-end justify-center">

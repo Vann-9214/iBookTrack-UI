@@ -94,8 +94,8 @@ export function MachinePerformanceTable({
             <div className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg",
               brand === 'jaguar' 
-                ? "bg-emerald-600 shadow-emerald-500/25"
-                : "bg-blue-600 shadow-blue-500/25"
+                ? "bg-primary shadow-emerald-500/25"
+                : "bg-primary shadow-blue-500/25"
             )}>
               <Activity className="h-5 w-5" />
             </div>
@@ -104,14 +104,14 @@ export function MachinePerformanceTable({
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className={cn(
                   "h-1.5 w-1.5 rounded-full",
-                  brand === 'jaguar' ? "bg-emerald-500" : "bg-blue-500"
+                  brand === 'jaguar' ? "bg-primary" : "bg-primary"
                 )} />
                 <span className="text-xs text-gray-500">Per machine output</span>
               </div>
             </div>
           </div>
           <div className="relative hidden sm:block group">
-            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", "text-primary group-focus-within:text-primary")} />
             <Input
               placeholder="Search machine..."
               value={machineSearch}
@@ -136,7 +136,7 @@ export function MachinePerformanceTable({
             brand === 'jaguar' ? "border-emerald-100 bg-emerald-50/60" : "border-blue-100 bg-blue-50/60"
           )}>
             <div className="relative group">
-              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", brand === 'jaguar' ? "text-emerald-500 group-focus-within:text-emerald-600" : "text-blue-500 group-focus-within:text-blue-600")} />
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", "text-primary group-focus-within:text-primary")} />
               <Input
                 autoFocus
                 placeholder="Search machine..."
@@ -180,8 +180,8 @@ export function MachinePerformanceTable({
                         <div className={cn(
                           "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
                           brand === 'jaguar' 
-                            ? "bg-emerald-600 shadow-emerald-500/25"
-                            : "bg-blue-600 shadow-blue-500/25"
+                            ? "bg-primary shadow-emerald-500/25"
+                            : "bg-primary shadow-blue-500/25"
                         )}>
                           <Activity className="h-6 w-6" />
                         </div>
@@ -294,8 +294,8 @@ export function MachinePerformanceTable({
                               <div className={cn(
                                 "flex w-12 h-12 rounded-full items-center justify-center text-white shadow-lg",
                                 brand === 'jaguar' 
-                                  ? "bg-emerald-600 shadow-emerald-500/25"
-                                  : "bg-blue-600 shadow-blue-500/25"
+                                  ? "bg-primary shadow-emerald-500/25"
+                                  : "bg-primary shadow-blue-500/25"
                               )}>
                                 <Activity className="h-6 w-6" />
                               </div>

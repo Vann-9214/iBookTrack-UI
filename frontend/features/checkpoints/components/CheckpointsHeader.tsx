@@ -35,9 +35,7 @@ export function CheckpointsHeader({
                   <span
                     className={cn(
                       'inline-block align-middle ml-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',
-                      brand === 'jaguar'
-                        ? 'bg-emerald-600'
-                        : 'bg-blue-600'
+                      'bg-primary'
                     )}
                   >
                     {brand}

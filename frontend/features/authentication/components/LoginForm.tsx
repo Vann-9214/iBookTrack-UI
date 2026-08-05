@@ -104,7 +104,7 @@ export function LoginForm() {
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-9 sm:h-10 lg:h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 sm:px-3.5 text-sm lg:text-base text-gray-900 placeholder-gray-400 outline-none transition focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="h-9 sm:h-10 lg:h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 sm:px-3.5 text-sm lg:text-base text-gray-900 placeholder-gray-400 outline-none transition focus:bg-white focus:border-primary focus:ring-2 focus:ring-blue-100"
           />
         </div>
 
@@ -118,7 +118,7 @@ export function LoginForm() {
               placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-9 sm:h-10 lg:h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 sm:px-3.5 pr-10 text-sm lg:text-base text-gray-900 placeholder-gray-400 outline-none transition focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="h-9 sm:h-10 lg:h-11 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 sm:px-3.5 pr-10 text-sm lg:text-base text-gray-900 placeholder-gray-400 outline-none transition focus:bg-white focus:border-primary focus:ring-2 focus:ring-blue-100"
             />
             <button
               type="button"
@@ -164,7 +164,7 @@ export function LoginForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-0.5 h-9 sm:h-10 lg:h-11 w-full rounded-xl bg-blue-600 text-sm lg:text-base font-bold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
+          className="mt-0.5 h-9 sm:h-10 lg:h-11 w-full rounded-xl bg-primary text-sm lg:text-base font-bold text-white transition hover:bg-blue-700 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -183,7 +183,7 @@ export function LoginForm() {
         <button
           type="button"
           onClick={() => router.push('/register')}
-          className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+          className="font-semibold text-primary hover:text-blue-700 transition-colors"
         >
           Sign up
         </button>

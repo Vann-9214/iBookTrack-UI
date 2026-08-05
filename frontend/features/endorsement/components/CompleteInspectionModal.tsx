@@ -95,9 +95,9 @@ export function CompleteInspectionModal({
               </div>
             </div>
             <div className="relative min-w-0 overflow-hidden rounded-2xl border p-3 shadow-sm ring-1 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg border-emerald-200/80 bg-emerald-50 ring-emerald-100/70 hover:shadow-emerald-200/60">
-              <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full blur-xl bg-emerald-400/20" />
+              <div className="absolute -right-5 -top-5 h-20 w-20 rounded-full blur-xl bg-primary/20" />
               <div className="relative flex h-full items-center justify-between gap-3">
-                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:flex bg-emerald-600 shadow-emerald-500/25">
+                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-lg sm:flex bg-primary shadow-emerald-500/25">
                   <CircleCheck className="h-5 w-5" />
                 </div>
                 <div className="ml-auto min-w-0 text-right">

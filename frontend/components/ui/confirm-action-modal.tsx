@@ -53,11 +53,16 @@ export function ConfirmActionModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-[22rem] overflow-hidden">
-        {/* Colored header */}
+      <div className={cn(
+        "relative rounded-2xl shadow-2xl w-full max-w-[22rem] overflow-hidden",
+        isDestructive
+          ? 'bg-card'
+          : 'bg-gradient-to-br from-slate-50 to-slate-100'
+      )}>
+        {/* Header */}
         <div className={cn(
-          'px-5 pt-4 pb-3',
-          isDestructive ? 'bg-destructive' : 'bg-primary',
+          'px-5 pt-5 pb-3',
+          isDestructive ? 'bg-gradient-to-br from-red-500 to-rose-600' : 'premium-gradient-ui-card--solid'
         )}>
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center w-9 h-9 rounded-full bg-white/20 shrink-0">
@@ -70,33 +75,33 @@ export function ConfirmActionModal({
         </div>
 
         {/* Body */}
-        <div className="px-5 pt-3 pb-5">
+        <div className="px-6 pt-5 pb-6">
           {/* Description */}
-          <p className="text-sm text-center text-muted-foreground leading-relaxed">
+          <p className="text-[15px] text-center leading-relaxed text-foreground/80">
             {description}
           </p>
 
           {/* Flow arrow (optional) */}
           {flow && (
-            <div className="flex items-center justify-center gap-2 my-4">
+            <div className="flex items-center justify-center gap-3 my-6 py-2">
               <span className={cn(
-                'text-xs font-semibold px-3 py-1.5 rounded-full border shadow-sm',
-                flow.fromColor ?? 'bg-muted text-muted-foreground border-border',
+                'text-[11px] uppercase tracking-wider font-bold px-4 py-2 rounded-xl shadow-sm ring-1 ring-inset',
+                flow.fromColor ?? 'bg-white text-muted-foreground ring-black/10'
               )}>
                 {flow.from}
               </span>
               <div className={cn(
-                'flex items-center justify-center w-6 h-6 rounded-full',
-                variant === 'destructive' ? 'bg-destructive/10' : 'bg-primary/10',
+                'flex items-center justify-center w-8 h-8 rounded-full shadow-sm',
+                isDestructive ? 'bg-destructive/10' : 'bg-primary/10'
               )}>
                 <ArrowRight className={cn(
-                  'h-3.5 w-3.5 shrink-0',
-                  variant === 'destructive' ? 'text-destructive' : 'text-primary',
+                  'h-4 w-4 shrink-0',
+                  isDestructive ? 'text-destructive' : 'text-primary'
                 )} />
               </div>
               <span className={cn(
-                'text-xs font-semibold px-3 py-1.5 rounded-full border shadow-sm',
-                flow.toColor ?? 'bg-primary/10 text-primary border-primary/30',
+                'text-[11px] uppercase tracking-wider font-bold px-4 py-2 rounded-xl shadow-sm ring-1 ring-inset',
+                flow.toColor ?? 'bg-white text-primary ring-primary/30'
               )}>
                 {flow.to}
               </span>
@@ -105,9 +110,20 @@ export function ConfirmActionModal({
 
           {/* Warning / Hint */}
           {hint && (
-            <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2.5 mb-1">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+            <div className={cn(
+              "flex items-start gap-3 rounded-xl px-4 py-3.5 mb-6 shadow-sm border",
+              isDestructive
+                ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200"
+                : "bg-amber-50/50 border-amber-200/50"
+            )}>
+              <AlertTriangle className={cn(
+                "h-5 w-5 shrink-0",
+                isDestructive ? "text-amber-500" : "text-amber-500"
+              )} />
+              <p className={cn(
+                "text-[13px] font-medium leading-relaxed mt-0.5",
+                isDestructive ? "text-amber-800 dark:text-amber-300" : "text-amber-900/80"
+              )}>
                 {hint}
               </p>
             </div>
@@ -118,7 +134,10 @@ export function ConfirmActionModal({
             <button
               onClick={onCancel}
               disabled={loading}
-              className="order-2 sm:order-1 w-full px-4 py-2.5 text-sm rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50 font-medium"
+              className={cn(
+                "order-2 sm:order-1 w-full px-4 py-3 text-[15px] rounded-xl border transition-colors disabled:opacity-50 font-semibold",
+                "border-border text-muted-foreground hover:bg-muted"
+              )}
             >
               Cancel
             </button>
@@ -126,10 +145,10 @@ export function ConfirmActionModal({
               onClick={onConfirm}
               disabled={loading}
               className={cn(
-                'order-1 sm:order-2 w-full px-4 py-2.5 text-sm rounded-xl font-medium transition-colors disabled:opacity-50',
-                variant === 'destructive'
-                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm',
+                'order-1 sm:order-2 w-full px-4 py-3 text-[15px] rounded-xl font-bold transition-all disabled:opacity-50 shadow-md active:scale-[0.98] text-white',
+                isDestructive
+                  ? 'bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700'
+                  : 'premium-gradient-ui-card--solid hover:opacity-90',
               )}
             >
               {loading ? 'Please wait…' : confirmLabel}

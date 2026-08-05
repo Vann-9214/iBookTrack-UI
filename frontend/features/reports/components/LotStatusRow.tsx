@@ -67,7 +67,7 @@ export const LotStatusRowComponent: React.FC<LotStatusRowProps> = ({
           <span title={`${lot.active_boxes} active, ${lot.stored_boxes} stored`}>
             {lot.total_boxes}
             {lot.active_boxes > 0 && (
-              <span className="ml-1 text-[10px] text-blue-500">({lot.active_boxes} active)</span>
+              <span className="ml-1 text-[10px] text-primary">({lot.active_boxes} active)</span>
             )}
           </span>
         </td>
@@ -94,7 +94,7 @@ export const LotStatusRowComponent: React.FC<LotStatusRowProps> = ({
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                 <div
-                  className={cn('h-full rounded-full transition-all', brand === 'jaguar' ? 'bg-green-500' : 'bg-blue-500')}
+                  className={cn('h-full rounded-full transition-all', 'bg-primary')}
                   style={{ width: `${pct}%` }}
                 />
               </div>

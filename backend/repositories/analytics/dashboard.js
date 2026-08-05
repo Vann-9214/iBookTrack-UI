@@ -97,6 +97,7 @@ export const countUnaccountedBooks = async (startIso, endIso, boxType) => {
       (uf.endorsement_flag_at >= $1 AND uf.endorsement_flag_at < $2) OR
       (uf.scan_flag_at >= $1 AND uf.scan_flag_at < $2)
     )
+    AND uf.rejection_reason NOT IN ('mismatched-book', 'mismatched-books')
   `;
   const params = [startIso, endIso];
   if (boxType) {
@@ -189,7 +190,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
       JOIN books b ON ba.book_id = b.id
       JOIN boxes bx ON b.box_id = bx.id
       LEFT JOIN lots l ON bx.lot_id = l.id
-      WHERE 1=1
+      WHERE uf.rejection_reason NOT IN ('mismatched-book', 'mismatched-books')
   `;
   
   const params = [];
@@ -229,7 +230,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
     JOIN book_activity ba ON uf.book_activity_id = ba.id
     JOIN books b ON ba.book_id = b.id
     JOIN boxes bx ON b.box_id = bx.id
-    WHERE 1=1
+    WHERE uf.rejection_reason NOT IN ('mismatched-book', 'mismatched-books')
   `;
 
   if (boxType) {

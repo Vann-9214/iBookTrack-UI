@@ -21,20 +21,13 @@ export function InventoryIncomingTab({ inventory, actions }: { inventory: Return
         emptyText="No incoming boxes"
         emptySubtext="Boxes sent by the warehouse will appear here."
         emptyIcon={<Inbox className="h-5 w-5" />}
-        renderBadge={(_, expanded) => (
-          <span className={cn(
-            'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-            expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
-          )}>
-            Sent from Warehouse
-          </span>
-        )}
+        subtitleSuffix="Sent from Warehouse"
         renderAction={(box: InventoryBox, expanded) => (
           <button
             onClick={(e) => { e.stopPropagation(); actions.openConfirm('receive', box) }}
             disabled={actions.receivingBox === box.id}
             className={cn(
-              'w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-60 transition-colors shrink-0',
+              'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
               expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
             )}
           >

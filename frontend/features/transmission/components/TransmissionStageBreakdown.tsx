@@ -53,7 +53,7 @@ export function TransmissionStageBreakdown({
               s.Stage === 'Transmission_Archive' && 'col-span-2 justify-self-center w-full max-w-[calc(50%-0.375rem)] sm:max-w-none sm:col-span-1',
               stageFilter?.stage === s.Stage && stageFilter?.category === 'ALL'
                 ? brand === 'jaguar'
-                  ? 'border-green-600 ring-2 ring-green-600/20'
+                  ? 'border-primary ring-2 ring-primary/20'
                   : 'border-indigo-400 ring-2 ring-indigo-400/20'
                 : 'border-gray-200'
             )}
@@ -80,8 +80,8 @@ export function TransmissionStageBreakdown({
                   bg: 'bg-green-50',
                   border: 'border-green-100',
                   hover: 'hover:bg-green-100',
-                  ring: 'ring-green-400',
-                  text: 'text-green-500',
+                  ring: 'ring-primary',
+                  text: 'text-primary',
                   num: 'text-green-700',
                 },
                 {
@@ -92,9 +92,9 @@ export function TransmissionStageBreakdown({
                   bg: 'bg-blue-50',
                   border: 'border-blue-100',
                   hover: 'hover:bg-blue-100',
-                  ring: 'ring-blue-400',
-                  text: 'text-blue-400',
-                  num: 'text-blue-600',
+                  ring: 'ring-primary',
+                  text: 'text-primary',
+                  num: 'text-primary',
                 },
                 {
                   key: 'FAILED',

@@ -49,7 +49,7 @@ export function InventorySimflexModal({
               'flex items-start gap-3 rounded-lg p-4 border',
               result.autoAdvanced ? 'bg-green-50 border-green-200' : 'bg-primary/10 border-primary/30'
             )}>
-              {result.autoAdvanced ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" /> : <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />}
+              {result.autoAdvanced ? <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" /> : <AlertTriangle className="h-5 w-5 text-primary shrink-0 mt-0.5" />}
               <div>
                 <p className={cn('text-sm font-semibold', result.autoAdvanced ? 'text-green-800' : 'text-primary')}>{result.message}</p>
                 <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
@@ -81,7 +81,7 @@ export function InventorySimflexModal({
                         {r.latestStatus || <span className="italic">Not in Simflex</span>}
                       </td>
                       <td className="py-1.5 px-3 text-center">
-                        {r.transmissionCompleted ? <CheckCircle2 className="h-4 w-4 text-green-600 mx-auto" /> : <XCircle className="h-4 w-4 text-primary mx-auto" />}
+                        {r.transmissionCompleted ? <CheckCircle2 className="h-4 w-4 text-primary mx-auto" /> : <XCircle className="h-4 w-4 text-primary mx-auto" />}
                       </td>
                     </tr>
                   ))}
