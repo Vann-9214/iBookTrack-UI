@@ -17,7 +17,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
   } = core
 
   const saveBookToLocal = (
-    bookData: { isbn: string; title: string; author: string; ilmsData?: any },
+    bookData: { isbn: string; title: string; author: string; ilmsData?: any; mismatch_details?: { ilms_title: string; physical_title: string; physical_author?: string } },
     scan_status: 'processable' | 'non_processable',
     flag_issue: string | null,
     flag_remarks: string | null

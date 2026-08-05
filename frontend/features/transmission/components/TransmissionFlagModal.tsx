@@ -115,10 +115,9 @@ export function TransmissionFlagModal({
                   <CommandList className="max-h-48">
                     <CommandEmpty>No issue found.</CommandEmpty>
                     <CommandGroup>
-                      {FLAG_ISSUES.filter(i => 
-                        i.value !== 'missing-from-warehouse' && 
+                      {FLAG_ISSUES.filter(i =>
+                        i.value !== 'missing-from-warehouse' &&
                         i.value !== 'missing-from-inventory' &&
-                        i.value !== 'mismatched-book' &&
                         i.value !== 'extra-book'
                       ).map((i) => (
                         <CommandItem

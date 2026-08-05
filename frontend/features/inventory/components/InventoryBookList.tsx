@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { BookStatusBadge } from '@/components/book-status-badge'
 import { Loader2 } from 'lucide-react'
 import type { BookInBox, InventoryBox } from '../types/inventory.types'
 
@@ -44,22 +45,7 @@ export function InventoryBookList({
             <div className="min-w-0 pr-3">
               <p className="text-[11px] text-muted-foreground truncate">{book.author || '—'}</p>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <span className={cn(
-                'text-[10px] px-2 py-0.5 rounded font-medium w-fit',
-                book.scan_status === 'processable' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              )}>
-                {book.scan_status === 'processable' ? 'Processable' : 'Non-Processable'}
-              </span>
-              {showFlags && book.flag?.issue && !['non-processable', 'non_processable'].includes(book.flag.issue) && (
-                <span className={cn(
-                  "text-[9px] font-semibold leading-none capitalize",
-                  book.flag.issue === 'mismatched-book' ? "text-amber-600" : "text-red-500/80"
-                )}>
-                  {book.flag.issue === 'mismatched-book' ? 'Mismatched' : book.flag.issue}
-                </span>
-              )}
-            </div>
+            <BookStatusBadge scan_status={book.scan_status} flag={book.flag} showFlag={showFlags} />
           </div>
         )
       })}

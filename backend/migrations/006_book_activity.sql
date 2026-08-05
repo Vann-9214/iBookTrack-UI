@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS public.book_activity (
   endorsement_scan_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   warehouse_scan_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   inventory_scan_at TIMESTAMPTZ,
-  endorsement_scan_at TIMESTAMPTZ
+  endorsement_scan_at TIMESTAMPTZ,
+  transmission_updated_at TIMESTAMPTZ
 );
 
 CREATE INDEX IF NOT EXISTS idx_book_activity_book_id ON public.book_activity (book_id);
@@ -21,6 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_book_activity_session_id ON public.book_activity 
 CREATE INDEX IF NOT EXISTS idx_book_activity_transmission_status ON public.book_activity (transmission_status);
 CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_scan_status ON public.book_activity (scan_status);
 CREATE INDEX IF NOT EXISTS idx_warehouse_book_scans_scanned_at ON public.book_activity (warehouse_scan_at DESC);
+CREATE INDEX IF NOT EXISTS idx_book_activity_transmission_updated_at ON public.book_activity (transmission_updated_at);
 
 
 
@@ -31,7 +33,16 @@ DECLARE
 BEGIN
   IF TG_OP = 'DELETE' THEN SELECT box_id INTO v_box_id FROM public.books WHERE id = OLD.book_id; ELSE SELECT box_id INTO v_box_id FROM public.books WHERE id = NEW.book_id; END IF;
   IF v_box_id IS NOT NULL THEN
-    UPDATE public.boxes SET total_transmitted_books = (SELECT COUNT(*) FROM public.book_activity ba JOIN public.books b ON b.id = ba.book_id WHERE b.box_id = v_box_id AND ba.transmission_status = 'Transmission_Archive COMPLETED') WHERE id = v_box_id;
+    UPDATE public.boxes
+    SET total_transmitted_books = (
+      SELECT COUNT(*)
+      FROM public.book_activity ba
+      JOIN public.books b ON b.id = ba.book_id
+      WHERE b.box_id = v_box_id
+        AND ba.transmission_status ILIKE '%TRANSMISSION%'
+        AND ba.transmission_status ILIKE '%COMPLETED%'
+    )
+    WHERE id = v_box_id;
   END IF;
   RETURN COALESCE(NEW, OLD);
 END;
