@@ -285,7 +285,7 @@ export const getDailyOutputService = async (req) => {
           const isbn = missingIsbns[i];
           if (!booksByIsbn[isbn]) booksByIsbn[isbn] = {};
           booksByIsbn[isbn].title = booksByIsbn[isbn].title || res.data.Title || null;
-          booksByIsbn[isbn].author = booksByIsbn[isbn].author || res.data.Author || null;
+          booksByIsbn[isbn].author = booksByIsbn[isbn].author || res.data.AuthorName || null;
           booksByIsbn[isbn].lot_number = booksByIsbn[isbn].lot_number || res.data.LotNo || null;
           booksByIsbn[isbn].box_number = booksByIsbn[isbn].box_number || res.data.BoxNo || null;
         }

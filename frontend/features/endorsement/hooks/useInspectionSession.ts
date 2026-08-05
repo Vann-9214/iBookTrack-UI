@@ -118,7 +118,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
       const data = await endorsementService.searchIlms(isbn)
       if (data.success && data.data && !data.data.Message) {
         addInspBookLocal(
-          { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }, 
+          { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data?.AuthorName || '' }, 
           prevStatus, 
           warehouseBook?.rejection_reason || null,
           warehouseBook?.notes || null

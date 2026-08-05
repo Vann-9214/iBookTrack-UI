@@ -2,7 +2,7 @@ import type { FlagIssue } from '@/constants/flag-issues'
 
 export interface ILMSBookData {
   Title?: string
-  Author?: string
+  AuthorName?: string
   LotNo?: string
   BoxNo?: string
   'Received-Status'?: string

@@ -65,16 +65,16 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
           open: true,
           isbn: cleanIsbn,
           title: bookData?.Title || 'Unknown Title',
-          author: bookData?.Author || '',
+          author: bookData?.AuthorName || '',
           expectedLot: activeLot,
           expectedBox: currentBoxNumber,
           ilmsLot: mismatch.ilmsLot,
           ilmsBox: mismatch.ilmsBox,
-          onConfirm: () => saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || '', ilmsData: bookData }, 'processable', null, null),
+          onConfirm: () => saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.AuthorName || '', ilmsData: bookData }, 'processable', null, null),
         })
         return
       }
-      saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.Author || '', ilmsData: bookData }, 'processable', null, null)
+      saveBookToLocal({ isbn: cleanIsbn, title: bookData?.Title || 'Unknown Title', author: bookData?.AuthorName || '', ilmsData: bookData }, 'processable', null, null)
     } catch (error) {
       setSessionError('Failed to verify ISBN. Please try again.')
     } finally {
@@ -157,7 +157,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     try {
       const data = await queryIsbnStream(cleanIsbn, currentSession?.type, true, issueType)
       if (!data.success) { setSessionError(data.error || `ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`); setIssueIsbn(''); return }
-      setIssues((prev) => [...prev, { isbn: cleanIsbn, type: issueType, title: data.data?.Title || 'Unknown Title', author: data.data?.Author || '' }])
+      setIssues((prev) => [...prev, { isbn: cleanIsbn, type: issueType, title: data.data?.Title || 'Unknown Title', author: data.data?.AuthorName || '' }])
       setIssueIsbn('')
     } catch {
       setSessionError('Failed to connect to iLMS. Please try again.')

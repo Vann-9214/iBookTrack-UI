@@ -122,7 +122,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
         toast({ title: 'Book Not Found', description: `ISBN not found in ${brand.toUpperCase()} records.`, variant: 'destructive' })
         return
       }
-      const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data.Author || '' }
+      const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data?.AuthorName || '' }
       saveVerifBookToLocal(details, warehouse?.scan_status || 'processable', warehouse?.rejection_reason || null, warehouse?.notes || null)
     } catch {
       toast({ title: 'API Error', description: 'Failed to fetch book details. Cannot verify ISBN.', variant: 'destructive' })
