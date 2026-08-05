@@ -49,7 +49,7 @@ export async function getSimflexStatusForISBNs(isbns, location = 'mustang') {
       // Flag as transmission-complete if any row shows Transmission_Archive COMPLETED
       if (
         status &&
-        status.toLowerCase().includes('transmission_archive') &&
+        status.toLowerCase().includes('transmission') &&
         status.toUpperCase().includes('COMPLETED')
       ) {
         byIsbn[isbn].transmissionCompleted = true

@@ -55,7 +55,6 @@ export function InspectionFlagModal({
   const filteredIssues = FLAG_ISSUES.filter(i => 
     i.value !== 'missing-from-warehouse' && 
     i.value !== 'missing-from-endorsement' &&
-    i.value !== 'mismatched-book' &&
     i.value !== 'extra-book'
   )
 

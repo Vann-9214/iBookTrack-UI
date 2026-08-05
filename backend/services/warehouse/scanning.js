@@ -269,7 +269,7 @@ export const getSimflexStatusService = async (req) => {
       const updatePromises = booksData.map(book => {
         const statObj = statuses[normalizeIsbn(book.isbn)];
         if (statObj) {
-          const statusStr = statObj.transmissionCompleted ? 'Transmission Completed' : (statObj.latestStatus || 'Pending');
+          const statusStr = statObj.latestStatus || 'Pending';
           return scanningRepo.updateBookActivityTransmissionStatus(book.id, statusStr);
         }
         return null;

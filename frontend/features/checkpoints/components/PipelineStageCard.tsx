@@ -39,6 +39,7 @@ export function PipelineStageCard({
 
   const status = getStepStatus(totalCount)
   const cfg = getStatusConfig(status, brand)
+  const isIdle = status === 'idle'
 
   return (
     <div
@@ -50,16 +51,26 @@ export function PipelineStageCard({
         if (e.key === 'Enter' || e.key === ' ') onClick(stage)
       }}
       className={cn(
-        'rounded-xl border border-border bg-card shadow-xs p-3.5 flex flex-col cursor-pointer transition duration-200 hover:shadow-sm hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary/30 select-none relative overflow-hidden',
+        'group relative overflow-hidden rounded-2xl border-2 p-3.5 flex flex-col cursor-pointer transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 select-none bg-white/68',
+        isIdle
+          ? 'border-gray-200/80 ring-1 ring-gray-100/70 hover:border-gray-300/80'
+          : 'border-primary/20 ring-1 ring-primary/10 hover:border-primary/30',
         className
       )}
     >
-      <div className={cn('absolute top-0 left-0 right-0 h-1', cfg.borderGradient)} />
-      <div className="flex items-center justify-between mb-3 gap-2">
+      {/* Brand glow for active cards */}
+      {!isIdle && (
+        <div className="pointer-events-none absolute -right-5 -top-5 h-20 w-20 rounded-full bg-primary/15 blur-xl opacity-60 group-hover:opacity-80 transition-opacity" />
+      )}
+
+      {/* Top accent line */}
+      <div className={cn('pointer-events-none absolute top-0 left-0 right-0 h-1', isIdle ? 'bg-gray-300' : 'bg-primary')} />
+
+      <div className="relative flex items-center justify-between mb-3 gap-2">
         <div
           className={cn(
-            'flex h-8 w-8 items-center justify-center rounded-lg border shrink-0',
-            cfg.iconColorCls
+            'flex h-9 w-9 items-center justify-center rounded-xl border shadow-lg shrink-0 text-white',
+            isIdle ? 'bg-gray-300 border-gray-300' : 'premium-gradient-ui-card--solid border-transparent'
           )}
         >
           <meta.icon className="h-4 w-4" />
@@ -67,7 +78,7 @@ export function PipelineStageCard({
         <div className="flex flex-col items-end gap-1.5">
           <span
             className={cn(
-              'text-2xl font-black leading-none truncate tracking-tight',
+              'text-2xl font-black leading-none truncate tracking-tight transition-colors',
               cfg.countColor
             )}
             title={stage === 'transmit' ? `${totalCount} total books` : `${totalCount} total boxes`}
@@ -88,7 +99,10 @@ export function PipelineStageCard({
         </div>
       </div>
       <h3
-        className="text-xs font-bold text-card-foreground mt-auto truncate"
+        className={cn(
+          'text-xs font-bold mt-auto truncate',
+          isIdle ? 'text-muted-foreground' : 'text-foreground'
+        )}
         title={meta.label}
       >
         {meta.label}

@@ -68,21 +68,7 @@ export function getPipelineStatusBadge(status: string): ReactNode {
   )
 }
 
-function formatSimflexStage(stage: string): string {
-  if (stage === 'Jaguar Validate') return 'Validate'
-  if (stage === 'Tif2PDF') return 'PDF Conversion'
-  if (stage === 'Scanning') return 'Scan'
-  if (stage === 'Preval') return 'Preval'
-  if (stage === 'Transmission_Archive' || stage === 'Transmission_Archived') return 'Transmission'
-  return stage.replace(/_/g, ' ')
-}
 
-function formatSimflexState(state: string): string {
-  if (state === 'COMPLETED') return 'Completed'
-  if (state === 'ONGOING') return 'Ongoing'
-  if (state === 'FAILED') return 'Failed'
-  return state
-}
 
 export function getSimflexBadge(status: string | null | undefined, completed: boolean, scanStatus?: string): ReactNode {
   if (scanStatus === 'non_processable') {
@@ -98,7 +84,7 @@ export function getSimflexBadge(status: string | null | undefined, completed: bo
       return createElement(
         Badge,
         { variant: 'outline', className: 'border-emerald-300 bg-emerald-50 text-emerald-700 text-[10px] whitespace-normal' },
-        'Transmission Completed'
+        'Transmission_Archive COMPLETED'
       )
     }
     return createElement(
@@ -108,21 +94,8 @@ export function getSimflexBadge(status: string | null | undefined, completed: bo
     )
   }
 
-  if (/transmission/i.test(status) && /completed/i.test(status)) {
-    return createElement(
-      Badge,
-      { variant: 'outline', className: 'border-emerald-300 bg-emerald-50 text-emerald-700 text-[10px] whitespace-normal' },
-      'Transmission Completed'
-    )
-  }
-
   const parts = status.trim().split(/\s+/)
   const rawState = (parts.pop() || '').toUpperCase()
-  const rawStage = parts.join(' ')
-
-  const stageLabel = formatSimflexStage(rawStage)
-  const stateLabel = formatSimflexState(rawState)
-  const label = stageLabel && stateLabel ? `${stageLabel} ${stateLabel}` : stageLabel || stateLabel || status
 
   const colorClass =
     rawState === 'COMPLETED' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' :
@@ -133,7 +106,7 @@ export function getSimflexBadge(status: string | null | undefined, completed: bo
   return createElement(
     Badge,
     { variant: 'outline', className: `${colorClass} text-[10px] whitespace-normal` },
-    label
+    status
   )
 }
 

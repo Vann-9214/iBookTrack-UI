@@ -21,6 +21,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
   const [inspFlagIssue, setInspFlagIssue] = useState('')
   const [inspFlagRemarks, setInspFlagRemarks] = useState('')
   const [inspFlagSaving, setInspFlagSaving] = useState(false)
+  const [inspMismatchModalBook, setInspMismatchModalBook] = useState<InspScannedBook | null>(null)
 
   const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
@@ -187,6 +188,27 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
     setInspFlagSaving(false)
   }
 
+  const openInspMismatchModal = (book: InspScannedBook) => {
+    setInspMismatchModalBook(book)
+  }
+
+  const closeInspMismatchModal = () => {
+    setInspMismatchModalBook(null)
+  }
+
+  const saveInspMismatchFromLog = (payload: { ilms_title: string; physical_title: string; physical_author: string }) => {
+    if (!inspMismatchModalBook) return
+    setInspFlagSaving(true)
+    setInspScannedBooks((prev) =>
+      prev.map((b) =>
+        b.id === inspMismatchModalBook.id ? { ...b, scan_status: 'processable', flag_issue: 'mismatched-book', mismatch_details: payload } : b
+      )
+    )
+    setInspMismatchModalBook(null)
+    toast.success('Mismatch Details Saved')
+    setInspFlagSaving(false)
+  }
+
   const handleResetInspSession = async () => {
     if (!inspCurrentSession) return
     try {
@@ -279,6 +301,10 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
     openInspFlagModal,
     closeInspFlagModal,
     saveInspFlagFromLog,
+    inspMismatchModalBook,
+    openInspMismatchModal,
+    closeInspMismatchModal,
+    saveInspMismatchFromLog,
     handleResetInspSession,
     handleOpenInspComplete,
     handleCompleteInspSession,

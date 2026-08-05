@@ -14,11 +14,11 @@ const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const _playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
 export const metadata: Metadata = {
-  title: 'InnoTrack - iBook Dashboard',
+  title: 'iBookTrack - Tool',
   description: 'Warehouse management command center for real-time pipeline tracking, transmission monitoring, and checkpoint management.',
   icons: {
-    icon: '/iBookTrack_logoN.png',
-    apple: '/iBookTrack_logoN.png',
+    icon: '/ibooktrack_final_cool_logo.png',
+    apple: '/ibooktrack_final_cool_logo.png',
   },
 }
 

@@ -93,6 +93,7 @@ export const endorsementService = {
         scan_status: book.scan_status,
         rejection_reason: book.flag_issue || null,
         notes: book.flag_remarks || null,
+        mismatch_details: book.mismatch_details || null,
         stage: 'endorsement',
       }),
     })

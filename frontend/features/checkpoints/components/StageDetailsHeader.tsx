@@ -23,29 +23,19 @@ export function StageDetailsHeader({
   const meta = STAGE_META[selectedStage]
   const StageIcon = meta.icon
 
-  const M = brand === 'jaguar'
-    ? {
-        headerBg: 'bg-emerald-600',
-        iconBg: 'bg-emerald-600',
-        dot: 'bg-emerald-500',
-      }
-    : {
-        headerBg: 'bg-blue-50',
-        iconBg: 'bg-blue-600',
-        dot: 'bg-blue-500',
-      }
-
   return (
-    <div className={cn('flex items-center justify-between px-6 py-5', M.headerBg)}>
-      <div className="flex items-center gap-3">
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-lg', M.iconBg)}>
+    <div className="relative overflow-hidden flex items-center justify-between px-6 py-5 bg-gradient-to-r from-primary/10 via-primary/5 to-white">
+      <div className="pointer-events-none absolute inset-x-0 -top-10 h-20 bg-white/40 blur-2xl" />
+      <div className="relative flex items-center gap-3">
+        <div className="premium-gradient-ui-card__icon">
           <StageIcon className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-lg font-bold tracking-tight text-gray-800">{meta.label}</h3>
+          <p className="premium-gradient-ui-card__eyebrow">{brand} station</p>
+          <h3 className="text-lg font-black tracking-tight text-foreground">{meta.label}</h3>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className={cn('h-2 w-2 rounded-full', M.dot)} />
-            <span className="text-xs text-gray-500">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            <span className="text-xs text-primary/80 font-medium">
               {selectedStage === 'transmit'
                 ? `${simflexRowsLoading ? '…' : simflexRowsCount} book${simflexRowsCount === 1 ? '' : 's'} transmitting`
                 : `${stageBoxesCount} ${stageBoxesCount === 1 ? 'box' : 'boxes'} waiting`}
@@ -55,7 +45,7 @@ export function StageDetailsHeader({
       </div>
       <button
         onClick={onClose}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/60 hover:bg-white text-gray-500 hover:text-gray-800 transition"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/80 hover:bg-white text-muted-foreground hover:text-foreground shadow-sm ring-1 ring-black/5 transition hover:scale-105"
       >
         <X className="h-4 w-4" />
       </button>

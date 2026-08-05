@@ -430,7 +430,15 @@ export const bulkSaveSessionService = async (req, res) => {
           [actRows[0].id, b.flag_issue || null, b.flag_remarks || null, req.user.id]
         );
         if (b.flag_issue === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [bookId]);
-        if (b.flag_issue === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
+        if (b.flag_issue === 'mismatched-book') {
+          await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
+          if (b.mismatch_details && b.mismatch_details.ilms_title && b.mismatch_details.physical_title) {
+            await db.query(`
+              INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
+              VALUES ($1, $2, $3, $4, $5)
+            `, [bookId, b.mismatch_details.ilms_title, b.mismatch_details.physical_title, b.mismatch_details.physical_author || null, req.user.id]);
+          }
+        }
       }
     }
 
@@ -502,14 +510,7 @@ export const resumeSessionService = async (req, res) => {
     if (!boxRows[0]) throw new Error('Box not found');
     const box = boxRows[0];
 
-    // Block session start if box has unresolved mismatched books
-    if ((box.total_mismatch_books || 0) > 0) {
-      return res.status(403).json({
-        error: `This box has ${box.total_mismatch_books} mismatched book(s). Please resolve all mismatched books in the Non-Processable section before starting a session.`,
-        code: 'BoxHasMismatchedBooks',
-        mismatch_count: box.total_mismatch_books
-      });
-    }
+    // Removed block for unresolved mismatched books at user's request
 
     const { rows: sessionRows } = await db.query('SELECT * FROM box_sessions WHERE box_id = $1 ORDER BY warehouse_time_received DESC LIMIT 1', [box_id]);
     const session = sessionRows[0];

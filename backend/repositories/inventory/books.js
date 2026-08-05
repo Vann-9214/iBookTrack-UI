@@ -92,3 +92,16 @@ export const insertFlag = async (flagData) => {
 export const deleteFlag = async (book_activity_id) => {
   await db.query('DELETE FROM user_flags WHERE book_activity_id = $1', [book_activity_id]);
 };
+
+export const insertMismatchInfo = async (mismatchData) => {
+  const { book_id, ilms_title, physical_title, physical_author, created_by } = mismatchData;
+  const query = `
+    INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
+    VALUES ($1, $2, $3, $4, $5)
+  `;
+  await db.query(query, [book_id, ilms_title, physical_title, physical_author || null, created_by]);
+};
+
+export const markBookAsMismatch = async (book_id) => {
+  await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [book_id]);
+};

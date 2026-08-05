@@ -33,6 +33,7 @@ export function useWarehouseState() {
   const [flagRemarks, setFlagRemarks] = useState('')
   const [flagSaving, setFlagSaving] = useState(false)
   const [flagOpen, setFlagOpen] = useState(false)
+  const [mismatchModalBook, setMismatchModalBook] = useState<ScannedBook | null>(null)
   const [confirmCompleteOpen, setConfirmCompleteOpen] = useState(false)
   const [confirmResetOpen, setConfirmResetOpen] = useState(false)
   const [totalBooksExpected, setTotalBooksExpected] = useState('')
@@ -62,7 +63,7 @@ export function useWarehouseState() {
     scannedBooks, setScannedBooks, currentSession, setCurrentSession, loading, setLoading,
     isbnLoading, setIsbnLoading, currentBoxNumber, setCurrentBoxNumber, currentBoxBooks, setCurrentBoxBooks,
     bookCounter, setBookCounter, userName, setUserName, userId, setUserId, flagModalBook, setFlagModalBook, flagIssue, setFlagIssue,
-    flagRemarks, setFlagRemarks, flagSaving, setFlagSaving, flagOpen, setFlagOpen, confirmCompleteOpen, setConfirmCompleteOpen,
+    flagRemarks, setFlagRemarks, flagSaving, setFlagSaving, flagOpen, setFlagOpen, mismatchModalBook, setMismatchModalBook, confirmCompleteOpen, setConfirmCompleteOpen,
     confirmResetOpen, setConfirmResetOpen, totalBooksExpected, setTotalBooksExpected, issueIsbn, setIssueIsbn,
     issueType, setIssueType, issues, setIssues, fetchingIssueBook, setFetchingIssueBook,
     conflictModalState, setConflictModalState, similarLotModal, setSimilarLotModal,

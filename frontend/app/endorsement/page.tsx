@@ -17,6 +17,7 @@ import {
   CompleteInspectionModal,
   EndorsementActionConfirmModal,
 } from "@/features/endorsement/components"
+import { MismatchDetailsModal } from "@/components/common/MismatchDetailsModal"
 
 export default function BookInspectionPage() {
   const {
@@ -75,6 +76,10 @@ export default function BookInspectionPage() {
     openInspFlagModal,
     closeInspFlagModal,
     saveInspFlagFromLog,
+    inspMismatchModalBook,
+    openInspMismatchModal,
+    closeInspMismatchModal,
+    saveInspMismatchFromLog,
     handleResetInspSession,
     handleOpenInspComplete,
     handleCompleteInspSession,
@@ -161,6 +166,13 @@ export default function BookInspectionPage() {
                     onSave={saveInspFlagFromLog}
                   />
 
+                  <MismatchDetailsModal
+                    book={inspMismatchModalBook}
+                    saving={inspFlagSaving}
+                    onClose={closeInspMismatchModal}
+                    onSave={saveInspMismatchFromLog}
+                  />
+
                   {!inspSessionActive ? (
                     <InspectionBoxList
                       loadingEndorsement={loadingEndorsement}
@@ -187,6 +199,7 @@ export default function BookInspectionPage() {
                         handleOpenInspComplete={handleOpenInspComplete}
                         handleInspScan={handleInspScan}
                         openInspFlagModal={openInspFlagModal}
+                        openInspMismatchModal={openInspMismatchModal}
                         handleRemoveInspBook={handleRemoveInspBook}
                         brand={brand}
                       />

@@ -1,4 +1,3 @@
-import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STAGE_ORDER, STAGE_META } from '../utils/checkpoints.helpers'
 import type { Stage, BoxItem } from '../types/checkpoints.types'
@@ -27,19 +26,17 @@ export function PipelineStageFlow({
             stage === 'transmit'
               ? transmitBooks ?? 0
               : boxesByStage[stage]?.length || 0
-          const bgClass = meta.color.match(/bg-\w+-100/)?.[0] || 'bg-gray-100'
-          const solidBgClass = meta.solidBg
-          const textClass = meta.color.match(/text-\w+-700/)?.[0] || 'text-gray-700'
-          const borderClass = meta.color.match(/border-\w+-300/)?.[0] || 'border-gray-300'
+          const isActive = count > 0
 
           return (
             <div key={stage} className="flex flex-col items-center justify-center gap-2 group cursor-default">
               {/* Node Circle */}
               <div
                 className={cn(
-                  'h-10 w-10 rounded-full flex items-center justify-center border-2 bg-background transition-transform duration-300 group-hover:scale-110 shadow-sm relative',
-                  borderClass,
-                  textClass
+                  'h-10 w-10 rounded-full flex items-center justify-center border-2 bg-background transition-all duration-300 group-hover:scale-110 shadow-sm relative',
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-border text-muted-foreground'
                 )}
               >
                 <meta.icon className="h-4 w-4" />
@@ -47,7 +44,7 @@ export function PipelineStageFlow({
                   <div
                     className={cn(
                       'absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 border-background shadow-sm',
-                      solidBgClass
+                      'premium-gradient-ui-card--solid'
                     )}
                   >
                     {count}
@@ -56,7 +53,10 @@ export function PipelineStageFlow({
               </div>
 
               {/* Label below node */}
-              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground transition-colors group-hover:text-foreground">
+              <span className={cn(
+                "text-[11px] font-bold uppercase tracking-wider transition-colors",
+                isActive ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+              )}>
                 {meta.label}
               </span>
             </div>
@@ -76,16 +76,16 @@ export function PipelineStageFlow({
               stage === 'transmit'
                 ? transmitBooks ?? 0
                 : boxesByStage[stage]?.length || 0
-            const textClass = meta.color.match(/text-\w+-700/)?.[0] || 'text-gray-700'
-            const borderClass = meta.color.match(/border-\w+-300/)?.[0] || 'border-gray-300'
+            const isActive = count > 0
 
             return (
               <div key={stage} className="flex items-center justify-center">
                 <div
                   className={cn(
                     'relative h-8 w-8 sm:h-9 sm:w-9 shrink-0 rounded-full flex items-center justify-center border-2 bg-background shadow-sm',
-                    borderClass,
-                    textClass
+                    isActive
+                      ? 'border-primary text-primary'
+                      : 'border-border text-muted-foreground'
                   )}
                   title={meta.label}
                 >
@@ -94,7 +94,7 @@ export function PipelineStageFlow({
                     <div
                       className={cn(
                         'absolute -top-1.5 -right-1.5 h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-background shadow-sm leading-none',
-                        meta.solidBg
+                        'premium-gradient-ui-card--solid'
                       )}
                     >
                       {count}

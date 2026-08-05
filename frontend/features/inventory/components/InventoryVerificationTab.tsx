@@ -4,6 +4,7 @@ import { InventoryScanModal } from './InventoryScanModal'
 import { InventoryVerificationActiveSession } from './InventoryVerificationActiveSession'
 import { InventoryVerificationBoxList } from './InventoryVerificationBoxList'
 import { InventoryVerificationCompleteModal } from './InventoryVerificationCompleteModal'
+import { MismatchDetailsModal } from '@/components/common/MismatchDetailsModal'
 import type { useInventory } from '../hooks/useInventory'
 import type { useInventoryActions } from '../hooks/useInventoryActions'
 import type { useVerificationSession } from '../hooks/useVerificationSession'
@@ -49,6 +50,12 @@ export function InventoryVerificationTab({
           onClose={() => verification.setVerifFlagModalBook(null)}
           onSave={verification.saveVerifFlagFromLog}
         />
+        <MismatchDetailsModal
+          book={verification.verifMismatchModalBook}
+          saving={verification.verifFlagSaving}
+          onClose={() => verification.setVerifMismatchModalBook(null)}
+          onSave={verification.saveVerifMismatchFromLog}
+        />
       </div>
     )
   }
@@ -80,6 +87,12 @@ export function InventoryVerificationTab({
         onRemarksChange={verification.setVerifFlagRemarks}
         onClose={() => verification.setVerifFlagModalBook(null)}
         onSave={verification.saveVerifFlagFromLog}
+      />
+      <MismatchDetailsModal
+        book={verification.verifMismatchModalBook}
+        saving={verification.verifFlagSaving}
+        onClose={() => verification.setVerifMismatchModalBook(null)}
+        onSave={verification.saveVerifMismatchFromLog}
       />
     </div>
   )

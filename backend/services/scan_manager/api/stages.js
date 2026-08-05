@@ -72,7 +72,7 @@ export async function getCompletedTransmissionsCount(startDate, endDate, locatio
     }
 
     const completed = [...latestByIsbn.values()].filter(
-      r => (r.Status || '').trim() === 'Transmission_Archive COMPLETED'
+      r => { const s = String(r.Status || '').toUpperCase(); return s.includes('TRANSMISSION_ARCHIVE') && s.includes('COMPLETED'); }
     ).length
 
     return { success: true, count: completed }
@@ -106,7 +106,7 @@ export async function getAllBooksToday(startDate, endDate, location = 'mustang',
 
     let books = [...latestByIsbn.values()].map(r => ({
       ...r,
-      isWip: r.Status !== 'Transmission_Archive COMPLETED',
+      isWip: !(String(r.Status || '').toUpperCase().includes('TRANSMISSION_ARCHIVE') && String(r.Status || '').toUpperCase().includes('COMPLETED')),
     }))
 
     books.sort((a, b) => {
@@ -131,7 +131,7 @@ export async function getTransmitStageRows(location = 'mustang') {
     const rows = await query(sql`SELECT ScanDate, ScanUser, BoxNumber, ISBN, PageCount, Status, Updated
        FROM zeusz_IsbnStatus
        WHERE CAST(ScanDate AS DATE) = '${sql.raw(today)}'
-         AND LTRIM(RTRIM(Status)) = 'Transmission_Archive ONGOING'
+         AND (UPPER(Status) LIKE '%TRANSMISSION_ARCHIVE%' OR UPPER(Status) LIKE '%TRANSMISSION ARCHIVE%') AND UPPER(Status) LIKE '%ONGOING%'
          AND IsRework = 'False'
        ORDER BY Updated DESC`,
       location

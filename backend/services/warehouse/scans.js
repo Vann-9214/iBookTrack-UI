@@ -6,7 +6,7 @@ import { broadcastEvent } from '../../utils/sse.js';
 export const scanBookService = async (req, res) => {
   try {
     const { session_id } = req.params
-    let { isbn, title: scannedTitle, author: scannedAuthor, scan_status, rejection_reason, notes, book_type } = req.body
+    let { isbn, title: scannedTitle, author: scannedAuthor, scan_status, rejection_reason, notes, book_type, mismatch_details } = req.body
 
     if (book_type) book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
     if (!isbn) return res.status(400).json({ error: 'ISBN is required' })
@@ -139,7 +139,15 @@ export const scanBookService = async (req, res) => {
       }
 
       if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [bookId]);
-      if (rejection_reason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
+      if (rejection_reason === 'mismatched-book') {
+        await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
+        if (mismatch_details && mismatch_details.ilms_title && mismatch_details.physical_title) {
+          await db.query(`
+            INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
+            VALUES ($1, $2, $3, $4, $5)
+          `, [bookId, mismatch_details.ilms_title, mismatch_details.physical_title, mismatch_details.physical_author || null, req.user.id]);
+        }
+      }
     }
 
     broadcastEvent('BOX_UPDATED', { boxId: assignedBoxId, type: 'scan', bookId });
@@ -155,7 +163,7 @@ export const scanBookService = async (req, res) => {
 export const flagScanService = async (req, res) => {
   try {
     const { scan_id } = req.params
-    const { rejection_reason, notes } = req.body
+    const { rejection_reason, notes, ilms_title, physical_title, physical_author } = req.body
 
     if (!rejection_reason) return res.status(400).json({ error: 'rejection_reason is required' })
     if (!notes || String(notes).trim() === '') return res.status(400).json({ error: 'Notes/remarks are required' })
@@ -198,15 +206,32 @@ export const flagScanService = async (req, res) => {
     }
 
     if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existingScan.book_id]);
-    if (rejection_reason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existingScan.book_id]);
+    if (rejection_reason === 'mismatched-book') {
+      await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existingScan.book_id]);
+      if (ilms_title && physical_title) {
+        await db.query(`
+          INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [existingScan.book_id, ilms_title, physical_title, physical_author || null, req.user.id]);
+      }
+    }
 
-    const { rows: updRows } = await db.query("UPDATE book_activity SET scan_status = 'non_processable' WHERE id = $1 RETURNING *", [scan_id]);
+    let finalStatus = 'non_processable';
+    if (rejection_reason === 'mismatched-book') {
+      finalStatus = existingScan.scan_status;
+    }
 
-    if (existingScan.scan_status === 'processable') {
-      const { rows: bsRows } = await db.query('SELECT total_processable_books, total_nonprocessable_books FROM box_sessions WHERE id = $1', [existingScan.session_id]);
-      if (bsRows[0]) {
-        await db.query('UPDATE box_sessions SET total_processable_books = GREATEST(0, $1), total_nonprocessable_books = $2 WHERE id = $3', 
-        [bsRows[0].total_processable_books - 1, bsRows[0].total_nonprocessable_books + 1, existingScan.session_id]);
+    let updRows = [existingScan];
+    if (finalStatus !== existingScan.scan_status || existingScan.scan_status === 'processable') {
+      const { rows } = await db.query("UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING *", [finalStatus, scan_id]);
+      updRows = rows;
+
+      if (existingScan.scan_status === 'processable' && finalStatus === 'non_processable') {
+        const { rows: bsRows } = await db.query('SELECT total_processable_books, total_nonprocessable_books FROM box_sessions WHERE id = $1', [existingScan.session_id]);
+        if (bsRows[0]) {
+          await db.query('UPDATE box_sessions SET total_processable_books = GREATEST(0, $1), total_nonprocessable_books = $2 WHERE id = $3', 
+          [bsRows[0].total_processable_books - 1, bsRows[0].total_nonprocessable_books + 1, existingScan.session_id]);
+        }
       }
     }
 
@@ -223,7 +248,7 @@ export const flagScanService = async (req, res) => {
 export const tagScanService = async (req, res) => {
   try {
     const { scan_id } = req.params
-    const { status, remarks, rejection_reason, notes: reqNotes, stage: reqStage } = req.body
+    const { status, remarks, rejection_reason, notes: reqNotes, stage: reqStage, ilms_title, physical_title, physical_author } = req.body
 
     const { rows: existingRows } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.session_id, ba.book_id, b.isbn 
@@ -255,7 +280,15 @@ export const tagScanService = async (req, res) => {
 
     const actualReason = rejection_reason || (remarks ? remarks.trim() : '');
     if (actualReason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existing.book_id]);
-    if (actualReason === 'mismatched-book') await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existing.book_id]);
+    if (actualReason === 'mismatched-book') {
+      await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existing.book_id]);
+      if (ilms_title && physical_title) {
+        await db.query(`
+          INSERT INTO mismatch_info (book_id, ilms_title, physical_title, physical_author, created_by)
+          VALUES ($1, $2, $3, $4, $5)
+        `, [existing.book_id, ilms_title, physical_title, physical_author || null, req.user.id]);
+      }
+    }
 
     const { rows: updatedRows } = await db.query('UPDATE book_activity SET scan_status = $1 WHERE id = $2 RETURNING *', [status, scan_id]);
     const updated = updatedRows[0];

@@ -18,6 +18,7 @@ import { WarehouseSimilarLotModal } from '@/features/warehouse/components/Wareho
 import { WarehouseIlmsMismatchModal } from '@/features/warehouse/components/WarehouseIlmsMismatchModal'
 import { WarehouseFlagModal } from '@/features/warehouse/components/WarehouseFlagModal'
 import { WarehouseLotsOverview } from '@/features/warehouse/components/WarehouseLotsOverview'
+import { MismatchDetailsModal } from '@/components/common/MismatchDetailsModal'
 import { RefreshControl } from '@/components/refresh-control'
 import { AlertTriangle, RefreshCw, Warehouse, X } from 'lucide-react'
 
@@ -59,6 +60,12 @@ export default function WarehousePage() {
             <WarehouseSimilarLotModal similarLotModal={wh.similarLotModal} setSimilarLotModal={wh.setSimilarLotModal} setActiveLot={wh.setActiveLot} />
             <WarehouseIlmsMismatchModal ilmsMismatchModal={wh.ilmsMismatchModal} setIlmsMismatchModal={wh.setIlmsMismatchModal} />
             <WarehouseFlagModal flagModalBook={wh.flagModalBook} setFlagModalBook={wh.setFlagModalBook} flagIssue={wh.flagIssue} setFlagIssue={wh.setFlagIssue} flagRemarks={wh.flagRemarks} setFlagRemarks={wh.setFlagRemarks} flagSaving={wh.flagSaving} flagOpen={wh.flagOpen} setFlagOpen={wh.setFlagOpen} saveFlagFromLog={wh.saveFlagFromLog} />
+            <MismatchDetailsModal
+              book={wh.mismatchModalBook}
+              saving={wh.flagSaving}
+              onClose={() => wh.setMismatchModalBook(null)}
+              onSave={wh.saveMismatchFromLog}
+            />
 
             {/* Error toast */}
             {(wh.sessionError || wh.lotsError) && (
@@ -130,7 +137,7 @@ export default function WarehousePage() {
               <WarehouseActiveSession brand={brand} activeLot={wh.activeLot} currentBoxNumber={wh.currentBoxNumber} currentBoxBooks={wh.currentBoxBooks} userName={wh.userName} loading={wh.loading} isbnLoading={wh.isbnLoading} scannedBooks={wh.scannedBooks} currentSession={wh.currentSession!} handleResetSession={wh.handleResetSession} handleCloseSession={wh.handleCloseSession}>
                 <WarehouseSessionStats currentSession={wh.currentSession!} />
                 <WarehouseScanner onScan={wh.handleScan} />
-                <WarehouseScanLog scannedBooks={wh.scannedBooks} openFlagModal={wh.openFlagModal} handleRemoveBook={wh.handleRemoveBook} brand={brand} />
+                <WarehouseScanLog scannedBooks={wh.scannedBooks} openFlagModal={wh.openFlagModal} openMismatchModal={wh.openMismatchModal} handleRemoveBook={wh.handleRemoveBook} brand={brand} />
               </WarehouseActiveSession>
             )}
           </div>

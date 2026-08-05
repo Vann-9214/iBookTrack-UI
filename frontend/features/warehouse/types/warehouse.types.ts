@@ -17,6 +17,11 @@ export interface ScannedBook {
   scan_status: 'processable' | 'non_processable'
   flag_issue?: string
   flag_remarks?: string
+  mismatch_details?: {
+    ilms_title: string
+    physical_title: string
+    physical_author?: string
+  }
   timestamp: Date
   ilmsData?: ILMSBookData | null
 }

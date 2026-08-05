@@ -21,14 +21,7 @@ export function CheckpointsHeader({
     <header className="relative z-10 shrink-0 mb-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
-          <div
-            className={cn(
-              'p-2.5 sm:p-3 rounded-2xl text-white shadow-lg shadow-black/5 ring-1 ring-black/5 shrink-0',
-              brand === 'jaguar'
-                ? 'bg-emerald-600'
-                : 'bg-blue-600'
-            )}
-          >
+          <div className="premium-gradient-ui-card__icon h-11 w-11 sm:h-12 sm:w-12 rounded-2xl shrink-0">
             <MapPin className="h-6 w-6 sm:h-7 sm:w-7" />
           </div>
           <div className="min-w-0 flex-1">

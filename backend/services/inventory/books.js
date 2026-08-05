@@ -32,7 +32,7 @@ export const searchIlmsBookService = async (req, res) => {
 
 export const flagBookService = async (req, res) => {
   const { id } = req.params;
-  const { issue, remarks, box_id } = req.body;
+  const { issue, remarks, box_id, ilms_title, physical_title, physical_author } = req.body;
   const { data: scan, error: scanError } = await booksRepo.getScanRecord(id);
   if (scanError || !scan) throw { status: 404, payload: { error: 'Scan record not found' } };
   
@@ -47,6 +47,20 @@ export const flagBookService = async (req, res) => {
     inventory_flag_at: new Date().toISOString()
   });
   if (flagError) throw flagError;
+
+  if (issue === 'mismatched-book') {
+    const actualBookId = scan.book_id || scan.books?.id;
+    await booksRepo.markBookAsMismatch(actualBookId);
+    if (ilms_title && physical_title) {
+      await booksRepo.insertMismatchInfo({
+        book_id: actualBookId,
+        ilms_title,
+        physical_title,
+        physical_author,
+        created_by: req.user.id
+      });
+    }
+  }
   
   if (box_id) {
     broadcastEvent('FLAG_UPDATED', { scanId: id, boxId: box_id });

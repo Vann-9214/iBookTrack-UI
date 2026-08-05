@@ -65,8 +65,8 @@ export function LoginForm() {
   return (
     <div className={`auth-card${leaving ? ' auth-card--leaving' : ''} relative z-10 w-full mx-4 lg:mx-0 max-w-[440px] bg-white rounded-2xl shadow-xl border border-white/20 lg:border-gray-100 px-6 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10`}>
       {/* Logo — mobile only */}
-      <div className="flex justify-center mb-3 sm:mb-4 lg:hidden">
-        <img src="/iBookTrack_logoN.png" alt="iBookTrack" className="object-contain w-[130px] h-auto" />
+      <div className="flex justify-center mb-4 sm:mb-6 lg:hidden">
+        <img src="/iBookTrack_logoN.png" alt="iBookTrack" className="object-contain w-[160px] h-auto" />
       </div>
 
       <h1 className="font-bold text-gray-900 mb-1 text-center text-2xl sm:text-3xl lg:text-[2rem]" style={{ fontFamily: 'Sora, sans-serif', letterSpacing: '-0.025em' }}>

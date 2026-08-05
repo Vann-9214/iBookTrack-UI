@@ -53,7 +53,6 @@ export function InventoryScanModal({
   const filteredIssues = FLAG_ISSUES.filter(i => 
     i.value !== 'missing-from-inventory' && 
     i.value !== 'missing-from-endorsement' &&
-    i.value !== 'mismatched-book' &&
     i.value !== 'extra-book'
   )
 
