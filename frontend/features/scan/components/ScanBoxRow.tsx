@@ -50,12 +50,12 @@ export function ScanBoxRow({
         </div>
 
         {/* Box Name / Badge */}
-        <div className="col-span-4 sm:col-span-3 min-w-0">
+        <div className="col-span-3 sm:col-span-3 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={cn('text-[11px] sm:text-[12px] font-bold truncate block transition-colors', expanded ? 'text-white' : 'text-gray-800 group-hover:text-black')}>
               BOX {box.box_number}
             </span>
-            <span className={cn('text-[10px] px-1.5 py-0.5 rounded-full font-medium', expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary')}>
+            <span className={cn('hidden lg:inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium', expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary')}>
               Sent from Endorsement
             </span>
           </div>
@@ -75,19 +75,19 @@ export function ScanBoxRow({
         </div>
 
         {/* Book count */}
-        <div className="col-span-3 sm:col-span-2 flex justify-center">
+        <div className="col-span-2 sm:col-span-2 flex justify-center">
           <div className={cn(
-            'text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm transition-colors',
+            'text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm transition-colors whitespace-nowrap',
             expanded
               ? 'bg-white/20 border-white/20 text-white'
               : 'bg-white/60 text-gray-600 border-black/5 group-hover:text-primary group-hover:border-primary/30'
           )}>
-            {bookCount} {bookCount === 1 ? 'book' : 'books'}
+            <span>{bookCount}</span><span className="hidden sm:inline">&nbsp;{bookCount === 1 ? 'book' : 'books'}</span>
           </div>
         </div>
 
         {/* Actions / Expand */}
-        <div className="col-span-4 sm:col-span-3 flex justify-end items-center gap-2 pr-6">
+        <div className="col-span-6 sm:col-span-3 flex justify-end items-center min-h-[32px]">
           <button
             onClick={(e) => { e.stopPropagation(); onOpenConfirm(box) }}
             disabled={receivingBox === box.id}
@@ -99,8 +99,8 @@ export function ScanBoxRow({
             {receivingBox === box.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Inbox className="h-3.5 w-3.5" />}
             {receivingBox === box.id ? 'Receiving...' : 'Receive'}
           </button>
-          <div className="flex items-center gap-1.5 ml-2">
-            <span className={cn('text-[10px] font-medium hidden sm:inline transition-colors', expanded ? 'text-white/80' : 'text-muted-foreground')}>
+          <div className="flex items-center justify-end shrink-0 ml-1">
+            <span className={cn('text-[10px] font-medium hidden lg:inline transition-colors', expanded ? 'text-white/80' : 'text-muted-foreground')}>
               {expanded ? 'Collapse' : 'Expand'}
             </span>
             <ChevronRight className={cn(

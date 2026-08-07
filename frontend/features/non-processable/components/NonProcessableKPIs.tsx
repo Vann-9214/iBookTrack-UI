@@ -140,13 +140,14 @@ export function NonProcessableKPIs({
                 key={stat.title}
                 onClick={stat.onClick}
                 className={cn(
-                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 text-left w-full cursor-pointer hover:shadow-md hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 text-left w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "pointer-events-none lg:pointer-events-auto cursor-default lg:cursor-pointer lg:hover:shadow-md lg:hover:-translate-y-0.5",
                   stat.tone.card
                 )}
               >
                 <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
                 <div className="relative flex items-start justify-between mb-3">
-                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110", stat.tone.icon)}>
+                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 lg:group-hover:scale-110", stat.tone.icon)}>
                     <stat.icon className="h-6 w-6" />
                   </div>
                   <div className={cn("text-4xl font-black mb-0.5 tracking-tight tabular-nums", stat.tone.value)}>{stat.value}</div>

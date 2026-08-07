@@ -44,7 +44,7 @@ export function OutgoingBoxes({
         emptyIcon={<Send className="h-5 w-5" />}
         renderBadge={(_, expanded) => (
           <span className={cn(
-            'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+            'hidden lg:inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium',
             expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
           )}>
             Endorsed

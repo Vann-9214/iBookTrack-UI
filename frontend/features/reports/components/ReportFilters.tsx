@@ -80,7 +80,9 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
             )}
           />
         </div>
-        <ReportsExportButton brand={brand} lots={lots || []} disabled={loading} />
+        <div className="sm:hidden">
+          <ReportsExportButton brand={brand} lots={lots || []} disabled={loading} />
+        </div>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 'use client'
 
-import { ClipboardCheck } from 'lucide-react'
+import { ClipboardCheck, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EndorsementBookList } from './EndorsementBookList'
 import { EndorsementBoxList } from './EndorsementBoxList'
@@ -47,7 +47,7 @@ export function InspectionBoxList({
           if (session && (session.status === 'in_progress' || session.status === 'delayed')) {
             return (
               <span className={cn(
-                'text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap',
+                'hidden lg:inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap',
                 expanded ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'
               )}>
                 Session Ongoing
@@ -56,7 +56,7 @@ export function InspectionBoxList({
           }
           return (
             <span className={cn(
-              'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
+              'hidden lg:inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium',
               expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
             )}>
               Ready for Inspection
@@ -68,11 +68,23 @@ export function InspectionBoxList({
           if (session && (session.status === 'in_progress' || session.status === 'delayed')) {
             if (session.endorsement_session_started_by !== currentUserId) {
               return (
-                <div className="flex flex-col items-end shrink-0 ml-2">
-                  <span className={cn('text-[10px] font-bold uppercase tracking-wider', session.status === 'delayed' ? 'text-amber-500' : 'text-red-500')}>
-                    {session.status === 'delayed' ? 'Delayed' : 'Locked'}
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className={cn(
+                    'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border',
+                    session.status === 'delayed'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-700'
+                  )}>
+                    {session.status === 'delayed' ? (
+                      <AlertCircle className="h-3.5 w-3.5" />
+                    ) : (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    )}
+                    <span className="uppercase">
+                      {session.status === 'delayed' ? 'Delayed' : 'In Progress'}
+                    </span>
                   </span>
-                  <span className={cn('text-[10px]', expanded ? 'text-white/80' : 'text-muted-foreground')}>
+                  <span className={cn('hidden lg:inline text-[10px] font-medium', expanded ? 'text-white/80' : 'text-muted-foreground')}>
                     by {session.endorsement_started_profile?.name || 'another user'}
                   </span>
                 </div>
@@ -82,7 +94,7 @@ export function InspectionBoxList({
               <button
                 onClick={(e) => { e.stopPropagation(); openConfirm('start_session', box) }}
                 className={cn(
-                  'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
+                  'hidden lg:flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
                   expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
                 )}
               >
@@ -95,7 +107,7 @@ export function InspectionBoxList({
             <button
               onClick={(e) => { e.stopPropagation(); openConfirm('start_session', box) }}
               className={cn(
-                'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
+                'hidden lg:flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
                 expanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
               )}
             >

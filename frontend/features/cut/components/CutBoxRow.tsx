@@ -47,7 +47,7 @@ export function CutBoxRow({
   const badge = (
     <span
       className={cn(
-        'text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0',
+        'hidden lg:inline-block text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0',
         isExpanded ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'
       )}
     >
@@ -108,7 +108,7 @@ export function CutBoxRow({
         </div>
 
         {/* Box Name / Badge */}
-        <div className="col-span-4 sm:col-span-3 min-w-0">
+        <div className="col-span-3 sm:col-span-3 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span
               className={cn(
@@ -143,26 +143,26 @@ export function CutBoxRow({
         </div>
 
         {/* Book count */}
-        <div className="col-span-3 sm:col-span-2 flex justify-center">
+        <div className="col-span-2 sm:col-span-2 flex justify-center">
           <div
             className={cn(
-              'text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm transition-colors',
+              'text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm transition-colors whitespace-nowrap',
               isExpanded
                 ? 'bg-white/20 border-white/20 text-white'
                 : 'bg-white/60 text-gray-600 border-black/5 group-hover:text-primary group-hover:border-primary/30'
             )}
           >
-            {bookCount} {bookCount === 1 ? 'book' : 'books'}
+            <span>{bookCount}</span><span className="hidden sm:inline">&nbsp;{bookCount === 1 ? 'book' : 'books'}</span>
           </div>
         </div>
 
         {/* Actions / Expand */}
-        <div className="col-span-4 sm:col-span-3 flex justify-end items-center gap-2 pr-6">
+        <div className="col-span-6 sm:col-span-3 flex justify-end items-center min-h-[32px]">
           {actionButton}
-          <div className="flex items-center gap-1.5 ml-2">
+          <div className="flex items-center justify-end shrink-0 ml-1">
             <span
               className={cn(
-                'text-[10px] font-medium hidden sm:inline transition-colors',
+                'text-[10px] font-medium hidden lg:inline transition-colors',
                 isExpanded ? 'text-white/80' : 'text-muted-foreground'
               )}
             >

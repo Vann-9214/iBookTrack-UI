@@ -24,11 +24,21 @@ export function getInventoryBoxGroups(boxes: InventoryBox[], brand: string) {
     incoming: matchingBoxes.filter(
       (box) => box.current_stage === 'warehouse' && box.box_sessions?.some((session) => session.status === 'completed')
     ),
-    verification: matchingBoxes.filter(
-      (box) =>
-        box.current_stage === 'inventory' &&
-        !box.box_sessions?.some((session) => session.status === 'completed' || session.status === 'sent')
-    ),
+    verification: matchingBoxes
+      .filter(
+        (box) =>
+          box.current_stage === 'inventory' &&
+          !box.box_sessions?.some((session) => session.status === 'completed' || session.status === 'sent')
+      )
+      .sort((a, b) => {
+        const aStatus = a.box_sessions?.[0]?.status
+        const bStatus = b.box_sessions?.[0]?.status
+        const aIsActive = aStatus === 'in_progress' || aStatus === 'delayed'
+        const bIsActive = bStatus === 'in_progress' || bStatus === 'delayed'
+        if (aIsActive && !bIsActive) return -1
+        if (!aIsActive && bIsActive) return 1
+        return 0
+      }),
     outgoing: matchingBoxes.filter(
       (box) => box.current_stage === 'inventory' && box.box_sessions?.some((session) => session.status === 'completed')
     ),

@@ -82,28 +82,15 @@ export function PipelineStageCard({
           {loading ? (
             <Skeleton className="h-6 w-10 rounded bg-black/5 dark:bg-white/5" />
           ) : (
-            <>
-              <span
-                className={cn(
-                  'text-2xl font-black leading-none truncate tracking-tight transition-colors',
-                  cfg.countColor
-                )}
-                title={stage === 'transmit' ? `${totalCount} total books` : `${totalCount} total boxes`}
-              >
-                {activeCount}
-              </span>
-              {bottleneckCount > 0 && (
-                <div
-                  className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50"
-                  title={`${bottleneckCount} boxes delayed > 1 day`}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-                  <span className="text-[10px] font-bold leading-none text-orange-600">
-                    {bottleneckCount} delayed
-                  </span>
-                </div>
+            <span
+              className={cn(
+                'text-2xl font-black leading-none truncate tracking-tight transition-colors',
+                cfg.countColor
               )}
-            </>
+              title={stage === 'transmit' ? `${totalCount} total books` : `${totalCount} total boxes`}
+            >
+              {activeCount}
+            </span>
           )}
         </div>
       </div>
@@ -116,7 +103,7 @@ export function PipelineStageCard({
       >
         {meta.label}
       </h3>
-      <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0">
+      <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0 w-full">
         {loading ? (
           <Skeleton className="h-3 w-16 rounded-sm bg-black/5 dark:bg-white/5" />
         ) : (
@@ -128,11 +115,21 @@ export function PipelineStageCard({
               </span>
             </div>
             {bottleneckCount > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-                <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">
-                  Delayed
-                </span>
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                  <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">
+                    Delayed
+                  </span>
+                </div>
+                <div
+                  className="flex items-center justify-center bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50"
+                  title={`${bottleneckCount} delayed`}
+                >
+                  <span className="text-[10px] font-bold leading-none text-orange-600">
+                    {bottleneckCount}
+                  </span>
+                </div>
               </div>
             )}
           </>
