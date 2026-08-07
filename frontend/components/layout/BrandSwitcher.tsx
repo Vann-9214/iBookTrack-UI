@@ -42,7 +42,7 @@ export function BrandSwitcher({ disableBrandToggle }: BrandSwitcherProps) {
 
   return (
     <div
-      className="relative flex items-center rounded-lg p-0.5 gap-0.5 shrink-0"
+      className="relative grid grid-cols-2 items-center rounded-lg p-0.5 gap-0.5 shrink-0"
       style={{
         background: `linear-gradient(135deg, ${colors.accent}08, ${colors.accent}04)`,
         border: `1px solid ${colors.accent}15`,
@@ -81,10 +81,10 @@ export function BrandSwitcher({ disableBrandToggle }: BrandSwitcherProps) {
 
         return disableBrandToggle ? (
           <SessionOngoingTooltip key={b} side="bottom">
-            <span className="relative z-10 flex flex-1">{buttonContent}</span>
+            <span className="relative z-10 flex w-full">{buttonContent}</span>
           </SessionOngoingTooltip>
         ) : (
-          <span key={b} className="relative z-10 flex flex-1">
+          <span key={b} className="relative z-10 flex w-full">
             {buttonContent}
           </span>
         )

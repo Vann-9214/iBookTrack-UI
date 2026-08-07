@@ -17,7 +17,7 @@ export function DashboardNavbar({ disableBrandToggle, navigationLocked }: Dashbo
 
   return (
     <header
-      className="relative flex h-14 shrink-0 items-center gap-2 sm:gap-4 px-3 sm:px-6 pl-14 sm:pl-16 md:pl-6 border-b border-border z-10 transition duration-200"
+      className="relative flex h-14 shrink-0 items-center gap-2 sm:gap-4 pr-3 sm:pr-6 pl-[calc(3.5rem+env(safe-area-inset-left))] sm:pl-[calc(4rem+env(safe-area-inset-left))] 2xl:pl-[calc(1.5rem+env(safe-area-inset-left))] border-b border-border z-10 transition duration-200"
       style={{
         background: 'rgba(255, 255, 255, 0.72)',
         backdropFilter: 'blur(20px) saturate(180%)',

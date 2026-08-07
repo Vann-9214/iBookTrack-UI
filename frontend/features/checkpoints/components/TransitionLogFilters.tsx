@@ -85,7 +85,7 @@ export function TransitionLogFilters({
           <span className="text-[10px] font-bold uppercase tracking-wider">Filters</span>
         </div>
 
-        <div className="relative shrink-0 flex items-center gap-2">
+        <div className="hidden 2xl:block relative shrink-0 flex items-center gap-2">
           {loading ? (
             <Skeleton className="h-9 w-44 sm:w-52 rounded-full bg-black/5" />
           ) : (

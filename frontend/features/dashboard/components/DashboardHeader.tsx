@@ -22,18 +22,18 @@ export function DashboardHeader({ brand, refreshing, lastUpdated, onRefresh, onO
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0 ml-3">
-              <Button variant="default" size="sm" onClick={onOpenSearch} className="hidden sm:inline-flex gap-1.5 premium-gradient-ui-card--solid rounded-lg shadow-md shrink-0">
+              <Button variant="default" size="sm" onClick={onOpenSearch} className="hidden 2xl:inline-flex gap-1.5 premium-gradient-ui-card--solid rounded-lg shadow-md shrink-0">
                 <Search className="h-3.5 w-3.5" /> Search
               </Button>
               <button
                 onClick={onRefresh}
                 disabled={refreshing}
-                className="flex items-center justify-center w-8 h-8 sm:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition disabled:opacity-50"
+                className="flex items-center justify-center w-8 h-8 2xl:hidden rounded-lg border bg-card shadow-sm hover:bg-accent hover:text-accent-foreground active:scale-95 transition disabled:opacity-50"
                 aria-label="Refresh"
               >
                 <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
               </button>
-              <RefreshControl onRefresh={onRefresh} refreshing={refreshing} lastUpdated={lastUpdated} storageKey="dashboard" className="hidden sm:flex" />
+              <RefreshControl onRefresh={onRefresh} refreshing={refreshing} lastUpdated={lastUpdated} storageKey="dashboard" className="hidden 2xl:flex" />
             </div>
           </div>
         </div>

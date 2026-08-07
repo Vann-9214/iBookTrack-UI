@@ -27,7 +27,7 @@ export const LocatorSearch: React.FC<LocatorSearchProps> = ({
   searchValidationError
 }) => {
   return (
-    <div className="flex flex-col gap-1.5 max-w-xl mx-auto w-full">
+    <div className="hidden 2xl:flex flex-col gap-1.5 max-w-xl mx-auto w-full">
       <div className="flex items-center gap-2 justify-center w-full">
         <div className="relative flex-1">
           <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
