@@ -118,6 +118,7 @@ export default function BookInspectionPage() {
                   <EndorsementSearch
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
+                    loading={loadingIncoming || loadingEndorsement}
                   />
                   <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
                   <EndorsementTabs

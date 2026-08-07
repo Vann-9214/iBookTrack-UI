@@ -7,14 +7,17 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
 export const cutService = {
   async fetchBoxes(brand: string, searchQuery: string, searchType: SearchType): Promise<{ incoming: BoxEntry[]; outgoing: BoxEntry[] }> {
-    // Fetch incoming: still in 'inventory' stage but session status is 'sent'
-    const resIncoming = await authFetch(buildCutBoxesUrl(API_URL, 'inventory', brand, searchQuery, searchType))
-    const incomingData = await resIncoming.json()
+    const [resIncoming, resOutgoing] = await Promise.all([
+      authFetch(buildCutBoxesUrl(API_URL, 'inventory', brand, searchQuery, searchType)),
+      authFetch(buildCutBoxesUrl(API_URL, 'cut', brand, searchQuery, searchType))
+    ])
+    
+    const [incomingData, outgoingData] = await Promise.all([
+      resIncoming.json(),
+      resOutgoing.json()
+    ])
+    
     const incoming = (incomingData.boxes || []).filter(isIncomingCutBox)
-
-    // Fetch outgoing: current stage is 'cut', but NOT sent to endorsement yet
-    const resOutgoing = await authFetch(buildCutBoxesUrl(API_URL, 'cut', brand, searchQuery, searchType))
-    const outgoingData = await resOutgoing.json()
     const outgoing = (outgoingData.boxes || []).filter(isOutgoingCutBox)
 
     return { incoming, outgoing }

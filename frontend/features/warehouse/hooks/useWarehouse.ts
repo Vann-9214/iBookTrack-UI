@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
+import useSWR from 'swr'
 import { useToast } from '@/hooks/use-toast'
 import { fetchUserProfile, getApiBaseUrl } from '@/lib/auth-api'
 import { useBrand } from '@/hooks/use-brand'
@@ -14,10 +15,21 @@ import { fetchLots } from '../services/warehouse.service'
 export function useWarehouse() {
   const { brand } = useBrand()
   const core = useWarehouseState()
-  const session = useWarehouseSession(core)
-  const scans = useWarehouseScans(core)
   const { toast } = useToast()
-  
+  const { data: lots = [], isLoading: lotsLoading, error, mutate } = useSWR(
+    'warehouse_lots',
+    fetchLots,
+    { 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+    }
+  )
+
+  const session = useWarehouseSession(core, lots, mutate)
+  const scans = useWarehouseScans(core)
+
+  const lotsError = error ? (error.message || 'Failed to connect to iLMS.') : null
+
   const { lockedWarehouseBoxes } = useWarehouseSSE({
     onUnlocked: (box) => {
       // If the currently active session's box was just unlocked by a supervisor,
@@ -26,13 +38,16 @@ export function useWarehouse() {
         session.clearSession()
         toast({ title: 'Session Terminated', description: 'Your session was closed by an administrator.', variant: 'destructive' })
       }
+    },
+    onRefreshNeeded: () => {
+      mutate()
     }
   })
 
   useWarehouseIsbnStream(core.sessionActive)
 
   const {
-    setLots, setLotsLoading, setLotsError, setUserName, setUserId, setLastStatsUpdate,
+    setUserName, setUserId, setLastStatsUpdate,
     setRefreshingStats, sessionActive, currentSessionRef, sessionActiveRef,
   } = core
 
@@ -53,21 +68,13 @@ export function useWarehouse() {
   }, [lockedWarehouseBoxes, core.activeLot, core.selectedBox, brand, core.userId])
 
   const loadLots = async () => {
-    setLotsLoading(true)
-    setLotsError(null)
-    try {
-      setLots(await fetchLots())
-    } catch (err: any) {
-      setLotsError(err.message || 'Failed to connect to iLMS.')
-    } finally {
-      setLotsLoading(false)
-    }
+    await mutate()
   }
 
   const handleRefreshStats = async () => {
     setRefreshingStats(true)
     try {
-      await loadLots()
+      await mutate()
       setLastStatsUpdate(new Date())
       toast({ title: 'Lots Refreshed', description: 'Warehouse lot list synchronized successfully.' })
     } catch {
@@ -85,10 +92,6 @@ export function useWarehouse() {
   }, [setUserName, setUserId])
 
   useEffect(() => {
-    loadLots()
-  }, [])
-
-  useEffect(() => {
     const cleanupSession = () => {
       if (sessionActiveRef.current && currentSessionRef.current && !currentSessionRef.current.id.startsWith('pending')) {
         fetch(`${getApiBaseUrl()}/api/warehouse/sessions/${currentSessionRef.current.id}`, {
@@ -103,13 +106,16 @@ export function useWarehouse() {
       window.removeEventListener('beforeunload', cleanupSession)
       cleanupSession()
     }
-  }, [])
+  }, [sessionActiveRef, currentSessionRef])
 
   return {
     brand,
     ...core,
     ...session,
     ...scans,
+    lots,
+    lotsLoading,
+    lotsError,
     loadLots,
     handleRefreshStats,
     lockedWarehouseBoxes,

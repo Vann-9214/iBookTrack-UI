@@ -18,6 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { Skeleton } from '@/components/ui/skeleton'
 import { STAGE_ORDER, STAGE_META } from '../utils/checkpoints.helpers'
 import type { Stage } from '../types/checkpoints.types'
 
@@ -32,6 +33,7 @@ interface TransitionLogFiltersProps {
   dateTo: string
   onDateToChange: (value: string) => void
   onSearchApply: () => void
+  loading?: boolean
 }
 
 const gradientButtonClass =
@@ -47,6 +49,7 @@ export function TransitionLogFilters({
   dateTo,
   onDateToChange,
   onSearchApply,
+  loading = false,
 }: TransitionLogFiltersProps) {
   const [rangeOpen, setRangeOpen] = useState(false)
 
@@ -82,17 +85,23 @@ export function TransitionLogFilters({
           <span className="text-[10px] font-bold uppercase tracking-wider">Filters</span>
         </div>
 
-        <div className="hidden 2xl:block relative shrink-0">
-          <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search box or lot"
-            value={searchInput}
-            onChange={(e) => onSearchInputChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onSearchApply()
-            }}
-            className="h-9 w-44 sm:w-52 rounded-full border-border/60 bg-background/70 pl-8 pr-3 text-xs font-medium shadow-sm focus-visible:ring-4 focus-visible:ring-primary/15"
-          />
+        <div className="hidden 2xl:block relative shrink-0 flex items-center gap-2">
+          {loading ? (
+            <Skeleton className="h-9 w-44 sm:w-52 rounded-full bg-black/5" />
+          ) : (
+            <>
+              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search box or lot"
+                value={searchInput}
+                onChange={(e) => onSearchInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onSearchApply()
+                }}
+                className="h-9 w-44 sm:w-52 rounded-full border-border/60 bg-background/70 pl-8 pr-3 text-xs font-medium shadow-sm focus-visible:ring-4 focus-visible:ring-primary/15"
+              />
+            </>
+          )}
         </div>
 
         <Select

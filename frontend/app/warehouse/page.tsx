@@ -72,7 +72,7 @@ export default function WarehousePage() {
               <div className="fixed top-10 right-6 z-50 flex items-start gap-3 max-w-md px-5 py-4 rounded-xl bg-destructive text-destructive-foreground text-base font-semibold shadow-lg animate-in fade-in slide-in-from-right-4">
                 <AlertTriangle className="h-6 w-6 shrink-0 mt-0.5" />
                 <span className="leading-snug flex-1">{wh.sessionError || wh.lotsError}</span>
-                <button type="button" onClick={() => { wh.setSessionError(null); wh.setLotsError(null) }} className="p-1.5 rounded-md hover:bg-destructive-foreground/20 transition-colors" aria-label="Dismiss warning">
+                <button type="button" onClick={() => { wh.setSessionError(null) }} className="p-1.5 rounded-md hover:bg-destructive-foreground/20 transition-colors" aria-label="Dismiss warning">
                   <X className="h-5 w-5" />
                 </button>
               </div>

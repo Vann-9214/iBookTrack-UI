@@ -773,7 +773,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           onClick={dismissDailyOutput}
         >
           <div
-            className={cn("bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", dailyOutputClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')}
+            className={cn("bg-white rounded-xl shadow-2xl w-full max-w-[1600px] max-h-[88vh] flex flex-col overflow-hidden ring-1 ring-black/5", dailyOutputClosing ? 'animate-modal-origin-out' : 'animate-modal-origin')}
             data-modal-origin-surface
             onClick={(e) => e.stopPropagation()}
           >

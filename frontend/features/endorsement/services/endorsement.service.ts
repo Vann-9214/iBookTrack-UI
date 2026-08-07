@@ -45,6 +45,14 @@ export const endorsementService = {
     return []
   },
 
+  async fetchAllEndorsementData(brand: string, searchQuery: string, searchType: 'box' | 'lot' | 'isbn'): Promise<{ incoming: BoxEntry[]; endorsement: BoxEntry[] }> {
+    const [incoming, endorsement] = await Promise.all([
+      this.fetchIncomingBoxes(brand, searchQuery, searchType),
+      this.fetchEndorsementBoxes(brand, searchQuery, searchType)
+    ])
+    return { incoming, endorsement }
+  },
+
   async sendToScan(boxId: string): Promise<void> {
     const res = await authFetch(`${API_URL}/api/boxes/${boxId}/send-forward`, {
       method: 'POST',

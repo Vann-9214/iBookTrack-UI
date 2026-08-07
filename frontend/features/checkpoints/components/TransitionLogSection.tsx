@@ -76,6 +76,7 @@ export function TransitionLogSection({
         onDateFromChange={onDateFromChange}
         dateTo={dateTo}
         onDateToChange={onDateToChange}
+        loading={transitionsLoading}
       />
 
       <TransitionLogTable

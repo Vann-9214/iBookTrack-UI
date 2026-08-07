@@ -56,7 +56,7 @@ export default function CutPage() {
               <CutHeader
                 brand={brand}
                 refreshing={loading}
-                onRefresh={fetchBoxes}
+                onRefresh={() => fetchBoxes()}
                 lastUpdated={lastUpdated}
               />
 

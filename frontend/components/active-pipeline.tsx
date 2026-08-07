@@ -165,7 +165,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   if (loading || !stats) {
     return (
-      <Card className={cn("relative overflow-hidden premium-gradient-ui-card")}>
+      <Card className={cn("relative overflow-hidden premium-gradient-ui-card premium-gradient-ui-card--static")}>
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -246,7 +246,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
   return (
     <>
-      <Card className={cn("relative overflow-hidden premium-gradient-ui-card")}>
+      <Card className={cn("relative overflow-hidden premium-gradient-ui-card premium-gradient-ui-card--static")}>
         <CardHeader className="pb-4">
           <CardTitle className="relative z-10 flex flex-nowrap sm:flex-wrap items-center gap-x-3 gap-y-2 text-card-foreground">
             <div className="flex items-center gap-2.5 min-w-0">

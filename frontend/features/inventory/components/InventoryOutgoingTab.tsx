@@ -32,14 +32,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
         emptyText="No outgoing boxes yet"
         emptySubtext="Complete a verification session in the Book Verification tab to add boxes here."
         emptyIcon={<Send className="h-5 w-5" />}
-        renderBadge={(_, expanded) => (
-          <span className={cn(
-            'text-[10px] px-1.5 py-0.5 rounded-full font-medium',
-            expanded ? 'bg-white/20 text-white' : 'bg-primary/20 text-primary'
-          )}>
-            Verified
-          </span>
-        )}
+        subtitleSuffix="Completed Scan Boxes"
         renderDate={(box) => {
           const verifiedTime = box.latest_inventory_scan_at
           return verifiedTime ? new Date(verifiedTime) : (box.created_at ? new Date(box.created_at) : null)

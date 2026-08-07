@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
+import useSWR from 'swr'
 import { useBrand } from '@/hooks/use-brand'
 import { getApiBaseUrl } from '@/lib/auth-api'
 import { BoxEntry, BoxBookEntry } from '../types/endorsement.types'
@@ -18,35 +19,34 @@ export function useEndorsement() {
 
   // ── Tab navigation ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'incoming' | 'inspection' | 'outgoing'>('incoming')
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   // ── Search ────────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
 
-  // ── Incoming Boxes ────────────────────────────────────────────────────────
-  const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
-  const [loadingIncoming, setLoadingIncoming] = useState(true)
-  const [receivingBox, setReceivingBox] = useState<string | null>(null)
-
-  const fetchIncoming = useCallback(async (silent = false) => {
-    if (!silent) setLoadingIncoming(true)
-    try {
-      const filteredIncoming = await endorsementService.fetchIncomingBoxes(brand, '', 'box')
-      setIncomingBoxes(filteredIncoming)
-    } catch (e) {
-      console.error('Failed to fetch incoming boxes:', e)
-    } finally {
-      setLoadingIncoming(false)
+  const { data, isLoading, mutate } = useSWR(
+    brand ? ['endorsement_boxes', brand] : null,
+    () => endorsementService.fetchAllEndorsementData(brand, '', 'box'),
+    { 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
     }
-  }, [brand])
+  )
+
+  const incomingBoxes = data?.incoming || []
+  const endorsementBoxes = data?.endorsement || []
+  const lastUpdated = data ? new Date() : null
+
+  const loadingIncoming = isLoading
+  const loadingEndorsement = isLoading
+
+  const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)
     try {
       await endorsementService.receiveBox(box.id)
       toast.success(`${box.box_number} received`)
-      fetchIncoming()
-      fetchEndorsementBoxes()
+      mutate()
       setActiveTab('inspection')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to receive box')
@@ -55,45 +55,11 @@ export function useEndorsement() {
     }
   }
 
-  // ── Endorsement Boxes ─────────────────────────────────────────────────────
-  const [endorsementBoxes, setEndorsementBoxes] = useState<BoxEntry[]>([])
-  const [loadingEndorsement, setLoadingEndorsement] = useState(true)
-
-  const fetchEndorsementBoxes = useCallback(async (silent = false) => {
-    if (!silent) setLoadingEndorsement(true)
-    try {
-      const filteredEndorsement = await endorsementService.fetchEndorsementBoxes(brand, '', 'box')
-      setEndorsementBoxes(filteredEndorsement)
-      setLastUpdated(new Date())
-    } catch (e) {
-      console.error('Failed to fetch endorsement boxes:', e)
-    } finally {
-      setLoadingEndorsement(false)
-    }
-  }, [brand])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchIncoming()
-      fetchEndorsementBoxes()
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [fetchIncoming, fetchEndorsementBoxes])
-
-  const fetchIncomingRef = useRef(fetchIncoming)
-  const fetchEndorsementBoxesRef = useRef(fetchEndorsementBoxes)
-  
-  useEffect(() => {
-    fetchIncomingRef.current = fetchIncoming
-    fetchEndorsementBoxesRef.current = fetchEndorsementBoxes
-  }, [fetchIncoming, fetchEndorsementBoxes])
-
   useEffect(() => {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
-      fetchIncomingRef.current(true)
-      fetchEndorsementBoxesRef.current(true)
+      mutate()
     }
 
     es.addEventListener('BOX_UPDATED', handleUpdate)
@@ -108,7 +74,7 @@ export function useEndorsement() {
     }
 
     return () => es.close()
-  }, [])
+  }, [mutate])
 
   // ── Outgoing Boxes ────────────────────────────────────────────────────────
   const [sendingToScan, setSendingToScan] = useState<string | null>(null)
@@ -124,7 +90,7 @@ export function useEndorsement() {
     setSendingToScan(box.id)
     try {
       await endorsementService.sendToScan(box.id)
-      fetchEndorsementBoxes()
+      mutate()
       toast.success(`${box.box_number} sent`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to send to scan')
@@ -191,10 +157,11 @@ export function useEndorsement() {
     setConfirmModal({ open: true, action, box })
   const closeConfirm = () => setConfirmModal({ open: false, action: null, box: null })
 
-  const refreshAll = () => {
-    fetchIncoming()
-    fetchEndorsementBoxes()
-  }
+  const refreshAll = useCallback(async () => {
+    await mutate()
+  }, [mutate])
+
+  const fetchEndorsementBoxes = refreshAll
 
   return {
     brand,

@@ -1,14 +1,25 @@
 import { Search, X } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface EndorsementSearchProps {
   searchQuery: string
   setSearchQuery: (query: string) => void
+  loading?: boolean
 }
 
 export function EndorsementSearch({
   searchQuery,
   setSearchQuery,
+  loading = false,
 }: EndorsementSearchProps) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-9 flex-1 max-w-md rounded-lg bg-black/5" />
+      </div>
+    )
+  }
+
   return (
     <div className="hidden 2xl:flex relative flex-1 max-w-md">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

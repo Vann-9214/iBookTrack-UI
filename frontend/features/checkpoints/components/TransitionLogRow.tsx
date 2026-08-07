@@ -8,12 +8,14 @@ const PIPELINE_STAGES = ['warehouse', 'inventory', 'cut', 'endorsement', 'scan',
 
 interface TransitionLogRowProps {
   transition: Transition
+  index: number
   isExpanded: boolean
   onToggle: () => void
 }
 
 export function TransitionLogRow({
   transition: t,
+  index,
   isExpanded,
   onToggle,
 }: TransitionLogRowProps) {
@@ -111,9 +113,12 @@ export function TransitionLogRow({
   return (
     <div className="border-b border-border/50 last:border-0 flex flex-col bg-card hover:bg-muted/30 transition-colors">
       <div
-        className="flex items-center px-6 py-4 cursor-pointer gap-4"
+        className="flex items-center px-6 py-4 cursor-pointer gap-8"
         onClick={onToggle}
       >
+        <div className="w-[40px] shrink-0 flex items-center justify-start">
+          <span className="text-[11px] font-black text-primary tabular-nums">#{index}</span>
+        </div>
         <div className="w-[260px] shrink-0 flex items-center">
           <div className="w-[110px] shrink-0 flex flex-col mr-2">
             <span className="font-bold text-foreground text-sm truncate">{box.box_number}</span>
@@ -138,7 +143,7 @@ export function TransitionLogRow({
           </div>
         </div>
 
-        <div className="w-[180px] shrink-0">
+        <div className="w-[190px] shrink-0">
           <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wide whitespace-nowrap ${statusColor}`}>
             {statusText}
           </span>
@@ -152,11 +157,13 @@ export function TransitionLogRow({
 
         <div className="w-[140px] shrink-0 flex flex-col">
           <span className="text-sm font-semibold text-foreground">
-            {box.total_transmitted_books ?? 0} / {t.total_processable_books ?? 0}
+            {isCompleted || box.is_fully_completed_in_simflex 
+              ? Math.max(box.total_transmitted_books ?? 0, t.total_processable_books ?? 0)
+              : (box.total_transmitted_books ?? 0)} / {t.total_processable_books ?? 0}
           </span>
         </div>
 
-        <div className="w-[160px] shrink-0 flex flex-col min-w-0">
+        <div className="w-[170px] shrink-0 flex flex-col min-w-0">
           <span className="text-sm font-semibold text-foreground truncate" title={holderName}>
             {holderName}
           </span>

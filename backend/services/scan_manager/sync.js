@@ -34,7 +34,7 @@ export async function syncBoxWithSimflex(box) {
     const isbns = [...new Set(scans.map(s => s.isbn))];
 
     // Query Scan Manager for the latest status of each ISBN
-    const simflexResult = await getSimflexStatusForISBNs(isbns, box.box_type || 'mustang')
+    const simflexResult = await getSimflexStatusForISBNs(isbns, (box.box_type || 'mustang').toLowerCase())
     if (!simflexResult.success) {
       return { advanced: false, newStage: box.current_stage, message: 'Failed to query Simflex.' }
     }
@@ -47,7 +47,14 @@ export async function syncBoxWithSimflex(box) {
     )
     const allCompleted = results.every(r => r.transmissionCompleted)
 
-    const doneCount = results.filter(r => r.transmissionCompleted).length
+    // Calculate doneCount by matching completed ISBNs with the actual books in the box
+    const completedIsbns = new Set(results.filter(r => r.transmissionCompleted).map(r => r.isbn || r.ISBN));
+    
+    // Convert to lowercase without hyphens for matching, just in case
+    const normalizeIsbnForMatching = (isbn) => String(isbn || '').replace(/-/g, '').trim().toLowerCase();
+    const completedNormalizedIsbns = new Set([...completedIsbns].map(normalizeIsbnForMatching));
+
+    const doneCount = scans.filter(s => completedNormalizedIsbns.has(normalizeIsbnForMatching(s.isbn))).length;
 
     // Update total_transmitted_books for this box
     await db.query('UPDATE boxes SET total_transmitted_books = $1 WHERE id = $2', [doneCount, box.id]);

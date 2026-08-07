@@ -85,6 +85,7 @@ export interface TransitionBox {
   current_stage: Stage
   total_expected_books: number
   total_transmitted_books?: number
+  is_fully_completed_in_simflex?: boolean
   created_at: string
 }
 

@@ -45,19 +45,22 @@ export function IncomingCutBoxList({
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-primary">Receive</p>
                 <h2 className="text-lg font-black tracking-tight text-foreground leading-none">Incoming Boxes</h2>
-                {!loading && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {boxes.length} box{boxes.length !== 1 ? 'es' : ''}
-                  </p>
-                )}
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                  {loading ? (
+                    <Skeleton className="h-3 w-4 rounded bg-black/10" />
+                  ) : (
+                    <span>{boxes.length}</span>
+                  )}
+                  <span>box{loading || boxes.length !== 1 ? 'es' : ''} &middot; Sent from Inventory</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Table header */}
-        {!loading && boxes.length > 0 && (
-          <div className="relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-3 text-[10px] font-bold uppercase tracking-wider border-y border-black/5 items-center bg-primary/5 text-primary/70 mb-2">
+        {(loading || boxes.length > 0) && (
+          <div className="relative grid grid-cols-12 gap-3 px-4 sm:px-5 py-3 text-[10px] font-bold uppercase tracking-wider border-y border-black/5 items-center bg-primary/5 text-primary/70">
             <div className="col-span-1 flex justify-start"><Hash className="h-2.5 w-2.5" /></div>
             <div className="col-span-4 sm:col-span-3">Box Number</div>
             <div className="hidden sm:block sm:col-span-3">Details</div>
@@ -69,12 +72,12 @@ export function IncomingCutBoxList({
           {loading ? (
             <div className="divide-y divide-border/40">
               {Array.from({ length: 10 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-12 gap-3 items-center px-4 sm:px-5 py-2.5">
-                  <div className="col-span-1 flex justify-start"><Skeleton className="h-3 w-3 rounded-sm bg-black/5" /></div>
-                  <div className="col-span-4 sm:col-span-3"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
-                  <div className="hidden sm:block sm:col-span-3"><Skeleton className="h-4 w-24 rounded bg-black/5" /></div>
-                  <div className="col-span-3 sm:col-span-2 flex justify-center"><Skeleton className="h-5 w-12 rounded-md bg-black/5" /></div>
-                  <div className="col-span-4 sm:col-span-3 flex justify-end"><Skeleton className="h-6 w-20 rounded-md bg-black/5" /></div>
+                <div key={i} className="grid grid-cols-12 gap-2 sm:gap-3 items-center px-3 sm:px-4 py-1.5 sm:py-2">
+                  <div className="col-span-1 flex justify-start items-center"><Skeleton className="h-3 w-6 rounded-sm bg-black/5" /></div>
+                  <div className="col-span-4 sm:col-span-3 min-w-0"><Skeleton className="h-4 w-20 rounded bg-black/5" /></div>
+                  <div className="hidden sm:flex sm:col-span-3 min-w-0 flex-col gap-1"><Skeleton className="h-3.5 w-24 rounded bg-black/5" /><Skeleton className="h-2.5 w-16 rounded bg-black/5" /></div>
+                  <div className="col-span-3 sm:col-span-2 flex justify-center"><Skeleton className="h-5 w-14 rounded-full bg-black/5" /></div>
+                  <div className="col-span-4 sm:col-span-3 flex justify-end items-center gap-2 pr-6"><Skeleton className="h-5 w-16 rounded-md bg-black/5" /><Skeleton className="h-3.5 w-10 rounded bg-black/5 hidden sm:block" /></div>
                 </div>
               ))}
             </div>

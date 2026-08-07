@@ -235,7 +235,7 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
         } catch (error) { toast({ title: 'Error', description: `Failed to save book ${book.isbn}. Session not completed.`, variant: 'destructive' }); throw error }
       }
       await completeInventorySession(verifCurrentSession.id, verifIssues)
-      inventory.setBoxes((prev) => prev.map((b) => b.id === verifBox.id ? { ...b, box_sessions: b.box_sessions?.map((s) => s.id === verifCurrentSession.id ? { ...s, status: 'completed' } : s) || [{ status: 'completed' }] } : b))
+      inventory.setBoxes((prev) => prev ? prev.map((b) => b.id === verifBox.id ? { ...b, box_sessions: b.box_sessions?.map((s) => s.id === verifCurrentSession.id ? { ...s, status: 'completed' } : s) || [{ status: 'completed' }] } : b) : [])
       reset()
       toast({ title: 'Verification Session Closed', description: 'Verification completed successfully.' })
       onSuccess?.()

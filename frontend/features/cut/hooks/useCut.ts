@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
+import useSWR from 'swr'
 import { fetchUserProfile, getApiBaseUrl } from '@/lib/auth-api'
 import { BookInBox, BoxEntry, ConfirmModalState, CutTab } from '../types/cut.types'
 import { cutService } from '../services/cut.service'
@@ -8,11 +9,19 @@ import { filterCutBoxBySearch } from '../utils/cut.helpers'
 export function useCut(brand: string) {
   const [activeTab, setActiveTab] = useState<CutTab>('incoming')
   const [searchQuery, setSearchQuery] = useState('')
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
-  const [outgoingBoxes, setOutgoingBoxes] = useState<BoxEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading: loading, mutate } = useSWR(
+    brand ? ['cut_boxes', brand] : null,
+    () => cutService.fetchBoxes(brand, '', 'box'),
+    { 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+    }
+  )
+
+  const incomingBoxes = data?.incoming || []
+  const outgoingBoxes = data?.outgoing || []
+  const lastUpdated = data ? new Date() : null
 
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
   const [sendingBox, setSendingBox] = useState<string | null>(null)
@@ -58,35 +67,15 @@ export function useCut(brand: string) {
     }
   }
 
-  const fetchBoxes = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true)
-    try {
-      const { incoming, outgoing } = await cutService.fetchBoxes(brand, '', 'box')
-      setIncomingBoxes(incoming)
-      setOutgoingBoxes(outgoing)
-      setLastUpdated(new Date())
-    } catch (e) {
-      console.error('Failed to fetch boxes:', e)
-    } finally {
-      setLoading(false)
-    }
-  }, [brand])
-
-  useEffect(() => {
-    const timer = setTimeout(() => { fetchBoxes() }, 300)
-    return () => clearTimeout(timer)
-  }, [fetchBoxes])
-
-  const fetchBoxesRef = useRef(fetchBoxes)
-  useEffect(() => {
-    fetchBoxesRef.current = fetchBoxes
-  }, [fetchBoxes])
+  const fetchBoxes = useCallback(async () => {
+    await mutate()
+  }, [mutate])
 
   useEffect(() => {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
-      fetchBoxesRef.current(true)
+      mutate()
     }
 
     es.addEventListener('BOX_UPDATED', handleUpdate)
@@ -98,14 +87,14 @@ export function useCut(brand: string) {
     }
 
     return () => es.close()
-  }, [])
+  }, [mutate])
 
   const handleReceiveBox = async (box: BoxEntry) => {
     setReceivingBox(box.id)
     try {
       await cutService.receiveBox(box.id)
       toast.success(`${box.box_number} received`)
-      fetchBoxes()
+      mutate()
       setActiveTab('outgoing')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to receive box')
@@ -119,7 +108,7 @@ export function useCut(brand: string) {
     try {
       await cutService.sendBoxForward(box.id)
       toast.success(`${box.box_number} sent to Endorsement`)
-      fetchBoxes()
+      mutate()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to send box')
     } finally {
