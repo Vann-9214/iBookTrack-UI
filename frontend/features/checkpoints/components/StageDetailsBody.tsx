@@ -82,7 +82,8 @@ export function StageDetailsBody({
         <div className="space-y-2">
           {filteredBoxes
             .slice((stageModalPage - 1) * 50, stageModalPage * 50)
-            .map((box) => {
+            .map((box, idx) => {
+              const absoluteIndex = (stageModalPage - 1) * 50 + idx + 1
               const latestTransition = transitions.find(
                 (t) => t.box?.box_number === box.box_number && t.to_stage === box.current_stage
               )
@@ -98,6 +99,7 @@ export function StageDetailsBody({
                   actionInProgress={actionInProgress}
                   onToggle={() => onToggleBox(box)}
                   onConfirm={onConfirm}
+                  absoluteIndex={absoluteIndex}
                 />
               )
             })}

@@ -1,33 +1,27 @@
 'use client'
 
-import { useCallback, useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { getApiBaseUrl } from '@/lib/auth-api'
 import { fetchInventoryBox, fetchInventoryBoxes } from '../services/inventory.service'
 import type { BookInBox, InventoryBox } from '../types/inventory.types'
 
 export function useInventory(brand: string) {
-  const [boxes, setBoxes] = useState<InventoryBox[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedBox, setExpandedBox] = useState<string | null>(null)
   const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
-  const [loadingBoxes, setLoadingBoxes] = useState(false)
   const [loadingBooks, setLoadingBooks] = useState<string | null>(null)
-  const [lastInventoryUpdate, setLastInventoryUpdate] = useState<Date | null>(null)
 
-  const fetchBoxes = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (!options?.silent) setLoadingBoxes(true)
-      try {
-        setBoxes(await fetchInventoryBoxes(brand, searchQuery))
-        setLastInventoryUpdate(new Date())
-      } catch (error) {
-        console.error('Failed to fetch boxes:', error)
-      } finally {
-        if (!options?.silent) setLoadingBoxes(false)
-      }
-    },
-    [brand, searchQuery]
+  const { data: boxes = [], isLoading: loadingBoxes, mutate } = useSWR(
+    brand ? ['inventory_boxes', brand, searchQuery] : null,
+    () => fetchInventoryBoxes(brand, searchQuery),
+    { 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+    }
   )
+
+  const lastInventoryUpdate = boxes.length > 0 || !loadingBoxes ? new Date() : null
 
   const fetchBooksInBox = useCallback(
     async (boxId: string) => {
@@ -56,21 +50,15 @@ export function useInventory(brand: string) {
     [expandedBox, fetchBooksInBox]
   )
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => void fetchBoxes(), 300)
-    return () => window.clearTimeout(timer)
-  }, [fetchBoxes])
-
-  const fetchBoxesRef = useRef(fetchBoxes)
-  useEffect(() => {
-    fetchBoxesRef.current = fetchBoxes
-  }, [fetchBoxes])
+  const fetchBoxes = useCallback(async () => {
+    await mutate()
+  }, [mutate])
 
   useEffect(() => {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
-      fetchBoxesRef.current({ silent: true })
+      mutate()
     }
 
     es.addEventListener('WAREHOUSE_LOCKED', handleUpdate)
@@ -87,11 +75,11 @@ export function useInventory(brand: string) {
     }
 
     return () => es.close()
-  }, [])
+  }, [mutate])
 
   return {
     boxes,
-    setBoxes,
+    setBoxes: mutate,
     searchQuery,
     setSearchQuery,
     expandedBox,

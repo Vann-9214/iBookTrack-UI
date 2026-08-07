@@ -193,3 +193,33 @@ export async function rollbackBox(
   })
   return res.json()
 }
+
+export async function fetchAllCheckpointData(brand: string) {
+  let boxData = await fetchBoxes(brand)
+  
+  const scanBoxesToSync = boxData.boxes?.filter((b: BoxItem) => b.current_stage === 'scan' && !b.is_fully_completed_in_simflex) || []
+  if (scanBoxesToSync.length > 0) {
+    let needsRefresh = false
+    await Promise.allSettled(
+      scanBoxesToSync.map(async (box: BoxItem) => {
+        try {
+          const res = await checkSimflexForBox(box.id)
+          if (res.autoAdvanced) needsRefresh = true
+        } catch (e) {
+          // ignore
+        }
+      })
+    )
+    if (needsRefresh) {
+      boxData = await fetchBoxes(brand)
+    }
+  }
+
+  const [liveData, scanRowsData, transmitRowsData] = await Promise.all([
+    fetchLiveScanCounts(brand),
+    fetchScanRows(brand),
+    fetchTransmitRows(brand),
+  ])
+
+  return { boxData, liveData, scanRowsData, transmitRowsData }
+}

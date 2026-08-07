@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
+import useSWR from "swr"
 import { fetchUserProfile, getApiBaseUrl } from "@/lib/auth-api"
 import { useBrand } from "@/hooks/use-brand"
 import { BoxEntry, BookInBox } from "../types/scan.types"
@@ -16,11 +17,19 @@ export function useScan() {
     })
   }, [])
 
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const [incomingBoxes, setIncomingBoxes] = useState<BoxEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: incomingBoxes = [], isLoading: loading, mutate } = useSWR(
+    brand ? ['scan_boxes', brand] : null,
+    () => fetchIncomingBoxes(brand, '', 'box'),
+    { 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+    }
+  )
+
+  const lastUpdated = incomingBoxes.length > 0 || !loading ? new Date() : null
+
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; box: BoxEntry | null }>({
@@ -54,35 +63,15 @@ export function useScan() {
     }
   }
 
-  const fetchBoxes = useCallback(async (silent = false) => {
-    if (!silent) setLoading(true)
-    try {
-      // Always fetch all incoming boxes; search is filtered client-side below.
-      const allIncoming = await fetchIncomingBoxes(brand, '', 'box')
-      setIncomingBoxes(allIncoming)
-      setLastUpdated(new Date())
-    } catch (e) {
-      console.error('Failed to fetch boxes:', e)
-    } finally {
-      setLoading(false)
-    }
-  }, [brand])
-
-  useEffect(() => {
-    const timer = setTimeout(() => { fetchBoxes() }, 300)
-    return () => clearTimeout(timer)
-  }, [fetchBoxes])
-
-  const fetchBoxesRef = useRef(fetchBoxes)
-  useEffect(() => {
-    fetchBoxesRef.current = fetchBoxes
-  }, [fetchBoxes])
+  const fetchBoxes = useCallback(async () => {
+    await mutate()
+  }, [mutate])
 
   useEffect(() => {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
-      fetchBoxesRef.current(true)
+      mutate()
     }
 
     es.addEventListener('BOX_UPDATED', handleUpdate)
@@ -94,7 +83,7 @@ export function useScan() {
     }
 
     return () => es.close()
-  }, [])
+  }, [mutate])
 
   const filteredIncoming = filterIncomingBoxes(incomingBoxes, searchQuery)
 
@@ -103,7 +92,7 @@ export function useScan() {
     try {
       await advanceBoxToScan(box.id)
       toast.success(`${box.box_number} received`)
-      fetchBoxes()
+      mutate()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to receive box')
     } finally {

@@ -64,12 +64,12 @@ export function ScanBoxRow({
         {/* Details (hidden on mobile) */}
         <div className="hidden sm:flex sm:col-span-3 min-w-0 flex-col justify-center">
           <span className={cn('text-[12px] truncate transition-colors font-medium', expanded ? 'text-white/80' : 'text-muted-foreground')}>
-            Lot {box.lot?.lot_number || '—'}
+            {box.lot?.lot_number || '—'}
           </span>
           {(sender || date) && (
-            <span className={cn('text-[10px] truncate transition-colors', expanded ? 'text-white/60' : 'text-muted-foreground/60')}>
+            <span className={cn('text-[10px] truncate transition-colors font-medium', expanded ? 'text-white/90' : 'text-muted-foreground')}>
               {sender && `by ${sender}`}
-              {date && ` · ${date.toLocaleDateString()}`}
+              {date && ` · ${date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
             </span>
           )}
         </div>

@@ -13,9 +13,6 @@ import type {
 
 export function useWarehouseState() {
   const [activeLot, setActiveLot] = useState('')
-  const [lots, setLots] = useState<Lot[]>([])
-  const [lotsLoading, setLotsLoading] = useState(false)
-  const [lotsError, setLotsError] = useState<string | null>(null)
   const [sessionError, setSessionError] = useState<string | null>(null)
   const [selectedBox, setSelectedBox] = useState('')
   const [sessionActive, setSessionActive] = useState(false)
@@ -58,7 +55,7 @@ export function useWarehouseState() {
   }, [currentSession, sessionActive])
 
   return {
-    activeLot, setActiveLot, lots, setLots, lotsLoading, setLotsLoading, lotsError, setLotsError,
+    activeLot, setActiveLot,
     sessionError, setSessionError, selectedBox, setSelectedBox, sessionActive, setSessionActive,
     scannedBooks, setScannedBooks, currentSession, setCurrentSession, loading, setLoading,
     isbnLoading, setIsbnLoading, currentBoxNumber, setCurrentBoxNumber, currentBoxBooks, setCurrentBoxBooks,

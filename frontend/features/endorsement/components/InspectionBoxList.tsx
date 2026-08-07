@@ -32,6 +32,7 @@ export function InspectionBoxList({
       <EndorsementBoxList
         title="Boxes to Inspect"
         eyebrow="Inspect"
+        subtitleSuffix="Received from Cut"
         boxes={filteredInspection}
         expandedBoxId={inspExpandedBoxId}
         booksByBox={inspRowBooks}

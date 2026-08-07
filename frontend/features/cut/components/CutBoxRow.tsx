@@ -130,19 +130,14 @@ export function CutBoxRow({
               isExpanded ? 'text-white/80' : 'text-muted-foreground'
             )}
           >
-            Lot {box.lot?.lot_number || '—'}
+            {box.lot?.lot_number || '—'}
           </span>
           {(date || sender || completedBy || receivedBy) && (
-            <span
-              className={cn(
-                'text-[10px] truncate transition-colors',
-                isExpanded ? 'text-white/60' : 'text-muted-foreground/60'
-              )}
-            >
+            <span className={cn('text-[10px] truncate transition-colors font-medium', isExpanded ? 'text-white/90' : 'text-muted-foreground')}>
               {sender && `by ${sender}`}
               {completedBy && `by ${completedBy}`}
               {receivedBy && `by ${receivedBy}`}
-              {date && ` · ${date.toLocaleDateString()}`}
+              {date && ` · ${date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
             </span>
           )}
         </div>

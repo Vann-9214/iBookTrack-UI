@@ -32,6 +32,7 @@ export function OutgoingBoxes({
       <EndorsementBoxList
         title="Outgoing Boxes"
         eyebrow="Send"
+        subtitleSuffix="Completed Endorsement Boxes"
         boxes={filteredOutgoing}
         expandedBoxId={expandedBoxId}
         booksByBox={boxBooks}

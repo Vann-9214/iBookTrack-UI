@@ -109,6 +109,7 @@ export function DashboardSearch(props: DashboardSearchProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-muted/20 p-4 rounded-xl border border-border">
                   <SearchField label="ISBN" value={data.isbn} full />
                   <SearchField label="Title" value={data.title || 'Unknown Title'} full />
+                  <SearchField label="Author" value={data.author || 'Unknown Author'} full />
                   <SearchField label="Box Number" value={data.box_number || 'Not assigned'} />
                   <SearchField label="Lot Number" value={data.lot_number || 'Unknown'} />
                   <SearchField label="Current Stage" value={data.current_stage || 'Unknown'} />

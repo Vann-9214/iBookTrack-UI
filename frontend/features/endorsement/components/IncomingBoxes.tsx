@@ -32,6 +32,7 @@ export function IncomingBoxes({
       <EndorsementBoxList
         title="Incoming Boxes"
         eyebrow="Receive"
+        subtitleSuffix="Sent from Cut"
         boxes={filteredIncoming}
         expandedBoxId={expandedBoxId}
         booksByBox={boxBooks}

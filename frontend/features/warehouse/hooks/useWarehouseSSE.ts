@@ -19,7 +19,10 @@ export interface LockedWarehouseBox {
  * ('in_progress' or 'delayed'). Used to block the Lot/Box entry UI when
  * another user is already processing that box.
  */
-export function useWarehouseSSE(options?: { onUnlocked?: (box: LockedWarehouseBox) => void }) {
+export function useWarehouseSSE(options?: { 
+  onUnlocked?: (box: LockedWarehouseBox) => void,
+  onRefreshNeeded?: () => void
+}) {
   const [lockedWarehouseBoxes, setLockedWarehouseBoxes] = useState<LockedWarehouseBox[]>([])
   const optionsRef = useRef(options)
 
@@ -54,7 +57,17 @@ export function useWarehouseSSE(options?: { onUnlocked?: (box: LockedWarehouseBo
         setLockedWarehouseBoxes((prev) => prev.filter((b) => b.box_id !== data.box_id))
         if (optionsRef.current?.onUnlocked) optionsRef.current.onUnlocked(data as LockedWarehouseBox)
       }
+      if (optionsRef.current?.onRefreshNeeded) optionsRef.current.onRefreshNeeded()
     })
+    
+    const refreshData = () => {
+      if (optionsRef.current?.onRefreshNeeded) optionsRef.current.onRefreshNeeded()
+    }
+    
+    es.addEventListener('BOX_UPDATED', refreshData)
+    es.addEventListener('PIPELINE_UPDATED', refreshData)
+    es.addEventListener('DASHBOARD_REFRESH', refreshData)
+
     es.onerror = () => {
       // EventSource reconnects automatically; the snapshot event resyncs state.
       console.warn('Events stream error — will retry automatically')

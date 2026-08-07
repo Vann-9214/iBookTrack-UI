@@ -15,7 +15,7 @@ export function ScanSearch({
   if (loading) {
     return (
       <div className="flex items-center gap-2">
-        <Skeleton className="h-9 flex-1 max-w-md rounded-lg" />
+        <Skeleton className="h-9 flex-1 max-w-md rounded-lg bg-black/5" />
       </div>
     )
   }

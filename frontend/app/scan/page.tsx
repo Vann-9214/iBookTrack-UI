@@ -45,7 +45,7 @@ export default function ScanPage() {
               <ScanHeader
                 brand={brand}
                 refreshing={loading}
-                onRefresh={fetchBoxes}
+                onRefresh={() => fetchBoxes()}
                 lastUpdated={lastUpdated}
               />
 

@@ -4,18 +4,23 @@ import { useToast } from '@/hooks/use-toast'
 import { useBrand } from '@/hooks/use-brand'
 import { bulkSaveSession, deleteSession, startWarehouseSession, type StartSessionError, fetchLots } from '../services/warehouse.service'
 import { findSimilarLot } from '../utils/warehouse.helpers'
+import type { Lot } from '../types/warehouse.types'
 import type { useWarehouseState } from './useWarehouseState'
 
-export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) {
+export function useWarehouseSession(
+  core: ReturnType<typeof useWarehouseState>,
+  lots: Lot[],
+  mutateLots: () => Promise<any>
+) {
   const { toast } = useToast()
   const { brand } = useBrand()
   const {
-    activeLot, setActiveLot, lots, selectedBox, setSelectedBox, sessionActive, setSessionActive,
+    activeLot, setActiveLot, selectedBox, setSelectedBox, sessionActive, setSessionActive,
     setCurrentSession, loading, setLoading, currentBoxNumber, setCurrentBoxNumber,
     setCurrentBoxBooks, setBookCounter, setScannedBooks, scannedBooks,
     currentSession, issues, setIssues, totalBooksExpected, setTotalBooksExpected,
     setIssueIsbn, setIssueType, setConfirmCompleteOpen, setConfirmResetOpen, setSessionError, setConflictModalState,
-    setSimilarLotModal, setLots
+    setSimilarLotModal
   } = core
 
   const clearSession = () => {
@@ -131,8 +136,7 @@ export function useWarehouseSession(core: ReturnType<typeof useWarehouseState>) 
       setIssues([])
       toast({ title: 'Session Closed', description: 'Session closed successfully.' })
       try {
-        const updatedLots = await fetchLots()
-        setLots(updatedLots)
+        await mutateLots()
       } catch (err) {
         console.error('Failed to refresh lots:', err)
       }

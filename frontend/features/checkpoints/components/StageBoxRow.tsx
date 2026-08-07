@@ -20,6 +20,7 @@ interface StageBoxRowProps {
   }
   onToggle: () => void
   onConfirm: (box: BoxItem, action: ConfirmActionType) => void
+  absoluteIndex?: number
 }
 
 export function StageBoxRow({
@@ -32,6 +33,7 @@ export function StageBoxRow({
   actionInProgress,
   onToggle,
   onConfirm,
+  absoluteIndex,
 }: StageBoxRowProps) {
   const { actionLabel, byName, timeStr } = getStageBoxRowInfo(box, selectedStage, latestTransition)
   const relevantTime = getRelevantTimeForBox(box, selectedStage)
@@ -63,6 +65,13 @@ export function StageBoxRow({
         )}
         onClick={onToggle}
       >
+        {absoluteIndex && (
+          <div className="flex shrink-0 items-center justify-center w-5 sm:w-6">
+            <span className={cn('text-[10px] sm:text-[11px] font-black tabular-nums', isDelayed ? 'text-orange-900/60' : 'text-primary')}>
+              #{absoluteIndex}
+            </span>
+          </div>
+        )}
         <div
           className={cn(
             'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg text-white',

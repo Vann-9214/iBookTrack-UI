@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { useToast } from '@/hooks/use-toast'
 import { useBrand } from '@/hooks/use-brand'
 import { getApiBaseUrl } from '@/lib/auth-api'
@@ -14,53 +15,60 @@ export function useDashboard() {
   const [searchValue, setSearchValue] = useState('')
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null)
   const [loading, setLoading] = useState(false)
-  const [dashboardStats, setDashboardStats] = useState<any>(null)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [lastStatsUpdate, setLastStatsUpdate] = useState<Date | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [liveScans, setLiveScans] = useState<any[]>([])
+  
   const [boxScanInput, setBoxScanInput] = useState('')
   const [boxScanModal, setBoxScanModal] = useState<{ box: any; books: any[] } | null>(null)
   const [loadingBoxScan, setLoadingBoxScan] = useState(false)
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const { stats, pipeline, boxes: boxesResponse, live, scanRows, transmitRows } = await fetchDashboardData(brand)
-      const startOfDay = new Date(new Date().setHours(0, 0, 0, 0)).getTime()
-      const boxes = (boxesResponse.boxes || []).filter((box: any) =>
-        box.box_sessions?.some((session: any) => [
-          session.warehouse_time_received,
-          session.inventory_time_received,
-          session.inventory_time_send,
-          session.cut_time_received,
-          session.cut_time_send,
-          session.endorsement_time_received,
-          session.endorsement_time_send,
-          session.scan_time_received,
-          box.latest_inventory_scan_at,
-          box.latest_endorsement_scan_at,
-        ].filter(Boolean).some((time) => new Date(time).getTime() >= startOfDay)),
-      )
-      const simflex = live?.success ? live : null
+  const fetchStats = async () => {
+    const { stats, pipeline, boxes: boxesResponse, live, scanRows, transmitRows } = await fetchDashboardData(brand)
+    const startOfDay = new Date(new Date().setHours(0, 0, 0, 0)).getTime()
+    const boxes = (boxesResponse.boxes || []).filter((box: any) =>
+      box.box_sessions?.some((session: any) => [
+        session.warehouse_time_received,
+        session.inventory_time_received,
+        session.inventory_time_send,
+        session.cut_time_received,
+        session.cut_time_send,
+        session.endorsement_time_received,
+        session.endorsement_time_send,
+        session.scan_time_received,
+        box.latest_inventory_scan_at,
+        box.latest_endorsement_scan_at,
+      ].filter(Boolean).some((time: any) => new Date(time).getTime() >= startOfDay)),
+    )
+    const simflex = live?.success ? live : null
 
-      if (simflex) setLiveScans(simflex.recentScans || [])
-      if (stats.success) {
-        setDashboardStats({
-          ...stats.stats,
-          pipelineStages: buildPipelineStages(boxes, pipeline.activeTransmitBooks || 0),
-          pipelineToday: pipeline.today,
-          dailyTransmitted: Number(simflex?.summary?.completedTransmissions) || 0,
-          totalBooks: Number(simflex?.allTimeTotal) || stats.stats.totalBooks,
-          scanWipCount: Number(simflex?.scanWipCount) || 0,
-          scanEligibleBoxNums: scanRows?.success ? scanRows.rows?.map((row: any) => String(row.BoxNumber || '')).filter(Boolean) : [],
-          transmitEligibleBoxNums: transmitRows?.success ? transmitRows.rows?.map((row: any) => String(row.BoxNumber || '')).filter(Boolean) : [],
-        })
-        setLastStatsUpdate(new Date())
-      }
-    } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error)
+    const newDashboardStats = {
+      ...stats?.stats,
+      pipelineStages: buildPipelineStages(boxes, pipeline?.activeTransmitBooks || 0),
+      pipelineToday: pipeline?.today,
+      dailyTransmitted: Number(simflex?.summary?.completedTransmissions) || 0,
+      totalBooks: Number(simflex?.allTimeTotal) || stats?.stats?.totalBooks || 0,
+      scanWipCount: Number(simflex?.scanWipCount) || 0,
+      scanEligibleBoxNums: scanRows?.success ? scanRows.rows?.map((row: any) => String(row.BoxNumber || '')).filter(Boolean) : [],
+      transmitEligibleBoxNums: transmitRows?.success ? transmitRows.rows?.map((row: any) => String(row.BoxNumber || '')).filter(Boolean) : [],
     }
-  }, [brand])
+
+    return {
+      stats: newDashboardStats,
+      liveScans: simflex ? (simflex.recentScans || []) : []
+    }
+  }
+
+  const { data, isLoading: isRefreshing, mutate } = useSWR(
+    brand ? ['dashboard_stats', brand] : null,
+    fetchStats,
+    { 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+    }
+  )
+
+  const dashboardStats = data?.stats || null
+  const liveScans = data?.liveScans || []
+  const lastStatsUpdate = data ? new Date() : null
 
   const handleSearch = useCallback(async () => {
     if (!searchValue.trim()) return toast({ title: 'Error', description: 'Please enter an ISBN', variant: 'destructive' })
@@ -85,21 +93,16 @@ export function useDashboard() {
   }, [searchValue, toast])
 
   const refreshAll = useCallback(async () => {
-    setIsRefreshing(true)
-    try {
-      await fetchStats()
-      if (searchResult) await handleSearch()
-      setRefreshKey((key) => key + 1)
-    } finally {
-      setIsRefreshing(false)
-    }
-  }, [fetchStats, handleSearch, searchResult])
+    await mutate()
+    if (searchResult) await handleSearch()
+    setRefreshKey((key) => key + 1)
+  }, [mutate, handleSearch, searchResult])
 
   const clearSearch = useCallback(() => {
     setSearchResult(null)
     setSearchValue('')
-    void fetchStats()
-  }, [fetchStats])
+    void mutate()
+  }, [mutate])
 
   const handleBoxScan = useCallback(async () => {
     const boxNumber = boxScanInput.trim()
@@ -119,30 +122,10 @@ export function useDashboard() {
   }, [boxScanInput, toast])
 
   useEffect(() => {
-    setIsRefreshing(true)
-    void fetchStats().finally(() => setIsRefreshing(false))
-  }, [brand, fetchStats])
-
-  const backgroundRefresh = useCallback(async () => {
-    try {
-      await fetchStats()
-      if (searchResult) await handleSearch()
-      setRefreshKey((key) => key + 1)
-    } catch (e) {
-      console.error('Background refresh failed', e)
-    }
-  }, [fetchStats, handleSearch, searchResult])
-
-  const backgroundRefreshRef = useRef(backgroundRefresh)
-  useEffect(() => {
-    backgroundRefreshRef.current = backgroundRefresh
-  }, [backgroundRefresh])
-
-  useEffect(() => {
     const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
-      backgroundRefreshRef.current()
+      mutate()
     }
 
     es.addEventListener('WAREHOUSE_LOCKED', handleUpdate)
@@ -161,7 +144,7 @@ export function useDashboard() {
     }
 
     return () => es.close()
-  }, [])
+  }, [mutate])
 
   return {
     brand, searchOpen, setSearchOpen, searchValue, setSearchValue, searchResult, loading, dashboardStats, isRefreshing, lastStatsUpdate, refreshKey, liveScans, boxScanInput, setBoxScanInput, boxScanModal, setBoxScanModal, loadingBoxScan, handleSearch, handleBoxScan, refreshAll, clearSearch,

@@ -74,7 +74,7 @@ export function useInventoryActions(brand: string, inventory: InventoryState, ve
     setDeleting(true)
     try {
       await deleteInventoryBox(deleteConfirm.id)
-      inventory.setBoxes((prev) => prev.filter((b) => b.id !== deleteConfirm.id))
+      inventory.setBoxes((prev) => prev ? prev.filter((b) => b.id !== deleteConfirm.id) : [])
       setDeleteConfirm(null)
     } catch (e) { alert(e instanceof Error ? e.message : 'Delete failed') }
     finally { setDeleting(false) }
