@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils'
 import { getStepStatus, getStatusConfig, getRelevantTimeForBox, STAGE_META } from '../utils/checkpoints.helpers'
 import type { Stage, BoxItem } from '../types/checkpoints.types'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface PipelineStageCardProps {
   stage: Stage
@@ -9,6 +10,7 @@ interface PipelineStageCardProps {
   brand: string
   onClick: (stage: Stage) => void
   className?: string
+  loading?: boolean
 }
 
 export function PipelineStageCard({
@@ -18,6 +20,7 @@ export function PipelineStageCard({
   brand,
   onClick,
   className,
+  loading,
 }: PipelineStageCardProps) {
   const meta = STAGE_META[stage]
 
@@ -39,7 +42,7 @@ export function PipelineStageCard({
 
   const status = getStepStatus(totalCount)
   const cfg = getStatusConfig(status, brand)
-  const isIdle = status === 'idle'
+  const isIdle = loading ? true : status === 'idle'
 
   return (
     <div
@@ -76,25 +79,31 @@ export function PipelineStageCard({
           <meta.icon className="h-4 w-4" />
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <span
-            className={cn(
-              'text-2xl font-black leading-none truncate tracking-tight transition-colors',
-              cfg.countColor
-            )}
-            title={stage === 'transmit' ? `${totalCount} total books` : `${totalCount} total boxes`}
-          >
-            {activeCount}
-          </span>
-          {bottleneckCount > 0 && (
-            <div
-              className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50"
-              title={`${bottleneckCount} boxes delayed > 1 day`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-              <span className="text-[10px] font-bold leading-none text-orange-600">
-                {bottleneckCount} delayed
+          {loading ? (
+            <Skeleton className="h-6 w-10 rounded bg-black/5 dark:bg-white/5" />
+          ) : (
+            <>
+              <span
+                className={cn(
+                  'text-2xl font-black leading-none truncate tracking-tight transition-colors',
+                  cfg.countColor
+                )}
+                title={stage === 'transmit' ? `${totalCount} total books` : `${totalCount} total boxes`}
+              >
+                {activeCount}
               </span>
-            </div>
+              {bottleneckCount > 0 && (
+                <div
+                  className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50"
+                  title={`${bottleneckCount} boxes delayed > 1 day`}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+                  <span className="text-[10px] font-bold leading-none text-orange-600">
+                    {bottleneckCount} delayed
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -108,19 +117,25 @@ export function PipelineStageCard({
         {meta.label}
       </h3>
       <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0">
-        <div className="flex items-center gap-1">
-          <span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
-          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">
-            {cfg.label}
-          </span>
-        </div>
-        {bottleneckCount > 0 && (
-          <div className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-            <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">
-              Delayed
-            </span>
-          </div>
+        {loading ? (
+          <Skeleton className="h-3 w-16 rounded-sm bg-black/5 dark:bg-white/5" />
+        ) : (
+          <>
+            <div className="flex items-center gap-1">
+              <span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
+              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">
+                {cfg.label}
+              </span>
+            </div>
+            {bottleneckCount > 0 && (
+              <div className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">
+                  Delayed
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

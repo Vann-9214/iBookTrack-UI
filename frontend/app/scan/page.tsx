@@ -21,6 +21,7 @@ export default function ScanPage() {
     setSearchQuery,
     incomingBoxes,
     loading,
+    isRefreshing,
     receivingBox,
     confirmModal,
     openConfirm,
@@ -44,7 +45,7 @@ export default function ScanPage() {
             <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
               <ScanHeader
                 brand={brand}
-                refreshing={loading}
+                refreshing={isRefreshing}
                 onRefresh={() => fetchBoxes()}
                 lastUpdated={lastUpdated}
               />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import useSWR from 'swr'
 import { useBrand } from '@/hooks/use-brand'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUser } from '@/hooks/use-user'
@@ -38,18 +39,32 @@ export function useTransmission() {
   // Live feed state
   const [historySearch, setHistorySearch] = useState('')
   const [historySearchOpen, setHistorySearchOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [summary, setSummary] = useState<LiveSummary | null>(null)
-  const [stages, setStages] = useState<PipelineStageSummary[]>([])
-  const [recentScans, setRecentScans] = useState<ScanBook[]>([])
-  const [allBooks, setAllBooks] = useState<ScanBook[]>([])
-  const [totalBooks, setTotalBooks] = useState(0)
-  const [wipCount, setWipCount] = useState(0)
-  const [limitReached, setLimitReached] = useState(false)
+  const { data, isLoading, mutate } = useSWR(
+    brand ? ['live_transmission', brand, fromDate, toDate, newProcessOnly] : null,
+    async () => {
+      return await fetchLiveTransmissionData({
+        from: fromDate,
+        to: toDate,
+        location: brand,
+        newProcessOnly,
+      })
+    },
+    { revalidateOnFocus: true, dedupingInterval: 2000 }
+  )
+
+  const loading = isLoading || !data
+
+  const summary = data?.summary || null
+  const stages = data?.byStage || []
+  const recentScans = data?.recentScans || []
+  const allBooks = data?.allBooks || []
+  const totalBooks = data?.totalBooks || 0
+  const wipCount = data?.wipCount || 0
+  const byMachine = data?.byMachine || []
+  const limitReached = data?.limitReached || false
+  const lastUpdated = data ? new Date() : null
   const [tableView, setTableView] = useState<TableView>('books')
   const [stageFilter, setStageFilter] = useState<StageFilter | null>(null)
-  const [byMachine, setByMachine] = useState<{ MachineName: string; TotalScans: number }[]>([])
   const [enrichedData, setEnrichedData] = useState<Record<string, EnrichedData>>({})
   const fetchedIsbns = useRef<Set<string>>(new Set())
 
@@ -60,60 +75,21 @@ export function useTransmission() {
   const { user } = useUser()
   const isManager = user?.role === 'supervisor'
 
-  const fetchLiveData = useCallback(
-    async (fromOverride?: string | boolean, toOverride?: string, isBackground?: boolean) => {
-      // If fromOverride is a boolean, it means it's called from the SSE event listener where the first arg is true
-      const _isBackground = typeof fromOverride === 'boolean' ? fromOverride : isBackground;
-      const _fromOverride = typeof fromOverride === 'string' ? fromOverride : undefined;
-      
-      if (_isBackground !== true) setLoading(true)
-      try {
-        const f = _fromOverride || fromDate
-        const t = toOverride || toDate
-        const data = await fetchLiveTransmissionData({
-          from: f,
-          to: t,
-          location: brand,
-          newProcessOnly,
-        })
-        setSummary(data.summary)
-        setStages(data.byStage || [])
-        setRecentScans(data.recentScans || [])
-        setAllBooks(data.allBooks || [])
-        setTotalBooks(data.totalBooks || 0)
-        setWipCount(data.wipCount || 0)
-        setByMachine(data.byMachine || [])
-        setLimitReached(data.limitReached || false)
-        setLastUpdated(new Date())
-      } catch (e) {
-        console.error('Failed to fetch live scanning data:', e)
-      } finally {
-        if (_isBackground !== true) setLoading(false)
-      }
-    },
-    [fromDate, toDate, brand, newProcessOnly]
-  )
-
-  useEffect(() => {
-    fetchLiveData()
-  }, [fetchLiveData])
-
-  const fetchLiveDataRef = useRef(fetchLiveData)
-  useEffect(() => {
-    fetchLiveDataRef.current = fetchLiveData
-  }, [fetchLiveData])
+  const fetchLiveData = useCallback(async () => {
+    await mutate()
+  }, [mutate])
 
   useEffect(() => {
     import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
       const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
-      const handleUpdate = () => fetchLiveDataRef.current(true)
+      const handleUpdate = () => mutate()
       es.addEventListener('SCAN_UPDATED', handleUpdate)
       es.addEventListener('PIPELINE_UPDATED', handleUpdate)
       es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
       es.onerror = () => console.warn('Transmission SSE error - reconnecting')
       return () => es.close()
     })
-  }, [])
+  }, [mutate])
 
   // Ranking
   const [showRanking, setShowRanking] = useState(false)

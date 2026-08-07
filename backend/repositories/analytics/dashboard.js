@@ -190,7 +190,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
       JOIN books b ON ba.book_id = b.id
       JOIN boxes bx ON b.box_id = bx.id
       LEFT JOIN lots l ON bx.lot_id = l.id
-      WHERE uf.rejection_reason NOT IN ('mismatched-book', 'mismatched-books')
+      WHERE 1=1
   `;
   
   const params = [];
@@ -230,7 +230,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
     JOIN book_activity ba ON uf.book_activity_id = ba.id
     JOIN books b ON ba.book_id = b.id
     JOIN boxes bx ON b.box_id = bx.id
-    WHERE uf.rejection_reason NOT IN ('mismatched-book', 'mismatched-books')
+    WHERE 1=1
   `;
 
   if (boxType) {

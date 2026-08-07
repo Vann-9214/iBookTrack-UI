@@ -8,7 +8,7 @@ import type { BoxItem, Stage } from '../types/checkpoints.types'
 import { getApiBaseUrl } from '@/lib/auth-api'
 
 export function useCheckpointBoxes(brand: string) {
-  const { data, isLoading: topLoading, mutate } = useSWR(
+  const { data, isLoading, isValidating, mutate } = useSWR(
     brand ? ['checkpoints_data', brand] : null,
     () => fetchAllCheckpointData(brand),
     { 
@@ -16,6 +16,9 @@ export function useCheckpointBoxes(brand: string) {
       dedupingInterval: 2000,
     }
   )
+
+  const topLoading = isLoading || !data
+  const isRefreshing = isValidating
 
   const boxes = data?.boxData?.boxes || []
   const lastUpdated = data ? new Date() : null
@@ -92,6 +95,7 @@ export function useCheckpointBoxes(brand: string) {
     boxes,
     boxesByStage,
     topLoading,
+    isRefreshing,
     lastUpdated,
     scanBooks,
     transmitBooks,

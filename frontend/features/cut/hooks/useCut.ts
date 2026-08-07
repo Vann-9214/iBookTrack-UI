@@ -10,7 +10,7 @@ export function useCut(brand: string) {
   const [activeTab, setActiveTab] = useState<CutTab>('incoming')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data, isLoading: loading, mutate } = useSWR(
+  const { data, isLoading, isValidating, mutate } = useSWR(
     brand ? ['cut_boxes', brand] : null,
     () => cutService.fetchBoxes(brand, '', 'box'),
     { 
@@ -18,6 +18,9 @@ export function useCut(brand: string) {
       dedupingInterval: 2000,
     }
   )
+
+  const loading = isLoading || !data
+  const isRefreshing = isValidating
 
   const incomingBoxes = data?.incoming || []
   const outgoingBoxes = data?.outgoing || []
@@ -126,6 +129,7 @@ export function useCut(brand: string) {
     setSearchQuery,
     lastUpdated,
     loading,
+    isRefreshing,
     receivingBox,
     sendingBox,
     userName,

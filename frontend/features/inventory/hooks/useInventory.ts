@@ -12,7 +12,7 @@ export function useInventory(brand: string) {
   const [boxBooks, setBoxBooks] = useState<Record<string, BookInBox[]>>({})
   const [loadingBooks, setLoadingBooks] = useState<string | null>(null)
 
-  const { data: boxes = [], isLoading: loadingBoxes, mutate } = useSWR(
+  const { data, isLoading, isValidating, mutate } = useSWR(
     brand ? ['inventory_boxes', brand, searchQuery] : null,
     () => fetchInventoryBoxes(brand, searchQuery),
     { 
@@ -20,6 +20,10 @@ export function useInventory(brand: string) {
       dedupingInterval: 2000,
     }
   )
+
+  const loadingBoxes = isLoading || !data
+  const isRefreshing = isValidating
+  const boxes = data || []
 
   const lastInventoryUpdate = boxes.length > 0 || !loadingBoxes ? new Date() : null
 
@@ -87,6 +91,7 @@ export function useInventory(brand: string) {
     boxBooks,
     setBoxBooks,
     loadingBoxes,
+    isRefreshing,
     loadingBooks,
     lastInventoryUpdate,
     fetchBoxes,

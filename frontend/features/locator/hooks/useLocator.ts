@@ -1,17 +1,39 @@
 import { useState, useEffect, useCallback, useRef } from "react"
+import useSWR from 'swr'
 import { StorageLocation, ReadyBox, PendingAssignment } from "../types/locator.types"
 import { locatorService } from "../services/locator.service"
 import { getSuggestedLocation } from "../utils/locator.helpers"
 
 export function useLocator(brand: string) {
-  const [locations, setLocations] = useState<StorageLocation[]>([])
-  const [readyBoxes, setReadyBoxes] = useState<ReadyBox[]>([])
-  const [pendingAssignments, setPendingAssignments] = useState<PendingAssignment[]>([])
-  const [loadingLocations, setLoadingLocations] = useState(true)
-  const [loadingReady, setLoadingReady] = useState(false)
-  const [loadingPending, setLoadingPending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
+    brand ? ['locator_data', brand] : null,
+    async () => {
+      const [locations, readyBoxes, pendingAssignments] = await Promise.all([
+        locatorService.fetchLocations(),
+        locatorService.fetchReadyBoxes(brand),
+        locatorService.fetchPendingAssignments(brand)
+      ])
+      return { locations, readyBoxes, pendingAssignments }
+    },
+    { revalidateOnFocus: true, dedupingInterval: 2000 }
+  )
+
+  const locations = data?.locations || []
+  const readyBoxes = data?.readyBoxes || []
+  const pendingAssignments = data?.pendingAssignments || []
+  const loadingLocations = isLoading || !data
+  const loadingReady = isLoading || !data
+  const loadingPending = isLoading || !data
+  const isRefreshing = isValidating
+  const error = swrError instanceof Error ? swrError.message : swrError ? String(swrError) : null
+  const lastUpdated = data ? new Date() : null
+
+  const setLocations = useCallback((updater: React.SetStateAction<StorageLocation[]>) => {
+    mutate((prev: any) => ({
+      ...prev,
+      locations: typeof updater === 'function' ? updater(prev?.locations || []) : updater
+    }), false)
+  }, [mutate])
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [expandedPendingLocations, setExpandedPendingLocations] = useState<Set<string>>(new Set())
 
@@ -29,66 +51,15 @@ export function useLocator(brand: string) {
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set())
   const [selectedRemoveAssignments, setSelectedRemoveAssignments] = useState<Set<string>>(new Set())
 
-  const fetchLocations = useCallback(async (isBackground?: boolean) => {
-    if (isBackground !== true) setLoadingLocations(true)
-    setError(null)
-    try {
-      const data = await locatorService.fetchLocations()
-      setLocations(data)
-      setLastUpdated(new Date())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error')
-    } finally {
-      if (isBackground !== true) setLoadingLocations(false)
-    }
-  }, [])
-
-  const fetchReadyBoxes = useCallback(async (isBackground?: boolean) => {
-    if (isBackground !== true) setLoadingReady(true)
-    try {
-      const data = await locatorService.fetchReadyBoxes(brand)
-      setReadyBoxes(data)
-    } finally {
-      if (isBackground !== true) setLoadingReady(false)
-    }
-  }, [brand])
-
-  const fetchPendingAssignments = useCallback(async (isBackground?: boolean) => {
-    if (isBackground !== true) setLoadingPending(true)
-    try {
-      const data = await locatorService.fetchPendingAssignments(brand)
-      setPendingAssignments(data)
-    } finally {
-      if (isBackground !== true) setLoadingPending(false)
-    }
-  }, [brand])
-
-  const refreshLocator = useCallback(async (isBackground?: boolean) => {
-    await Promise.all([fetchLocations(isBackground), fetchReadyBoxes(isBackground), fetchPendingAssignments(isBackground)])
-  }, [fetchLocations, fetchReadyBoxes, fetchPendingAssignments])
-
-  useEffect(() => { fetchLocations() }, [fetchLocations])
-
-  useEffect(() => {
-    if (assignSlot) {
-      fetchReadyBoxes()
-    }
-  }, [brand, assignSlot, fetchReadyBoxes])
-
-  useEffect(() => {
-    fetchReadyBoxes()
-    fetchPendingAssignments()
-  }, [brand, fetchReadyBoxes, fetchPendingAssignments])
-
-  const refreshLocatorRef = useRef(refreshLocator)
-  useEffect(() => {
-    refreshLocatorRef.current = refreshLocator
-  }, [refreshLocator])
+  const fetchLocations = useCallback(async () => { await mutate() }, [mutate])
+  const fetchReadyBoxes = useCallback(async () => { await mutate() }, [mutate])
+  const fetchPendingAssignments = useCallback(async () => { await mutate() }, [mutate])
+  const refreshLocator = useCallback(async () => { await mutate() }, [mutate])
 
   useEffect(() => {
     import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
       const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
-      const handleUpdate = () => refreshLocatorRef.current(true)
+      const handleUpdate = () => mutate()
       es.addEventListener('BOX_UPDATED', handleUpdate)
       es.addEventListener('PIPELINE_UPDATED', handleUpdate)
       es.addEventListener('STORAGE_UPDATED', handleUpdate)
@@ -181,8 +152,6 @@ export function useLocator(brand: string) {
       setRemovingIds(new Set())
     }
   }
-
-  const isRefreshing = loadingLocations || loadingReady || loadingPending
 
   return {
     locations,

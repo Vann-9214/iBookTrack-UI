@@ -32,6 +32,7 @@ export default function BookInspectionPage() {
     filteredOutgoing,
     loadingIncoming,
     loadingEndorsement,
+    isRefreshing,
     receivingBox,
     sendingToScan,
     expandedBoxId,
@@ -98,7 +99,7 @@ export default function BookInspectionPage() {
             <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
               <EndorsementHeader
                 brand={brand}
-                refreshing={loadingIncoming || loadingEndorsement}
+                refreshing={isRefreshing}
                 onRefresh={refreshAll}
                 lastUpdated={lastUpdated}
               />
@@ -118,7 +119,7 @@ export default function BookInspectionPage() {
                   <EndorsementSearch
                     searchQuery={searchQuery}
                     setSearchQuery={setSearchQuery}
-                    loading={loadingIncoming || loadingEndorsement}
+                    loading={isRefreshing}
                   />
                   <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
                   <EndorsementTabs

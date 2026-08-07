@@ -111,9 +111,9 @@ export function TransitionLogRow({
   }
 
   return (
-    <div className="border-b border-border/50 last:border-0 flex flex-col bg-card hover:bg-muted/30 transition-colors">
+    <div className="flex flex-col bg-card hover:bg-muted/40 border border-border/50 shadow-sm rounded-xl overflow-hidden transition-colors duration-200">
       <div
-        className="flex items-center px-6 py-4 cursor-pointer gap-8"
+        className="flex items-center px-4 py-2.5 cursor-pointer gap-6 relative"
         onClick={onToggle}
       >
         <div className="w-[40px] shrink-0 flex items-center justify-start">
@@ -121,7 +121,7 @@ export function TransitionLogRow({
         </div>
         <div className="w-[260px] shrink-0 flex items-center">
           <div className="w-[110px] shrink-0 flex flex-col mr-2">
-            <span className="font-bold text-foreground text-sm truncate">{box.box_number}</span>
+            <span className="font-bold text-foreground text-[13px] truncate">{box.box_number}</span>
             {box.lot?.lot_number && (
               <span className="text-[10px] text-muted-foreground font-semibold truncate">
                 {box.lot.lot_number}
@@ -144,19 +144,19 @@ export function TransitionLogRow({
         </div>
 
         <div className="w-[190px] shrink-0">
-          <span className={`px-2 py-0.5 rounded text-[11px] font-bold tracking-wide whitespace-nowrap ${statusColor}`}>
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wide whitespace-nowrap ${statusColor}`}>
             {statusText}
           </span>
         </div>
 
         <div className="w-[140px] shrink-0 flex flex-col">
-          <span className="text-sm font-semibold text-foreground">
+          <span className="text-[13px] font-semibold text-foreground">
             {t.total_processable_books ?? 0} / {box.total_expected_books ?? 0}
           </span>
         </div>
 
         <div className="w-[140px] shrink-0 flex flex-col">
-          <span className="text-sm font-semibold text-foreground">
+          <span className="text-[13px] font-semibold text-foreground">
             {isCompleted || box.is_fully_completed_in_simflex 
               ? Math.max(box.total_transmitted_books ?? 0, t.total_processable_books ?? 0)
               : (box.total_transmitted_books ?? 0)} / {t.total_processable_books ?? 0}
@@ -164,7 +164,7 @@ export function TransitionLogRow({
         </div>
 
         <div className="w-[170px] shrink-0 flex flex-col min-w-0">
-          <span className="text-sm font-semibold text-foreground truncate" title={holderName}>
+          <span className="text-[13px] font-semibold text-foreground truncate" title={holderName}>
             {holderName}
           </span>
           <span className="text-[11px] text-muted-foreground">{holderStage}</span>

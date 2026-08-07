@@ -72,7 +72,7 @@ export default function InventoryPage() {
             <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
               <InventoryHeader
                 brand={brand}
-                refreshing={inventory.loadingBoxes || actions.isManualRefreshing}
+                refreshing={inventory.isRefreshing || actions.isManualRefreshing}
                 onRefresh={actions.handleManualRefresh}
                 lastUpdated={inventory.lastInventoryUpdate}
               />

@@ -27,6 +27,7 @@ export default function CutPage() {
     setSearchQuery,
     lastUpdated,
     loading,
+    isRefreshing,
     receivingBox,
     sendingBox,
     userName,
@@ -55,7 +56,7 @@ export default function CutPage() {
             <div className="flex flex-col gap-4 sm:gap-6 p-4 sm:p-6 lg:p-8 pb-safe-6">
               <CutHeader
                 brand={brand}
-                refreshing={loading}
+                refreshing={isRefreshing}
                 onRefresh={() => fetchBoxes()}
                 lastUpdated={lastUpdated}
               />

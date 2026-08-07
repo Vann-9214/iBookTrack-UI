@@ -27,6 +27,7 @@ export default function NonProcessablePage() {
     resolvingId,
     structuredLots,
     loading,
+    isRefreshing,
     sessionResolvedFlags,
     flagToResolve, setFlagToResolve,
     selectedCategory, setSelectedCategory,
@@ -54,7 +55,7 @@ export default function NonProcessablePage() {
               selectedWeek={selectedWeek}
               setSelectedWeek={setSelectedWeek}
 
-              loading={loading}
+              loading={isRefreshing}
               lastUpdated={lastUpdated}
               fetchCounts={fetchCounts}
             />
