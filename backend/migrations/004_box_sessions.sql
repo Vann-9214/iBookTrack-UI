@@ -138,3 +138,20 @@ CREATE TRIGGER check_box_stage_change
 BEFORE UPDATE OF current_stage ON boxes
 FOR EACH ROW
 EXECUTE FUNCTION validate_pipeline_stage_status();
+
+CREATE OR REPLACE FUNCTION public.prevent_direct_box_session_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+  IF pg_trigger_depth() = 0 THEN
+    RAISE EXCEPTION 'Direct deletion of box_sessions records is not allowed. They can only be deleted by deleting the parent box.';
+  END IF;
+  RETURN OLD;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_prevent_direct_box_session_delete ON public.box_sessions;
+CREATE TRIGGER trg_prevent_direct_box_session_delete
+BEFORE DELETE ON public.box_sessions
+FOR EACH ROW EXECUTE FUNCTION public.prevent_direct_box_session_delete();

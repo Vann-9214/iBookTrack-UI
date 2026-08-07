@@ -92,7 +92,7 @@ export function BarcodeResultCard({ result, onRemove }: BarcodeResultCardProps) 
                 <BodyCell>{result.bookType}</BodyCell>
                 <BodyCell>
                   {result.status
-                    ? <StatusBadge status={result.status} rejectionReason={result.rejectionReason} />
+                    ? <StatusBadge status={result.status} rejectionReason={result.rejectionReason} isResolved={result.isResolved} />
                     : <span className="text-xs text-muted-foreground">—</span>}
                 </BodyCell>
               </TableRow>

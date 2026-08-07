@@ -424,7 +424,7 @@ export const getBookActivityWithFlags = async (boxId) => {
   try {
     const { rows } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.warehouse_scan_at, ba.transmission_status,
-             uf.rejection_reason as "user_flags.rejection_reason", uf.notes as "user_flags.notes",
+             uf.rejection_reason as "user_flags.rejection_reason", uf.notes as "user_flags.notes", uf.is_resolved as "user_flags.is_resolved",
              b.isbn as "books.isbn", b.title as "books.title", b.author as "books.author", b.box_id as "books.box_id"
       FROM book_activity ba 
       JOIN books b ON ba.book_id = b.id
@@ -440,8 +440,8 @@ export const getBookActivityWithFlags = async (boxId) => {
           books: { isbn: r['books.isbn'], title: r['books.title'], author: r['books.author'], box_id: r['books.box_id'] }
         });
       }
-      if (r['user_flags.rejection_reason']) {
-        grouped.get(r.id).user_flags.push({ rejection_reason: r['user_flags.rejection_reason'], notes: r['user_flags.notes'] });
+      if (r['user_flags.rejection_reason'] || r['user_flags.is_resolved']) {
+        grouped.get(r.id).user_flags.push({ rejection_reason: r['user_flags.rejection_reason'], notes: r['user_flags.notes'], is_resolved: r['user_flags.is_resolved'] });
       }
     }
     const data = Array.from(grouped.values());

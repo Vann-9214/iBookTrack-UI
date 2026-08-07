@@ -111,18 +111,20 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
       return
     }
 
-    const prevStatus = (warehouseBook?.scan_status ?? 'processable') as 'processable' | 'non_processable'
-
     setLoadingInspSession(true)
     try {
       const data = await endorsementService.searchIlms(isbn)
       if (data.success && data.data && !data.data.Message) {
-        addInspBookLocal(
-          { isbn: data.data.ISBN || isbn, title: data.data.Title || warehouseBook?.title || `ISBN: ${isbn}`, author: data.data?.AuthorName || data.data?.Author || warehouseBook?.author || '' }, 
-          prevStatus, 
-          warehouseBook?.rejection_reason || null,
-          warehouseBook?.notes || null
-        )
+        if (!warehouseBook) {
+          addInspBookLocal({ isbn: data.data.ISBN || isbn, title: data.data.Title || `ISBN: ${isbn}`, author: data.data?.AuthorName || data.data?.Author || '' }, 'non_processable', 'extra-book')
+        } else {
+          addInspBookLocal(
+            { isbn: data.data.ISBN || isbn, title: data.data.Title || warehouseBook?.title || `ISBN: ${isbn}`, author: data.data?.AuthorName || data.data?.Author || warehouseBook?.author || '' }, 
+            'processable', 
+            undefined,
+            undefined
+          )
+        }
       } else {
         toast.error(`ISBN ${isbn} not found in ${brand.toUpperCase()} records.`)
       }
@@ -258,7 +260,16 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
     setLoadingInspSession(true)
     try {
       for (const book of inspScannedBooks) {
-        await endorsementService.saveScanBook(inspCurrentSession.id, book)
+        const warehouseBook = warehouseBooks.find((wb) => wb.isbn === book.isbn)
+        const payload = { ...book }
+        
+        // Prevent sending inherited flags as new flags
+        if (warehouseBook && warehouseBook.rejection_reason === book.flag_issue) {
+          payload.flag_issue = undefined
+          payload.flag_remarks = undefined
+        }
+
+        await endorsementService.saveScanBook(inspCurrentSession.id, payload)
       }
       await endorsementService.completeSession(inspCurrentSession.id, inspScannedBooks.length)
       setInspSessionActive(false)

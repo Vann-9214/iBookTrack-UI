@@ -54,7 +54,7 @@ export function InventoryVerificationBoxList({
       emptySubtext={emptySubtext}
       emptyIcon={emptyIcon}
       defaultPageSize={defaultPageSize}
-      subtitleSuffix="Received from Inventory"
+      subtitleSuffix="Received from Warehouse"
       renderDate={(box) => {
         if (sessionOngoing) return null
         const isVerifying = box.box_sessions?.[0]?.status === 'in_progress' || box.box_sessions?.[0]?.status === 'delayed'

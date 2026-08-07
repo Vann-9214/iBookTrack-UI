@@ -23,6 +23,7 @@ export default function ReportsPage() {
     setPage,
     totalPages,
     loading,
+    isRefreshing,
     error,
     timestamp,
     lastUpdated,
@@ -52,7 +53,7 @@ export default function ReportsPage() {
             brand={brand}
             timestamp={timestamp}
             lastUpdated={lastUpdated}
-            loading={loading}
+            loading={isRefreshing}
             onRefresh={fetchData}
             lots={lots}
           />

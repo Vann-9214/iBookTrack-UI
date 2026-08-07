@@ -59,7 +59,7 @@ export const queryIsbnStreamService = async (req, res) => {
         FROM books b
         LEFT JOIN boxes bx ON b.box_id = bx.id
         LEFT JOIN lots l ON bx.lot_id = l.id
-        WHERE b.isbn = $1 AND b.is_missing = false
+        WHERE b.isbn = $1 AND b.is_nonprocessable = false
       `;
       const params = [cleaned];
       if (type) {
@@ -91,7 +91,7 @@ export const queryIsbnStreamService = async (req, res) => {
         FROM books b
         LEFT JOIN boxes bx ON b.box_id = bx.id
         LEFT JOIN lots l ON bx.lot_id = l.id
-        WHERE b.isbn = $1 AND b.is_missing = true
+        WHERE b.isbn = $1 AND b.is_nonprocessable = true
       `;
       const params = [cleaned];
       if (type) {
@@ -183,7 +183,7 @@ export const searchIsbnService = async (req, res) => {
 
     // Search in warehouse scan logs
     const { rows: rawScans } = await db.query(`
-      SELECT ba.*, uf.rejection_reason, b.isbn, b.title, b.author, b.book_type, bx.box_number, bx.current_stage, l.lot_number
+      SELECT ba.*, uf.rejection_reason, uf.is_resolved, b.isbn, b.title, b.author, b.book_type, bx.box_number, bx.current_stage, l.lot_number
       FROM book_activity ba
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
       JOIN books b ON ba.book_id = b.id
@@ -247,7 +247,8 @@ export const searchIsbnService = async (req, res) => {
         lot_number: lotNumber || ilmsLotNo || 'Unknown',
         current_stage: scans?.[0]?.current_stage || (inWarehouse ? 'Unknown' : 'Not scanned yet'),
         scan_status: scans?.[0]?.scan_status || null,
-        rejection_reason: scans?.[0]?.rejection_reason || null,
+        rejection_reason: scans?.[0]?.rejection_reason ? (scans[0].is_resolved ? null : scans[0].rejection_reason) : null,
+        is_resolved: scans?.[0]?.is_resolved || false,
         book_type: scans?.[0]?.book_type || book?.book_type || null,
         scanned: scans && scans.length > 0,
         scan_count: scans?.length || 0,
@@ -256,7 +257,7 @@ export const searchIsbnService = async (req, res) => {
       },
       scans: scans.map(s => ({
         ...s,
-        user_flags: { rejection_reason: s.rejection_reason },
+        user_flags: { rejection_reason: s.is_resolved ? null : s.rejection_reason, is_resolved: s.is_resolved },
         books: { isbn: s.isbn, title: s.title, author: s.author, book_type: s.book_type, box: { box_number: s.box_number, current_stage: s.current_stage, lot: { lot_number: s.lot_number } } }
       })),
       currentLocation: book ? {

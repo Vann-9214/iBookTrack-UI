@@ -79,7 +79,7 @@ export default function StationCheckpointsPage() {
             )}
             <CheckpointsHeader
               brand={brand}
-              topLoading={cp.topLoading}
+              topLoading={cp.isRefreshing}
               transitionsLoading={cp.transitions.transitionsLoading}
               lastUpdated={cp.lastUpdated}
               onRefresh={cp.fetchData}

@@ -300,17 +300,25 @@ export const getBoxByNumberService = async (req) => {
   if (boxError) throw boxError;
   if (!box) throw { status: 404, message: 'Box not found' };
 
-  const { data: scans } = await boxesRepo.getBookActivityForBox(box.id);
+  const { data: scans } = await boxesRepo.getBookActivityWithFlags(box.id);
 
-  const books = (scans || []).map(s => ({
-    id: s.id,
-    isbn: s.books?.isbn,
-    title: s.books?.title,
-    book_type: s.books?.book_type,
-    scan_status: s.scan_status,
-    transmission_status: s.transmission_status,
-    scanned_at: s.warehouse_scan_at,
-  }));
+  const books = (scans || []).map(s => {
+    const flagRec = Array.isArray(s.user_flags) && s.user_flags.length > 0 ? s.user_flags[0] : null;
+    const is_resolved = flagRec?.is_resolved || false;
+    const rejection_reason = flagRec?.rejection_reason || (s.scan_status === 'non_processable' ? 'non-processable' : null);
+    
+    return {
+      id: s.id,
+      isbn: s.books?.isbn,
+      title: s.books?.title,
+      book_type: s.books?.book_type,
+      scan_status: s.scan_status,
+      transmission_status: s.transmission_status,
+      scanned_at: s.warehouse_scan_at,
+      is_resolved,
+      rejection_reason
+    };
+  });
 
   return { box: { ...box, books } };
 };
@@ -326,17 +334,20 @@ export const getBoxByIdService = async (req) => {
 
   const books = (scans || []).map(s => {
     let flag = null;
+    let is_resolved = false;
     if ((Array.isArray(s.user_flags) && s.user_flags.length > 0) || s.scan_status === 'non_processable') {
       const flagRec = Array.isArray(s.user_flags) && s.user_flags.length > 0 ? s.user_flags[0] : null;
+      is_resolved = flagRec?.is_resolved || false;
+      const rawIssue = flagRec?.rejection_reason || 'non-processable';
       flag = {
-        issue: flagRec?.rejection_reason || 'non-processable',
+        issue: is_resolved ? `(Resolved) ${rawIssue}` : rawIssue,
         remarks: flagRec?.notes || '',
         flagged_at: s.warehouse_scan_at,
         flagged_by_name: 'Warehouse scan',
         source: 'scan_status',
       };
     }
-    return { ...s, isbn: s.books?.isbn, title: s.books?.title, author: s.books?.author, flag };
+    return { ...s, isbn: s.books?.isbn, title: s.books?.title, author: s.books?.author, flag, is_resolved };
   });
 
   const totalFlagCount = books.filter(b => b.flag !== null).length;
@@ -600,7 +611,8 @@ export const getBoxTransmissionService = async (req) => {
       isbn: isbn,
       title: s.books?.title || null,
       scan_status: s.scan_status,
-      rejection_reason: (Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags)?.rejection_reason || null,
+      rejection_reason: (() => { const f = Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags; return f?.is_resolved ? null : f?.rejection_reason || null; })(),
+      is_resolved: (() => { const f = Array.isArray(s.user_flags) ? s.user_flags[0] : s.user_flags; return f?.is_resolved || false; })(),
       warehouse_scan_at: s.warehouse_scan_at,
       simflex_status: sf.latestStatus || null,
       transmission_completed: sf.transmissionCompleted || false,

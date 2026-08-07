@@ -19,7 +19,7 @@ export function useScan() {
 
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: incomingBoxes = [], isLoading: loading, mutate } = useSWR(
+  const { data, isLoading, isValidating, mutate } = useSWR(
     brand ? ['scan_boxes', brand] : null,
     () => fetchIncomingBoxes(brand, '', 'box'),
     { 
@@ -27,6 +27,10 @@ export function useScan() {
       dedupingInterval: 2000,
     }
   )
+
+  const loading = isLoading || !data
+  const isRefreshing = isValidating
+  const incomingBoxes = data || []
 
   const lastUpdated = incomingBoxes.length > 0 || !loading ? new Date() : null
 
@@ -108,6 +112,7 @@ export function useScan() {
     setSearchQuery,
     incomingBoxes: filteredIncoming,
     loading,
+    isRefreshing,
     receivingBox,
     confirmModal,
     openConfirm,

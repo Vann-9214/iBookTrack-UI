@@ -240,6 +240,11 @@ export function TransmissionBookTable({
                             ⚠ {r.rejection_reason}
                           </p>
                         )}
+                        {r.is_resolved && (
+                          <span className="inline-flex mt-0.5 text-[8px] font-bold tracking-wide uppercase text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-sm ring-1 ring-gray-200 leading-none">
+                            Resolved
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-2 align-middle">
                         <p className="text-muted-foreground truncate max-w-[160px] leading-tight" title={r.author || '—'}>
@@ -263,7 +268,7 @@ export function TransmissionBookTable({
                         )}
                       </td>
                       <td className="px-3 py-2 align-middle text-center">
-                        {r.scan_status === 'processable' && (
+                        {r.scan_status === 'processable' && !r.is_resolved && (
                           <RoleGuard allowedRoles={['scan']} action="hide">
                             <Button
                               variant="ghost"

@@ -5,6 +5,7 @@ export interface BookEntry {
   author?: string
   status: string
   rejectionReason?: string
+  isResolved?: boolean
 }
 
 // Result from a QR scan (pipe-delimited box label)
@@ -28,6 +29,7 @@ export interface BarcodeResult {
   bookType: string      // 'Mustang' | 'Jaguar' | '—'
   status: string        // 'P' | 'NP' | ''
   rejectionReason: string
+  isResolved?: boolean
   loading: boolean
   notFound: boolean
 }
@@ -42,6 +44,7 @@ export interface IsbnLookupBook {
   book_type?: string
   scan_status?: string
   rejection_reason?: string
+  is_resolved?: boolean
 }
 
 export interface IsbnLookupResponse {

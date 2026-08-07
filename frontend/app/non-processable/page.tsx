@@ -18,6 +18,7 @@ export default function NonProcessablePage() {
 
   const {
     totalCount,
+    resolvedCount,
     issueBreakdown,
     timelineData,
     searchQuery, setSearchQuery,
@@ -27,6 +28,7 @@ export default function NonProcessablePage() {
     resolvingId,
     structuredLots,
     loading,
+    isRefreshing,
     sessionResolvedFlags,
     flagToResolve, setFlagToResolve,
     selectedCategory, setSelectedCategory,
@@ -54,7 +56,7 @@ export default function NonProcessablePage() {
               selectedWeek={selectedWeek}
               setSelectedWeek={setSelectedWeek}
 
-              loading={loading}
+              loading={isRefreshing}
               lastUpdated={lastUpdated}
               fetchCounts={fetchCounts}
             />
@@ -62,7 +64,7 @@ export default function NonProcessablePage() {
             <NonProcessableKPIs
               totalCount={totalCount}
               issueBreakdown={issueBreakdown}
-              resolvedCount={sessionResolvedFlags.length}
+              resolvedCount={resolvedCount}
               loading={loading}
               setSelectedCategory={setSelectedCategory}
               isJaguar={isJaguar}

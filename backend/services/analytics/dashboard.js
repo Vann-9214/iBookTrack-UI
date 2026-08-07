@@ -223,6 +223,7 @@ export const getQcFlagsService = async (req) => {
       assigned_box: box.box_number
         ? { box_number: box.box_number, box_type: box.box_type || null, lot: lot.lot_number ? { lot_number: lot.lot_number } : null }
         : null,
+      is_resolved: f.is_resolved || false,
     };
   });
 

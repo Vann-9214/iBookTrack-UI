@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import useSWR from 'swr'
 import { LotStatusRow, FilterStatus, SortKey, SortDir } from '../types/reports.types'
 import { reportsService } from '../services/reports.service'
 import { filterAndSortLots } from '../utils/reports.helpers'
 
 export function useReports(brand: string) {
-  const [lots, setLots] = useState<LotStatusRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [timestamp, setTimestamp] = useState('')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [filter, setFilter] = useState<FilterStatus>('all')
@@ -40,41 +38,40 @@ export function useReports(brand: string) {
     setBoxPageByLot(p => ({ ...p, [lotId]: page }))
   }
 
-  const fetchData = useCallback(async (isBackground?: boolean) => {
-    if (isBackground !== true) setLoading(true)
-    setError(null)
-    try {
+  const { data, isLoading, isValidating, error: swrError, mutate } = useSWR(
+    brand ? ['reports_data', brand] : null,
+    async () => {
       const fetchedLots = await reportsService.fetchLotStatus(brand)
-      setLots(fetchedLots)
       const now = new Date()
       setTimestamp(now.toLocaleString())
       setLastUpdated(now)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error')
-    } finally {
-      if (isBackground !== true) setLoading(false)
+      return fetchedLots
+    },
+    { 
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
     }
-  }, [brand])
+  )
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+  const loading = isLoading || !data
+  const isRefreshing = isValidating
+  const lots = data || []
+  const error = swrError instanceof Error ? swrError.message : swrError ? String(swrError) : null
 
-  const fetchDataRef = useRef(fetchData)
-  useEffect(() => {
-    fetchDataRef.current = fetchData
-  }, [fetchData])
+  const fetchData = useCallback(async () => {
+    await mutate()
+  }, [mutate])
 
   useEffect(() => {
     import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
       const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
-      const handleUpdate = () => fetchDataRef.current(true)
+      const handleUpdate = () => mutate()
       es.addEventListener('PIPELINE_UPDATED', handleUpdate)
       es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
       es.onerror = () => console.warn('Reports SSE error - reconnecting')
       return () => es.close()
     })
-  }, [])
+  }, [mutate])
 
   const counts = useMemo(() => ({
     all: lots.length,
@@ -115,6 +112,7 @@ export function useReports(brand: string) {
     setPage,
     totalPages,
     loading,
+    isRefreshing,
     error,
     timestamp,
     lastUpdated,

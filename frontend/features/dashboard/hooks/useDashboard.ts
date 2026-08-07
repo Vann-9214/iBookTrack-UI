@@ -57,7 +57,7 @@ export function useDashboard() {
     }
   }
 
-  const { data, isLoading: isRefreshing, mutate } = useSWR(
+  const { data, isLoading, isValidating, mutate } = useSWR(
     brand ? ['dashboard_stats', brand] : null,
     fetchStats,
     { 
@@ -66,6 +66,8 @@ export function useDashboard() {
     }
   )
 
+  const isInitialLoading = isLoading || !data
+  const isRefreshing = isValidating
   const dashboardStats = data?.stats || null
   const liveScans = data?.liveScans || []
   const lastStatsUpdate = data ? new Date() : null
@@ -147,7 +149,7 @@ export function useDashboard() {
   }, [mutate])
 
   return {
-    brand, searchOpen, setSearchOpen, searchValue, setSearchValue, searchResult, loading, dashboardStats, isRefreshing, lastStatsUpdate, refreshKey, liveScans, boxScanInput, setBoxScanInput, boxScanModal, setBoxScanModal, loadingBoxScan, handleSearch, handleBoxScan, refreshAll, clearSearch,
+    brand, searchOpen, setSearchOpen, searchValue, setSearchValue, searchResult, loading, dashboardStats, isInitialLoading, isRefreshing, lastStatsUpdate, refreshKey, liveScans, boxScanInput, setBoxScanInput, boxScanModal, setBoxScanModal, loadingBoxScan, handleSearch, handleBoxScan, refreshAll, clearSearch,
     displayText: getDashboardDisplayText('', null),
   }
 }

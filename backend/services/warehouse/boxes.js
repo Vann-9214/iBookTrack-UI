@@ -70,6 +70,7 @@ export const getRejectedBooksService = async (req, res) => {
       JOIN books b ON ba.book_id = b.id
       LEFT JOIN boxes bx ON b.box_id = bx.id
       LEFT JOIN lots l ON bx.lot_id = l.id
+      WHERE uf.is_resolved = false
       ORDER BY uf.warehouse_flag_at DESC
       LIMIT $1
     `;

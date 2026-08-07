@@ -15,18 +15,40 @@ export function TransitionTimeline({
   stageIdx,
   isCompleted,
 }: TransitionTimelineProps) {
+  let exactProgress = stageIdx
+
+  if (!isCompleted) {
+    if (stageIdx === 0) {
+      if (t.warehouse_scan_name) exactProgress += 0.5
+    } else if (stageIdx === 1) {
+      // "If completed move forward a bit on line, and if sent move forward again"
+      if (t.inventory_send_name) exactProgress += 0.66
+      else if (t.inventory_scan_name) exactProgress += 0.33
+    } else if (stageIdx === 2) {
+      if (t.cut_send_name) exactProgress += 0.5
+    } else if (stageIdx === 3) {
+      if (t.endorsement_send_name) exactProgress += 0.66
+      else if (t.endorsement_scan_name) exactProgress += 0.33
+    }
+  } else {
+    exactProgress = PIPELINE_STAGES.length - 1
+  }
+
   return (
-    <div className="px-4 sm:px-6 py-4 bg-muted/20 border-t border-border overflow-x-auto">
-      <div className="flex items-start justify-between relative px-4 min-w-[900px] gap-4">
-        {/* Connecting background line */}
-        <div className="absolute top-3 left-14 right-14 h-[2px] bg-border z-0" />
-        {/* Progress line */}
-        <div
-          className="absolute top-3 left-14 h-[2px] bg-primary z-0 transition duration-500"
-          style={{
-            width: `calc(${isCompleted ? 100 : (stageIdx / (PIPELINE_STAGES.length - 1)) * 100}% - 112px)`,
-          }}
-        />
+    <div className="px-4 sm:px-6 py-6 bg-muted/20 border-t border-border/50 shadow-[inset_0_4px_12px_-6px_rgba(0,0,0,0.05)] rounded-b-xl overflow-x-auto relative">
+      <div className="flex items-start relative min-w-[900px]">
+        {/* Lines Container (spanning from exact center of first item to exact center of last item) */}
+        <div className="absolute top-3 left-[8.333%] right-[8.333%] h-[2px]">
+          {/* Background line */}
+          <div className="absolute inset-0 bg-border z-0" />
+          {/* Progress line */}
+          <div
+            className="absolute top-0 left-0 bottom-0 bg-primary z-0 transition-all duration-500 ease-out"
+            style={{
+              width: `${(exactProgress / (PIPELINE_STAGES.length - 1)) * 100}%`,
+            }}
+          />
+        </div>
 
         {PIPELINE_STAGES.map((s, i) => {
           const isPast = isCompleted || i < stageIdx

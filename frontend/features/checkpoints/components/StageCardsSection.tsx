@@ -1,6 +1,5 @@
 import { Boxes } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Skeleton } from '@/components/ui/skeleton'
 import { STAGE_ORDER } from '../utils/checkpoints.helpers'
 import { PipelineStageCard } from './PipelineStageCard'
 import { PipelineLegend } from './PipelineLegend'
@@ -39,43 +38,33 @@ export function StageCardsSection({
         </div>
 
         <div className="hidden lg:flex items-stretch gap-3">
-          {topLoading ? (
-            STAGE_ORDER.map((stage) => (
-              <Skeleton key={stage} className="h-[120px] flex-1 min-w-0 rounded-2xl bg-black/5" />
-            ))
-          ) : (
-            STAGE_ORDER.map((stage) => (
-              <PipelineStageCard
-                key={stage}
-                stage={stage}
-                boxes={boxesByStage[stage]}
-                transmitBooks={transmitBooks}
-                brand={brand}
-                onClick={onSelectStage}
-                className="flex-1 min-w-0"
-              />
-            ))
-          )}
+          {STAGE_ORDER.map((stage) => (
+            <PipelineStageCard
+              key={stage}
+              stage={stage}
+              boxes={boxesByStage[stage] || []}
+              transmitBooks={transmitBooks}
+              brand={brand}
+              onClick={onSelectStage}
+              className="flex-1 min-w-0"
+              loading={topLoading}
+            />
+          ))}
         </div>
 
-        <div className="flex flex-wrap justify-center gap-3 lg:hidden">
-          {topLoading ? (
-            STAGE_ORDER.map((stage) => (
-              <Skeleton key={stage} className="h-[120px] w-[calc(50%-0.375rem)] rounded-2xl bg-black/5" />
-            ))
-          ) : (
-            STAGE_ORDER.map((stage) => (
-              <PipelineStageCard
-                key={stage}
-                stage={stage}
-                boxes={boxesByStage[stage]}
-                transmitBooks={transmitBooks}
-                brand={brand}
-                onClick={onSelectStage}
-                className="hover:scale-[1.01] w-[calc(50%-0.375rem)]"
-              />
-            ))
-          )}
+        <div className="flex flex-wrap justify-center gap-3 lg:hidden mt-4">
+          {STAGE_ORDER.map((stage) => (
+            <PipelineStageCard
+              key={stage}
+              stage={stage}
+              boxes={boxesByStage[stage] || []}
+              transmitBooks={transmitBooks}
+              brand={brand}
+              onClick={onSelectStage}
+              className="hover:scale-[1.01] w-[calc(50%-0.375rem)]"
+              loading={topLoading}
+            />
+          ))}
         </div>
 
         <PipelineLegend brand={brand} />

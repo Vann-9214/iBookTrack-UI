@@ -23,7 +23,7 @@ export function useEndorsement() {
   // ── Search ────────────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data, isLoading, mutate } = useSWR(
+  const { data, isLoading, isValidating, mutate } = useSWR(
     brand ? ['endorsement_boxes', brand] : null,
     () => endorsementService.fetchAllEndorsementData(brand, '', 'box'),
     { 
@@ -36,8 +36,9 @@ export function useEndorsement() {
   const endorsementBoxes = data?.endorsement || []
   const lastUpdated = data ? new Date() : null
 
-  const loadingIncoming = isLoading
-  const loadingEndorsement = isLoading
+  const loadingIncoming = isLoading || !data
+  const loadingEndorsement = isLoading || !data
+  const isRefreshing = isValidating
 
   const [receivingBox, setReceivingBox] = useState<string | null>(null)
 
@@ -186,6 +187,7 @@ export function useEndorsement() {
     filteredOutgoing,
     loadingIncoming,
     loadingEndorsement,
+    isRefreshing,
     receivingBox,
     sendingToScan,
     expandedBoxId,

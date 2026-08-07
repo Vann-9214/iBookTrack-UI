@@ -6,6 +6,7 @@
  * before it is saved or returned to the user.
  */
 
+import { db } from '../../config/db.js';
 import * as booksRepo from '../../repositories/inventory/books.js';
 import { ilmsApi } from '../../services/ilms/api.js';
 import { logger } from '../../utils/logger.js';
@@ -38,6 +39,11 @@ export const flagBookService = async (req, res) => {
   
   const { data: latestActivity } = await booksRepo.getLatestActivity(scan.book_id || scan.books?.id);
   const activityId = latestActivity?.id || id;
+  const actualBookId = scan.book_id || scan.books?.id;
+
+  const { rows: resFlags } = await db.query('SELECT 1 FROM user_flags uf JOIN book_activity ba ON uf.book_activity_id = ba.id WHERE ba.book_id = $1 AND uf.is_resolved = true LIMIT 1', [actualBookId]);
+  if (resFlags.length > 0) throw { status: 400, payload: { error: 'This book has a resolved flag and cannot be flagged again.' } };
+
   
   const { data: flagData, error: flagError } = await booksRepo.insertFlag({
     book_activity_id: activityId,
@@ -49,7 +55,6 @@ export const flagBookService = async (req, res) => {
   if (flagError) throw flagError;
 
   if (issue === 'mismatched-book') {
-    const actualBookId = scan.book_id || scan.books?.id;
     await booksRepo.markBookAsMismatch(actualBookId);
     if (ilms_title && physical_title) {
       await booksRepo.insertMismatchInfo({

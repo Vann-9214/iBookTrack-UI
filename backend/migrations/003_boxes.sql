@@ -65,3 +65,22 @@ FOR EACH ROW EXECUTE FUNCTION update_lots_from_boxes();
 
 DROP TRIGGER IF EXISTS trg_boxes_updated_at ON public.boxes;
 CREATE TRIGGER trg_boxes_updated_at BEFORE UPDATE ON public.boxes FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+CREATE OR REPLACE FUNCTION public.delete_empty_lot()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM public.boxes WHERE lot_id = OLD.lot_id
+    ) THEN
+        DELETE FROM public.lots WHERE id = OLD.lot_id;
+    END IF;
+    RETURN OLD;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trigger_delete_empty_lot ON public.boxes;
+CREATE TRIGGER trigger_delete_empty_lot
+AFTER DELETE OR UPDATE OF lot_id ON public.boxes
+FOR EACH ROW EXECUTE FUNCTION public.delete_empty_lot();

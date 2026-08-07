@@ -38,9 +38,9 @@ export default function DashboardPage() {
               onSearch={dashboard.handleSearch}
               onClear={dashboard.clearSearch}
             />
-            <DashboardStats stats={dashboard.dashboardStats} refreshKey={dashboard.refreshKey} loading={dashboard.isRefreshing} />
-            <DashboardPipeline currentLot={dashboard.displayText} stats={dashboard.dashboardStats} brand={dashboard.brand} loading={dashboard.isRefreshing} />
-            <DashboardRecentActivity scans={dashboard.liveScans} loading={dashboard.isRefreshing} />
+            <DashboardStats stats={dashboard.dashboardStats} refreshKey={dashboard.refreshKey} loading={dashboard.isInitialLoading} />
+            <DashboardPipeline currentLot={dashboard.displayText} stats={dashboard.dashboardStats} brand={dashboard.brand} loading={dashboard.isInitialLoading} />
+            <DashboardRecentActivity scans={dashboard.liveScans} loading={dashboard.isInitialLoading} />
           </div>
         </div>
       </DashboardMain>

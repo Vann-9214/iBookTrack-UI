@@ -16,7 +16,7 @@ export function useWarehouse() {
   const { brand } = useBrand()
   const core = useWarehouseState()
   const { toast } = useToast()
-  const { data: lots = [], isLoading: lotsLoading, error, mutate } = useSWR(
+  const { data, isLoading, isValidating, error, mutate } = useSWR(
     'warehouse_lots',
     fetchLots,
     { 
@@ -24,6 +24,10 @@ export function useWarehouse() {
       dedupingInterval: 2000,
     }
   )
+
+  const lotsLoading = isLoading || !data
+  const isRefreshing = isValidating
+  const lots = data || []
 
   const session = useWarehouseSession(core, lots, mutate)
   const scans = useWarehouseScans(core)
@@ -115,6 +119,7 @@ export function useWarehouse() {
     ...scans,
     lots,
     lotsLoading,
+    isRefreshing,
     lotsError,
     loadLots,
     handleRefreshStats,

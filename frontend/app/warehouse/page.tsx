@@ -114,7 +114,7 @@ export default function WarehousePage() {
                           </button>
                           <RefreshControl
                             onRefresh={wh.handleRefreshStats}
-                            refreshing={wh.refreshingStats || wh.lotsLoading}
+                            refreshing={wh.refreshingStats || wh.isRefreshing}
                             lastUpdated={wh.lastStatsUpdate}
                             storageKey="warehouse"
                             className="hidden sm:flex"

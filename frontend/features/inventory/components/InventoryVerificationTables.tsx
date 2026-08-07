@@ -69,7 +69,16 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                     </div>
                     <div className="col-span-4 sm:col-span-4 flex items-center justify-end min-w-0 pr-6">
                       {book.scan_status === 'processable' ? (
-                        book.rejection_reason === 'mismatched-book' ? (
+                        book.is_resolved ? (
+                          <div className="flex flex-col items-end justify-center gap-1">
+                            <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5 leading-none">
+                              Processable
+                            </span>
+                            <span className="text-[8px] font-bold tracking-wide uppercase text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-sm ring-1 ring-gray-200 leading-none">
+                              Resolved
+                            </span>
+                          </div>
+                        ) : book.rejection_reason === 'mismatched-book' ? (
                           <div className="flex flex-col items-end justify-center">
                             <span className="text-right text-[8.5px] font-bold text-amber-600 max-w-[150px] leading-none mb-0.5 truncate">
                               Mismatched
@@ -162,19 +171,32 @@ export function InventoryVerificationTables({ verification }: { verification: Re
                           </div>
                         ) : (
                           <div className="flex gap-1.5 items-center">
-                            <span className="px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5 whitespace-nowrap">Processable</span>
-                            <button
-                              onClick={() => openVerifMismatchModal(book)}
-                              className="rounded-lg border border-amber-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-amber-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-amber-200/40 whitespace-nowrap"
-                            >
-                              Mismatch
-                            </button>
-                            <button
-                              onClick={() => openVerifFlagModal(book)}
-                              className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40 whitespace-nowrap"
-                            >
-                              Flag
-                            </button>
+                            {warehouseBook?.is_resolved ? (
+                              <div className="flex flex-col items-end justify-center gap-1">
+                                <span className="px-2 py-0.5 rounded text-[11px] font-medium whitespace-nowrap border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5 leading-none">
+                                  Processable
+                                </span>
+                                <span className="text-[8px] font-bold tracking-wide uppercase text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-sm ring-1 ring-gray-200 leading-none">
+                                  Resolved
+                                </span>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="px-2 py-0.5 rounded text-[11px] font-medium border border-emerald-200 bg-gradient-to-br from-emerald-50 via-emerald-100/50 to-emerald-100 text-emerald-700 shadow-sm shadow-emerald-950/5 whitespace-nowrap">Processable</span>
+                                <button
+                                  onClick={() => openVerifMismatchModal(book)}
+                                  className="rounded-lg border border-amber-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-amber-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-amber-300 hover:bg-amber-50 hover:shadow-amber-200/40 whitespace-nowrap"
+                                >
+                                  Mismatch
+                                </button>
+                                <button
+                                  onClick={() => openVerifFlagModal(book)}
+                                  className="rounded-lg border border-rose-200/80 bg-white/75 px-2 py-1 text-[10px] font-semibold text-rose-600 shadow-sm transition-all hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50 hover:shadow-rose-200/40 whitespace-nowrap"
+                                >
+                                  Flag
+                                </button>
+                              </>
+                            )}
                           </div>
                         )
                       ) : (

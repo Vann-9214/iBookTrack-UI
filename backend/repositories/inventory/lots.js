@@ -112,7 +112,7 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
     SELECT 
       ba.id, ba.scan_status, ba.warehouse_scan_at,
       ba.transmission_status, ba.transmission_updated_at,
-      uf.rejection_reason as "user_flags.rejection_reason",
+      uf.rejection_reason as "user_flags.rejection_reason", uf.is_resolved as "user_flags.is_resolved",
       b.isbn as "books.isbn", b.title as "books.title", b.author as "books.author", b.box_id as "books.box_id",
       bx.box_number as "boxes.box_number", bx.current_stage as "boxes.current_stage"
     FROM book_activity ba
@@ -134,7 +134,7 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
         warehouse_scan_at: row.warehouse_scan_at,
         transmission_status: row.transmission_status,
         transmission_updated_at: row.transmission_updated_at,
-        user_flags: [],
+        user_flags: null,
         books: {
           isbn: row['books.isbn'],
           title: row['books.title'],
@@ -147,8 +147,8 @@ export const getBookActivitiesForBoxes = async (boxIds) => {
         }
       });
     }
-    if (row['user_flags.rejection_reason']) {
-      grouped.get(row.id).user_flags.push({ rejection_reason: row['user_flags.rejection_reason'] });
+    if (row['user_flags.rejection_reason'] || row['user_flags.is_resolved']) {
+      grouped.get(row.id).user_flags = { rejection_reason: row['user_flags.rejection_reason'], is_resolved: row['user_flags.is_resolved'] };
     }
   }
   

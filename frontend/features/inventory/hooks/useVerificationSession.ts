@@ -123,7 +123,12 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
         return
       }
       const details = { isbn: data.data.ISBN || isbn, title: data.data.Title || warehouse?.title || `ISBN: ${isbn}`, author: data.data?.AuthorName || data.data?.Author || warehouse?.author || '' }
-      saveVerifBookToLocal(details, warehouse?.scan_status || 'processable', warehouse?.rejection_reason || null, warehouse?.notes || null)
+      saveVerifBookToLocal(
+        details, 
+        warehouse?.is_resolved ? 'processable' : (warehouse?.scan_status || 'processable'), 
+        warehouse?.is_resolved ? null : (warehouse?.rejection_reason || null), 
+        warehouse?.is_resolved ? null : (warehouse?.notes || null)
+      )
     } catch {
       toast({ title: 'API Error', description: 'Failed to fetch book details. Cannot verify ISBN.', variant: 'destructive' })
     } finally { setLoadingVerifBooks(false) }

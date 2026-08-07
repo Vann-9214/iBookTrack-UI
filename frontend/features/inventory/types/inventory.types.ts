@@ -11,6 +11,7 @@ export interface BookInBox {
   scanned_at: string
   book_type?: string
   flag?: { issue: string; remarks: string }
+  is_resolved?: boolean
 }
 
 export interface InventoryBoxSession {
@@ -83,6 +84,7 @@ export interface WarehouseBook {
   author?: string | null
   scan_status: 'processable' | 'non_processable'
   rejection_reason?: string
+  is_resolved?: boolean
   notes?: string
   scanned_at: string
   scanned_by_name: string
