@@ -85,17 +85,6 @@ export function PipelineStageCard({
           >
             {activeCount}
           </span>
-          {bottleneckCount > 0 && (
-            <div
-              className="flex items-center gap-1 bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50"
-              title={`${bottleneckCount} boxes delayed > 1 day`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-              <span className="text-[10px] font-bold leading-none text-orange-600">
-                {bottleneckCount} delayed
-              </span>
-            </div>
-          )}
         </div>
       </div>
       <h3
@@ -107,7 +96,7 @@ export function PipelineStageCard({
       >
         {meta.label}
       </h3>
-      <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0">
+      <div className="flex flex-wrap items-center gap-3 mt-1.5 shrink-0 w-full">
         <div className="flex items-center gap-1">
           <span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
           <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">
@@ -115,11 +104,21 @@ export function PipelineStageCard({
           </span>
         </div>
         {bottleneckCount > 0 && (
-          <div className="flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-            <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">
-              Delayed
-            </span>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+              <span className="text-[9px] font-bold text-orange-500 uppercase tracking-wide">
+                Delayed
+              </span>
+            </div>
+            <div
+              className="flex items-center justify-center bg-orange-100/50 px-1.5 py-0.5 rounded border border-orange-200/50"
+              title={`${bottleneckCount} delayed`}
+            >
+              <span className="text-[10px] font-bold leading-none text-orange-600">
+                {bottleneckCount}
+              </span>
+            </div>
           </div>
         )}
       </div>

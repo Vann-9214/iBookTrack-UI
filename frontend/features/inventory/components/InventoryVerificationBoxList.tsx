@@ -1,6 +1,6 @@
 'use client'
 
-import { ClipboardList, Loader2 } from 'lucide-react'
+import { ClipboardList, Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { InventoryBoxList } from './InventoryBoxList'
 import { InventoryBookList } from './InventoryBookList'
@@ -84,11 +84,23 @@ export function InventoryVerificationBoxList({
         if (session?.status === 'in_progress' || session?.status === 'delayed') {
           if (session.inventory_session_started_by !== currentUserId) {
             return (
-              <div className="flex flex-col items-end shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-                <span className={cn('text-[10px] font-bold uppercase tracking-wider', session.status === 'delayed' ? 'text-amber-500' : 'text-red-500')}>
-                  {session.status === 'delayed' ? 'Delayed' : 'Locked'}
+              <div className="flex items-center gap-2 shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border',
+                  session.status === 'delayed'
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                )}>
+                  {session.status === 'delayed' ? (
+                    <AlertCircle className="h-3.5 w-3.5" />
+                  ) : (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  )}
+                  <span className="uppercase">
+                    {session.status === 'delayed' ? 'Delayed' : 'In Progress'}
+                  </span>
                 </span>
-                <span className={cn('text-[10px]', isExpanded ? 'text-white/80' : 'text-muted-foreground')}>
+                <span className={cn('hidden lg:inline text-[10px] font-medium', isExpanded ? 'text-white/80' : 'text-muted-foreground')}>
                   by {session.inventory_started_profile?.name || 'another user'}
                 </span>
               </div>
@@ -99,7 +111,7 @@ export function InventoryVerificationBoxList({
               onClick={(e) => { e.stopPropagation(); onStartSession(box) }}
               disabled={loadingStartSession}
               className={cn(
-                'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
+                'hidden lg:flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
                 isExpanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
               )}
             >
@@ -113,7 +125,7 @@ export function InventoryVerificationBoxList({
             onClick={(e) => { e.stopPropagation(); onStartSession(box) }}
             disabled={loadingStartSession}
             className={cn(
-              'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
+              'hidden lg:flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
               isExpanded ? 'bg-white text-primary shadow-sm hover:bg-white/90' : 'premium-gradient-ui-card--solid text-white'
             )}
           >

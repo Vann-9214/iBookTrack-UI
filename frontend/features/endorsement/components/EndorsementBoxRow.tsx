@@ -53,7 +53,7 @@ export function EndorsementBoxRow({
         </div>
 
         {/* Box Name / Badge */}
-        <div className="col-span-4 sm:col-span-3 min-w-0">
+        <div className="col-span-3 sm:col-span-3 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={cn('text-[11px] sm:text-[12px] font-bold truncate block transition-colors', expanded ? 'text-white' : 'text-gray-800 group-hover:text-black')}>
               BOX {box.box_number}
@@ -78,22 +78,22 @@ export function EndorsementBoxRow({
         </div>
 
         {/* Book count */}
-        <div className="col-span-3 sm:col-span-2 flex justify-center">
+        <div className="col-span-2 sm:col-span-2 flex justify-center">
           <div className={cn(
-            'text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm transition-colors',
+            'text-[10px] font-bold px-2.5 py-0.5 rounded-full border shadow-sm transition-colors whitespace-nowrap',
             expanded
               ? 'bg-white/20 border-white/20 text-white'
               : 'bg-white/60 text-gray-600 border-black/5 group-hover:text-primary group-hover:border-primary/30'
           )}>
-            {bookCount} {bookCount === 1 ? 'book' : 'books'}
+            <span>{bookCount}</span><span className="hidden sm:inline">&nbsp;{bookCount === 1 ? 'book' : 'books'}</span>
           </div>
         </div>
 
         {/* Actions / Expand */}
-        <div className="col-span-4 sm:col-span-3 flex justify-end items-center gap-2 pr-6">
+        <div className="col-span-6 sm:col-span-3 flex justify-end items-center min-h-[32px]">
           {action}
-          <div className="flex items-center gap-1.5 ml-2">
-            <span className={cn('text-[10px] font-medium hidden sm:inline transition-colors', expanded ? 'text-white/80' : 'text-muted-foreground')}>
+          <div className="flex items-center justify-end shrink-0 ml-1">
+            <span className={cn('text-[10px] font-medium hidden lg:inline transition-colors', expanded ? 'text-white/80' : 'text-muted-foreground')}>
               {expanded ? 'Collapse' : 'Expand'}
             </span>
             <ChevronRight className={cn(

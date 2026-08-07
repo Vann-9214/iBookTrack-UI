@@ -30,7 +30,7 @@ export default function TransmissionMonitorPage() {
         <DashboardNavbar />
         <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-6 p-6 lg:p-8 pb-safe-6">
-            <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <header className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 relative sm:min-h-[105px] xl:min-h-0">
               <TransmissionHeader 
                 brand={brand} 
                 mobileRightContent={

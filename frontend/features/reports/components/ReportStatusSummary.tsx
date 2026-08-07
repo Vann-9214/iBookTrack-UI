@@ -40,12 +40,12 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
         },
     emerald: {
       card: 'bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70',
-      icon: 'bg-primary shadow-emerald-500/25',
+      icon: 'bg-emerald-600 shadow-emerald-500/25',
       value: 'text-emerald-700',
       title: 'text-emerald-950/70',
-      sub: 'text-primary/80',
+      sub: 'text-emerald-700/80',
       hover: 'hover:shadow-emerald-200/60',
-      activeRing: 'ring-2 ring-primary/50 border-primary shadow-md',
+      activeRing: 'ring-2 ring-emerald-500/50 border-emerald-500 shadow-md',
     },
     amber: {
       card: 'bg-gradient-to-br from-amber-50 via-card to-orange-100/60 border-2 border-amber-200/80 ring-amber-100/70',
@@ -58,12 +58,12 @@ export const ReportStatusSummary: React.FC<ReportStatusSummaryProps> = ({
     },
     blue: {
       card: 'bg-blue-50 border-2 border-blue-200/80 ring-blue-100/70',
-      icon: 'bg-primary shadow-blue-500/25',
+      icon: 'bg-blue-600 shadow-blue-500/25',
       value: 'text-blue-700',
       title: 'text-blue-950/70',
-      sub: 'text-primary/80',
+      sub: 'text-blue-700/80',
       hover: 'hover:shadow-blue-200/60',
-      activeRing: 'ring-2 ring-primary/50 border-primary shadow-md',
+      activeRing: 'ring-2 ring-blue-500/50 border-blue-500 shadow-md',
     },
     solid: isJaguar
       ? {
