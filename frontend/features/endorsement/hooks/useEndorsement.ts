@@ -80,7 +80,17 @@ export function useEndorsement() {
   const [sendingToScan, setSendingToScan] = useState<string | null>(null)
 
   const outgoingBoxes = endorsementBoxes.filter((b) => b.box_sessions?.some((s) => s.status === 'completed'))
-  const inspectionBoxes = endorsementBoxes.filter((b) => !b.box_sessions?.some((s) => s.status === 'completed'))
+  const inspectionBoxes = endorsementBoxes
+    .filter((b) => !b.box_sessions?.some((s) => s.status === 'completed'))
+    .sort((a, b) => {
+      const aStatus = a.box_sessions?.[0]?.status
+      const bStatus = b.box_sessions?.[0]?.status
+      const aIsActive = aStatus === 'in_progress' || aStatus === 'delayed'
+      const bIsActive = bStatus === 'in_progress' || bStatus === 'delayed'
+      if (aIsActive && !bIsActive) return -1
+      if (!aIsActive && bIsActive) return 1
+      return 0
+    })
 
   const filteredIncoming = incomingBoxes.filter(b => matchesSearch(b, searchQuery))
   const filteredInspection = inspectionBoxes.filter(b => matchesSearch(b, searchQuery))

@@ -49,7 +49,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
                     onClick={(e) => { e.stopPropagation(); actions.handlePrintLabel(box) }}
                     disabled={actions.loadingPrint === box.id}
                     className={cn(
-                      'flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
+                      'hidden lg:flex items-center justify-center gap-1.5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-md disabled:opacity-60 transition-colors shrink-0',
                       expanded
                         ? 'bg-white text-foreground shadow-sm hover:bg-white/90'
                         : 'bg-white/60 border border-white/80 text-foreground hover:bg-white/80'
@@ -59,16 +59,17 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
                     {actions.loadingPrint === box.id ? 'Loading...' : 'Print Label'}
                   </button>
                 )}
-                <label className="flex items-center gap-1.5 cursor-default shrink-0">
-                  <input
-                    type="checkbox"
-                    checked={boxLabelPrinted}
-                    readOnly
-                    className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
-                    title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
-                  />
-                  {isMobile && <span className={cn("text-xs font-semibold", expanded ? "text-white/90" : "text-muted-foreground")}>Printed</span>}
-                </label>
+                {!isMobile && (
+                  <label className="hidden lg:flex items-center gap-1.5 cursor-default shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={boxLabelPrinted}
+                      readOnly
+                      className="h-4 w-4 rounded border-border accent-primary cursor-default shrink-0"
+                      title={boxLabelPrinted ? 'Label printed' : 'Label not yet printed'}
+                    />
+                  </label>
+                )}
                 <button
                   onClick={(e) => { e.stopPropagation(); actions.openConfirm('send_to_cut', box) }}
                   disabled={actions.sendingToCut === box.id || !allPrinted}

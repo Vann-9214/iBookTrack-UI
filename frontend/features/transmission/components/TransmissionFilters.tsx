@@ -139,59 +139,16 @@ export function TransmissionFilters({
         </div>
       </div>
 
-      {/* Desktop layout: all inline */}
-      <div className="hidden sm:flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">From</span>
-          <Popover open={fromDateOpenDesktop} onOpenChange={setFromDateOpenDesktop}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                {fromDate ? format(new Date(fromDate), 'MMM dd, yyyy') : 'Pick date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={fromDate ? new Date(fromDate) : undefined}
-                onSelect={(date) => {
-                  setFromDate(date ? format(date, 'yyyy-MM-dd') : '')
-                  setFromDateOpenDesktop(false)
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">To</span>
-          <Popover open={toDateOpenDesktop} onOpenChange={setToDateOpenDesktop}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="h-8 w-36 justify-start text-left font-normal text-xs">
-                <CalendarIcon className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
-                {toDate ? format(new Date(toDate), 'MMM dd, yyyy') : 'Pick date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={toDate ? new Date(toDate) : undefined}
-                onSelect={(date) => {
-                  setToDate(date ? format(date, 'yyyy-MM-dd') : '')
-                  setToDateOpenDesktop(false)
-                }}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        {NewProcessCheckbox}
-        <div className="flex items-center gap-1.5">
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
+      {/* Desktop & Mobile Landscape layout */}
+      <div className="hidden sm:flex absolute xl:relative top-0 right-0 flex-col xl:flex-row items-end xl:items-center gap-2 xl:gap-2 w-auto">
+        
+        {/* Buttons: Top right on sm, Right side on xl */}
+        <div className="flex items-center gap-1.5 order-1 xl:order-3">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5 h-8">
             {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
             Export
           </Button>
-          <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={handleOpenRanking} className="gap-1.5 h-8">
             <Trophy className="h-3.5 w-3.5" /> Ranking
           </Button>
           <RefreshControl
@@ -199,8 +156,59 @@ export function TransmissionFilters({
             refreshing={loading}
             lastUpdated={lastUpdated}
             storageKey="transmission"
-            className="hidden sm:flex"
+            className="hidden sm:flex h-8"
           />
+        </div>
+
+        {/* Dates & Checkbox: Below buttons on sm, Left side on xl */}
+        <div className="flex items-center gap-2 flex-wrap justify-end order-2 xl:order-1 mt-6 xl:mt-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground hidden xl:inline">From</span>
+            <Popover open={fromDateOpenDesktop} onOpenChange={setFromDateOpenDesktop}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-8 w-[120px] xl:w-36 justify-start text-left font-normal text-xs px-2 xl:px-3">
+                  <CalendarIcon className="mr-1.5 xl:mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">{fromDate ? format(new Date(fromDate), 'MMM dd, yy') : 'Pick date'}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={fromDate ? new Date(fromDate) : undefined}
+                  onSelect={(date) => {
+                    setFromDate(date ? format(date, 'yyyy-MM-dd') : '')
+                    setFromDateOpenDesktop(false)
+                  }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground hidden xl:inline">To</span>
+            <Popover open={toDateOpenDesktop} onOpenChange={setToDateOpenDesktop}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-8 w-[120px] xl:w-36 justify-start text-left font-normal text-xs px-2 xl:px-3">
+                  <CalendarIcon className="mr-1.5 xl:mr-2 h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="truncate">{toDate ? format(new Date(toDate), 'MMM dd, yy') : 'Pick date'}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={toDate ? new Date(toDate) : undefined}
+                  onSelect={(date) => {
+                    setToDate(date ? format(date, 'yyyy-MM-dd') : '')
+                    setToDateOpenDesktop(false)
+                  }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="bg-card/50 px-2 py-1 rounded-md border border-border/40 xl:border-transparent xl:bg-transparent xl:p-0">
+            {NewProcessCheckbox}
+          </div>
         </div>
       </div>
     </>

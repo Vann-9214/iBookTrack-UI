@@ -112,7 +112,7 @@ export function TransmissionMetrics({
         <div className="group relative overflow-hidden rounded-2xl border p-5 shadow-sm ring-1 transition duration-300 hover:-translate-y-1 hover:shadow-xl bg-emerald-50 border-2 border-emerald-200/80 ring-emerald-100/70 hover:shadow-emerald-200/60">
           <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/25 blur-2xl" />
           <div className="relative flex items-start justify-between mb-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-primary shadow-emerald-500/25">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110 bg-emerald-500 shadow-emerald-500/25">
               <CheckCircle2 className="h-6 w-6" />
             </div>
             {failedTransmissions > 0 && (
@@ -121,7 +121,7 @@ export function TransmissionMetrics({
           </div>
           <div className="relative text-4xl font-black mb-0.5 tracking-tight tabular-nums text-emerald-700">{loading ? '…' : `${passRate}%`}</div>
           <div className="relative text-sm font-semibold mb-0.5 text-emerald-950/70">Pass Rate</div>
-          <div className="relative text-xs font-medium text-primary/80">transmission success rate</div>
+          <div className="relative text-xs font-medium text-emerald-800/80">transmission success rate</div>
         </div>
         <div
           className={cn(

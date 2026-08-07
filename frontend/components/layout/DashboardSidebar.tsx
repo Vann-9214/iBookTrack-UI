@@ -362,7 +362,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
       <button
         className="2xl:hidden fixed top-3 z-50 flex items-center justify-center w-8 h-8 rounded-lg shadow-lg text-white"
-        style={{ left: 'calc(0.75rem + env(safe-area-inset-left))', background: colors.sidebar }}
+        style={{ left: 'calc(0.75rem + env(safe-area-inset-left))', background: `color-mix(in srgb, ${colors.sidebar} 82%, #000)` }}
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation"
       >

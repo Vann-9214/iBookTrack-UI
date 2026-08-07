@@ -24,7 +24,7 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
 }) => {
   return (
     <header className="relative z-10 shrink-0">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between flex-wrap">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between flex-wrap">
         <div className="flex items-start gap-3 sm:gap-4 w-full sm:w-auto">
           <div
             className={cn(
@@ -34,7 +34,7 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
           >
             <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7" />
           </div>
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 sm:pr-[140px] lg:pr-0">
             <div className="flex items-start justify-between">
               <div className="min-w-0">
                 <h1 className="text-2xl sm:text-3xl font-black tracking-tighter text-foreground leading-none">
@@ -50,7 +50,11 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
                   >
                     {brand}
                   </span>
-                  {timestamp && <span className="ml-2 hidden sm:inline">· Updated {timestamp}</span>}
+                  {timestamp && (
+                    <span className="hidden sm:block lg:inline lg:ml-2 mt-1 sm:mt-1.5 lg:mt-0 text-xs font-medium text-muted-foreground/80">
+                      <span className="hidden lg:inline">· </span>Updated {timestamp}
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-3">
@@ -66,16 +70,13 @@ export const ReportsHeader: React.FC<ReportsHeaderProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-end sm:justify-end gap-2 w-full sm:w-auto">
-          <div className="hidden sm:block">
-            <ReportsExportButton brand={brand} lots={lots} disabled={loading} />
-          </div>
+        <div className="hidden sm:flex absolute top-0 right-0 lg:relative lg:top-auto lg:right-auto items-center gap-2">
+          <ReportsExportButton brand={brand} lots={lots} disabled={loading} />
           <RefreshControl
             onRefresh={onRefresh}
             refreshing={loading}
             lastUpdated={lastUpdated}
             storageKey="reports"
-            className="hidden sm:flex"
           />
         </div>
       </div>

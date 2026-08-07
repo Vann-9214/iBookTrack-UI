@@ -96,66 +96,88 @@ export function NonProcessableList({
             <Boxes className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-[15px] font-black tracking-tight leading-none text-foreground/80">Non-Processable by Lot & Box</h2>
+            <h2 className="text-[15px] font-black tracking-tight leading-snug sm:leading-none text-foreground/80">
+              <span className="lg:hidden"><span className="whitespace-nowrap">Non-Processable</span><br />by Lot & Box</span>
+              <span className="hidden lg:inline"><span className="whitespace-nowrap">Non-Processable</span> by Lot & Box</span>
+            </h2>
             <p className="text-[11.5px] font-medium mt-0.5 text-primary/80">
-              Items flagged during receiving and QC
+              <span className="sm:hidden">Items flagged during<br />receiving and QC</span>
+              <span className="hidden sm:inline">Items flagged during receiving and QC</span>
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0 flex-wrap lg:flex-nowrap">
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-9">
-            <TabsList className="h-9 p-1">
-              <TabsTrigger 
-                value="all" 
-                className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
-              >
-                All
-              </TabsTrigger>
-              <TabsTrigger 
-                value="non-processable" 
-                className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
-              >
-                Non-Processable
-              </TabsTrigger>
-              <TabsTrigger 
-                value="mismatch" 
-                className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
-              >
-                Mismatch
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="relative group">
-            <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-primary group-focus-within:text-primary" : "text-primary group-focus-within:text-primary")} />
-            <Input 
-              placeholder="Search lots or ISBN..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={cn(
-                "w-[200px] sm:w-56 h-9 pl-9 pr-3 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0",
-                isJaguar ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
-              )}
-            />
+        <div className="flex flex-row flex-wrap lg:flex-nowrap sm:justify-end items-center gap-2.5 sm:gap-x-3 sm:gap-y-2.5 lg:gap-3 w-full sm:w-auto mt-3 sm:mt-0">
+          
+          {/* 1. Tabs (Portrait: 1, Landscape: 4, Desktop: 1) */}
+          <div className="w-full sm:w-auto order-1 sm:order-4 lg:order-1 flex justify-start sm:justify-end lg:block">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-9 w-full sm:w-auto">
+              <TabsList className="h-9 p-1 w-full sm:w-auto justify-start">
+                <TabsTrigger 
+                  value="all" 
+                  className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
+                >
+                  All
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="non-processable" 
+                  className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
+                >
+                  Non-Processable
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="mismatch" 
+                  className="text-xs px-3 sm:px-4 h-7 !flex-initial transition-all duration-300 ease-in-out hover:bg-blue-50 hover:text-blue-700 data-[state=active]:hover:bg-transparent"
+                >
+                  Mismatch
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
-          <button
-            onClick={() => setExportOpen(true)}
-            className={cn(
-              'inline-flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap',
-              isJaguar
-                ? 'bg-emerald-600 text-white ring-emerald-200/50 hover:bg-emerald-700'
-                : 'bg-blue-600 text-white ring-blue-200/50 hover:bg-blue-700'
-            )}
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export Mismatched
-          </button>
-          <div className={cn(
-            'inline-flex items-center shrink-0 rounded-xl px-2.5 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap',
-            isJaguar ? 'bg-emerald-50 text-emerald-700 ring-emerald-200/50' : 'bg-blue-50 text-blue-700 ring-blue-200/50'
-          )}>
-            {currentTotalCount} flags
+
+          {/* 2. Search (Portrait: 2, Landscape: 2, Desktop: 2) */}
+          <div className="w-full sm:w-auto order-2 sm:order-2 lg:order-2 flex justify-start lg:block">
+            <div className="relative group w-full sm:w-auto">
+              <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors", isJaguar ? "text-primary group-focus-within:text-primary" : "text-primary group-focus-within:text-primary")} />
+              <Input 
+                placeholder="Search lots or ISBN..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={cn(
+                  "w-full sm:w-48 lg:w-56 h-9 pl-9 pr-3 text-xs font-medium bg-white/60 border border-slate-200/60 shadow-[0_1px_3px_-1px_rgba(0,0,0,0.05)] transition duration-300 rounded-xl placeholder:text-slate-400 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-offset-0",
+                  isJaguar ? "focus-visible:border-emerald-300 focus-visible:ring-emerald-100/50" : "focus-visible:border-blue-300 focus-visible:ring-blue-100/50"
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Line Break for Landscape Only */}
+          <div className="hidden sm:block lg:hidden w-full h-0 m-0 p-0 order-3" />
+
+          {/* 3. Export (Portrait: 3, Landscape: 1, Desktop: 3) */}
+          <div className="flex-1 sm:flex-none order-3 sm:order-1 lg:order-3 flex justify-start sm:justify-end lg:block min-w-0">
+            <button
+              onClick={() => setExportOpen(true)}
+              className={cn(
+                'inline-flex items-center justify-center sm:justify-start gap-1.5 shrink-0 rounded-xl px-3 py-1.5 h-9 sm:h-auto text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap w-full sm:w-auto',
+                isJaguar
+                  ? 'bg-emerald-600 text-white ring-emerald-200/50 hover:bg-emerald-700'
+                  : 'bg-blue-600 text-white ring-blue-200/50 hover:bg-blue-700'
+              )}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export Mismatched
+            </button>
+          </div>
+
+          {/* 4. Flags (Portrait: 4, Landscape: 5, Desktop: 4) */}
+          <div className="w-auto sm:w-auto order-4 sm:order-5 lg:order-4 flex items-center justify-start sm:justify-end lg:block shrink-0">
+            <div className={cn(
+              'inline-flex items-center justify-center sm:justify-start shrink-0 rounded-xl px-2.5 py-1.5 h-9 sm:h-auto text-[10px] font-black uppercase tracking-widest shadow-sm ring-1 transition whitespace-nowrap w-full sm:w-auto',
+              isJaguar ? 'bg-emerald-50 text-emerald-700 ring-emerald-200/50' : 'bg-blue-50 text-blue-700 ring-blue-200/50'
+            )}>
+              {currentTotalCount} flags
+            </div>
           </div>
         </div>
       </div>
