@@ -32,7 +32,7 @@ export function InventoryOutgoingTab({ inventory, actions }: { inventory: Return
         emptyText="No outgoing boxes yet"
         emptySubtext="Complete a verification session in the Book Verification tab to add boxes here."
         emptyIcon={<Send className="h-5 w-5" />}
-        subtitleSuffix="Completed Scan Boxes"
+        subtitleSuffix="Completed Verification Boxes"
         renderDate={(box) => {
           const verifiedTime = box.latest_inventory_scan_at
           return verifiedTime ? new Date(verifiedTime) : (box.created_at ? new Date(box.created_at) : null)
