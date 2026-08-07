@@ -103,5 +103,5 @@ export const insertMismatchInfo = async (mismatchData) => {
 };
 
 export const markBookAsMismatch = async (book_id) => {
-  await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [book_id]);
+  // Mismatched books are processable; we no longer set an is_mismatch column
 };

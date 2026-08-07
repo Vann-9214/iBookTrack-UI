@@ -6,7 +6,7 @@ import { broadcastEvent } from '../../utils/sse.js';
 export const scanBookService = async (req, res) => {
   try {
     const { session_id } = req.params
-    let { isbn, title: scannedTitle, author: scannedAuthor, scan_status, rejection_reason, notes, book_type, mismatch_details } = req.body
+    let { isbn, title: scannedTitle, author: scannedAuthor, scan_status, rejection_reason, notes, book_type, mismatch_details, stage: reqStage } = req.body
 
     if (book_type) book_type = book_type.charAt(0).toUpperCase() + book_type.slice(1).toLowerCase();
     if (!isbn) return res.status(400).json({ error: 'ISBN is required' })
@@ -64,7 +64,7 @@ export const scanBookService = async (req, res) => {
       bookId = newBookRows[0].id;
     }
 
-    const stage = currentBox?.current_stage || 'warehouse';
+    const stage = reqStage || currentBox?.current_stage || 'warehouse';
     
     const actCols = ['session_id', 'book_id', 'scan_status'];
     const actVals = [session_id, bookId, scan_status];
@@ -109,7 +109,10 @@ export const scanBookService = async (req, res) => {
     }
 
     if (rejection_reason || notes) {
-      const flagInsert = { rejection_reason: rejection_reason || null, notes: notes || null };
+      const { rows: resFlags } = await db.query('SELECT 1 FROM user_flags uf JOIN book_activity ba ON uf.book_activity_id = ba.id WHERE ba.book_id = $1 AND uf.is_resolved = true LIMIT 1', [bookId]);
+      if (resFlags.length > 0) return res.status(400).json({ error: 'This book has a resolved flag and cannot be flagged again.' });
+
+    const flagInsert = { rejection_reason: rejection_reason || null, notes: notes || null };
       if (stage === 'inventory') { flagInsert.inventory_flag_by = req.user.id; flagInsert.inventory_flag_at = new Date().toISOString(); }
       else if (stage === 'qa' || stage === 'endorsement') { flagInsert.endorsement_flag_by = req.user.id; flagInsert.endorsement_flag_at = new Date().toISOString(); }
       else if (stage === 'scan') { flagInsert.scan_flag_by = req.user.id; flagInsert.scan_flag_at = new Date().toISOString(); }
@@ -138,9 +141,10 @@ export const scanBookService = async (req, res) => {
         );
       }
 
-      if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [bookId]);
+      if (rejection_reason !== 'mismatched-book') {
+        await db.query('UPDATE books SET is_nonprocessable = true WHERE id = $1', [bookId]);
+      }
       if (rejection_reason === 'mismatched-book') {
-        await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
         if (mismatch_details && mismatch_details.ilms_title && mismatch_details.physical_title) {
           await db.query(`
             INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
@@ -205,9 +209,10 @@ export const flagScanService = async (req, res) => {
       await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
     }
 
-    if (rejection_reason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existingScan.book_id]);
+    if (rejection_reason !== 'mismatched-book') {
+      await db.query('UPDATE books SET is_nonprocessable = true WHERE id = $1', [existingScan.book_id]);
+    }
     if (rejection_reason === 'mismatched-book') {
-      await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existingScan.book_id]);
       if (ilms_title && physical_title) {
         await db.query(`
           INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
@@ -279,9 +284,10 @@ export const tagScanService = async (req, res) => {
     await db.query(`INSERT INTO user_flags (${Object.keys(flagInsert).join(',')}) VALUES (${Object.keys(flagInsert).map((_, i) => `$${i + 1}`).join(',')})`, Object.values(flagInsert));
 
     const actualReason = rejection_reason || (remarks ? remarks.trim() : '');
-    if (actualReason === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [existing.book_id]);
+    if (actualReason !== 'mismatched-book') {
+      await db.query('UPDATE books SET is_nonprocessable = true WHERE id = $1', [existing.book_id]);
+    }
     if (actualReason === 'mismatched-book') {
-      await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [existing.book_id]);
       if (ilms_title && physical_title) {
         await db.query(`
           INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
@@ -321,7 +327,7 @@ export const getBoxScansService = async (req, res) => {
 
     const { rows: scans } = await db.query(`
       SELECT ba.id, ba.scan_status, ba.warehouse_scan_at, ba.inventory_scan_at, ba.endorsement_scan_at,
-             uf.rejection_reason, uf.notes,
+             uf.rejection_reason, uf.notes, uf.is_resolved,
              b.isbn, b.title, b.author, bx.box_number, l.lot_number
       FROM book_activity ba
       LEFT JOIN user_flags uf ON uf.book_activity_id = ba.id
@@ -344,6 +350,7 @@ export const getBoxScansService = async (req, res) => {
           scan_status: scan.scan_status,
           rejection_reason: scan.rejection_reason || null,
           notes: scan.notes || null,
+          is_resolved: scan.is_resolved || false,
           warehouse_scan_at: scan.warehouse_scan_at
         });
       }

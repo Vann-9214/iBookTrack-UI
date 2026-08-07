@@ -53,14 +53,17 @@ export function useNonProcessable(brand: string) {
       if (!res.ok) throw new Error('Failed to fetch counts')
       const json = await res.json()
       
-      let flagsList: QCFlag[] = json.flags || []
-      flagsList = flagsList.filter((f: any) => f.issue?.toLowerCase().trim() !== 'other')
+      let allFlags: QCFlag[] = json.flags || []
+      allFlags = allFlags.filter((f: any) => f.issue?.toLowerCase().trim() !== 'other')
+      
+      const unresolvedFlags = allFlags.filter((f: any) => !f.is_resolved)
+      const resolvedFlags = allFlags.filter((f: any) => f.is_resolved)
       
       let damage = 0
       let mismatch = 0
       const dateCounts: Record<string, number> = {}
       
-      flagsList.forEach((f: any) => {
+      unresolvedFlags.forEach((f: any) => {
         const dateStr = f.flagged_at ? format(new Date(f.flagged_at), 'yyyy-MM-dd') : ''
         const inRange = dateStr >= computedFromDate && dateStr <= computedToDate
         
@@ -93,7 +96,7 @@ export function useNonProcessable(brand: string) {
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         months.forEach(m => monthCounts[m] = 0)
         
-        flagsList.forEach((f: any) => {
+        unresolvedFlags.forEach((f: any) => {
           if (!f.flagged_at) return
           const dateStr = format(new Date(f.flagged_at), 'yyyy-MM-dd')
           if (dateStr >= computedFromDate && dateStr <= computedToDate) {
@@ -115,7 +118,7 @@ export function useNonProcessable(brand: string) {
       }
 
       const lotData: Record<string, any> = {}
-      flagsList.forEach((f: any) => {
+      unresolvedFlags.forEach((f: any) => {
         const lotNum = f.assigned_box?.lot?.lot_number || 'Unknown'
         const boxNum = f.assigned_box?.box_number || 'Unknown'
         
@@ -133,8 +136,9 @@ export function useNonProcessable(brand: string) {
       const sortedLots = Object.values(lotData).sort((a: any, b: any) => b.totalFlags - a.totalFlags)
       
       return {
-        totalCount: flagsList.length,
-        flags: flagsList,
+        totalCount: unresolvedFlags.length,
+        flags: unresolvedFlags,
+        resolvedFlags: resolvedFlags,
         issueBreakdown: { damage, mismatch },
         timelineData: dynamicTimeline,
         structuredLots: sortedLots
@@ -147,6 +151,7 @@ export function useNonProcessable(brand: string) {
   const isRefreshing = isValidating
   const totalCount = data?.totalCount || 0
   const flags = data?.flags || []
+  const resolvedFlags = data?.resolvedFlags || []
   const issueBreakdown = data?.issueBreakdown || { damage: 0, mismatch: 0 }
   const timelineData = data?.timelineData || []
   const structuredLots = data?.structuredLots || []
@@ -245,7 +250,12 @@ export function useNonProcessable(brand: string) {
                          const isMismatch = mismatchValues.includes(s);
                          return inRange && isMismatch;
                        }) :
-                       selectedCategory === 'Resolved' ? sessionResolvedFlags :
+                       selectedCategory === 'Resolved' ? (() => {
+                         const combined = [...sessionResolvedFlags, ...resolvedFlags];
+                         const uniqueMap = new Map();
+                         combined.forEach(f => uniqueMap.set(f.scan_id, f));
+                         return Array.from(uniqueMap.values());
+                       })() :
                        []
 
   return {
@@ -268,6 +278,13 @@ export function useNonProcessable(brand: string) {
     fetchCounts,
     resolveFlag,
     filteredLots,
+    
+    resolvedCount: (() => {
+      const combined = [...sessionResolvedFlags, ...resolvedFlags];
+      const uniqueMap = new Map();
+      combined.forEach(f => uniqueMap.set(f.scan_id, f));
+      return uniqueMap.size;
+    })(),
 
     displayFlags,
   }

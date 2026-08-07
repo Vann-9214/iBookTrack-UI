@@ -92,7 +92,7 @@ export function QrResultCard({ result, onRemove }: QrResultCardProps) {
                     <BodyCell className="break-words min-w-[80px]">{book.author || '—'}</BodyCell>
                     <BodyCell>
                       {book.status
-                        ? <StatusBadge status={book.status} rejectionReason={book.rejectionReason} />
+                        ? <StatusBadge status={book.status} rejectionReason={book.rejectionReason} isResolved={book.isResolved} />
                         : <span className="text-xs text-muted-foreground">—</span>}
                     </BodyCell>
                   </TableRow>

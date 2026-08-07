@@ -9,7 +9,9 @@ export interface BookStatusBadgeProps {
 
 export function BookStatusBadge({ scan_status, flag, showFlag = true, className }: BookStatusBadgeProps) {
   const isProcessable = scan_status === 'processable'
-  const issue = flag?.issue
+  const rawIssue = flag?.issue
+  const isResolved = rawIssue?.startsWith('(Resolved)')
+  const issue = isResolved ? rawIssue.replace('(Resolved) ', '') : rawIssue
   const isMismatch = issue === 'mismatched-book'
   const isGenericStatus = !issue || issue === 'non-processable' || issue === 'non_processable'
 
@@ -23,7 +25,12 @@ export function BookStatusBadge({ scan_status, flag, showFlag = true, className 
       )}>
         {isProcessable ? 'Processable' : 'Non-Processable'}
       </span>
-      {showFlag && issue && !isGenericStatus && (
+      {showFlag && isResolved && (
+        <span className="text-[9px] font-bold tracking-wide uppercase text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-sm ring-1 ring-gray-200">
+          Resolved
+        </span>
+      )}
+      {showFlag && issue && !isResolved && !isGenericStatus && (
         <span className={cn(
           'text-[9px] font-bold tracking-wide uppercase',
           isMismatch ? 'text-amber-500' : 'text-red-400'

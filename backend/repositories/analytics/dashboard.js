@@ -98,6 +98,7 @@ export const countUnaccountedBooks = async (startIso, endIso, boxType) => {
       (uf.scan_flag_at >= $1 AND uf.scan_flag_at < $2)
     )
     AND uf.rejection_reason NOT IN ('mismatched-book', 'mismatched-books')
+    AND uf.is_resolved = false
   `;
   const params = [startIso, endIso];
   if (boxType) {
@@ -168,7 +169,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
   let query = `
     SELECT * FROM (
       SELECT DISTINCT ON (uf.book_activity_id)
-        uf.id, uf.book_activity_id, uf.rejection_reason, uf.notes,
+        uf.id, uf.book_activity_id, uf.rejection_reason, uf.notes, uf.is_resolved,
         uf.warehouse_flag_by, uf.warehouse_flag_at,
         uf.inventory_flag_by, uf.inventory_flag_at,
         uf.endorsement_flag_by, uf.endorsement_flag_at,
@@ -217,12 +218,6 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
   query += ` ORDER BY uf.book_activity_id, uf.warehouse_flag_at DESC ) as unique_flags ORDER BY unique_flags.warehouse_flag_at DESC LIMIT $${pIdx++} OFFSET $${pIdx++}`;
   params.push(limit, offset);
 
-  // Get total count.
-  // The box type and the date bounds are bound as query parameters instead of
-  // being written into the SQL text. They originate from the request query
-  // string, and a parameter-less db.query() runs through Postgres' simple query
-  // protocol, which accepts several statements per call — so interpolating them
-  // would let a caller append their own statements.
   const countParams = [];
   let countIdx = 1;
   let countQuery = `
@@ -258,7 +253,7 @@ export const getQcFlags = async (page, limit, boxType, startIso, endIso) => {
     ]);
 
     const data = dataRows.map(r => ({
-      id: r.id, book_activity_id: r.book_activity_id, rejection_reason: r.rejection_reason, notes: r.notes,
+      id: r.id, book_activity_id: r.book_activity_id, rejection_reason: r.rejection_reason, notes: r.notes, is_resolved: r.is_resolved,
       warehouse_flag_by: r.warehouse_flag_by, warehouse_flag_at: r.warehouse_flag_at,
       inventory_flag_by: r.inventory_flag_by, inventory_flag_at: r.inventory_flag_at,
       endorsement_flag_by: r.endorsement_flag_by, endorsement_flag_at: r.endorsement_flag_at,
@@ -352,7 +347,7 @@ export const getBooksByIsbnsWithLots = async (isbns) => {
 export const resolveQcFlag = async (id) => {
   try {
     await db.query('BEGIN');
-    const { rows } = await db.query('DELETE FROM user_flags WHERE id = $1 RETURNING book_activity_id, rejection_reason', [id]);
+    const { rows } = await db.query('UPDATE user_flags SET is_resolved = true WHERE id = $1 RETURNING book_activity_id, rejection_reason', [id]);
     if (rows.length === 0) {
       await db.query('ROLLBACK');
       return { success: false, error: { status: 404, message: 'Flag not found' } };
@@ -364,14 +359,13 @@ export const resolveQcFlag = async (id) => {
 
     let session_id = null;
     
-    // Get the book_id of the missing book
     const { rows: actInfoRows } = await db.query('SELECT book_id FROM book_activity WHERE id = $1', [book_activity_id]);
     let book_id = actInfoRows[0]?.book_id;
 
     if (isMissing && book_id) {
       // Find the processable book in another box
       const foundQuery = `
-        SELECT ba.id as ba_id, ba.session_id, b.id as b_id, b.is_extra
+        SELECT ba.id as ba_id, ba.session_id, b.id as b_id, b.is_nonprocessable
         FROM books b
         JOIN book_activity ba ON ba.book_id = b.id
         WHERE b.isbn = (SELECT isbn FROM books WHERE id = $1)
@@ -415,7 +409,7 @@ export const resolveQcFlag = async (id) => {
       session_id = actRows[0]?.session_id;
       book_id = actRows[0]?.book_id;
 
-      if (session_id) {
+      if (session_id && rejection_reason !== 'mismatched-book' && rejection_reason !== 'mismatch') {
         await db.query(
           'UPDATE box_sessions SET total_processable_books = total_processable_books + 1, total_nonprocessable_books = GREATEST(0, total_nonprocessable_books - 1) WHERE id = $1',
           [session_id]
@@ -423,12 +417,17 @@ export const resolveQcFlag = async (id) => {
       }
     }
 
-    if (reasonStr === 'extra-book' || reasonStr === 'extra') {
-      await db.query('UPDATE books SET is_extra = false WHERE id = $1', [book_id]);
-    } else if (reasonStr === 'missing-book' || reasonStr === 'missing') {
-      await db.query('UPDATE books SET is_missing = false WHERE id = $1', [book_id]);
-    } else if (reasonStr === 'mismatched-book' || reasonStr === 'mismatch') {
-      await db.query('UPDATE books SET is_mismatch = false WHERE id = $1', [book_id]);
+    if (book_id) {
+      const { rows: remainingFlags } = await db.query(`
+        SELECT 1 FROM user_flags uf
+        JOIN book_activity ba ON uf.book_activity_id = ba.id
+        WHERE ba.book_id = $1 AND uf.is_resolved = false AND uf.rejection_reason NOT IN ('mismatched-book', 'mismatch')
+        LIMIT 1
+      `, [book_id]);
+      
+      if (remainingFlags.length === 0) {
+        await db.query('UPDATE books SET is_nonprocessable = false WHERE id = $1', [book_id]);
+      }
     }
 
     let box_id = null;

@@ -121,6 +121,7 @@ export interface LotIsbn {
   transmission_completed?: boolean
   transmission_date?: string
   rejection_reason?: string
+  is_resolved?: boolean
 }
 
 export interface LotWipBreakdown {

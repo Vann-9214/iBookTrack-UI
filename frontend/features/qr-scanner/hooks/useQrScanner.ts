@@ -50,6 +50,7 @@ export function useQrScanner() {
             bookType:        b.book_type || '—',
             status,
             rejectionReason: b.rejection_reason || '',
+            isResolved: b.is_resolved || false,
             loading:         false,
             notFound:        false,
           })
@@ -87,7 +88,9 @@ export function useQrScanner() {
                 ...book,
                 title:           b.title && b.title !== 'Unknown' ? b.title : '—',
                 author:          b.author || '—',
+                scanStatus:      b.scan_status === 'processable' ? 'P' : 'NP',
                 rejectionReason: b.rejection_reason || '',
+                isResolved:      b.is_resolved || false,
               }
             }
             return book

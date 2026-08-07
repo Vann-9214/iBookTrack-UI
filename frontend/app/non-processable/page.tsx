@@ -18,6 +18,7 @@ export default function NonProcessablePage() {
 
   const {
     totalCount,
+    resolvedCount,
     issueBreakdown,
     timelineData,
     searchQuery, setSearchQuery,
@@ -63,7 +64,7 @@ export default function NonProcessablePage() {
             <NonProcessableKPIs
               totalCount={totalCount}
               issueBreakdown={issueBreakdown}
-              resolvedCount={sessionResolvedFlags.length}
+              resolvedCount={resolvedCount}
               loading={loading}
               setSelectedCategory={setSelectedCategory}
               isJaguar={isJaguar}

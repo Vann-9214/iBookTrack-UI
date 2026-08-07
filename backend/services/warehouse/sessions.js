@@ -192,7 +192,7 @@ export const completeSessionService = async (req, res) => {
           }
           missingIsbns.add(issue.isbn);
 
-          let query = 'SELECT b.id, bx.box_number, l.lot_number FROM books b LEFT JOIN boxes bx ON b.box_id = bx.id LEFT JOIN lots l ON bx.lot_id = l.id WHERE b.isbn = $1 AND b.is_missing = true';
+          let query = 'SELECT b.id, bx.box_number, l.lot_number FROM books b LEFT JOIN boxes bx ON b.box_id = bx.id LEFT JOIN lots l ON bx.lot_id = l.id WHERE b.isbn = $1 AND b.is_nonprocessable = true';
           let params = [issue.isbn];
           if (currentBrand) {
             query += ' AND (LOWER(b.book_type) = LOWER($2) OR LOWER(bx.box_type) = LOWER($2) OR LOWER(l.type) = LOWER($2))';
@@ -242,8 +242,10 @@ export const completeSessionService = async (req, res) => {
         }
 
         if (bookId) {
-          const updateCol = issue.type === 'missing' ? 'is_missing' : 'is_extra';
-          await db.query(`UPDATE books SET ${updateCol} = true WHERE id = $1`, [bookId]);
+          const { rows: resFlags } = await db.query('SELECT 1 FROM user_flags uf JOIN book_activity ba ON uf.book_activity_id = ba.id WHERE ba.book_id = $1 AND uf.is_resolved = true LIMIT 1', [bookId]);
+          if (resFlags.length > 0) return res.status(400).json({ error: `ISBN ${issue.isbn} has a resolved flag and cannot be flagged again.` });
+
+          await db.query(`UPDATE books SET is_nonprocessable = true WHERE id = $1`, [bookId]);
 
           const { rows: actRows } = await db.query(
             'INSERT INTO book_activity (book_id, session_id, scan_status, warehouse_scan_at, warehouse_scan_by) VALUES ($1, $2, $3, NOW(), $4) RETURNING id',
@@ -320,7 +322,7 @@ export const bulkSaveSessionService = async (req, res) => {
           }
           missingIsbns.add(issue.isbn);
 
-          let query = 'SELECT b.id, bx.box_number, l.lot_number FROM books b LEFT JOIN boxes bx ON b.box_id = bx.id LEFT JOIN lots l ON bx.lot_id = l.id WHERE b.isbn = $1 AND b.is_missing = true';
+          let query = 'SELECT b.id, bx.box_number, l.lot_number FROM books b LEFT JOIN boxes bx ON b.box_id = bx.id LEFT JOIN lots l ON bx.lot_id = l.id WHERE b.isbn = $1 AND b.is_nonprocessable = true';
           let params = [issue.isbn];
           if (book_type) {
             query += ' AND (LOWER(b.book_type) = LOWER($2) OR LOWER(bx.box_type) = LOWER($2) OR LOWER(l.type) = LOWER($2))';
@@ -425,13 +427,17 @@ export const bulkSaveSessionService = async (req, res) => {
       );
 
       if (b.flag_issue || b.flag_remarks) {
+        const { rows: resFlags } = await db.query('SELECT 1 FROM user_flags uf JOIN book_activity ba ON uf.book_activity_id = ba.id WHERE ba.book_id = $1 AND uf.is_resolved = true LIMIT 1', [bookId]);
+        if (resFlags.length > 0) return res.status(400).json({ error: `ISBN ${b.isbn} has a resolved flag and cannot be flagged again.` });
+
         await db.query(
           'INSERT INTO user_flags (book_activity_id, rejection_reason, notes, warehouse_flag_by, warehouse_flag_at) VALUES ($1, $2, $3, $4, NOW())',
           [actRows[0].id, b.flag_issue || null, b.flag_remarks || null, req.user.id]
         );
-        if (b.flag_issue === 'extra-book') await db.query('UPDATE books SET is_extra = true WHERE id = $1', [bookId]);
+        if (b.flag_issue !== 'mismatched-book') {
+          await db.query('UPDATE books SET is_nonprocessable = true WHERE id = $1', [bookId]);
+        }
         if (b.flag_issue === 'mismatched-book') {
-          await db.query('UPDATE books SET is_mismatch = true WHERE id = $1', [bookId]);
           if (b.mismatch_details && b.mismatch_details.ilms_title && b.mismatch_details.physical_title) {
             await db.query(`
               INSERT INTO mismatch_info (book_id, ilms_title, ilms_author, physical_title, physical_author, created_by)
@@ -460,8 +466,10 @@ export const bulkSaveSessionService = async (req, res) => {
            bookId = nbRows[0].id;
         }
 
-        const upCol = issue.type === 'missing' ? 'is_missing' : 'is_extra';
-        await db.query(`UPDATE books SET ${upCol} = true WHERE id = $1`, [bookId]);
+        const { rows: resFlags } = await db.query('SELECT 1 FROM user_flags uf JOIN book_activity ba ON uf.book_activity_id = ba.id WHERE ba.book_id = $1 AND uf.is_resolved = true LIMIT 1', [bookId]);
+        if (resFlags.length > 0) return res.status(400).json({ error: `ISBN ${issue.isbn} has a resolved flag and cannot be flagged again.` });
+
+        await db.query(`UPDATE books SET is_nonprocessable = true WHERE id = $1`, [bookId]);
 
         const { rows: actRows } = await db.query(
           "INSERT INTO book_activity (book_id, session_id, scan_status, warehouse_scan_at, warehouse_scan_by) VALUES ($1, $2, 'non_processable', NOW(), $3) RETURNING id",
@@ -628,7 +636,12 @@ export const cancelSessionService = async (req, res) => {
 export const deleteSessionService = async (req, res) => {
   try {
     const { session_id } = req.params
-    const { rows: sessionRows } = await db.query('SELECT box_id, warehouse_user_received, inventory_session_started_by, endorsement_session_started_by FROM box_sessions WHERE id = $1 LIMIT 1', [session_id]);
+    const { rows: sessionRows } = await db.query(`
+      SELECT bs.box_id, bs.warehouse_user_received, bs.inventory_session_started_by, bs.endorsement_session_started_by, bx.current_stage
+      FROM box_sessions bs
+      LEFT JOIN boxes bx ON bs.box_id = bx.id
+      WHERE bs.id = $1 LIMIT 1
+    `, [session_id]);
     
     if (sessionRows[0]) {
       // Non-supervisors may only delete/reset their own sessions
@@ -638,23 +651,40 @@ export const deleteSessionService = async (req, res) => {
       }
 
       const boxId = sessionRows[0].box_id;
+      const currentStage = sessionRows[0].current_stage;
       let lockPayload = null;
       if (boxId) lockPayload = await getBoxLockPayload(boxId);
 
-      await db.query('DELETE FROM box_sessions WHERE id = $1', [session_id]);
-      if (boxId) {
-        // Safety rollback: only remove the box if it's still empty — no expected
-        // count set and no books attached — so real boxes are never deleted.
+      if (currentStage === 'inventory' || currentStage === 'endorsement' || currentStage === 'qa') {
+        // Just cancel the active part of the session to revert it back to the original receiver
         await db.query(`
-          DELETE FROM boxes b
-          WHERE b.id = $1
-            AND b.total_expected_books = 0
-            AND NOT EXISTS (SELECT 1 FROM books WHERE box_id = b.id)
-        `, [boxId]);
+          UPDATE box_sessions 
+          SET status = 'received', 
+              inventory_session_started_by = NULL, 
+              endorsement_session_started_by = NULL 
+          WHERE id = $1
+        `, [session_id]);
+        
         broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
         broadcastEvent('INVENTORY_UNLOCKED', lockPayload);
         broadcastEvent('ENDORSEMENT_UNLOCKED', lockPayload);
         broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_delete' });
+      } else {
+        await db.query('DELETE FROM box_sessions WHERE id = $1', [session_id]);
+        if (boxId) {
+          // Safety rollback: only remove the box if it's still empty — no expected
+          // count set and no books attached — so real boxes are never deleted.
+          await db.query(`
+            DELETE FROM boxes b
+            WHERE b.id = $1
+              AND b.total_expected_books = 0
+              AND NOT EXISTS (SELECT 1 FROM books WHERE box_id = b.id)
+          `, [boxId]);
+          broadcastEvent('WAREHOUSE_UNLOCKED', lockPayload);
+          broadcastEvent('INVENTORY_UNLOCKED', lockPayload);
+          broadcastEvent('ENDORSEMENT_UNLOCKED', lockPayload);
+          broadcastEvent('DASHBOARD_REFRESH', { source: 'warehouse_delete' });
+        }
       }
     }
     res.json({ success: true, message: 'Session cancelled' })
