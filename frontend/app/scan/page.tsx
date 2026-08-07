@@ -1,6 +1,6 @@
 "use client"
 
-import { ScanBarcode, Boxes } from "lucide-react"
+import { ScanBarcode, Inbox } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
 import { DashboardNavbar } from '@/components/top-bar'
@@ -69,12 +69,14 @@ export default function ScanPage() {
 
                 <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-4" />
 
-                <div className="flex items-center gap-2">
-                  <Boxes className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">Incoming</span>
-                  <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">
-                    {incomingBoxes.length}
-                  </span>
+                <div className="flex items-center gap-1 flex-1">
+                  <div className="flex-1 sm:flex-none flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2.5 text-sm font-semibold rounded-xl transition premium-gradient-ui-card--solid text-white shadow-md">
+                    <Inbox className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">Incoming</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold tabular-nums bg-white/20 text-white">
+                      {incomingBoxes.length}
+                    </span>
+                  </div>
                 </div>
               </div>
 

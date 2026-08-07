@@ -10,7 +10,7 @@ export function EndorsementSearch({
   setSearchQuery,
 }: EndorsementSearchProps) {
   return (
-    <div className="relative flex-1 max-w-md">
+    <div className="hidden 2xl:flex relative flex-1 max-w-md">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <input
         type="text"

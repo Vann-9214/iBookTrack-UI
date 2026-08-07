@@ -82,7 +82,7 @@ export function TransitionLogFilters({
           <span className="text-[10px] font-bold uppercase tracking-wider">Filters</span>
         </div>
 
-        <div className="relative shrink-0">
+        <div className="hidden 2xl:block relative shrink-0">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search box or lot"

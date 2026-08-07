@@ -101,7 +101,7 @@ function SectionLabel({ children, first = false }: { children: React.ReactNode; 
 
 function MobileSectionLabel({ children, first = false }: { children: React.ReactNode; first?: boolean }) {
   return (
-    <div className={cn('flex items-center px-4 mb-2', !first && 'mt-6')}>
+    <div className={cn('flex items-center px-4 mb-2 landscape:mb-3', !first && 'mt-5 landscape:mt-8')}>
       <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-white/60 shrink-0 mr-3">
         {children}
       </p>
@@ -148,7 +148,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
   )
 
   const mobileNavItemCls = (active: boolean) => cn(
-    'relative flex items-center gap-3 rounded-xl px-3 py-3 w-full text-sm transition duration-300 overflow-hidden',
+    'relative flex items-center rounded-xl w-full transition duration-300 overflow-hidden gap-3 px-3 py-2.5 text-sm landscape:gap-4 landscape:px-4 landscape:py-3.5 landscape:text-base',
     active
       ? 'bg-gradient-to-r from-white/30 via-white/10 to-transparent text-white ring-1 ring-white/30 shadow-[0_8px_20px_rgba(255,255,255,0.15)] backdrop-blur-xl before:absolute before:left-0 before:top-[15%] before:bottom-[15%] before:w-[4px] before:rounded-r-full before:bg-white before:shadow-[0_0_15px_rgba(255,255,255,1)] font-bold'
       : 'text-white/70 hover:bg-gradient-to-r hover:from-white/15 hover:via-white/5 hover:to-transparent hover:text-white hover:ring-1 hover:ring-white/10 hover:shadow-md hover:backdrop-blur-md font-semibold'
@@ -161,10 +161,10 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
       {isNavigatingTo && <PageLoader text="Transferring..." />}
 
       {/* Static spacer — sidebar overlays on hover, no content reflow */}
-      <div className="hidden md:block shrink-0 w-[76px] h-dvh" />
+      <div className="hidden 2xl:block shrink-0 w-[76px] h-dvh" />
 
       <aside
-        className="peer/sidebar group/sidebar hidden md:flex fixed left-0 top-0 z-40 h-dvh flex-col w-[76px] hover:w-[240px] transition-[width] duration-300 ease-in-out overflow-hidden shadow-xl shadow-black/20"
+        className="peer/sidebar group/sidebar hidden 2xl:flex fixed left-0 top-0 z-40 h-dvh flex-col w-[76px] hover:w-[240px] transition-[width] duration-300 ease-in-out overflow-hidden shadow-xl shadow-black/20"
         style={{ background: sidebarBg, '--active-item-color': colors.sidebar } as React.CSSProperties}
         onMouseLeave={() => setWarehouseOpen(false)}
       >
@@ -358,30 +358,31 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
       </aside>
 
       {/* Desktop Backdrop */}
-      <div className="hidden md:block fixed inset-0 z-30 bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 peer-hover/sidebar:opacity-100" />
+      <div className="hidden 2xl:block fixed inset-0 z-30 bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 peer-hover/sidebar:opacity-100" />
 
       <button
-        className="md:hidden fixed top-3 left-3 z-50 flex items-center justify-center w-9 h-9 rounded-xl shadow-lg text-white"
-        style={{ background: colors.sidebar }}
+        className="2xl:hidden fixed top-3 z-50 flex items-center justify-center w-8 h-8 rounded-lg shadow-lg text-white"
+        style={{ left: 'calc(0.75rem + env(safe-area-inset-left))', background: colors.sidebar }}
         onClick={() => setMobileOpen(true)}
         aria-label="Open navigation"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-4 w-4" />
       </button>
 
       {mobileOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          className="2xl:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       <div
         className={cn(
-          'md:hidden fixed inset-y-0 left-0 z-50 w-72 flex flex-col transition-transform duration-300 ease-in-out',
+          '2xl:hidden fixed inset-y-0 left-0 z-50 flex flex-col transition-transform duration-300 ease-in-out',
+          'w-[calc(18rem+env(safe-area-inset-left))] landscape:w-[calc(20rem+env(safe-area-inset-left))] md:landscape:w-[calc(24rem+env(safe-area-inset-left))]',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}
-        style={{ background: sidebarBg, '--active-item-color': colors.sidebar } as React.CSSProperties}
+        style={{ paddingLeft: 'env(safe-area-inset-left)', background: sidebarBg, '--active-item-color': colors.sidebar } as React.CSSProperties}
       >
         <div className="flex items-center justify-between px-4 pt-5 pb-4">
           <div className="flex items-center gap-3">
@@ -414,7 +415,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
         <div className="mx-4 h-px bg-white/10" />
 
-        <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-0.5" role="navigation" aria-label="Main navigation">
+        <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-0.5 landscape:gap-2 landscape:py-4" role="navigation" aria-label="Main navigation">
           <MobileSectionLabel first>Main</MobileSectionLabel>
 
           <button

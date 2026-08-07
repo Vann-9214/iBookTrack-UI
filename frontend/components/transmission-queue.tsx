@@ -149,7 +149,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
   const ongoingCount = scans.filter(s => s.Status?.toUpperCase().includes('ONGOING')).length
 
   return (
-    <Card className={cn("hidden sm:flex relative flex-col gap-0 overflow-hidden p-0 h-full rounded-2xl border-2 shadow-sm ring-1", "bg-gradient-to-br from-primary/5 via-white to-primary/10 border-primary/20 ring-primary/10")}>
+    <Card className={cn("hidden 2xl:flex relative flex-col gap-0 overflow-hidden p-0 h-full rounded-2xl border-2 shadow-sm ring-1", "bg-gradient-to-br from-primary/5 via-white to-primary/10 border-primary/20 ring-primary/10")}>
       <div className="pointer-events-none absolute inset-x-0 -top-16 h-24 bg-white/30 blur-xl z-0" />
       {/* Header - sticky */}
       <div className={cn("relative z-10 flex items-center justify-between px-5 py-4 border-b shrink-0", "bg-transparent border-primary/20")}>

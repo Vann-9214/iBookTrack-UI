@@ -179,7 +179,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           </CardTitle>
         </CardHeader>
         <CardContent className="relative z-10">
-          <div className="hidden lg:flex items-start gap-3">
+          <div className="hidden 2xl:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
               const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
               return (
@@ -204,7 +204,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           </div>
 
           {/* Legend */}
-          <div className="hidden lg:flex items-center gap-2 mt-5">
+          <div className="hidden 2xl:flex items-center gap-2 mt-5">
             <div className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-3 py-1.5 shadow-sm">
               <ArrowDown className="w-3.5 h-3.5 text-blue-500" />
               <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600">Received</span>
@@ -219,7 +219,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 lg:hidden">
+          <div className="flex flex-col gap-3 2xl:hidden">
             {pipelineSteps.map((step, i) => {
               const cfg = getStatusConfig(brand || 'mustang', 0)["idle"]
               return (
@@ -264,18 +264,18 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
         </CardHeader>
         <CardContent className="relative z-10">
           {/* Desktop: card layout */}
-          <div className="hidden lg:flex items-start gap-3">
+          <div className="hidden 2xl:flex items-start gap-3">
             {pipelineSteps.map((step, i) => {
               const status = getStepStatus(step)
               const cfg = getStatusConfig(brand, step.active)[status]
               const inner = (
                 <>
                   {/* Step number circle */}
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold mb-2 transition duration-300 group-hover/step:scale-110 group-hover/step:shadow-lg", cfg.nodeFill)}>
+                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold mb-2", cfg.nodeFill)}>
                     {i + 1}
                   </div>
                   {/* Card body */}
-                  <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1 transition duration-300 group-hover/step:shadow-lg group-hover/step:-translate-y-1", cfg.cardBg)}>
+                  <div className={cn("relative overflow-hidden w-full rounded-xl border px-3 pt-3 pb-2 flex flex-col items-center gap-1", cfg.cardBg)}>
                     <span className="relative text-xs font-bold text-slate-500 uppercase tracking-wider">{step.label}</span>
                     <div className="relative">{renderFormattedCounts(step, cfg.countColor, brand)}</div>
                     <div className={cn("relative h-[3px] w-full rounded-full my-1", cfg.bar)} />
@@ -300,7 +300,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
 
 
           {/* Mobile: vertical */}
-          <div className="flex flex-col gap-3 lg:hidden">
+          <div className="flex flex-col gap-3 2xl:hidden">
             {pipelineSteps.map((step, i) => {
               const status = getStepStatus(step)
               const cfg = getStatusConfig(brand, step.active)[status]
@@ -322,7 +322,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
                 </>
               )
               return (
-                <div key={step.label} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5 transition duration-200 active:scale-[0.98]", cfg.cardBg)}>
+                <div key={step.label} className={cn("relative overflow-hidden flex items-center gap-3 rounded-xl border p-2.5", cfg.cardBg)}>
                   {inner}
                 </div>
               )
@@ -330,7 +330,7 @@ export function ActivePipeline({ currentLot = "", stats, brand = 'mustang', load
           </div>
 
           {/* Legend */}
-          <div className="flex flex-nowrap items-center justify-center lg:justify-start gap-1.5 sm:gap-2 mt-5">
+          <div className="flex flex-nowrap items-center justify-center 2xl:justify-start gap-1.5 sm:gap-2 mt-5">
             <div className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-gradient-to-r from-slate-50 to-slate-100/80 border border-slate-200/60 px-2 py-1 sm:px-3 sm:py-1.5 shadow-sm">
               <ArrowDown className="w-3.5 h-3.5 text-blue-500" />
               <span className="text-[9px] sm:text-[11px] font-bold uppercase tracking-wider text-blue-600">Received</span>

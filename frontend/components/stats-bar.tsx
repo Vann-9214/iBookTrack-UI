@@ -331,7 +331,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
         /* ΓöÇΓöÇ Skeleton ΓöÇΓöÇ */
         <>
           {/* Mobile 2x2 skeleton */}
-          <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+          <div className="grid grid-cols-2 gap-2.5 2xl:hidden">
             {stats.map((stat, i) => {
               const isSolid = stat.tone === TONE.solid
               const skColor = isSolid ? "bg-white/25" : "bg-muted-foreground/20"
@@ -349,7 +349,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
             })}
           </div>
           {/* Desktop skeleton */}
-          <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="hidden 2xl:grid grid-cols-2 gap-4 xl:grid-cols-4">
             {stats.map((stat, i) => {
               const isSolid = stat.tone === TONE.solid
               const skColor = isSolid ? "bg-white/30" : "bg-muted-foreground/15"
@@ -372,7 +372,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
       ) : (
         <>
           {/* ── Mobile: compact 2×2 grid ── */}
-          <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+          <div className="grid grid-cols-2 gap-2.5 2xl:hidden">
             {stats.map((stat) => (
               <div
                 key={stat.title}
@@ -396,7 +396,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
           </div>
 
           {/* ── Desktop: full cards ── */}
-          <div className="hidden sm:grid grid-cols-2 gap-4 xl:grid-cols-4">
+          <div className="hidden 2xl:grid grid-cols-2 gap-4 xl:grid-cols-4">
             {stats.map((stat) => (
               <div
                 key={stat.title}
@@ -877,7 +877,7 @@ export function StatsBar({ stats: dashboardStats, refreshKey, loading = false }:
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {dailyOutputRows.map((row, i) => (
-                      <tr key={row.isbn} className={cn("transition-colors", M.rowHover)}>
+                      <tr key={`${row.isbn}-${i}`} className={cn("transition-colors", M.rowHover)}>
                         <td className="py-2 px-6 text-sm font-medium text-gray-400 truncate">{(dailyOutputPagination.currentPage - 1) * dailyOutputPagination.pageSize + i + 1}</td>
                         <td className="py-2 px-6 text-sm font-semibold text-gray-800 truncate">{row.isbn}</td>
                         <td className="py-2 px-6 text-sm font-bold text-gray-800 truncate" title={row.title || ''}>{row.title || '—'}</td>
