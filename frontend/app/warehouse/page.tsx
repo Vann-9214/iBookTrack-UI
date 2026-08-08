@@ -126,7 +126,7 @@ export default function WarehousePage() {
                 </header>
 
                 {/* Session Setup Card */}
-                <div className="hidden sm:block">
+                <div className="hidden lg:block">
                   <WarehouseSessionSetup brand={brand} lots={wh.lots} lotsLoading={unifiedLoading} activeLot={wh.activeLot} setActiveLot={wh.setActiveLot} selectedBox={wh.selectedBox} setSelectedBox={wh.setSelectedBox} loading={wh.loading} handleNewSession={wh.handleNewSession} boxInputRef={wh.boxInputRef} setSessionError={wh.setSessionError} boxLockedBy={wh.boxLockedBy} />
                 </div>
 

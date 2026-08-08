@@ -87,7 +87,7 @@ export function NonProcessableList({
   }, [finalLots]);
 
   return (
-    <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl relative flex flex-col mt-5 transition duration-300 min-h-[500px] shadow-sm">
+    <div className="premium-gradient-ui-card premium-gradient-ui-card--static border-2 rounded-2xl relative flex flex-col mt-5 transition duration-300 min-h-[85vh] sm:min-h-[600px] shadow-sm">
       <div className="premium-gradient-ui-card__glow" />
       {/* Header */}
       <div className="premium-gradient-ui-card__surface relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-5 py-3 shrink-0 m-4 mb-2 rounded-xl z-10">

@@ -51,6 +51,7 @@ export interface WarehouseBook {
   scan_status: string
   rejection_reason: string | null
   notes?: string | null
+  is_resolved?: boolean
   warehouse_scan_at: string
 }
 

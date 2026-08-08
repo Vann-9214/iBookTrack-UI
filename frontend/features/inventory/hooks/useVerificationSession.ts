@@ -241,6 +241,11 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
       }
       await completeInventorySession(verifCurrentSession.id, verifIssues)
       inventory.setBoxes((prev) => prev ? prev.map((b) => b.id === verifBox.id ? { ...b, box_sessions: b.box_sessions?.map((s) => s.id === verifCurrentSession.id ? { ...s, status: 'completed' } : s) || [{ status: 'completed' }] } : b) : [])
+      inventory.setBoxBooks((prev) => {
+        const next = { ...prev }
+        delete next[verifBox.id]
+        return next
+      })
       reset()
       toast({ title: 'Verification Session Closed', description: 'Verification completed successfully.' })
       onSuccess?.()

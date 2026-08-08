@@ -35,7 +35,21 @@ export function InventoryBookList({
         <span className="sm:pl-6">Title <span className="hidden sm:inline">/ Author</span></span>
         <span>Status</span>
       </div>
-      {books.map((book) => {
+      {[...books]
+        .sort((a, b) => {
+          const getIsProcessable = (book: BookInBox) => {
+            const rawIssue = book.flag?.issue
+            const isResolved = rawIssue?.startsWith('(Resolved)')
+            const issue = isResolved ? rawIssue.replace('(Resolved) ', '') : rawIssue
+            const isMismatch = issue === 'mismatched-book'
+            return (book.scan_status === 'processable') && (!issue || isResolved || isMismatch)
+          }
+          const aProc = getIsProcessable(a)
+          const bProc = getIsProcessable(b)
+          if (aProc === bProc) return 0
+          return aProc ? -1 : 1
+        })
+        .map((book) => {
         return (
           <div key={book.id} className="grid grid-cols-[1fr_120px] sm:grid-cols-[120px_1fr_200px] items-center px-4 py-1 hover:bg-primary/5 transition-colors gap-2">
             <div className="min-w-0 pr-2 hidden sm:block">

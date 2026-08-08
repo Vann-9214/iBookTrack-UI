@@ -5,7 +5,7 @@ import { useBrand } from '@/hooks/use-brand'
 import { BoxEntry, InspScannedBook, WarehouseBook, InspSession } from '../types/endorsement.types'
 import { endorsementService } from '../services/endorsement.service'
 
-export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuccess: () => void) {
+export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuccess: (boxId: string) => void) {
   const { brand } = useBrand()
   const [inspSessionActive, setInspSessionActive] = useState(false)
   const [inspBox, setInspBox] = useState<BoxEntry | null>(null)
@@ -120,9 +120,9 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
         } else {
           addInspBookLocal(
             { isbn: data.data.ISBN || isbn, title: data.data.Title || warehouseBook?.title || `ISBN: ${isbn}`, author: data.data?.AuthorName || data.data?.Author || warehouseBook?.author || '' }, 
-            'processable', 
-            undefined,
-            undefined
+            (warehouseBook.is_resolved ? 'processable' : (warehouseBook.scan_status || 'processable')) as 'processable' | 'non_processable',
+            warehouseBook.is_resolved ? undefined : (warehouseBook.rejection_reason || undefined),
+            warehouseBook.is_resolved ? undefined : (warehouseBook.notes || undefined)
           )
         }
       } else {
@@ -262,16 +262,11 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
       for (const book of inspScannedBooks) {
         const warehouseBook = warehouseBooks.find((wb) => wb.isbn === book.isbn)
         const payload = { ...book }
-        
-        // Prevent sending inherited flags as new flags
-        if (warehouseBook && warehouseBook.rejection_reason === book.flag_issue) {
-          payload.flag_issue = undefined
-          payload.flag_remarks = undefined
-        }
 
         await endorsementService.saveScanBook(inspCurrentSession.id, payload)
       }
       await endorsementService.completeSession(inspCurrentSession.id, inspScannedBooks.length)
+      const completedBoxId = inspBox.id
       setInspSessionActive(false)
       setInspBox(null)
       setInspCurrentSession(null)
@@ -279,7 +274,7 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
       setInspBookCounter(0)
       setInspCurrentBoxBooks(0)
       setInspConfirmComplete(false)
-      onCompletedSuccess()
+      onCompletedSuccess(completedBoxId)
       toast.success('Inspection session completed.')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to complete session')

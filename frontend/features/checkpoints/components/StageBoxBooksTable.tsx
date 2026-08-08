@@ -18,7 +18,21 @@ export function StageBoxBooksTable({ books, brand, selectedStage, simflex }: Sta
         <span>Author</span>
         <span>Status</span>
       </div>
-      {books.map((book) => {
+      {[...books]
+        .sort((a, b) => {
+          const getIsProcessable = (book: ScannedBook) => {
+            const rawIssue = book.flag?.issue
+            const isResolved = rawIssue?.startsWith('(Resolved)')
+            const issue = isResolved ? rawIssue.replace('(Resolved) ', '') : rawIssue
+            const isMismatch = issue === 'mismatched-book'
+            return (book.scan_status === 'processable') && (!issue || isResolved || isMismatch)
+          }
+          const aProc = getIsProcessable(a)
+          const bProc = getIsProcessable(b)
+          if (aProc === bProc) return 0
+          return aProc ? -1 : 1
+        })
+        .map((book) => {
         const status = book.scan_status
         const isProcessable = status === 'processable'
         const simflexStatus = simflex?.[book.isbn]

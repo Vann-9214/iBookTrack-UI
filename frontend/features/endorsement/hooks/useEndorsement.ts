@@ -192,6 +192,7 @@ export function useEndorsement() {
     sendingToScan,
     expandedBoxId,
     boxBooks,
+    setBoxBooks,
     loadingBoxBooks,
     toggleBox,
     inspExpandedBoxId,

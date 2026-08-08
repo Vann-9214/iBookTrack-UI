@@ -50,6 +50,7 @@ export default function BookInspectionPage() {
     handleSendToScan,
     refreshAll,
     fetchEndorsementBoxes,
+    setBoxBooks,
   } = useEndorsement()
 
   const {
@@ -84,8 +85,13 @@ export default function BookInspectionPage() {
     handleResetInspSession,
     handleOpenInspComplete,
     handleCompleteInspSession,
-  } = useInspectionSession(filteredInspection, () => {
+  } = useInspectionSession(filteredInspection, (boxId: string) => {
     fetchEndorsementBoxes()
+    setBoxBooks((prev) => {
+      const next = { ...prev }
+      delete next[boxId]
+      return next
+    })
     setActiveTab('outgoing')
   })
 
