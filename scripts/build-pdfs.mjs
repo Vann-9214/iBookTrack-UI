@@ -19,10 +19,10 @@ import { gfmHeadingId } from 'marked-gfm-heading-id'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const DOCS = [
-  { file: 'PROJECT_OVERVIEW.md', title: 'iBookTrack — Project Overview' },
-  { file: 'BACKEND.md',          title: 'iBookTrack — Backend Documentation' },
-  { file: 'FRONTEND.md',         title: 'iBookTrack — Frontend Documentation' },
-  { file: 'MIGRATION_GUIDE.md',  title: 'iBookTrack — Migration & Turnover Guide' },
+  { file: '../docs/PROJECT_OVERVIEW.md', title: 'iBookTrack — Project Overview' },
+  { file: '../docs/architecture/BACKEND.md',          title: 'iBookTrack — Backend Documentation' },
+  { file: '../docs/architecture/FRONTEND.md',         title: 'iBookTrack — Frontend Documentation' },
+  { file: '../docs/guides/MIGRATION_GUIDE.md',  title: 'iBookTrack — Migration & Turnover Guide' },
 ]
 
 const marked = new Marked()
@@ -190,7 +190,7 @@ function renderHTML({ title, body }) {
     <div class="eyebrow">iBookTrack · Handover Documentation</div>
     <h1>${title.replace('iBookTrack — ', '')}</h1>
     <div class="subtitle">A unified Warehouse Management System and Executive Dashboard for Innodata's book-digitization pipeline.</div>
-    <div class="meta">Generated ${new Date().toISOString().slice(0, 10)} · John Rey Cutab &amp; Manwarul Francis Santos</div>
+    <div class="meta">Generated ${new Date().toISOString().slice(0, 10)} · Ivan, Divan, John &amp; Francis</div>
   </section>
 
   <main>${body}</main>
@@ -211,9 +211,7 @@ async function buildOne(browser, doc, outDir) {
   const body = await marked.parse(md)
   const html = renderHTML({ title: doc.title, body })
 
-  // Persist a debug copy of the rendered HTML for inspection.
-  const htmlPath = join(outDir, basename(doc.file, '.md') + '.html')
-  await writeFile(htmlPath, html, 'utf-8')
+  // HTML generation complete, proceeding to PDF creation.
 
   const page = await browser.newPage()
   await page.setContent(html, { waitUntil: ['load', 'networkidle0'] })
@@ -241,7 +239,7 @@ async function buildOne(browser, doc, outDir) {
 }
 
 async function main() {
-  const outDir = join(__dirname, 'pdf')
+  const outDir = join(__dirname, '../docs/pdf')
   await mkdir(outDir, { recursive: true })
 
   console.log('Launching headless Chromium…')
