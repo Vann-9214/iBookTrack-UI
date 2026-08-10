@@ -85,11 +85,12 @@ function computeBoxStageTotals(lot: LotStatusRow) {
   for (const box of boxes) {
     totalReceived += box.total_books || 0
     totalTransmission += box.transmitted_books || 0
-    forScan += box.pending_books || 0
     doneScan += box.wip_books || 0
 
     if (box.current_stage === 'warehouse') {
       forInventory += box.total_books || 0
+    } else {
+      forScan += box.pending_books || 0
     }
   }
 
