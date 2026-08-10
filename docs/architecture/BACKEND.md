@@ -3,7 +3,7 @@
 ![Doc](https://img.shields.io/badge/doc-backend-339933)
 ![Runtime](https://img.shields.io/badge/Node.js-20%2B-339933)
 ![Framework](https://img.shields.io/badge/Express-4-000000)
-![DB](https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e)
+![DB](https://img.shields.io/badge/PostgreSQL-336791)
 
 Express.js API served from `backend/`. Runs on port **5000** by default.
 
@@ -31,7 +31,8 @@ Express.js API served from `backend/`. Runs on port **5000** by default.
 | Package                  | Version  | Purpose                                  |
 |--------------------------|----------|------------------------------------------|
 | `express`                | ^4.21    | HTTP server                              |
-| `@supabase/supabase-js`  | ^2.49    | Postgres client + Auth                   |
+| `pg`                     | ^8.11    | PostgreSQL client pool                   |
+| `jsonwebtoken`           | ^9.0     | Custom JWT Auth                          |
 | `cors`                   | ^2.8     | CORS middleware                          |
 | `express-rate-limit`     | ^8.3     | Login / register rate limiting           |
 | `dotenv`                 | ^16.4    | Loads `../.env`                          |
@@ -53,7 +54,7 @@ Scripts:
 backend/
 ├── server.js                    # entry point + CORS + route registration
 ├── config/
-│   └── supabase.js              # exports { supabase, supabaseAdmin }
+│   └── db.js                    # exports { pool }
 ├── middleware/
 │   └── authMiddleware.js        # requireAuth (Bearer token validator)
 ├── routes/                      # one file per resource
@@ -66,7 +67,7 @@ backend/
 │   ├── reports.js               # Reports / exports
 │   ├── scanning.js              # Read-only Simflex stats
 │   ├── storage.js               # Storage locations
-│   └── index.js                 # ⚠️  unused, stale doc — see cleanup
+│   └── index.js                 # ⚠️  unused route
 ├── services/
 │   ├── ilms-api.js              # Innodata iLMS HTTP client
 │   ├── simflex-api.js           # Simflex HTTP wrapper
@@ -91,30 +92,22 @@ backend/
 4. Register routers under `/api/<resource>`
 5. Health check: `GET /api/health` → `{ status: 'ok', timestamp }`
 6. `app.listen(PORT)` then:
-   - `testConnection()` — pings Supabase
+   - `testConnection()` — pings PostgreSQL
    - `startSimflexPoller()` — kicks off the 60s polling loop
 
 ---
 
 ## Authentication & Middleware
 
-### Supabase clients (`config/supabase.js`)
+### Database client (`config/db.js`)
 
-- `supabase` — anon key, used for **login / register / `auth.getUser`**.
-- `supabaseAdmin` — service-role key, **bypasses RLS**, used for any
-  warehouse/inventory mutation. Never imported into frontend code.
+- `pool` — `pg` connection pool used for all database queries.
 
 ### `requireAuth` (`middleware/authMiddleware.js`)
 
-Reads `Authorization: Bearer <jwt>`, validates with `supabase.auth.getUser`, and
-attaches `req.user` (Supabase user object including `user_metadata`).
+Reads `Authorization: Bearer <jwt>`, validates with `jsonwebtoken`, and attaches `req.user` (decoded JWT payload).
 
-```js
-import { requireAuth } from '../middleware/authMiddleware.js'
-router.get('/protected', requireAuth, (req, res) => {
-  // req.user.id, req.user.email, req.user.user_metadata.full_name
-})
-```
+
 
 Returns `401` on missing/invalid token. The frontend's `authFetch` automatically
 redirects to `/login` on 401.
@@ -187,7 +180,7 @@ CRUD for `lots` plus `GET /:lot_number` lookup.
 | POST   | `/backfill-titles`                    | Maintenance: refill `title` field via iLMS.      |
 
 `scan_status` ∈ `{ 'processable', 'non_processable' }`. `rejection_reason` is
-one of the 23 canonical flag keys (see [Project Overview §6](./PROJECT_OVERVIEW.md#known-loopholes--cleanup-checklist-pre-turnover)).
+one of the 23 canonical flag keys (see [Project Overview](../PROJECT_OVERVIEW.md)).
 
 ### `/api/dashboard` (`routes/dashboard.js`)
 
@@ -335,7 +328,7 @@ Allowed values: `processable`, `non_processable`. (Old data may contain
 
 Every public table has RLS enabled. Anonymous and authenticated users have
 read-only or row-scoped access; admins via service-role bypass everything.
-See migrations `002`, `011`, `013`, `019`.
+, `011`, `013`, `019`.
 
 ---
 
@@ -363,76 +356,5 @@ There are no other cron jobs. Anything time-based should live here.
 
 ---
 
-## Error Handling Conventions
 
-```js
-router.post('/something', requireAuth, async (req, res) => {
-  try {
-    if (!req.body.foo) return res.status(400).json({ error: 'foo is required' })
-    const { data, error } = await supabaseAdmin.from('table').insert(...).select().single()
-    if (error) throw error
-    if (!data) return res.status(404).json({ error: 'Not found' })
-    res.json({ success: true, data })
-  } catch (err) {
-    console.error('Something failed:', err)
-    res.status(500).json({ error: err.message })
-  }
-})
-```
 
-> [!IMPORTANT]
-> Always destructure `{ data, error }` from Supabase calls and **check `error`**.
-> Silently dropping the error (we did this once with `createBoxIfNeeded`) made
-> a 500 almost impossible to debug. The fix added `if (error) throw error` plus
-> a clear `console.error` prefix.
-
-- Log with `console.error('<scope>:', err)` so the prefix is grep-able.
-- Never trust `req.body` — validate fields you read.
-
----
-
-## Adding a New Route
-
-1. Create `backend/routes/foo.js`:
-   ```js
-   import express from 'express'
-   import { supabaseAdmin } from '../config/supabase.js'
-   import { requireAuth } from '../middleware/authMiddleware.js'
-
-   const router = express.Router()
-
-   router.get('/', requireAuth, async (req, res) => { /* … */ })
-
-   export default router
-   ```
-2. Register in `server.js`:
-   ```js
-   import fooRoutes from './routes/foo.js'
-   app.use('/api/foo', fooRoutes)
-   ```
-3. If the route mutates a table, ensure RLS allows the JWT user **or** use
-   `supabaseAdmin` and enforce permissions in code.
-4. Add an entry to this file under [API Routes](#api-routes).
-
----
-
-## Quick Reference — Useful SQL
-
-```sql
--- Promote an admin
-UPDATE profiles SET role = 'admin' WHERE email = 'you@innodata.com';
-
--- Active boxes per stage
-SELECT current_stage, COUNT(*) FROM boxes GROUP BY current_stage ORDER BY 1;
-
--- Recent pipeline movements
-SELECT moved_by_name, from_stage, to_stage, created_at
-FROM pipeline_events ORDER BY created_at DESC LIMIT 50;
-
--- Today's flagged books
-SELECT isbn, rejection_reason, scanned_by_name, scanned_at
-FROM warehouse_book_scans
-WHERE scan_status = 'non_processable'
-  AND scanned_at >= CURRENT_DATE
-ORDER BY scanned_at DESC;
-```

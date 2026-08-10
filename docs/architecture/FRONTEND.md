@@ -60,7 +60,7 @@ frontend/
 │   ├── globals.css               # Tailwind v4 + design tokens
 │   ├── landing-page/             # marketing page sections
 │   ├── login/, register/, forgot-password/
-│   ├── Dashboard/                # ⚠️ uppercase D — see cleanup notes
+│   ├── Dashboard/                # uppercase D directory
 │   ├── warehouse/                # legacy single-station scanner
 │   ├── warehouse-inventory/      # primary intake + flag UI
 │   ├── checkpoints/              # 8-stage send/receive monitor
@@ -101,7 +101,7 @@ standard Next.js conventions when present.
 |--------------------------|---------------------------------------------------|------------------------------------------------------|
 | `/`                      | `app/page.tsx`                                    | `redirect('/landing-page')`                          |
 | `/landing-page`          | `app/landing-page/page.tsx`                       | Public marketing site                                |
-| `/login`                 | `app/login/page.tsx`                              | Email + password sign-in via Supabase                |
+| `/login`                 | `app/login/page.tsx`                              | Email + password sign-in                             |
 | `/register`              | `app/register/page.tsx`                           | New user signup                                      |
 | `/forgot-password`       | `app/forgot-password/page.tsx`                    | Password reset email                                 |
 | `/Dashboard` ⚠️          | `app/Dashboard/page.tsx`                          | Home — stats, charts, transmission queue, flagged books |
@@ -236,40 +236,11 @@ sequenceDiagram
 > Acceptable for an internal intranet tool; **migrate to httpOnly cookies
 > if you ever expose this app on the public internet.**
 
-The Supabase client is **not** instantiated on the frontend — auth is fully
-proxied through the backend. This means you can rotate Supabase keys without
-shipping a new build.
+The frontend uses custom JWTs for authentication. Tokens are managed by the backend and stored securely.
 
 ---
 
-## Talking to the Backend
 
-```ts
-import { authFetch } from '@/lib/auth-api'
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-
-async function fetchBoxes() {
-  const res = await authFetch(`${API_URL}/api/boxes?current_stage=endorsement`)
-  if (!res.ok) {
-    const { error } = await res.json()
-    toast({ title: 'Error', description: error, variant: 'destructive' })
-    return
-  }
-  const { boxes } = await res.json()
-  setBoxes(boxes)
-}
-```
-
-Conventions:
-- Always read `NEXT_PUBLIC_API_URL` first, fall back to `localhost:5000`.
-- Always handle `!res.ok`. The backend returns `{ error: string }` for failures.
-
-> [!IMPORTANT]
-> **Never** use `window.alert` or `window.confirm` — they render ugly
-> `localhost:3001 says…` chrome. Build an in-page modal instead (reference
-> implementation: "Complete Session?" in `app/warehouse-inventory/page.tsx`).
-> Use `toast({ … variant: 'destructive' })` for non-blocking errors.
 
 ---
 
@@ -284,57 +255,11 @@ Conventions:
 
 ---
 
-## State & Data Fetching Patterns
 
-This codebase deliberately avoids data-fetching libraries (no React Query, no
-SWR). Every page follows the same pattern:
-
-```tsx
-const [data, setData] = useState<T[]>([])
-const [loading, setLoading] = useState(true)
-
-const fetchData = useCallback(async () => {
-  try {
-    const res = await authFetch(`${API_URL}/api/whatever`)
-    const json = await res.json()
-    if (json.success !== false) setData(json.items)
-  } finally {
-    setLoading(false)
-  }
-}, [])
-
-useEffect(() => {
-  fetchData()
-  const id = setInterval(fetchData, 20_000)   // 20s live refresh
-  return () => clearInterval(id)
-}, [fetchData])
-```
-
-If you ever introduce React Query, do it consistently — don't half-migrate.
 
 ---
 
-## Adding a New Page
 
-1. **Create folder + `page.tsx`** under `app/`. The folder name becomes the URL.
-2. **Mark `'use client'`** at the top if you use `useState`/`useEffect`.
-3. **Wrap with the dashboard chrome** if it needs the sidebar:
-   ```tsx
-   import { DashboardSidebar } from '@/components/dashboard-sidebar'
-
-   return (
-     <div className="flex h-screen overflow-hidden bg-background">
-       <DashboardSidebar />
-       <main className="flex-1 flex flex-col overflow-hidden">
-         {/* content */}
-       </main>
-     </div>
-   )
-   ```
-4. **Fetch data via `authFetch`** (never raw `fetch` for protected routes).
-5. **Add a sidebar entry** in `components/dashboard-sidebar.tsx` if it's user-
-   facing.
-6. **Run `npm run lint`** before committing.
 
 ---
 
@@ -350,8 +275,6 @@ npm start
 ### Vercel (recommended)
 - Import the repo, set the **Root Directory** to `frontend/`.
 - Environment variables (Project Settings → Environment Variables):
-  - `NEXT_PUBLIC_SUPABASE_URL`
-  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   - `NEXT_PUBLIC_API_URL` (the backend's public URL)
 - Build command auto-detected (`next build`).
 
