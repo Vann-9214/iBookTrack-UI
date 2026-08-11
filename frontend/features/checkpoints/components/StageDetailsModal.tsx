@@ -142,7 +142,6 @@ export function StageDetailsModal(props: StageDetailsModalProps) {
           stageModalPage={stageModalPage}
           totalPages={totalPages}
           onPageChange={onStageModalPageChange}
-          onClose={onClose}
         />
       </div>
     </div>
