@@ -54,7 +54,7 @@ export function PipelineStageCard({
         if (e.key === 'Enter' || e.key === ' ') onClick(stage)
       }}
       className={cn(
-        'group relative overflow-hidden rounded-2xl border-2 p-3.5 flex flex-col cursor-pointer transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 select-none bg-white/68',
+        'group relative overflow-hidden rounded-2xl border-2 p-3.5 flex flex-col cursor-pointer transition duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 select-none bg-white/68 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97]',
         isIdle
           ? 'border-gray-200/80 ring-1 ring-gray-100/70 hover:border-gray-300/80'
           : 'border-primary/20 ring-1 ring-primary/10 hover:border-primary/30',
