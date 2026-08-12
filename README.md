@@ -53,6 +53,6 @@ cd frontend && npm run dev      # http://localhost:3000
 
 ## 🤝 Project Team (OJT Interns)
 
-For full credits on the developers (Ivan, Divan, John, and Francis) and their specific roles, please see the [Team & Credits](./docs/TEAM_AND_CREDITS.md) page.
+For full credits on the developers (Ivan, Divan, John, and Manwa) and their specific roles, please see the [Team & Credits](./docs/TEAM_AND_CREDITS.md) page.
 
 Built with Windsurf AI pair-programming.
