@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Calendar } from '@/components/ui/calendar'
-import { fetchMismatchExport, exportMismatchToExcel } from '../utils/mismatch-export'
 
 interface MismatchExportModalProps {
   open: boolean
@@ -31,6 +30,7 @@ export function MismatchExportModal({ open, onOpenChange, brand }: MismatchExpor
     setLoading(true)
     setError(null)
     try {
+      const { fetchMismatchExport, exportMismatchToExcel } = await import('../utils/mismatch-export')
       const dateStr = format(date, 'yyyy-MM-dd')
       const rows = await fetchMismatchExport(dateStr, brand)
       if (rows.length === 0) {

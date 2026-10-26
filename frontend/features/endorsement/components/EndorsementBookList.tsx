@@ -37,7 +37,7 @@ export function EndorsementBookList({
           const getIsProcessable = (book: BoxBookEntry) => {
             const rawIssue = book.flag?.issue
             const isResolved = rawIssue?.startsWith('(Resolved)')
-            const issue = isResolved ? rawIssue.replace('(Resolved) ', '') : rawIssue
+            const issue = isResolved ? rawIssue?.replace('(Resolved) ', '') : rawIssue
             const isMismatch = issue === 'mismatched-book'
             return (book.scan_status === 'processable') && (!issue || isResolved || isMismatch)
           }

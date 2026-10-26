@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { useDemoDraft } from '@/hooks/use-demo-draft'
 import { useToast } from '@/hooks/use-toast'
 import { fetchUserProfile } from '@/lib/auth-api'
 import {
@@ -49,6 +50,22 @@ export function useVerificationSession(brand: string, inventory: InventoryState)
   const [verifMismatchModalBook, setVerifMismatchModalBook] = useState<VerificationScannedBook | null>(null)
   const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
+
+  useDemoDraft('ibooktrack_demo_inventory_draft', verifSessionActive && verifCurrentSession ? {
+    verifCurrentSession, verifBox, verifBooks, verifScannedBooks, verifIssues, verifTotalBooksExpected, warehouseBooks,
+  } : null, draft => {
+    if (!draft.verifCurrentSession || !Array.isArray(draft.verifScannedBooks)) return
+    setVerifCurrentSession(draft.verifCurrentSession)
+    setVerifBox(draft.verifBox)
+    setVerifBooks(draft.verifBooks)
+    setVerifScannedBooks(draft.verifScannedBooks.map(b => ({ ...b, timestamp: new Date(b.timestamp) })))
+    setVerifIssues(draft.verifIssues)
+    setVerifTotalBooksExpected(draft.verifTotalBooksExpected)
+    setWarehouseBooks(draft.warehouseBooks)
+    setVerifBookCounter(draft.verifScannedBooks.length)
+    setVerifCurrentBoxBooks(draft.verifScannedBooks.length)
+    setVerifSessionActive(true)
+  })
 
   const loadUserProfile = useCallback(async () => {
     const profile = (await fetchUserProfile()) as { name?: string; id?: string } | null

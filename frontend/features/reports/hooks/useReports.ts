@@ -1,3 +1,5 @@
+import { DemoEventSource } from '@/lib/mock-data/events'
+import { getApiBaseUrl } from '@/lib/auth-api'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import useSWR from 'swr'
 import { LotStatusRow, FilterStatus, SortKey, SortDir } from '../types/reports.types'
@@ -63,14 +65,12 @@ export function useReports(brand: string) {
   }, [mutate])
 
   useEffect(() => {
-    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
-      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
       const handleUpdate = () => mutate()
       es.addEventListener('PIPELINE_UPDATED', handleUpdate)
       es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
       es.onerror = () => console.warn('Reports SSE error - reconnecting')
       return () => es.close()
-    })
   }, [mutate])
 
   const counts = useMemo(() => ({

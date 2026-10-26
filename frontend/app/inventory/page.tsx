@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Boxes } from 'lucide-react'
 import { DashboardSidebar } from '@/components/dashboard-sidebar'
 import { DashboardNavbar } from '@/components/top-bar'
@@ -14,11 +15,16 @@ import { InventoryDeleteModal } from '@/features/inventory/components/InventoryD
 import { InventoryHeader } from '@/features/inventory/components/InventoryHeader'
 import { InventoryIncomingTab } from '@/features/inventory/components/InventoryIncomingTab'
 import { InventoryOutgoingTab } from '@/features/inventory/components/InventoryOutgoingTab'
-import { InventoryPrintSlip } from '@/features/inventory/components/InventoryPrintSlip'
 import { InventorySearchBar } from '@/features/inventory/components/InventorySearchBar'
 import { InventorySimflexModal } from '@/features/inventory/components/InventorySimflexModal'
 import { InventoryTabNavigation } from '@/features/inventory/components/InventoryTabNavigation'
 import { InventoryVerificationTab } from '@/features/inventory/components/InventoryVerificationTab'
+
+// Load barcode generation only when a print slip is actually opened.
+const InventoryPrintSlip = dynamic(
+  () => import('@/features/inventory/components/InventoryPrintSlip').then(module => module.InventoryPrintSlip),
+  { ssr: false },
+)
 
 export default function InventoryPage() {
   const { brand } = useBrand()

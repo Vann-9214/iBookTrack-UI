@@ -95,22 +95,7 @@ export function useWarehouse() {
     })
   }, [setUserName, setUserId])
 
-  useEffect(() => {
-    const cleanupSession = () => {
-      if (sessionActiveRef.current && currentSessionRef.current && !currentSessionRef.current.id.startsWith('pending')) {
-        fetch(`${getApiBaseUrl()}/api/warehouse/sessions/${currentSessionRef.current.id}`, {
-          method: 'DELETE',
-          credentials: 'include',
-          keepalive: true,
-        }).catch(console.error)
-      }
-    }
-    window.addEventListener('beforeunload', cleanupSession)
-    return () => {
-      window.removeEventListener('beforeunload', cleanupSession)
-      cleanupSession()
-    }
-  }, [sessionActiveRef, currentSessionRef])
+  // Local demo sessions survive navigation and browser restarts.
 
   return {
     brand,

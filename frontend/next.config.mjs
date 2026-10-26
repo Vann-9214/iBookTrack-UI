@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
 
-// The backend lives on a separate origin. Allow the browser to connect to it
-// (and to itself) but nothing else. In dev we also permit ws: for HMR.
-const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')
+// The standalone demo only connects to its own origin. Development also uses
+// WebSockets for Next.js hot reload.
 const isDev = process.env.NODE_ENV !== 'production'
 
-const connectSrc = ["'self'", apiOrigin, isDev ? 'ws: wss:' : 'wss:']
+const connectSrc = ["'self'", isDev ? 'ws: wss:' : 'wss:']
   .filter(Boolean)
   .join(' ')
 
@@ -27,6 +26,8 @@ const csp = [
 ].join('; ')
 
 const nextConfig = {
+  // Keep hot reload from replacing a running production preview's assets.
+  distDir: isDev ? (process.env.TURBOPACK ? '.next-turbo' : '.next-dev') : '.next',
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -49,14 +50,7 @@ const nextConfig = {
       },
     ]
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:5000/api/:path*'
-      }
-    ]
-  },
+  async rewrites() { return [] },
 }
 
 export default nextConfig

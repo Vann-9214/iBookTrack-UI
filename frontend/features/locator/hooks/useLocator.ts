@@ -1,3 +1,5 @@
+import { DemoEventSource } from '@/lib/mock-data/events'
+import { getApiBaseUrl } from '@/lib/auth-api'
 import { useState, useEffect, useCallback, useRef } from "react"
 import useSWR from 'swr'
 import { StorageLocation, ReadyBox, PendingAssignment } from "../types/locator.types"
@@ -57,8 +59,7 @@ export function useLocator(brand: string) {
   const refreshLocator = useCallback(async () => { await mutate() }, [mutate])
 
   useEffect(() => {
-    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
-      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
       const handleUpdate = () => mutate()
       es.addEventListener('BOX_UPDATED', handleUpdate)
       es.addEventListener('PIPELINE_UPDATED', handleUpdate)
@@ -66,7 +67,6 @@ export function useLocator(brand: string) {
       es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
       es.onerror = () => console.warn('Locator SSE error - reconnecting')
       return () => es.close()
-    })
   }, [])
 
   // Keep detailSlot in sync after location refresh

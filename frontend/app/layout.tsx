@@ -1,17 +1,12 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Playfair_Display } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import { BrandProvider } from '@/hooks/use-brand'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from '@/components/ui/sonner'
-import { IdleTimeout } from '@/components/idle-timeout'
 import { ModalOriginTracker } from '@/components/modal-origin-tracker'
 import { UserProvider } from '@/hooks/use-user'
 import './globals.css'
 
-const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const _playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
 export const metadata: Metadata = {
   title: 'iBookTrack - Tool',
@@ -35,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${_inter.variable} ${_playfair.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <UserProvider>
             <BrandProvider>
@@ -45,9 +40,7 @@ export default function RootLayout({
           </UserProvider>
           <Toaster />
           <SonnerToaster position="bottom-right" richColors />
-          <IdleTimeout />
         </ThemeProvider>
-        <Analytics />
       </body>
     </html>
   )

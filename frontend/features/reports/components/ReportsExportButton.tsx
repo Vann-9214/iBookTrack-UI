@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Download, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LotStatusRow } from '../types/reports.types'
-import { exportReportsToExcel } from '../utils/reports-export'
 
 interface ReportsExportButtonProps {
   brand: string
@@ -21,6 +20,7 @@ export const ReportsExportButton: React.FC<ReportsExportButtonProps> = ({
     if (lots.length === 0 || exporting) return
     setExporting(true)
     try {
+      const { exportReportsToExcel } = await import('../utils/reports-export')
       await exportReportsToExcel(lots, brand)
     } catch (e) {
       console.error('Export failed:', e)

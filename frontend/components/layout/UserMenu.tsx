@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { mockStore } from '@/lib/mock-data/store'
 import { cn } from '@/lib/utils'
 import { useBrand, type Brand } from '@/hooks/use-brand'
 import { clearTokenData, fetchUserProfile } from '@/lib/auth-api'
@@ -12,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Settings, LogOut, ChevronDown } from 'lucide-react'
+import { Settings, LogOut, ChevronDown, RefreshCw } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export type NavbarUser = {
@@ -253,6 +254,10 @@ export function UserMenu({ navigationLocked }: UserMenuProps) {
           </DropdownMenuItem>
 
           <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent my-1" />
+
+          <DropdownMenuItem onClick={() => { mockStore.resetToDefault(); window.location.reload() }} className="gap-3 rounded-xl px-3 py-2.5 cursor-pointer">
+            <RefreshCw className="h-4 w-4" /> Reset Demo Data
+          </DropdownMenuItem>
 
           <DropdownMenuItem
             className="group gap-3 rounded-xl px-3 py-2.5 cursor-pointer transition duration-200"

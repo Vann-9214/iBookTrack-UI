@@ -49,6 +49,39 @@ export function useWarehouseState() {
   const sessionActiveRef = useRef(false)
   const boxInputRef = useRef<HTMLInputElement | null>(null)
 
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('ibooktrack_demo_warehouse_draft')
+      if (raw) {
+        const draft = JSON.parse(raw)
+        if (draft.currentSession && Array.isArray(draft.scannedBooks)) {
+          setActiveLot(draft.activeLot || '')
+          setSelectedBox(draft.selectedBox || '')
+          setCurrentBoxNumber(draft.currentBoxNumber || '')
+          setCurrentSession(draft.currentSession)
+          setSessionActive(true)
+          setScannedBooks(draft.scannedBooks.map((book: ScannedBook) => ({ ...book, timestamp: new Date(book.timestamp) })))
+          setCurrentBoxBooks(draft.scannedBooks.length)
+          setBookCounter(draft.scannedBooks.length)
+          setIssues(draft.issues || [])
+          setTotalBooksExpected(draft.totalBooksExpected || '')
+        }
+      }
+    } catch { /* A malformed draft must not prevent opening the demo. */ }
+    setDraftLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!draftLoaded) return
+    try {
+      if (!sessionActive || !currentSession) localStorage.removeItem('ibooktrack_demo_warehouse_draft')
+      else localStorage.setItem('ibooktrack_demo_warehouse_draft', JSON.stringify({
+        activeLot, selectedBox, currentBoxNumber, currentSession, scannedBooks, issues, totalBooksExpected,
+      }))
+    } catch { setSessionError('Browser storage is unavailable. This draft cannot be saved until storage is enabled.') }
+  }, [draftLoaded, sessionActive, currentSession, activeLot, selectedBox, currentBoxNumber, scannedBooks, issues, totalBooksExpected])
+
   useEffect(() => {
     currentSessionRef.current = currentSession
     sessionActiveRef.current = sessionActive

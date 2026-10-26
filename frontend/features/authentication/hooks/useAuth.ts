@@ -43,8 +43,8 @@ export function useAuth() {
     try {
       const data = await register(credentials)
       if (data.error) throw new Error(data.error)
-      toast.success('Registered successfully! Redirecting to login...')
-      setTimeout(() => router.push('/login'), 1500)
+      toast.success('Demo ready!')
+      router.push('/Dashboard')
       return { success: true as const }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Registration failed.'

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useDemoDraft } from '@/hooks/use-demo-draft'
 import { toast } from 'sonner'
 import { fetchUserProfile } from '@/lib/auth-api'
 import { useBrand } from '@/hooks/use-brand'
@@ -25,6 +26,19 @@ export function useInspectionSession(inspectionBoxes: BoxEntry[], onCompletedSuc
 
   const [warehouseBooks, setWarehouseBooks] = useState<WarehouseBook[]>([])
   const [loadingWarehouseBooks, setLoadingWarehouseBooks] = useState(false)
+
+  useDemoDraft('ibooktrack_demo_endorsement_draft', inspSessionActive && inspCurrentSession ? {
+    inspCurrentSession, inspBox, inspScannedBooks, warehouseBooks,
+  } : null, draft => {
+    if (!draft.inspCurrentSession || !Array.isArray(draft.inspScannedBooks)) return
+    setInspCurrentSession(draft.inspCurrentSession)
+    setInspBox(draft.inspBox)
+    setInspScannedBooks(draft.inspScannedBooks.map(b => ({ ...b, timestamp: new Date(b.timestamp) })))
+    setWarehouseBooks(draft.warehouseBooks)
+    setInspBookCounter(draft.inspScannedBooks.length)
+    setInspCurrentBoxBooks(draft.inspScannedBooks.length)
+    setInspSessionActive(true)
+  })
 
   useEffect(() => {
     const loadProfile = async () => {

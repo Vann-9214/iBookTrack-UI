@@ -49,6 +49,9 @@ export function useInventoryActions(brand: string, inventory: InventoryState, ve
   const [movingToStorage, setMovingToStorage] = useState<string | null>(null)
 
   const [inventoryTab, setInventoryTab] = useState<InventoryTab>('incoming')
+  useEffect(() => {
+    if (verification.verifSessionActive) setInventoryTab('verification')
+  }, [verification.verifSessionActive])
 
   const [verifExpandedBoxId, setVerifExpandedBoxId] = useState<string | null>(null)
   const [verifRowBooks, setVerifRowBooks] = useState<Record<string, BookInBox[]>>({})

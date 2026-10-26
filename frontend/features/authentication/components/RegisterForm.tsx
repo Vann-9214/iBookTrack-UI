@@ -21,31 +21,6 @@ export function RegisterForm() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError('')
-    if (!name || !email || !password || !confirmPassword) {
-      setError('Please fill in all fields.')
-      return
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
-      return
-    }
-    if (!/[a-z]/.test(password)) {
-      setError('Password must contain at least one lowercase letter.')
-      return
-    }
-    if (!/[A-Z]/.test(password)) {
-      setError('Password must contain at least one uppercase letter.')
-      return
-    }
-    if (!/[0-9]/.test(password)) {
-      setError('Password must contain at least one number.')
-      return
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.')
-      return
-    }
-
     const result = await register({ name, email, password })
     if (!result.success) setError(result.error)
   }

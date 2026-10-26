@@ -1,10 +1,12 @@
 'use client'
+import { DemoEventSource } from '@/lib/mock-data/events'
+
 
 import { useEffect, useRef, useState } from 'react'
 import { getApiBaseUrl } from '@/lib/auth-api'
 
 export function useWarehouseIsbnStream(sessionActive: boolean) {
-  const sseRef = useRef<EventSource | null>(null)
+  const sseRef = useRef<DemoEventSource | null>(null)
   const [streamIsbn, setStreamIsbn] = useState<string | null>(null)
   const [streamLoading, setStreamLoading] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
@@ -19,10 +21,10 @@ export function useWarehouseIsbnStream(sessionActive: boolean) {
   const startStream = () => {
     stopStream()
     const baseUrl = getApiBaseUrl()
-    const es = new EventSource(`${baseUrl}/api/warehouse/isbn-stream`, {
+    const es = new DemoEventSource(`${baseUrl}/api/warehouse/isbn-stream`, {
       withCredentials: true,
     })
-    es.addEventListener('connected', () => console.log('📡 ISBN stream connected'))
+    es.addEventListener('connected', () => setStreamLoading(false))
     es.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data)

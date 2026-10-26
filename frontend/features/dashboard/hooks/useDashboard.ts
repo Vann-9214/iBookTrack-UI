@@ -1,4 +1,6 @@
 'use client'
+import { DemoEventSource } from '@/lib/mock-data/events'
+
 
 import { useCallback, useEffect, useState } from 'react'
 import useSWR from 'swr'
@@ -124,7 +126,7 @@ export function useDashboard() {
   }, [boxScanInput, toast])
 
   useEffect(() => {
-    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+    const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
       mutate()

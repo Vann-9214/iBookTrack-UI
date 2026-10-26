@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useState } from 'react'
+import { usePathname } from 'next/navigation'
+import Link, { useLinkStatus } from 'next/link'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils'
 import { useBrand } from '@/hooks/use-brand'
 import Image from 'next/image'
@@ -13,8 +15,8 @@ import {
   FileText, Activity, AlertCircle, FileStack, BookOpenCheck,
   Warehouse, Archive, MapPin, CheckCircle, X
 } from 'lucide-react'
-import { PageLoader } from '@/components/ui/page-loader'
 import { RoleGuard } from '@/components/role-guard'
+import { PageLoader } from '@/components/ui/page-loader'
 
 export type DashboardSidebarProps = {
   navigationLocked?: boolean
@@ -35,35 +37,47 @@ export function StorageLocatorIcon({ className }: { className?: string }) {
   )
 }
 
+function NavigationLoading() {
+  const { pending } = useLinkStatus()
+  if (!pending || typeof document === 'undefined') return null
+  // Render outside the sidebar so its transforms cannot constrain the overlay.
+  return createPortal(<PageLoader text="Transferring..." />, document.body)
+}
+
 function LockedNavButton({
   navigationLocked,
   tooltip = 'Session Ongoing',
   side = 'right',
   className,
   children,
+  href,
   ...props
-}: React.ComponentProps<'button'> & {
+}: React.ComponentProps<typeof Link> & {
   navigationLocked?: boolean
   tooltip?: string
   side?: 'top' | 'right' | 'bottom' | 'left'
 }) {
-  const button = (
-    <button
-      {...props}
-      disabled={navigationLocked || props.disabled}
-      className={cn(className, navigationLocked && 'pointer-events-none')}
-      type={props.type ?? 'button'}
+  const pathname = usePathname()
+  if (!navigationLocked) return (
+    <Link {...props} href={href} prefetch={true} className={className}
+      onClick={event => {
+        props.onClick?.(event)
+        if (href === pathname && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) event.preventDefault()
+      }}
     >
       {children}
-    </button>
+      <NavigationLoading />
+    </Link>
   )
-
-  if (!navigationLocked) return button
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="block w-full">{button}</span>
+        <span className="block w-full">
+          <span role="link" aria-disabled="true" className={cn(className, 'pointer-events-none')}>
+            {children}
+          </span>
+        </span>
       </TooltipTrigger>
       <TooltipContent side={side} sideOffset={8} variant="destructive">
         {tooltip}
@@ -113,28 +127,12 @@ function MobileSectionLabel({ children, first = false }: { children: React.React
 export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarProps) {
   const [, setWarehouseOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isNavigatingTo, setIsNavigatingTo] = useState<string | null>(null)
-  const router = useRouter()
   const pathname = usePathname()
   const { colors } = useBrand()
 
   const isActive = (href: string) => {
     if (href === '/Dashboard') return pathname === '/Dashboard'
     return pathname.startsWith(href)
-  }
-
-  useEffect(() => {
-    setIsNavigatingTo(null)
-  }, [pathname])
-
-  const navigate = (href: string) => {
-    if (pathname === href) {
-      setMobileOpen(false)
-      return
-    }
-    setIsNavigatingTo(href)
-    router.push(href)
-    setMobileOpen(false)
   }
 
   const navItemCls = (active: boolean) => cn(
@@ -158,8 +156,6 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
   return (
     <>
-      {isNavigatingTo && <PageLoader text="Transferring..." />}
-
       {/* Static spacer — sidebar overlays on hover, no content reflow */}
       <div className="hidden 2xl:block shrink-0 w-[76px] h-dvh" />
 
@@ -202,7 +198,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => navigate('/Dashboard')}
+            href="/Dashboard" onClick={() => setMobileOpen(false)}
             className={navItemCls(isActive('/Dashboard'))}
             aria-current={isActive('/Dashboard') ? 'page' : undefined}
             title="Dashboard"
@@ -219,7 +215,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
           <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
-              onClick={() => navigate('/warehouse')}
+              href="/warehouse" onClick={() => setMobileOpen(false)}
               className={navItemCls(isActive('/warehouse'))}
               aria-current={isActive('/warehouse') ? 'page' : undefined}
               title="Warehouse"
@@ -235,7 +231,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
           <RoleGuard allowedRoles={['inventory']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
-              onClick={() => navigate('/inventory')}
+              href="/inventory" onClick={() => setMobileOpen(false)}
               className={navItemCls(isActive('/inventory'))}
               aria-current={isActive('/inventory') ? 'page' : undefined}
               title="Inventory"
@@ -251,7 +247,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
           <RoleGuard allowedRoles={['cut']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
-              onClick={() => navigate('/cut')}
+              href="/cut" onClick={() => setMobileOpen(false)}
               className={navItemCls(isActive('/cut'))}
               aria-current={isActive('/cut') ? 'page' : undefined}
               title="Cut"
@@ -265,7 +261,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
           <RoleGuard allowedRoles={['endorsement']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
-              onClick={() => navigate('/endorsement')}
+              href="/endorsement" onClick={() => setMobileOpen(false)}
               className={navItemCls(isActive('/endorsement'))}
               aria-current={isActive('/endorsement') ? 'page' : undefined}
               title="Endorsement"
@@ -279,7 +275,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
           <RoleGuard allowedRoles={['scan']} action="hide">
             <LockedNavButton
               navigationLocked={navigationLocked}
-              onClick={() => navigate('/scan')}
+              href="/scan" onClick={() => setMobileOpen(false)}
               className={navItemCls(isActive('/scan'))}
               aria-current={isActive('/scan') ? 'page' : undefined}
               title="Scan"
@@ -292,7 +288,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => navigate('/checkpoints')}
+            href="/checkpoints" onClick={() => setMobileOpen(false)}
             className={navItemCls(isActive('/checkpoints'))}
             aria-current={isActive('/checkpoints') ? 'page' : undefined}
             title="Station Checkpoints"
@@ -304,7 +300,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => navigate('/locator')}
+            href="/locator" onClick={() => setMobileOpen(false)}
             className={navItemCls(isActive('/locator'))}
             aria-current={isActive('/locator') ? 'page' : undefined}
             title="Storage Locator"
@@ -318,7 +314,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => navigate('/transmission')}
+            href="/transmission" onClick={() => setMobileOpen(false)}
             className={navItemCls(isActive('/transmission'))}
             aria-current={isActive('/transmission') ? 'page' : undefined}
             title="Transmission Monitor"
@@ -330,7 +326,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => navigate('/reports')}
+            href="/reports" onClick={() => setMobileOpen(false)}
             className={navItemCls(isActive('/reports'))}
             aria-current={isActive('/reports') ? 'page' : undefined}
             title="Reports"
@@ -342,7 +338,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
           <LockedNavButton
             navigationLocked={navigationLocked}
-            onClick={() => navigate('/non-processable')}
+            href="/non-processable" onClick={() => setMobileOpen(false)}
             className={navItemCls(isActive('/non-processable'))}
             aria-current={isActive('/non-processable') ? 'page' : undefined}
             title="Non-Processable"
@@ -418,78 +414,78 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
         <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-0.5 landscape:gap-2 landscape:py-4" role="navigation" aria-label="Main navigation">
           <MobileSectionLabel first>Main</MobileSectionLabel>
 
-          <button
-            onClick={() => navigate('/Dashboard')}
-            disabled={navigationLocked}
+          <LockedNavButton
+            href="/Dashboard" onClick={() => setMobileOpen(false)}
+            navigationLocked={navigationLocked}
             className={mobileNavItemCls(isActive('/Dashboard'))}
           >
             <LayoutDashboard className="h-5 w-5 shrink-0" />
             Dashboard
-          </button>
+          </LockedNavButton>
 
           <MobileSectionLabel>Operations</MobileSectionLabel>
 
           <RoleGuard allowedRoles={['warehouse', 'inventory']} action="hide">
-            <button onClick={() => navigate('/warehouse')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
+            <LockedNavButton href="/warehouse" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/warehouse'))}>
               <Warehouse className="h-5 w-5 shrink-0" />
               Warehouse
-            </button>
+            </LockedNavButton>
           </RoleGuard>
 
           <RoleGuard allowedRoles={['inventory']} action="hide">
-            <button onClick={() => navigate('/inventory')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
+            <LockedNavButton href="/inventory" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/inventory'))}>
               <Archive className="h-5 w-5 shrink-0" />
               Inventory
-            </button>
+            </LockedNavButton>
           </RoleGuard>
 
           <RoleGuard allowedRoles={['cut']} action="hide">
-            <button onClick={() => navigate('/cut')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
+            <LockedNavButton href="/cut" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/cut'))}>
               <Scissors className="h-5 w-5 shrink-0" />
               Cut
-            </button>
+            </LockedNavButton>
           </RoleGuard>
 
           <RoleGuard allowedRoles={['endorsement']} action="hide">
-            <button onClick={() => navigate('/endorsement')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/endorsement'))}>
+            <LockedNavButton href="/endorsement" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/endorsement'))}>
               <CheckCircle className="h-5 w-5 shrink-0" />
               Endorsement
-            </button>
+            </LockedNavButton>
           </RoleGuard>
 
           <RoleGuard allowedRoles={['scan']} action="hide">
-            <button onClick={() => navigate('/scan')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
+            <LockedNavButton href="/scan" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/scan'))}>
               <ScanBarcode className="h-5 w-5 shrink-0" />
               Scan
-            </button>
+            </LockedNavButton>
           </RoleGuard>
 
-          <button onClick={() => navigate('/checkpoints')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
+          <LockedNavButton href="/checkpoints" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/checkpoints'))}>
             <MapPin className="h-5 w-5 shrink-0" />
             Station Checkpoints
-          </button>
+          </LockedNavButton>
 
-          <button onClick={() => navigate('/locator')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>
+          <LockedNavButton href="/locator" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/locator'))}>
             <StorageLocatorIcon className="h-5 w-5 shrink-0" />
             Storage Locator
-          </button>
+          </LockedNavButton>
 
           <MobileSectionLabel>Analytics</MobileSectionLabel>
 
-          <button onClick={() => navigate('/transmission')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/transmission'))}>
+          <LockedNavButton href="/transmission" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/transmission'))}>
             <Radio className="h-5 w-5 shrink-0" />
             Transmission Monitor
-          </button>
+          </LockedNavButton>
 
-          <button onClick={() => navigate('/reports')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/reports'))}>
+          <LockedNavButton href="/reports" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/reports'))}>
             <BarChart3 className="h-5 w-5 shrink-0" />
             Reports
-          </button>
+          </LockedNavButton>
 
-          <button onClick={() => navigate('/non-processable')} disabled={navigationLocked} className={mobileNavItemCls(isActive('/non-processable'))}>
+          <LockedNavButton href="/non-processable" onClick={() => setMobileOpen(false)} navigationLocked={navigationLocked} className={mobileNavItemCls(isActive('/non-processable'))}>
             <AlertOctagon className="h-5 w-5 shrink-0" />
             Non-Processable
-          </button>
+          </LockedNavButton>
         </nav>
 
         <div className="mx-4 h-px bg-white/10 mb-3" />

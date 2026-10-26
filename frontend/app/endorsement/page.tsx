@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from 'react'
 import { Boxes } from 'lucide-react'
 import { cn } from "@/lib/utils"
 import { DashboardSidebar } from "@/components/dashboard-sidebar"
@@ -94,6 +95,10 @@ export default function BookInspectionPage() {
     })
     setActiveTab('outgoing')
   })
+
+  useEffect(() => {
+    if (inspSessionActive) setActiveTab('inspection')
+  }, [inspSessionActive, setActiveTab])
 
   return (
     <>

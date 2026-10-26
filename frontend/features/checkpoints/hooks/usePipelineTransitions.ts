@@ -1,3 +1,4 @@
+import { DemoEventSource } from '@/lib/mock-data/events'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePagination } from '@/hooks/usePagination'
 import { fetchPipelineTransitions } from '../services/checkpoints.service'
@@ -75,7 +76,7 @@ export function usePipelineTransitions(brand: string) {
   }, [refresh])
 
   useEffect(() => {
-    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+    const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
       refreshRef.current(true)

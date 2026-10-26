@@ -531,3 +531,6 @@
 .topbar-glow {
   animation: topbar-glow-pulse 2.5s ease-in-out infinite;
 }
+
+/* Offline typography: no remote font requests at build or runtime. */
+:root { --font-inter: Arial, Helvetica, sans-serif; --font-playfair: Georgia, serif; }

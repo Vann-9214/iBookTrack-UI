@@ -1,3 +1,4 @@
+import { DemoEventSource } from '@/lib/mock-data/events'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import useSWR from 'swr'
 import { format } from 'date-fns'
@@ -162,14 +163,12 @@ export function useNonProcessable(brand: string) {
   }, [mutate])
 
   useEffect(() => {
-    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
-      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
       const handleUpdate = () => mutate()
       es.addEventListener('FLAG_UPDATED', handleUpdate)
       es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
       es.onerror = () => console.warn('NonProcessable SSE error - reconnecting')
       return () => es.close()
-    })
   }, [mutate])
 
   const resolveFlag = async () => {

@@ -1,0 +1,73 @@
+// Optional browser check; accepts an existing Playwright install, adds no dependencies.
+const assert = require('node:assert/strict')
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright')
+;(async () => {
+  const browser = await chromium.launch({ headless: true, channel: 'msedge' })
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  const failures = [], remote = [], apis = [], failedStyles = []
+  page.on('pageerror', e => failures.push(e.message))
+  page.on('response', response => {
+    if (response.request().resourceType() === 'stylesheet' && !response.ok()) failedStyles.push(response.url())
+  })
+  await context.route('**/*', route => {
+    const url = new URL(route.request().url())
+    if (!['localhost', '127.0.0.1'].includes(url.hostname)) { remote.push(url.origin); return route.abort() }
+    if (url.pathname.startsWith('/api/')) { apis.push(url.pathname); return route.abort() }
+    return route.continue()
+  })
+  const base = process.env.DEMO_URL || 'http://localhost:3000'
+  try {
+    await page.goto(base)
+    await page.waitForURL('**/landing-page')
+    assert.equal(await page.locator('.top-nav').evaluate(el => getComputedStyle(el).position), 'fixed', 'Landing page styles must load')
+    await page.goto(`${base}/login`)
+    await page.getByRole('button', { name: 'Log in', exact: true }).click()
+    await page.waitForURL('**/Dashboard')
+    await page.waitForFunction(() => document.body.textContent.includes('Ivan'))
+    for (const path of ['/Dashboard','/warehouse','/inventory','/cut','/endorsement','/scan','/transmission','/locator','/reports','/non-processable','/checkpoints','/settings','/qr-scanner','/intake','/register','/pending-approval']) {
+      const response = await page.goto(`${base}${path}`)
+      assert.equal(response.status(),200, path)
+      await page.waitForTimeout(900)
+      assert.ok(!(await page.locator('body').innerText()).includes('Application error'),path)
+      console.log('PAGE', path, 'OK')
+    }
+    await page.goto(`${base}/inventory`)
+    await page.getByRole('button', { name: /receive/i }).first().click()
+    await page.getByRole('button', { name: 'Yes, Receive', exact: true }).click()
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('ibooktrack_demo_state')).lots[0].boxes[0].current_stage === 'inventory')
+    await page.reload()
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ibooktrack_demo_state')).lots[0].boxes[0].current_stage),'inventory')
+    console.log('RECEIVE + RELOAD OK')
+    await page.getByRole('button', { name: 'Account', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Reset Demo Data' }).click()
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('ibooktrack_demo_state')).lots[0].boxes[0].current_stage === 'warehouse')
+    console.log('RESET OK')
+    await page.goto(`${base}/warehouse`)
+    await page.getByPlaceholder('Type or search lot...').fill('DEMO-LOCAL')
+    await page.keyboard.press('Escape')
+    await page.getByPlaceholder('e.g. 181/264').fill('999')
+    await page.getByRole('button', { name: 'Start Scanning', exact: true }).click()
+    const scanner = page.getByPlaceholder('Scan barcode or ISBN here...')
+    await scanner.fill('9780000000001')
+    await scanner.press('Enter')
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('ibooktrack_demo_warehouse_draft'))?.scannedBooks?.length === 1)
+    await page.reload()
+    await scanner.waitFor()
+    assert.ok((await page.locator('body').innerText()).includes('9780000000001'))
+    await page.getByRole('button', { name: 'Complete Session', exact: true }).click()
+    await page.getByPlaceholder('e.g. 100', { exact: true }).fill('1')
+    await page.getByRole('button', { name: 'Confirm Complete', exact: true }).click()
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('ibooktrack_demo_state')).lots.some(l=>l.lot_number==='DEMO-LOCAL'&&l.boxes.some(b=>b.books.some(book=>book.isbn==='9780000000001'))))
+    console.log('WAREHOUSE SCAN + DRAFT RELOAD + SAVE OK')
+    await page.screenshot({ path: '.demo-test/warehouse.png', fullPage: true })
+    assert.deepEqual(failures, [], 'Browser errors')
+    assert.deepEqual(remote, [], 'External network attempts')
+    assert.deepEqual(apis, [], 'API network attempts')
+    assert.deepEqual(failedStyles, [], 'Stylesheet load failures')
+    console.log('PASS: pages, empty login, receive persistence, reset; zero API/external requests')
+  } finally {
+    if (failures.length || remote.length || apis.length) console.log(JSON.stringify({ failures, remote, apis }))
+    await browser.close()
+  }
+})().catch(e=>{console.error(e);process.exitCode=1})

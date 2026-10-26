@@ -1,3 +1,4 @@
+import { DemoEventSource } from '@/lib/mock-data/events'
 import { useState, useCallback, useEffect } from 'react'
 import { toast } from 'sonner'
 import useSWR from 'swr'
@@ -57,7 +58,7 @@ export function useEndorsement() {
   }
 
   useEffect(() => {
-    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+    const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const handleUpdate = () => {
       mutate()

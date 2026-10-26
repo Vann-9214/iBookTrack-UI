@@ -1,4 +1,6 @@
 'use client'
+import { DemoEventSource } from '@/lib/mock-data/events'
+import { getApiBaseUrl } from '@/lib/auth-api'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSWR from 'swr'
@@ -80,15 +82,13 @@ export function useTransmission() {
   }, [mutate])
 
   useEffect(() => {
-    import('@/lib/auth-api').then(({ getApiBaseUrl }) => {
-      const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+      const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
       const handleUpdate = () => mutate()
       es.addEventListener('SCAN_UPDATED', handleUpdate)
       es.addEventListener('PIPELINE_UPDATED', handleUpdate)
       es.addEventListener('DASHBOARD_REFRESH', handleUpdate)
       es.onerror = () => console.warn('Transmission SSE error - reconnecting')
       return () => es.close()
-    })
   }, [mutate])
 
   // Ranking

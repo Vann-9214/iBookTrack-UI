@@ -24,5 +24,5 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 }
 
 export function getSsoLoginUrl(): string {
-  return `${apiUrl}/api/auth/innodata`
+  return '/Dashboard'
 }

@@ -39,13 +39,10 @@ export function LoginForm() {
     }
   }, [router, refreshUser])
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.SyntheticEvent) => {
     event.preventDefault()
     setError('')
-    if (!email || !password) {
-      setError('Please enter your email and password.')
-      return
-    }
+
 
     const result = await login({ email, password })
     if (result.success) {
@@ -73,12 +70,13 @@ export function LoginForm() {
         Welcome back
       </h1>
       <p className="text-center text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6 leading-relaxed">
-        Log in to your iBookTrack account to continue.
+        Explore the demo. No email or password required.
       </p>
 
       <div className="mb-6 flex flex-col gap-3">
         <a
           href={getSsoLoginUrl()}
+          onClick={(event) => { event.preventDefault(); void handleSubmit(event) }}
           className="flex items-center justify-center gap-2 h-9 sm:h-10 lg:h-11 w-full rounded-xl border-2 border-[#1a3460] bg-white text-[#1a3460] text-sm lg:text-base font-bold transition hover:bg-gray-50 active:scale-[0.98]"
         >
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">

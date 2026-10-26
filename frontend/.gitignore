@@ -1,5 +1,10 @@
 # Common ignores
 node_modules/
 .next/
+.next-dev/
+.next-turbo/
 .env*.local
 .DS_Store
+# Local demo verification artifacts
+.demo-test/
+.npm-cache/

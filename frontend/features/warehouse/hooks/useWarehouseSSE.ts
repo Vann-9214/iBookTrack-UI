@@ -1,4 +1,6 @@
 'use client'
+import { DemoEventSource } from '@/lib/mock-data/events'
+
 
 import { useEffect, useRef, useState } from 'react'
 import { getApiBaseUrl } from '@/lib/auth-api'
@@ -31,7 +33,7 @@ export function useWarehouseSSE(options?: {
   }, [options])
 
   useEffect(() => {
-    const es = new EventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
+    const es = new DemoEventSource(`${getApiBaseUrl()}/api/events`, { withCredentials: true })
 
     const parse = (event: MessageEvent): any | null => {
       try { return JSON.parse(event.data) } catch { return null }
