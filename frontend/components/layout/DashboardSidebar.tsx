@@ -193,7 +193,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
         <div className="mx-3 h-px bg-white/10" />
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-[10px] py-3 flex flex-col gap-0.5" role="navigation" aria-label="Main navigation">
+        <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-[10px] py-3 flex flex-col gap-0.5" role="navigation" aria-label="Main navigation">
           <SectionLabel first>Main</SectionLabel>
 
           <LockedNavButton
@@ -411,7 +411,7 @@ export function DashboardSidebar({ navigationLocked = false }: DashboardSidebarP
 
         <div className="mx-4 h-px bg-white/10" />
 
-        <nav className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-0.5 landscape:gap-2 landscape:py-4" role="navigation" aria-label="Main navigation">
+        <nav className="sidebar-scroll flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 py-3 flex flex-col gap-0.5 landscape:gap-2 landscape:py-4" role="navigation" aria-label="Main navigation">
           <MobileSectionLabel first>Main</MobileSectionLabel>
 
           <LockedNavButton

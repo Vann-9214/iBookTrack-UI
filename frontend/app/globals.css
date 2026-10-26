@@ -442,6 +442,16 @@
   }
 }
 
+/* Keep navigation scrollable on short screens without a native sidebar gutter. */
+.sidebar-scroll {
+  scrollbar-width: none;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklch, var(--muted-foreground) 30%, transparent) transparent;

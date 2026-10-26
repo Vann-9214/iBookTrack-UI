@@ -33,7 +33,7 @@ export default function WarehousePage() {
       <DashboardSidebar navigationLocked={wh.sessionActive} />
       <main className="flex-1 flex flex-col overflow-hidden overflow-x-hidden">
         <DashboardNavbar disableBrandToggle={wh.sessionActive} navigationLocked={wh.sessionActive} />
-        <div className={cn("ambient-bg flex-1 h-0 min-h-0", wh.sessionActive ? "overflow-y-auto sm:overflow-hidden" : "overflow-y-auto")}>
+        <div className="ambient-bg flex-1 h-0 min-h-0 overflow-y-auto">
           <div className="flex flex-col gap-4 sm:gap-6 px-4 pb-4 pt-2 sm:px-6 sm:pb-6 sm:pt-4 lg:px-8 lg:pb-8 lg:pt-6 pb-safe-6">
             {/* Modals */}
             <WarehouseCompleteSessionModal
