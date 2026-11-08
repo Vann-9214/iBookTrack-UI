@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { login, register, logout, getCurrentUser, getSsoLoginUrl } from '../services/auth.service'
+import { login, register, logout, getCurrentUser } from '../services/auth.service'
 import type { AuthUser, LoginCredentials, RegisterCredentials } from '../types/auth.types'
 
 export function useAuth() {
@@ -61,10 +61,6 @@ export function useAuth() {
     router.push('/login')
   }, [router])
 
-  const handleSsoLogin = useCallback(() => {
-    window.location.href = getSsoLoginUrl()
-  }, [])
-
   return {
     user,
     loading,
@@ -73,6 +69,5 @@ export function useAuth() {
     login: handleLogin,
     register: handleRegister,
     logout: handleLogout,
-    ssoLogin: handleSsoLogin,
   }
 }

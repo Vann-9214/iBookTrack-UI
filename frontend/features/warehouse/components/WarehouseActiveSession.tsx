@@ -57,7 +57,7 @@ export function WarehouseActiveSession({
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <div>
             <p className="text-sm font-semibold text-foreground">Adding ISBN...</p>
-            <p className="text-xs text-muted-foreground">Verifying with iLMS</p>
+            <p className="text-xs text-muted-foreground">Verifying with catalog</p>
           </div>
         </div>
       )}

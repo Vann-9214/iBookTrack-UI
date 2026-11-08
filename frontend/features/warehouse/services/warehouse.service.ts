@@ -11,7 +11,7 @@ const baseUrl = getApiBaseUrl()
 export async function fetchLots(): Promise<Lot[]> {
   const res = await authFetch(`${baseUrl}/api/warehouse/ilms-lots`)
   const data = await res.json()
-  if (!data.success) throw new Error('Failed to load lots from iLMS.')
+  if (!data.success) throw new Error('Failed to load lots from the catalog.')
   return (data.lots || []) as Lot[]
 }
 

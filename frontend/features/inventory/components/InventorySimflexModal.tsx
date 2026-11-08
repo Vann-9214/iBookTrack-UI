@@ -20,7 +20,7 @@ export function InventorySimflexModal({
           <div>
             <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" />
-              Simflex Transmission Check
+              Transmission Status Check
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">{box.box_number} · {box.lot?.lot_number}</p>
           </div>
@@ -33,7 +33,7 @@ export function InventorySimflexModal({
         {loading && (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Checking Simflex for all ISBNs in this box...</p>
+            <p className="text-sm text-muted-foreground">Checking the system for all ISBNs in this box...</p>
           </div>
         )}
         {!loading && error && (
@@ -66,7 +66,7 @@ export function InventorySimflexModal({
                   <tr className="text-muted-foreground">
                     <th className="pb-2 pt-2 px-3 text-left font-medium">#</th>
                     <th className="pb-2 pt-2 px-3 text-left font-medium">ISBN</th>
-                    <th className="pb-2 pt-2 px-3 text-left font-medium">Simflex Box</th>
+                    <th className="pb-2 pt-2 px-3 text-left font-medium">Box</th>
                     <th className="pb-2 pt-2 px-3 text-left font-medium">Latest Status</th>
                     <th className="pb-2 pt-2 px-3 text-center font-medium">Transmitted</th>
                   </tr>
@@ -78,7 +78,7 @@ export function InventorySimflexModal({
                       <td className="py-1.5 px-3 text-foreground">{r.isbn}</td>
                       <td className="py-1.5 px-3 text-muted-foreground">{r.boxNumber || '—'}</td>
                       <td className="py-1.5 px-3 text-muted-foreground max-w-[180px] truncate" title={r.latestStatus || ''}>
-                        {r.latestStatus || <span className="italic">Not in Simflex</span>}
+                        {r.latestStatus || <span className="italic">No record</span>}
                       </td>
                       <td className="py-1.5 px-3 text-center">
                         {r.transmissionCompleted ? <CheckCircle2 className="h-4 w-4 text-primary mx-auto" /> : <XCircle className="h-4 w-4 text-primary mx-auto" />}

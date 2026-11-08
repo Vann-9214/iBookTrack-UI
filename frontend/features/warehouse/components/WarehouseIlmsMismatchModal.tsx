@@ -73,7 +73,7 @@ export function WarehouseIlmsMismatchModal({
           </div>
 
           <div className={cn('rounded-xl border p-4', theme.surface)}>
-            <p className={cn('text-[10px] font-bold uppercase tracking-wider', theme.surfaceLabel)}>iLMS assignment</p>
+            <p className={cn('text-[10px] font-bold uppercase tracking-wider', theme.surfaceLabel)}>Catalog assignment</p>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className={cn('rounded-lg border px-3 py-2.5', theme.detail)}>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Lot</p>

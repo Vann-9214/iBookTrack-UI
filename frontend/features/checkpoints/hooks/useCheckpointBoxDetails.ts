@@ -60,7 +60,7 @@ export function useCheckpointBoxDetails(brand: string) {
     try {
       const data = await checkSimflexForBoxApi(box.id)
       if (!data.success) {
-        const message = data.error || 'Simflex check failed'
+        const message = data.error || 'Status check failed'
         setSimflexCheckResult({ boxId: box.id, message, success: false })
         toast({ variant: 'destructive', title: message })
         return
@@ -82,7 +82,7 @@ export function useCheckpointBoxDetails(brand: string) {
         toast({ variant: 'destructive', title: 'Cannot advance: Not all processable books are completed.' })
       }
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Simflex check failed'
+      const message = e instanceof Error ? e.message : 'Status check failed'
       setSimflexCheckResult({ boxId: box.id, message, success: false })
       toast({ variant: 'destructive', title: message })
     } finally {

@@ -6,7 +6,7 @@
 
 > Welcome. This folder is the complete handover package for **iBookTrack** —
 > a unified Warehouse Management System and Executive Dashboard built for
-> Innodata's book-digitization pipeline.
+> a physical book-digitization pipeline.
 
 ---
 

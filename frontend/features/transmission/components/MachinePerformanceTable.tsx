@@ -250,7 +250,7 @@ export function MachinePerformanceTable({
               <p className="text-sm font-bold text-gray-800">
                 Books scanned on {machineDisplayName(selectedMachine)}
               </p>
-              <p className="text-xs text-gray-500">ISBNs reported by Simflex for the selected date range</p>
+              <p className="text-xs text-gray-500">ISBNs reported by the scanning system for the selected date range</p>
             </div>
             <Badge variant="outline" className={cn(
               "bg-white text-xs",

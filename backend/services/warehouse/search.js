@@ -117,7 +117,7 @@ export const queryIsbnStreamService = async (req, res) => {
 
     const { ilmsApi } = await import('../ilms/api.js')
     let ilmsResult;
-    const projectLabel = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'iLMS'
+    const projectLabel = type ? type.charAt(0).toUpperCase() + type.slice(1).toLowerCase() : 'catalog'
     
     if (type) {
       const projResult = await ilmsApi.searchByProject(cleaned, type)
@@ -125,7 +125,7 @@ export const queryIsbnStreamService = async (req, res) => {
       const firstHit = results.find(b => b.ISBN && b.ISBN.replace(/[^0-9a-zA-Z]/g, '').toUpperCase() === cleaned) || null
       const error = firstHit
         ? null
-        : `ISBN ${cleaned} was not found in ${projectLabel} records. No exact match was returned by the ${projectLabel} iLMS endpoint.`
+        : `ISBN ${cleaned} was not found in ${projectLabel} records. No exact match was returned by the ${projectLabel} catalog endpoint.`
 
       ilmsResult = {
         success: !!firstHit,
@@ -143,7 +143,7 @@ export const queryIsbnStreamService = async (req, res) => {
       ilmsResult = {
         success: !!firstHit,
         data: firstHit,
-        error: firstHit ? null : (rawResult.error || `ISBN ${cleaned} was not found in Mustang or Jaguar iLMS records.`)
+        error: firstHit ? null : (rawResult.error || `ISBN ${cleaned} was not found in Mustang or Jaguar catalog records.`)
       }
     }
 
@@ -232,7 +232,7 @@ export const searchIsbnService = async (req, res) => {
     if (!bookFound) {
       return res.json({
         success: false,
-        message: 'ISBN not found in iLMS or database',
+        message: 'ISBN not found in catalog or database',
         book: null
       })
     }

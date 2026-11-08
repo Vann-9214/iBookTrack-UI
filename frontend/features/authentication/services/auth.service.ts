@@ -22,7 +22,3 @@ export async function refreshToken(): Promise<boolean> {
 export async function getCurrentUser(): Promise<AuthUser | null> {
   return fetchUserProfile() as Promise<AuthUser | null>
 }
-
-export function getSsoLoginUrl(): string {
-  return '/Dashboard'
-}

@@ -40,7 +40,7 @@ export const ContactSection = () => {
                 </div>
                 <div>
                   <span className="contact-detail-label">Email</span>
-                  <span className="contact-detail-value">support@innodata.com</span>
+                  <span className="contact-detail-value">support@example.com</span>
                 </div>
               </div>
               <div className="contact-detail-item">
@@ -62,7 +62,7 @@ export const ContactSection = () => {
                 </div>
                 <div>
                   <span className="contact-detail-label">Office</span>
-                  <span className="contact-detail-value">Innodata Knowledge Inc., Philippines</span>
+                  <span className="contact-detail-value">Manila, Philippines</span>
                 </div>
               </div>
             </div>
@@ -108,7 +108,7 @@ export const ContactSection = () => {
                       id="contact-email"
                       name="email"
                       type="email"
-                      placeholder="juan@innodata.com"
+                      placeholder="you@example.com"
                       value={form.email}
                       onChange={handleChange}
                       required

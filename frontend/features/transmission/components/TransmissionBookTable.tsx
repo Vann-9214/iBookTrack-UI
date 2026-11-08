@@ -169,7 +169,7 @@ export function TransmissionBookTable({
                 <th className="text-left font-semibold text-muted-foreground px-4 py-2">Title</th>
                 <th className="text-left font-semibold text-muted-foreground px-4 py-2 w-[160px]">Author</th>
                 <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Scan</th>
-                <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">Simflex</th>
+                <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[110px]">System status</th>
                 <th className="text-left font-semibold text-muted-foreground px-3 py-2 w-[150px]">Date Updated</th>
                 <th className="text-center font-semibold text-muted-foreground px-3 py-2 w-[60px]"></th>
               </tr>

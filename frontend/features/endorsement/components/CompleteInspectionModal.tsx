@@ -221,7 +221,7 @@ export function CompleteInspectionModal({
         {/* Footer */}
         <div className={cn('flex shrink-0 flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4', theme.footer)}>
           <p className="text-[11px] font-medium text-muted-foreground">
-            * Total <span className="font-bold text-foreground">{newFlaggedBooks.length}</span> newly flagged books will be updated in iLMS.
+            * Total <span className="font-bold text-foreground">{newFlaggedBooks.length}</span> newly flagged books will be updated in the catalog.
           </p>
           <div className="flex gap-2 sm:shrink-0">
             <button

@@ -64,28 +64,28 @@ export const SUPPORT_LINKS: SupportItem[] = [
     label: "Help center",
     content: {
       heading: "Help Center",
-      body: "For assistance with iBookTrack, reach out to our support team at support@innodata.com or consult the in-app documentation found under Settings → Help. Our team is available Monday–Friday, 8 AM–6 PM PHT.",
+      body: "For assistance with iBookTrack, reach out to our support team at support@example.com or consult the in-app documentation found under Settings → Help. Our team is available Monday–Friday, 8 AM–6 PM PHT.",
     },
   },
   {
     label: "Terms of service",
     content: {
       heading: "Terms of Service",
-      body: "By using iBookTrack, you agree to use the platform solely for authorized warehouse management and digitization workflows within Innodata Knowledge Inc. Unauthorized access, data extraction, or misuse of client data is strictly prohibited and subject to disciplinary action.",
+      body: "By using iBookTrack, you agree to use the platform solely for authorized warehouse management and digitization workflows. Unauthorized access, data extraction, or misuse of client data is strictly prohibited.",
     },
   },
   {
     label: "Legal",
     content: {
       heading: "Legal",
-      body: "iBookTrack is a proprietary platform owned and operated by Innodata Knowledge Inc. All intellectual property, including workflows, data structures, and interfaces, are protected under applicable copyright and trade secret laws.",
+      body: "iBookTrack is a demonstration and portfolio project. All workflows, data structures, and interfaces shown here are sample material created for learning and showcase purposes.",
     },
   },
   {
     label: "Privacy policy",
     content: {
       heading: "Privacy Policy",
-      body: "iBookTrack collects and processes operational data including user activity logs, scan records, and transmission reports. All data is stored securely within Innodata's internal infrastructure and is never shared with third parties. Access is restricted to authorized personnel only.",
+      body: "iBookTrack does not collect real personal data. Everything you see — including activity logs, scan records, and transmission reports — is sample data created for the demo, stored locally, and never shared with third parties.",
     },
   },
 ];

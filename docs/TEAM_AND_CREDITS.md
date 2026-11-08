@@ -1,6 +1,6 @@
 # Team & Credits
 
-This project was built by OJT Interns for Innodata:
+This project was built by OJT Interns:
 
 - **Ivan Clement P. Cañete**: Full Stack Developer, Project Manager, Backend Integration (Supabase to Vanilla Postgres migration), and Security.
 - **Divan Jude Rosas**: Frontend Developer, Mobile, and QR Scan Integration.

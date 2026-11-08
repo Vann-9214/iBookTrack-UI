@@ -68,7 +68,7 @@ export function MismatchDetailsModal({ book, saving, onClose, onSave }: Mismatch
               <BookOpen className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Title Data from ILMS</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Title Data from Catalog</p>
               <div className="mt-3 space-y-2.5">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Title</p>

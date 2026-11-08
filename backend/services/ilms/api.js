@@ -105,7 +105,7 @@ class ILMSApiService {
 
     return {
       success: false,
-      error: `ISBN ${isbn} not found in iLMS records.`,
+      error: `ISBN ${isbn} not found in catalog records.`,
       data: null
     }
   }

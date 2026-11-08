@@ -36,7 +36,7 @@ export async function syncBoxWithSimflex(box) {
     // Query Scan Manager for the latest status of each ISBN
     const simflexResult = await getSimflexStatusForISBNs(isbns, (box.box_type || 'mustang').toLowerCase())
     if (!simflexResult.success) {
-      return { advanced: false, newStage: box.current_stage, message: 'Failed to query Simflex.' }
+      return { advanced: false, newStage: box.current_stage, message: 'Failed to query the system.' }
     }
 
     const results = simflexResult.data

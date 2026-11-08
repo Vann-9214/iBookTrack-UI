@@ -82,11 +82,11 @@ export function useDashboard() {
       const data = await searchIsbn(searchValue.trim())
       if (!data || !data.success || !data.book) {
         setSearchResult(null)
-        toast({ title: 'Not Found', description: data?.message || 'ISBN not found in iLMS or database', variant: 'destructive' })
+        toast({ title: 'Not Found', description: data?.message || 'ISBN not found in catalog or database', variant: 'destructive' })
         return
       }
       setSearchResult({ type: 'isbn', data: data.book, books: [data.book] })
-      toast({ title: data.book.in_warehouse ? 'Book Found in Warehouse' : data.book.in_ilms ? 'Book Found in iLMS' : 'Book Found', description: data.book.in_warehouse ? `Located in ${data.book.box_number || 'Unknown Box'}` : 'Book information retrieved' })
+      toast({ title: data.book.in_warehouse ? 'Book Found in Warehouse' : data.book.in_ilms ? 'Book Found in Catalog' : 'Book Found', description: data.book.in_warehouse ? `Located in ${data.book.box_number || 'Unknown Box'}` : 'Book information retrieved' })
       setSearchOpen(true)
     } catch (error) {
       console.error('Search error:', error)

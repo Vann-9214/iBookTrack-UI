@@ -42,7 +42,5 @@ router.post('/refresh', validateRequest(schemas.refreshSchema), controller.refre
 router.post('/password', requireAuth, validateRequest(schemas.passwordSchema), controller.password);
 router.get('/profile', requireAuth, controller.getProfile);
 router.patch('/profile', requireAuth, validateRequest(schemas.profileSchema), controller.updateProfile);
-router.get('/innodata', controller.innodata);
-router.get('/innodata/callback', controller.innodataCallback);
 
 export default router;

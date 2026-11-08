@@ -31,7 +31,7 @@ Before you start, gather these from the current owner:
       [`PROJECT_OVERVIEW.md` §5](./PROJECT_OVERVIEW.md#5-environment-variables-reference)).
 - [ ] Repo access (Git).
 - [ ] Domain DNS access if you're keeping the same URL.
-- [ ] Innodata Simflex API key + config code (currently hard-coded — see
+- [ ] Simflex API key + config code (currently hard-coded — see
       cleanup notes).
 - [ ] iLMS credentials if applicable.
 

@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import { getSsoLoginUrl } from '../services/auth.service'
 import { useAuth } from '../hooks/useAuth'
 import { useUser } from '@/hooks/use-user'
 
@@ -17,27 +15,6 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [leaving, setLeaving] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const ssoSuccess = params.get('sso_success')
-    if (ssoSuccess) {
-      toast.success('Innodata SSO Login successful!')
-      
-      const checkSsoUser = async () => {
-        await refreshUser()
-        // Determine role post-refresh. The safest way is to fetch user again or just redirect to dashboard
-        // where ProtectedRoute will catch them, but we'll try to redirect here if possible.
-        // Actually, just redirect to Dashboard. ProtectedRoute will catch it if they have no role.
-        // Wait, ProtectedRoute only catches if the user context is updated! We just updated it.
-        setLeaving(true)
-        sessionStorage.setItem('from_login', '1')
-        setTimeout(() => router.push('/Dashboard'), 300)
-      }
-      checkSsoUser()
-    }
-  }, [router, refreshUser])
 
   const handleSubmit = async (event: React.SyntheticEvent) => {
     event.preventDefault()
@@ -70,27 +47,8 @@ export function LoginForm() {
         Welcome back
       </h1>
       <p className="text-center text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6 leading-relaxed">
-        Explore the demo. No email or password required.
+        Sign in with your email and password to continue.
       </p>
-
-      <div className="mb-6 flex flex-col gap-3">
-        <a
-          href={getSsoLoginUrl()}
-          onClick={(event) => { event.preventDefault(); void handleSubmit(event) }}
-          className="flex items-center justify-center gap-2 h-9 sm:h-10 lg:h-11 w-full rounded-xl border-2 border-[#1a3460] bg-white text-[#1a3460] text-sm lg:text-base font-bold transition hover:bg-gray-50 active:scale-[0.98]"
-        >
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z" />
-          </svg>
-          Log in with Innodata SSO
-        </a>
-
-        <div className="relative flex items-center">
-          <div className="flex-grow border-t border-gray-200" />
-          <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium uppercase tracking-wider">or regular login</span>
-          <div className="flex-grow border-t border-gray-200" />
-        </div>
-      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 sm:gap-3.5" noValidate>
         <div className="flex flex-col gap-1">

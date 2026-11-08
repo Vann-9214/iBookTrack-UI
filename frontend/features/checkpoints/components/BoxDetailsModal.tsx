@@ -65,7 +65,7 @@ export function BoxDetailsModal({
               ) : (
                 <Zap className="h-3 w-3" />
               )}
-              {checkingSimflexBoxId === box.id ? 'Checking Simflex…' : 'Check Simflex'}
+              {checkingSimflexBoxId === box.id ? 'Checking status…' : 'Check status'}
             </button>
             {simflexCheckResult?.boxId === box.id && (
               <div
@@ -97,7 +97,7 @@ export function BoxDetailsModal({
                   <th className="pb-2 text-left font-medium pr-3">Status</th>
                   <th className="pb-2 text-left font-medium pr-3">Stage</th>
                   {(['scan', 'transmit', 'storage'].includes(box?.current_stage || '')) && (
-                    <th className="pb-2 text-left font-medium">Simflex</th>
+                    <th className="pb-2 text-left font-medium">System status</th>
                   )}
                 </tr>
               </thead>

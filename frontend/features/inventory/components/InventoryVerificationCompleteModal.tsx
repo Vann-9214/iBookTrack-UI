@@ -114,9 +114,9 @@ export function InventoryVerificationCompleteModal({ verification, onSuccess }: 
               <div className="px-5 py-3 border-b border-emerald-200/80 bg-emerald-50 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-bold tracking-tight text-emerald-900">Processable ISBNs</p>
-                  <p className="text-[11px] font-medium text-emerald-700/80 mt-0.5">These are the only ISBNs that will be updated or edited in iLMS.</p>
+                  <p className="text-[11px] font-medium text-emerald-700/80 mt-0.5">These are the only ISBNs that will be updated or edited in the catalog.</p>
                 </div>
-                <span className="text-[10px] px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700 font-bold uppercase tracking-wide border border-emerald-200/60 shadow-sm">Update in iLMS</span>
+                <span className="text-[10px] px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700 font-bold uppercase tracking-wide border border-emerald-200/60 shadow-sm">Update in Catalog</span>
               </div>
               <div className="max-h-48 overflow-y-auto divide-y divide-emerald-200/50 custom-scrollbar">
                 {verifProcessableBooks.length === 0 ? (
@@ -142,9 +142,9 @@ export function InventoryVerificationCompleteModal({ verification, onSuccess }: 
               <div className="px-5 py-3 border-b border-rose-200/80 bg-red-50 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-bold tracking-tight text-rose-900">Non-Processable and Missing ISBNs</p>
-                  <p className="text-[11px] font-medium text-rose-700/80 mt-0.5">These are the ISBNs that can't be updated or edited in iLMS.</p>
+                  <p className="text-[11px] font-medium text-rose-700/80 mt-0.5">These are the ISBNs that can't be updated or edited in the catalog.</p>
                 </div>
-                <span className="text-[10px] px-2.5 py-1 rounded-md bg-red-100 text-red-700 font-bold uppercase tracking-wide border border-red-200/60 shadow-sm">Blocked from iLMS</span>
+                <span className="text-[10px] px-2.5 py-1 rounded-md bg-red-100 text-red-700 font-bold uppercase tracking-wide border border-red-200/60 shadow-sm">Blocked from Catalog</span>
               </div>
               <div className="max-h-48 overflow-y-auto divide-y divide-rose-200/50 custom-scrollbar">
                 {verifBlockedBooks.length === 0 && verifMissingBooks.length === 0 ? (

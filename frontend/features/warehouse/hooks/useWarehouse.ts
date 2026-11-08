@@ -32,7 +32,7 @@ export function useWarehouse() {
   const session = useWarehouseSession(core, lots, mutate)
   const scans = useWarehouseScans(core)
 
-  const lotsError = error ? (error.message || 'Failed to connect to iLMS.') : null
+  const lotsError = error ? (error.message || 'Failed to connect to the catalog.') : null
 
   const { lockedWarehouseBoxes } = useWarehouseSSE({
     onUnlocked: (box) => {

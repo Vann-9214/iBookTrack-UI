@@ -132,10 +132,10 @@ export function PendingApproval() {
                   Contact your supervisor or admin to expedite your role assignment.
                 </p>
                 <a
-                  href="mailto:support@innodata.com"
+                  href="mailto:support@example.com"
                   className="inline-flex items-center gap-1 text-primary text-[10px] sm:text-xs font-semibold mt-1 sm:mt-2 hover:text-blue-300 transition-colors group"
                 >
-                  support@innodata.com
+                  support@example.com
                   <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 transition-transform group-hover:translate-x-0.5" />
                 </a>
               </div>
@@ -174,7 +174,7 @@ export function PendingApproval() {
 
         {/* Footer */}
         <p className="text-center text-[9px] sm:text-[11px] text-blue-200/30 mt-3 sm:mt-6">
-          iBookTrack · Powered by Innodata
+          iBookTrack · Demo
         </p>
       </div>
     </div>

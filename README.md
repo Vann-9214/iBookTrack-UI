@@ -1,7 +1,7 @@
 # iBookTrack
 
-A unified Warehouse Management System (WMS) and Executive Dashboard developed for
-Innodata. Synchronizes the physical book digitization workflow (8-stage pipeline)
+A unified Warehouse Management System (WMS) and Executive Dashboard developed as a
+demonstration project. Synchronizes the physical book digitization workflow (8-stage pipeline)
 with real-time backend data to eliminate inventory loss and replace Excel-based
 QA logs.
 
@@ -23,7 +23,7 @@ Full turnover documentation lives in the [`docs/`](./docs) directory:
 - **Frontend:** Next.js 15, React 19, TypeScript, Tailwind v4, shadcn/ui
 - **Backend:** Node.js 20+, Express 4 (ES modules)
 - **Database:** Vanilla PostgreSQL (with custom JWT Authentication)
-- **External:** Innodata Simflex WMS API, iLMS metadata API
+- **External:** Simflex WMS API, iLMS metadata API
 
 ## 🚀 Quick Start
 

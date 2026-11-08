@@ -23,7 +23,7 @@ export const FooterSection = () => {
           <SupportFooterLinks title="Support" links={SUPPORT_LINKS} onOpen={setModal} />
         </div>
         <div className="footer-bottom">
-          <span>© 2026 Innodata Knowledge Inc. All rights reserved.</span>
+          <span>© 2026 iBookTrack. All rights reserved.</span>
         </div>
       </footer>
 

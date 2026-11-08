@@ -6,7 +6,7 @@
 
 ## 1. What the System Does
 
-iBookTrack is a Warehouse Management System (WMS) and Executive Dashboard built for Innodata's physical book digitization workflow. It replaces manual Excel-based tracking with real-time, database-backed tracking of every physical book as it moves through digitization.
+iBookTrack is a Warehouse Management System (WMS) and Executive Dashboard built for a physical book digitization workflow. It replaces manual Excel-based tracking with real-time, database-backed tracking of every physical book as it moves through digitization.
 
 ---
 
@@ -33,7 +33,6 @@ Every book/box is tracked sequentially through these stages, with a digital hand
 - User registration and profile management
 - Password change
 - Role-based access control (e.g., Supervisor vs. operational staff roles) — restricts who can view data or perform actions
-- Single sign-on integration with Innodata's internal system (iLMS)
 - Rate-limiting on login/registration to prevent abuse
 
 ### Warehouse Receiving
@@ -101,7 +100,7 @@ Every book/box is tracked sequentially through these stages, with a digital hand
 | Database | PostgreSQL |
 | Authentication | Custom JWT-based security |
 | Real-time updates | Server-Sent Events (SSE) |
-| External Integrations | Innodata iLMS (catalog/SSO), Simflex (scanning machines) |
+| External Integrations | iLMS (catalog), Simflex (scanning machines) |
 
 ---
 

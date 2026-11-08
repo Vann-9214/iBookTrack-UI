@@ -7,16 +7,9 @@
 import * as authRepo from '../../repositories/auth/auth.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import { logger } from '../../utils/logger.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 const cookieOpts = { httpOnly: true, secure: isProd, sameSite: 'lax' };
-
-// Name and lifetime of the one-time cookie that ties an SSO callback back to the
-// authorize request this server actually started (OAuth2 "state").
-const OAUTH_STATE_COOKIE = 'oauth_state';
-const OAUTH_STATE_MAX_AGE = 10 * 60 * 1000;
 
 const getSessionDurationMs = () => {
   return 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
@@ -188,113 +181,4 @@ export const updateProfileService = async (req, res) => {
   if (error || !data) throw { status: 500, payload: { error: 'Failed to update profile.' } };
 
   return { message: 'Profile updated successfully.', user: data };
-};
-
-// Innodata SSO functions omitted for brevity unless needed
-export const innodataService = async (req, res) => {
-  const authUrl = new URL(process.env.OAUTH_AUTHORIZE_URL);
-  authUrl.searchParams.append('client_id', process.env.OAUTH_CLIENT_ID);
-  authUrl.searchParams.append('redirect_uri', process.env.OAUTH_REDIRECT_URI);
-  authUrl.searchParams.append('response_type', 'code');
-  authUrl.searchParams.append('scope', 'openid email profile');
-
-  // Unguessable value that links this authorize request to the callback that
-  // follows. It is kept in an HttpOnly cookie the browser cannot read and is
-  // compared in innodataCallbackService, so a callback triggered by someone else
-  // (with their own authorization code) cannot log this browser in.
-  const state = crypto.randomBytes(32).toString('hex');
-  res.cookie(OAUTH_STATE_COOKIE, state, { ...cookieOpts, maxAge: OAUTH_STATE_MAX_AGE });
-  authUrl.searchParams.append('state', state);
-
-  return authUrl.toString();
-};
-
-export const innodataCallbackService = async (req, res) => {
-  const { code, state } = req.query;
-  if (!code) throw { status: 400, payload: { error: 'Authorization code is missing.' } };
-
-  // Verify the callback belongs to an authorize request this server issued.
-  // The cookie is single-use and cleared straight away so a captured state
-  // cannot be replayed.
-  const expectedState = req.cookies?.[OAUTH_STATE_COOKIE];
-  res.clearCookie(OAUTH_STATE_COOKIE, cookieOpts);
-
-  const stateMatches =
-    typeof state === 'string' &&
-    typeof expectedState === 'string' &&
-    state.length === expectedState.length &&
-    crypto.timingSafeEqual(Buffer.from(state), Buffer.from(expectedState));
-
-  if (!stateMatches) {
-    logger.error('SSO callback rejected: OAuth state missing or does not match the issued value.');
-    throw { status: 400, payload: { error: 'Invalid SSO request. Please start the sign-in again.' } };
-  }
-
-  try {
-    // 1. Exchange code for access token
-    const basicAuth = Buffer.from(`${process.env.OAUTH_CLIENT_ID}:${process.env.OAUTH_CLIENT_SECRET}`).toString('base64');
-    const tokenResponse = await fetch(process.env.OAUTH_TOKEN_URL, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${basicAuth}`
-      },
-      body: new URLSearchParams({
-        redirect_uri: process.env.OAUTH_REDIRECT_URI,
-        grant_type: 'authorization_code',
-        code,
-      }),
-    });
-    
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      throw new Error(`Failed to get access token: ${errorText}`);
-    }
-    
-    const tokenData = await tokenResponse.json();
-
-    // 2. Get user info
-    const userResponse = await fetch(process.env.OAUTH_USERINFO_URL, {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` },
-    });
-    
-    if (!userResponse.ok) {
-      const errorText = await userResponse.text();
-      throw new Error(`Failed to get user info: ${errorText}`);
-    }
-    
-    const userData = await userResponse.json();
-
-    // 3. Find or create user in DB
-    const email = userData.email || userData.upn || userData.username || userData.sub;
-    const name = userData.name || userData.given_name || (email ? email.split('@')[0] : 'SSO User');
-    
-    if (!email) throw new Error('Email not provided by SSO provider');
-
-    let user = await authRepo.getUserByEmail(email);
-    if (!user) {
-      // Create user with dummy password since they use SSO
-      const dummyPassword = await bcrypt.hash(Math.random().toString(36), 10);
-      user = await authRepo.createUser(name, email, dummyPassword, null);
-    }
-
-    // 4. Generate token and set cookie
-    const msDuration = getSessionDurationMs();
-    const token = generateToken(user, Math.floor(msDuration / 1000));
-    res.cookie('access_token', token, { ...cookieOpts, maxAge: msDuration });
-
-    // 5. Redirect to frontend
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl) throw new Error('FRONTEND_URL environment variable is missing.');
-    return frontendUrl;
-  } catch (error) {
-    // The raw error carries the provider's token/userinfo response body, which
-    // can include client configuration and token material. It stays in the
-    // server log; the browser only receives an opaque code so nothing sensitive
-    // ends up in the URL bar, browser history or Referer header.
-    logger.error('SSO callback failed:', error);
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl) throw new Error('FRONTEND_URL environment variable is missing.');
-    return `${frontendUrl}/login?error=sso_failed`;
-  }
 };

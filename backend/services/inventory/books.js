@@ -27,7 +27,7 @@ export const searchIlmsBookService = async (req, res) => {
     return { success: true, source: 'iLMS API', data: result.data };
   } else {
     logger.info('❌ iLMS API error:', result.error);
-    throw { status: 404, payload: { success: false, error: result.error, message: 'Book not found in iLMS system' } };
+    throw { status: 404, payload: { success: false, error: result.error, message: 'Book not found in catalog' } };
   }
 };
 

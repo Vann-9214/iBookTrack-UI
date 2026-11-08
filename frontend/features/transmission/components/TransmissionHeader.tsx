@@ -28,7 +28,7 @@ export function TransmissionHeader({ brand, mobileRightContent }: TransmissionHe
             Transmission Monitor
           </h1>
           <p className="mt-1.5 text-[13px] sm:text-sm font-medium text-muted-foreground leading-snug">
-            Live scanning data from Simflex WMS for{' '}
+            Live scanning data from the warehouse system for{' '}
             <span
               className={cn(
                 'inline-block align-middle ml-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider text-white shadow-sm leading-none',

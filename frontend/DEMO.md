@@ -3,8 +3,8 @@
 All application data lives in this browser's `localStorage`, under `ibooktrack_demo_state`.
 Run `npm ci`, then `npm run dev` from `frontend/`. No environment variables, backend,
 database, or API credentials are required. `/` opens the public landing page.
-Log in with empty or arbitrary fields to explore as a supervisor. The SSO link is
-also a local demo entry; it does not authenticate with an identity provider.
+Log in with empty or arbitrary fields to explore as a supervisor. A friendly
+first-visit note explains that all data in the demo is sample data.
 
 `npm run dev` uses Turbopack for faster development compilation, with its output
 in `.next-turbo/`. `npm run dev:webpack` is available as a fallback and uses

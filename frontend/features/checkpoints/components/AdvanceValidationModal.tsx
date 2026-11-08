@@ -18,7 +18,7 @@ export function AdvanceValidationModal({ advanceError, onClose }: AdvanceValidat
         </h3>
         <p className="text-sm text-muted-foreground mb-4">
           <span className="font-semibold text-foreground">{advanceError.box.box_number}</span>{' '}
-          cannot move to Transmission because not all processable ISBNs are verified in Simflex.
+          cannot move to Transmission because not all processable ISBNs are verified in the system.
         </p>
         <div className="bg-muted/40 rounded-lg border border-border p-3 mb-4 max-h-48 overflow-y-auto">
           <p className="text-xs font-medium text-foreground mb-2">Pending ISBNs:</p>

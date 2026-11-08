@@ -32,7 +32,7 @@ export type BookFlagIssue = (typeof BOOK_FLAG_ISSUES)[number]['value'] | 'mismat
 export type FlagIssue = BookFlagIssue
 
 export function getFlagIssueLabel(value: string): string {
-  if (value === 'mismatched-book') return 'Mismatch Book from ILMS (Title)'
+  if (value === 'mismatched-book') return 'Mismatch Book from Catalog (Title)'
   const match = BOOK_FLAG_ISSUES.find((issue) => issue.value === value)
   return match ? match.label : value
 }

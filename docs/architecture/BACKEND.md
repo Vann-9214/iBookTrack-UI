@@ -69,7 +69,7 @@ backend/
 │   ├── storage.js               # Storage locations
 │   └── index.js                 # ⚠️  unused route
 ├── services/
-│   ├── ilms-api.js              # Innodata iLMS HTTP client
+│   ├── ilms-api.js              # iLMS HTTP client
 │   ├── simflex-api.js           # Simflex HTTP wrapper
 │   ├── simflex-db.js            # Higher-level Simflex queries
 │   ├── simflex-poller.js        # Polls Simflex every 60s
@@ -213,7 +213,7 @@ Locations CRUD for the warehouse locator.
 ### Simflex WMS (`services/simflex-*.js`)
 
 - **Transport:** HTTPS to
-  `https://simflex.innodata.com/wms.services/WMS.Services.asmx/TechGetDatabaseDataset`
+  `https://<simflex-host>/wms.services/WMS.Services.asmx/TechGetDatabaseDataset`
 - **Auth:** API key + config code passed as query params.
 - **Config:** read from `.env` (`SIMFLEX_API_URL`, `SIMFLEX_API_KEY`,
   `SIMFLEX_CONFIG`). The poller logs a warning if any are missing.

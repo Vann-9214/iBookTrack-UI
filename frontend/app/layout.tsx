@@ -4,6 +4,7 @@ import { BrandProvider } from '@/hooks/use-brand'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as SonnerToaster } from '@/components/ui/sonner'
 import { ModalOriginTracker } from '@/components/modal-origin-tracker'
+import { DemoDisclaimer } from '@/components/demo-disclaimer'
 import { UserProvider } from '@/hooks/use-user'
 import './globals.css'
 
@@ -35,6 +36,7 @@ export default function RootLayout({
           <UserProvider>
             <BrandProvider>
               <ModalOriginTracker />
+              <DemoDisclaimer />
               {children}
             </BrandProvider>
           </UserProvider>

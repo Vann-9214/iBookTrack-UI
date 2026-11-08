@@ -139,7 +139,7 @@ export function TransmissionQueue({ scans: propScans, loading: propLoading = fal
             setEnrichedData(prev => ({ ...prev, ...data.enriched }))
           }
         } catch (e) {
-          console.error('Failed to enrich ILMS data:', e)
+          console.error('Failed to enrich catalog data:', e)
         }
       }
       fetchEnrichment()

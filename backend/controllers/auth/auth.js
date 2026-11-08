@@ -82,28 +82,3 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ error: 'Failed to update profile. Please try again later.' });
   }
 };
-
-export const innodata = async (req, res) => {
-  try {
-    const url = await authService.innodataService(req, res);
-    res.redirect(url);
-  } catch (error) {
-    if (error.status) return res.status(error.status).json(error.payload || { error: error.message });
-    // A failure here is a server/SSO configuration problem (missing or malformed
-    // OAUTH_* values). The detail is logged instead of being echoed to the
-    // browser, which would disclose internal configuration.
-    logger.error('SSO authorize error:', error);
-    res.status(500).send('Unable to start SSO sign-in.');
-  }
-};
-
-export const innodataCallback = async (req, res) => {
-  try {
-    const url = await authService.innodataCallbackService(req, res);
-    res.redirect(url);
-  } catch (error) {
-    if (error.status) return res.status(error.status).json(error.payload || { error: error.message });
-    logger.error('SSO Callback error:', error);
-    res.status(500).send('SSO Authentication failed');
-  }
-};

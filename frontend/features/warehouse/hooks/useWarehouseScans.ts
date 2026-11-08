@@ -56,7 +56,7 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     setIsbnLoading(true)
     try {
       const ilmsData = await queryIsbnStream(cleanIsbn, currentSession.type)
-      if (!ilmsData.success) { setSessionError(ilmsData.error || `ISBN ${cleanIsbn} not found in ${currentSession.type?.toUpperCase() || 'iLMS'} records.`); return }
+      if (!ilmsData.success) { setSessionError(ilmsData.error || `ISBN ${cleanIsbn} not found in ${currentSession.type?.toUpperCase() || 'catalog'} records.`); return }
       const bookData = ilmsData.data
       const mismatch = ilmsLotBoxMismatch(bookData?.LotNo, bookData?.BoxNo, activeLot, currentBoxNumber)
       if (mismatch.mismatched) {
@@ -156,11 +156,11 @@ export function useWarehouseScans(core: ReturnType<typeof useWarehouseState>) {
     setSessionError(null)
     try {
       const data = await queryIsbnStream(cleanIsbn, currentSession?.type, true, issueType)
-      if (!data.success) { setSessionError(data.error || `ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'iLMS'} records.`); setIssueIsbn(''); return }
+      if (!data.success) { setSessionError(data.error || `ISBN ${cleanIsbn} not found in ${currentSession?.type?.toUpperCase() || 'catalog'} records.`); setIssueIsbn(''); return }
       setIssues((prev) => [...prev, { isbn: cleanIsbn, type: issueType, title: data.data?.Title || 'Unknown Title', author: data.data?.AuthorName || data.data?.Author || '' }])
       setIssueIsbn('')
     } catch {
-      setSessionError('Failed to connect to iLMS. Please try again.')
+      setSessionError('Failed to connect to the catalog. Please try again.')
     } finally {
       setFetchingIssueBook(false)
     }

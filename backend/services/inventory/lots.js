@@ -142,8 +142,8 @@ export const getLotTransmissionSummaryService = async (req, res) => {
   }
 
   if (dbChanged) {
-    broadcastEvent('BOX_UPDATED', { message: `Boxes in lot ${lot.lot_number} updated from Simflex sync` });
-    broadcastEvent('PIPELINE_UPDATED', { message: `Boxes in lot ${lot.lot_number} updated from Simflex sync` });
+    broadcastEvent('BOX_UPDATED', { message: `Boxes in lot ${lot.lot_number} updated from system sync` });
+    broadcastEvent('PIPELINE_UPDATED', { message: `Boxes in lot ${lot.lot_number} updated from system sync` });
   }
 
   return {

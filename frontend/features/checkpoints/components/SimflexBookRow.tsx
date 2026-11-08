@@ -31,7 +31,7 @@ export function SimflexBookRow({ row }: SimflexBookRowProps) {
           Ongoing
         </span>
         <span className="text-[10px] text-muted-foreground font-medium">
-          Simflex: {row.Status || 'Transmission_Archive ONGOING'}
+          System: {row.Status || 'Transmission_Archive ONGOING'}
         </span>
       </div>
     </div>

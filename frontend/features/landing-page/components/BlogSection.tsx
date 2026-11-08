@@ -18,7 +18,7 @@ const POSTS = [
   {
     tag: "Quality",
     date: "April 2026",
-    title: "Zero-Error Transmission: Our Simflex Hash-Check Approach",
+    title: "Zero-Error Transmission: Our Hash-Check Approach",
     excerpt:
       "Bit errors during delivery are silent killers for digital archives. We break down the hash-check monitor that guarantees every file arrives intact.",
   },

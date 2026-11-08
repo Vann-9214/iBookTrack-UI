@@ -1,6 +1,6 @@
 # iBookTrack — Project Overview
 
-> A unified Warehouse Management System (WMS) and Executive Dashboard built for Innodata's physical book digitization workflow. iBookTrack tracks every book through an 8-stage pipeline from arrival (Warehouse) to final Storage, eliminating inventory loss and replacing outdated Excel-based logs.
+> A unified Warehouse Management System (WMS) and Executive Dashboard built for a physical book digitization workflow. iBookTrack tracks every book through an 8-stage pipeline from arrival (Warehouse) to final Storage, eliminating inventory loss and replacing outdated Excel-based logs.
 
 ## 📖 What is iBookTrack?
 
