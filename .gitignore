@@ -2,7 +2,7 @@
 node_modules/
 /.pnp
 .pnp.js
-package-lock.json
+# package-lock.json is intentionally committed (reproducible builds on Vercel)
 pnpm-lock.yaml
 yarn.lock
 
